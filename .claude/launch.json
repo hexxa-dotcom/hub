@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hexxa-tasks",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "hexxa-tasks"],
+      "port": 3000
+    },
+    {
+      "name": "hexxa-digital-hub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "Hub/apps/web"],
+      "port": 3300,
+      "autoPort": false
+    },
+    {
+      "name": "Static site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 8000
+    }
+  ]
+}

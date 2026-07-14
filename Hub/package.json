@@ -1,0 +1,27 @@
+{
+  "name": "hexxa-hub",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Hexx Hub Digital — Portal do Cliente + Hub Operacional para empresas de serviços e holdings patrimoniais.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "turbo run db:generate --filter=@hexxa/db",
+    "db:migrate": "turbo run db:migrate --filter=@hexxa/db",
+    "mcp": "turbo run dev --filter=@hexxa/mcp"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "npm@10.9.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

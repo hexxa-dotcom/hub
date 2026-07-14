@@ -1,0 +1,9 @@
+-- Aplicada em 2026-07-07 via Supabase MCP (registro local).
+-- RPCs do Hub Financeiro (/api/financeiro) que nunca existiram no banco.
+-- Ver definição completa no histórico de migrações do Supabase
+-- (migration: create_lancamento_rpcs). Inclui:
+--   ALTER TABLE financial_entry ADD COLUMN paid_at date, notes text;
+--   FUNCTION get_lancamentos(p_company_id, p_tipo)
+--   FUNCTION insert_lancamento(p_company_id, p_tipo, p_descricao, p_valor, p_vencimento, p_categoria, p_observacao)
+--   FUNCTION update_lancamento(p_id, p_pago_em, p_unset_pago)
+--   FUNCTION delete_lancamento(p_id)

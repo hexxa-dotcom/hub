@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEXX — Contabilidade Digital para Prestadores de Serviço</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@1,144,300..500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f4f0;            /* off-white quase liso */
+    --surface:#ffffff;
+    --ink:#1d1a17;           /* warm graphite */
+    --ink-2:#2a2622;
+    --accent:#2f3e2e;        /* deep moss */
+    --muted:#76716a;         /* warm gray */
+    --muted-2:#a5a098;
+    --border:#ebe8e2;
+    --radius-lg:32px;
+    --radius-md:22px;
+    --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(29,26,23,.05), 0 12px 32px -8px rgba(29,26,23,.08);
+    --max:1280px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:#0d0a06;
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    letter-spacing:-.01em;
+    padding:14px;
+  }
+  .serif{
+    font-family:'Fraunces', 'Instrument Serif', Georgia, serif;
+    font-style:italic;
+    font-weight:300;
+    letter-spacing:-.025em;
+    font-optical-sizing:auto;
+  }
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+
+  .page{
+    max-width:var(--max);margin:0 auto;
+    background:var(--bg);border-radius:36px;overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);
+  }
+
+  /* ============ Buttons ============ */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:16px 28px;border-radius:var(--radius-pill);
+    font-family:inherit;font-weight:600;font-size:15px;
+    border:1px solid transparent;cursor:pointer;
+    transition:transform .15s ease, background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+    white-space:nowrap;letter-spacing:-.01em;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-dark:hover{background:#000}
+  .btn-outline{background:transparent;border-color:#d6d6d6;color:var(--ink)}
+  .btn-outline:hover{border-color:var(--ink)}
+  .btn-light{background:#fff;color:var(--ink);border:1px solid #e6e6e6}
+
+  .eyebrow{
+    display:inline-block;font-size:13px;font-weight:700;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink);
+  }
+  .eyebrow.muted{color:#7a7a82;font-weight:600}
+
+  /* ============ Hero ============ */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse 70% 80% at 80% 15%, #fcfaf6 0%, transparent 70%),
+      radial-gradient(ellipse 60% 70% at 15% 85%, #ece9e2 0%, transparent 70%),
+      linear-gradient(180deg, #f8f6f1 0%, #eeebe4 100%);
+    padding:34px 40px 60px;
+    overflow:hidden;
+    min-height:720px;
+    display:flex;flex-direction:column;
+  }
+
+  /* navbar inside hero */
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    margin-bottom:80px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.04em}
+  .brand-mark{
+    width:30px;height:30px;border-radius:8px;background:var(--ink);
+    display:grid;place-items:center;color:#fff;font-weight:900;font-size:16px;
+    transform:rotate(-6deg);
+  }
+  .nav-links{display:flex;gap:36px;font-size:15px;font-weight:500;color:var(--ink)}
+  .nav-links a{display:inline-flex;align-items:center;gap:4px}
+  .nav-links a:hover{opacity:.7}
+  .nav-cta{padding:13px 26px;font-size:14px}
+
+  /* hero content */
+  .hero-content{
+    text-align:center;max-width:1100px;margin:0 auto;
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+  }
+  .hero .eyebrow{margin-bottom:28px}
+  .hero h1{
+    font-size:clamp(44px,7.2vw,108px);
+    line-height:.96;letter-spacing:-.045em;
+    font-weight:800;color:var(--ink);
+    margin-bottom:32px;
+  }
+  .hero p.sub{
+    font-size:clamp(15px,1.3vw,18px);color:#3a3a40;
+    max-width:560px;margin:0 auto 44px;line-height:1.5;font-weight:400;
+  }
+  .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* ============ Section primitives ============ */
+  .section{
+    background:var(--bg);
+    padding:120px 40px;
+    position:relative;
+  }
+  .section-inner{max-width:var(--max);margin:0 auto}
+  .section-head{text-align:center;margin-bottom:64px}
+  .section-head .eyebrow{margin-bottom:20px}
+  .section-head h2{
+    font-size:clamp(36px,5.4vw,80px);line-height:1;letter-spacing:-.04em;
+    font-weight:800;color:var(--ink);max-width:1000px;margin:0 auto 22px;
+  }
+  .section-head p.lede{
+    font-size:17px;color:var(--muted);max-width:640px;margin:0 auto;line-height:1.55;
+  }
+  .grid-bg{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(to right, rgba(15,15,18,.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15,15,18,.04) 1px, transparent 1px);
+    background-size:60px 60px;
+    mask-image:radial-gradient(ellipse at center, black 30%, transparent 75%);
+    pointer-events:none;
+  }
+
+  /* ============ Features cards ============ */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
+  .feature{
+    background:var(--surface);border-radius:var(--radius-md);
+    padding:34px 30px;box-shadow:var(--shadow-card);
+    min-height:280px;display:flex;flex-direction:column;
+    border:1px solid #f0f0f0;
+  }
+  .feature .icon{
+    width:48px;height:48px;color:var(--ink);
+    margin-bottom:auto;
+  }
+  .feature h3{
+    font-size:24px;font-weight:700;letter-spacing:-.025em;
+    color:var(--ink);margin:80px 0 12px;
+  }
+  .feature p{font-size:15px;color:var(--muted);line-height:1.55}
+
+  /* ============ Audience grid (Pra quem é) ============ */
+  .audience-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .audience{
+    background:var(--surface);border-radius:var(--radius-md);
+    padding:32px 28px;box-shadow:var(--shadow-card);
+    border:1px solid #f0f0f0;
+    display:flex;flex-direction:column;gap:12px;
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .audience:hover{
+    transform:translateY(-3px);
+    box-shadow:0 2px 4px rgba(15,15,18,.05), 0 24px 48px -12px rgba(15,15,18,.12);
+  }
+  .audience .icon{
+    width:42px;height:42px;color:var(--ink);margin-bottom:8px;
+  }
+  .audience h3{
+    font-size:20px;font-weight:700;letter-spacing:-.025em;color:var(--ink);
+  }
+  .audience p{font-size:14.5px;color:var(--muted);line-height:1.55}
+  @media (max-width:980px){
+    .audience-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:560px){
+    .audience-grid{grid-template-columns:1fr}
+  }
+
+  /* ============ Pain section ============ */
+  .pain{
+    background:var(--bg);
+    padding:120px 40px;
+  }
+  .pain-inner{max-width:var(--max);margin:0 auto;text-align:center}
+  .pain h2{
+    font-size:clamp(36px,5vw,72px);line-height:1.02;letter-spacing:-.04em;
+    font-weight:800;max-width:1000px;margin:22px auto 28px;
+  }
+  .pain p{
+    font-size:17px;color:var(--muted);max-width:680px;margin:0 auto;line-height:1.6;
+  }
+
+  /* ============ Services / inteligência ============ */
+  .services{
+    display:grid;grid-template-columns:1.1fr .9fr;gap:32px;
+    align-items:stretch;
+  }
+  .services-left{
+    background:#fff;border-radius:var(--radius-md);
+    padding:48px 40px;box-shadow:var(--shadow-card);border:1px solid #f0f0f0;
+  }
+  .services-left .eyebrow{margin-bottom:18px}
+  .services-left h2{
+    font-size:clamp(32px,3.6vw,52px);line-height:1.02;letter-spacing:-.035em;
+    font-weight:800;margin-bottom:36px;
+  }
+  .checklist{display:grid;gap:18px}
+  .check{display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-top:1px solid #efefef}
+  .check:first-child{border-top:none;padding-top:0}
+  .check .mark{
+    flex-shrink:0;width:30px;height:30px;border-radius:50%;
+    background:var(--ink);color:#fff;display:grid;place-items:center;
+    font-weight:700;font-size:13px;
+  }
+  .check h4{font-size:17px;font-weight:700;margin-bottom:4px;letter-spacing:-.02em}
+  .check p{font-size:14px;color:var(--muted);line-height:1.55}
+
+  .services-right{
+    background:var(--ink);
+    color:#f4f1ec;
+    border-radius:var(--radius-md);
+    padding:44px;
+    display:flex;flex-direction:column;
+    min-height:480px;position:relative;overflow:hidden;
+  }
+  .tag-quote{
+    background:rgba(244,241,236,.08);
+    color:#f4f1ec;padding:8px 14px;
+    border:1px solid rgba(244,241,236,.16);
+    border-radius:var(--radius-pill);
+    font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    align-self:flex-start;
+  }
+  .testimonial-quote{
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:300;font-style:italic;
+    font-size:clamp(20px,1.8vw,26px);
+    line-height:1.35;letter-spacing:-.02em;
+    margin:32px 0 28px;
+    color:#f4f1ec;
+  }
+  .testimonial-author{display:flex;gap:14px;align-items:center;margin-bottom:24px}
+  .testimonial-author .avatar{
+    width:48px;height:48px;border-radius:50%;
+    background:linear-gradient(135deg, #4a5b46, #6b7363);
+    color:#f4f1ec;display:grid;place-items:center;
+    font-weight:700;font-size:18px;letter-spacing:-.02em;
+  }
+  .testimonial-author .name{font-weight:700;font-size:15px;color:#f4f1ec}
+  .testimonial-author .role{font-size:13px;color:#a5a098;margin-top:2px}
+  .testimonial-stat{
+    margin-top:auto;
+    border-top:1px solid rgba(244,241,236,.12);
+    padding-top:22px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  }
+  .testimonial-stat .v{
+    font-size:32px;font-weight:800;letter-spacing:-.035em;color:#f4f1ec;
+  }
+  .testimonial-stat .k{
+    font-size:11px;color:#a5a098;text-transform:uppercase;letter-spacing:.14em;font-weight:600;
+  }
+
+  /* ============ Plans ============ */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .plan{
+    background:#fff;border-radius:var(--radius-md);
+    padding:40px 32px;display:flex;flex-direction:column;gap:18px;
+    box-shadow:var(--shadow-card);border:1px solid #f0f0f0;position:relative;
+  }
+  .plan.featured{
+    background:var(--ink);color:#fff;
+    box-shadow:0 20px 60px rgba(0,0,0,.18);
+  }
+  .plan.featured .muted{color:#bdbdc4}
+  .plan .badge{
+    align-self:flex-start;font-size:11px;padding:6px 14px;
+    border:1px solid #d6d6d6;border-radius:var(--radius-pill);
+    font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  }
+  .plan.featured .badge{border-color:#3a3a40;color:#fff;background:#1f1f25}
+  .plan h3{font-size:22px;letter-spacing:-.025em;font-weight:700}
+  .plan .price{
+    font-size:54px;font-weight:800;letter-spacing:-.045em;line-height:1;
+    margin-top:4px;
+  }
+  .plan .price small{font-size:14px;color:var(--muted);font-weight:500;margin-left:6px;letter-spacing:0}
+  .plan.featured .price small{color:#bdbdc4}
+  .plan ul{list-style:none;display:grid;gap:12px;margin:12px 0 20px}
+  .plan ul li{
+    font-size:14.5px;line-height:1.5;padding-left:28px;position:relative;
+    color:#2a2a2f;
+  }
+  .plan.featured ul li{color:#dededf}
+  .plan ul li::before{
+    content:"";position:absolute;left:0;top:5px;width:18px;height:18px;
+    border-radius:50%;background:var(--ink);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+    background-size:11px;background-repeat:no-repeat;background-position:center;
+  }
+  .plan.featured ul li::before{
+    background-color:#fff;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f0f12' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+  }
+  .plan .cta{margin-top:auto;width:100%}
+  .plan.featured .cta{background:#fff;color:var(--ink)}
+  .plan.featured .cta:hover{background:#f0f0f0}
+
+  /* ============ FAQ ============ */
+  .faq-grid{display:grid;gap:14px;max-width:880px;margin:0 auto}
+  details.faq{
+    background:#fff;border-radius:18px;
+    box-shadow:var(--shadow-card);border:1px solid #f0f0f0;
+    overflow:hidden;
+  }
+  details.faq summary{
+    list-style:none;cursor:pointer;padding:24px 28px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    font-size:17px;font-weight:600;letter-spacing:-.02em;
+  }
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq summary .num{
+    font-size:13px;color:var(--muted);font-weight:500;margin-right:18px;font-variant-numeric:tabular-nums;
+  }
+  details.faq summary .q{flex:1}
+  details.faq summary .plus{
+    width:34px;height:34px;border-radius:50%;background:#f4f4f4;
+    display:grid;place-items:center;font-size:20px;font-weight:400;color:var(--ink);
+    transition:transform .25s ease, background .2s ease;
+  }
+  details.faq[open] summary .plus{transform:rotate(45deg);background:var(--ink);color:#fff}
+  details.faq .a{
+    padding:0 28px 26px;font-size:15px;color:var(--muted);line-height:1.65;
+  }
+
+  /* ============ CTA Final ============ */
+  .cta-final{
+    position:relative;
+    background:
+      radial-gradient(ellipse 70% 80% at 20% 85%, #fcfaf6 0%, transparent 70%),
+      radial-gradient(ellipse 60% 70% at 85% 15%, #ece9e2 0%, transparent 70%),
+      linear-gradient(180deg, #eeebe4 0%, #f8f6f1 100%);
+    padding:120px 40px;text-align:center;overflow:hidden;
+  }
+  .cta-final .eyebrow{margin-bottom:24px}
+  .cta-final h2{
+    font-size:clamp(40px,6vw,88px);line-height:1;letter-spacing:-.045em;
+    font-weight:800;max-width:1000px;margin:0 auto 24px;
+  }
+  .cta-final p{
+    font-size:17px;color:#3a3a40;max-width:560px;margin:0 auto 40px;line-height:1.55;
+  }
+  .cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* ============ Contact form ============ */
+  .contact-form{
+    background:#fff;border-radius:24px;
+    padding:36px;max-width:720px;margin:0 auto;
+    display:flex;flex-direction:column;gap:18px;
+    box-shadow:0 1px 2px rgba(15,15,18,.04), 0 28px 60px -12px rgba(15,15,18,.18);
+    border:1px solid #ececec;text-align:left;
+  }
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .contact-form label{display:flex;flex-direction:column;gap:8px}
+  .contact-form label span.l{
+    font-size:11px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .contact-form input,
+  .contact-form select,
+  .contact-form textarea{
+    font-family:inherit;font-size:15px;color:var(--ink);
+    padding:14px 16px;border:1px solid #e3e3e5;border-radius:12px;
+    background:#fafafa;outline:none;width:100%;
+    transition:border-color .2s, background .2s, box-shadow .2s;
+    letter-spacing:-.005em;
+  }
+  .contact-form input::placeholder,
+  .contact-form textarea::placeholder{color:#a5a5ab}
+  .contact-form select{appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat;background-position:right 14px center;background-size:18px;
+    padding-right:42px;
+  }
+  .contact-form input:focus,
+  .contact-form select:focus,
+  .contact-form textarea:focus{
+    border-color:var(--ink);background:#fff;
+    box-shadow:0 0 0 4px rgba(15,15,18,.06);
+  }
+  .contact-form textarea{resize:vertical;min-height:96px}
+  .form-footer{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:18px;margin-top:6px;
+  }
+  .form-footer .privacy{
+    font-size:12px;color:var(--muted);max-width:340px;line-height:1.5;margin:0;
+  }
+  .form-footer button{padding:16px 28px;border:none;cursor:pointer}
+  .form-success{
+    display:none;padding:18px 22px;border-radius:14px;
+    background:#0f0f12;color:#fff;font-size:14px;font-weight:500;text-align:center;
+    letter-spacing:-.01em;
+  }
+  .form-success.show{display:block}
+  @media (max-width:560px){
+    .form-row{grid-template-columns:1fr}
+    .contact-form{padding:24px;border-radius:18px}
+    .form-footer{flex-direction:column;align-items:stretch}
+    .form-footer button{width:100%}
+    .form-footer .privacy{max-width:none;text-align:center}
+  }
+
+  /* ============ Footer ============ */
+  .footer{
+    background:var(--ink);color:#cdcdc4;
+    padding:80px 40px 40px;
+  }
+  .footer-inner{max-width:var(--max);margin:0 auto}
+  .footer-top{
+    display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;
+    padding-bottom:48px;border-bottom:1px solid #232328;
+  }
+  .footer .brand{color:#fff;margin-bottom:18px;font-size:24px}
+  .footer .brand-mark{background:#fff;color:var(--ink)}
+  .footer .tagline{font-size:14px;color:#9a9a92;max-width:320px;line-height:1.6}
+  .footer h4{
+    font-size:11px;text-transform:uppercase;letter-spacing:.2em;
+    color:#7e7e76;margin-bottom:18px;font-weight:600;
+  }
+  .footer ul{list-style:none;display:grid;gap:10px;font-size:14px}
+  .footer ul a:hover{color:#fff}
+  .footer-bottom{
+    padding-top:32px;display:flex;justify-content:space-between;
+    align-items:center;font-size:12px;color:#7e7e76;flex-wrap:wrap;gap:12px;
+  }
+
+  /* Hero wordmark (Invofy-style giant bottom wordmark) */
+  .hero-wordmark{
+    text-align:center;
+    font-size:clamp(60px, 14vw, 220px);
+    font-weight:900;letter-spacing:-.08em;
+    color:rgba(15,15,18,.08);
+    line-height:.9;
+    margin-top:60px;
+    user-select:none;
+  }
+
+  /* ============ Responsive ============ */
+  @media (max-width:980px){
+    .nav-links{display:none}
+    .features{grid-template-columns:1fr}
+    .plans{grid-template-columns:1fr}
+    .services{grid-template-columns:1fr}
+    .footer-top{grid-template-columns:1fr 1fr}
+    .section, .pain, .cta-final{padding:80px 24px}
+    .hero{padding:24px 24px 40px;min-height:auto}
+    .nav{margin-bottom:48px}
+    .services-left{padding:32px 24px}
+    .plan{padding:32px 24px}
+  }
+  @media (max-width:560px){
+    .footer-top{grid-template-columns:1fr}
+    body{padding:8px}
+    .page{border-radius:24px}
+    .hero h1{font-size:48px}
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ========== HERO ========== -->
+  <header class="hero">
+    <nav class="nav">
+      <a href="#" class="brand">
+        <span class="brand-mark">H</span>
+        <span>HEXX</span>
+      </a>
+      <div class="nav-links">
+        <a href="#hexxa">Início</a>
+        <a href="#sobre">Sobre</a>
+        <a href="planos.html">Planos</a>
+        <a href="#paraquem">Pra quem é</a>
+        <a href="#contato">Contato</a>
+      </div>
+      <a href="planos.html" class="btn btn-dark nav-cta">Acessar Hexxa</a>
+    </nav>
+
+    <div class="hero-content">
+      <span class="eyebrow">Para Prestadores de Serviço</span>
+      <h1>Você abriu CNPJ pra <span class="serif">fazer outra coisa</span>.<br>A gente cuida do resto.</h1>
+      <p class="sub">Uma contabilidade pensada pra sumir da sua semana — sem virar planilha, sem virar contador. Você ganha sua sexta-feira de volta.</p>
+      <div class="hero-cta">
+        <a href="#contato" class="btn btn-dark">Quero ganhar tempo</a>
+        <a href="planos.html" class="btn btn-outline">Ver planos</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== PAIN ========== -->
+  <section class="pain" id="sobre">
+    <div class="pain-inner">
+      <span class="eyebrow muted">Por que existimos</span>
+      <h2>A maioria das contabilidades trata sua empresa como <span class="serif">mais uma planilha</span>.</h2>
+      <p>Elas atendem qualquer nicho — e por isso não conhecem nenhum. Você acaba pagando por relatórios que não usa, recebendo respostas em 3 dias e perdendo dinheiro porque ninguém olha pro seu Fator R. A HEXX só atende prestador de serviço. É o nosso único trabalho.</p>
+    </div>
+  </section>
+
+  <!-- ========== FEATURES ========== -->
+  <section class="section" id="hexxa">
+    <div class="grid-bg"></div>
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow muted">Conheça a Hexxa</span>
+        <h2>Tudo pra você <span class="serif">parar de pensar</span> nisso.</h2>
+        <p class="lede">Do dashboard ao app no celular, a Hexxa foi feita pra sumir da sua rotina — e estar lá toda vez que você precisar de uma resposta. Sem instalar nada. Sem entender de contabilidade.</p>
+      </div>
+
+      <div class="features">
+        <div class="feature">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="5" rx="1.5"/>
+            <rect x="14" y="12" width="7" height="9" rx="1.5"/>
+            <rect x="3" y="16" width="7" height="5" rx="1.5"/>
+          </svg>
+          <h3>Dashboard<br>Financeiro Claro</h3>
+          <p>Visualize o que entra, o que sai e o valor exato dos seus impostos do mês, em tempo real.</p>
+        </div>
+        <div class="feature">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          </svg>
+          <h3>Alertas<br>Inteligentes</h3>
+          <p>Notificações sobre vencimentos e monitoramento contínuo do limite do Simples Nacional.</p>
+        </div>
+        <div class="feature">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="3"/>
+            <line x1="12" y1="18" x2="12" y2="18.01"/>
+          </svg>
+          <h3>Gestão na<br>Palma da Mão</h3>
+          <p>Emita notas fiscais e envie documentos direto pelo celular, em poucos segundos.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SERVIÇOS EXCLUSIVOS ========== -->
+  <section class="section" style="padding-top:0">
+    <div class="section-inner">
+      <div class="services">
+        <div class="services-left">
+          <span class="eyebrow muted">Serviços exclusivos</span>
+          <h2>Menos imposto. <span class="serif">Mais tempo.</span></h2>
+          <div class="checklist">
+            <div class="check">
+              <span class="mark">✓</span>
+              <div>
+                <h4>Monitoramento Fator R</h4>
+                <p>Cálculo contínuo para garantir a menor alíquota no Simples Nacional, com sinais preditivos de mudança de anexo.</p>
+              </div>
+            </div>
+            <div class="check">
+              <span class="mark">✓</span>
+              <div>
+                <h4>Planejamento de Transição</h4>
+                <p>Análise comparativa entre Simples Nacional e Lucro Presumido para a sua realidade.</p>
+              </div>
+            </div>
+            <div class="check">
+              <span class="mark">✓</span>
+              <div>
+                <h4>BPO Financeiro Integrado</h4>
+                <p>Terceirização das rotinas financeiras conectada nativamente à Hexxa.</p>
+              </div>
+            </div>
+            <div class="check">
+              <span class="mark">✓</span>
+              <div>
+                <h4>Abertura Express</h4>
+                <p>CNPJ ativo com a agilidade que só a tecnologia permite — sem fila de protocolo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TODO: substituir nome/foto/quote/valor por cliente real -->
+        <div class="services-right">
+          <span class="tag-quote">Cliente HEXX · 2025</span>
+          <p class="testimonial-quote">"Saí de uma contabilidade que respondia em 3 dias para uma que me avisa antes do problema acontecer. Em 11 meses economizei R$ 14.820 só com o ajuste do Fator R — sem mudar nada do meu dia a dia."</p>
+          <div class="testimonial-author">
+            <div class="avatar">M</div>
+            <div>
+              <div class="name">Mariana Soares</div>
+              <div class="role">Advogada · Itajaí, SC</div>
+            </div>
+          </div>
+          <div class="testimonial-stat">
+            <span class="v">R$ 14.820</span>
+            <span class="k">economizados no 1º ano</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PLANOS (teaser → planos.html) ========== -->
+  <section class="section" id="planos">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow muted">Planos e Valores</span>
+        <h2>Um plano pra <span class="serif">cada fase</span> da sua empresa.</h2>
+        <p class="lede">Do autônomo recém-aberto ao BPO Financeiro completo. Três planos, valor fixo, sem surpresa na fatura. Mais de 247 prestadores em SC já escolheram o seu.</p>
+        <div style="margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+          <a href="planos.html" class="btn btn-dark">Conhecer os planos</a>
+          <a href="planos.html#planos" class="btn btn-outline">Comparar recursos</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PRA QUEM É ========== -->
+  <section class="section" id="paraquem">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow muted">Pra quem é</span>
+        <h2>Feita pra quem <span class="serif">vive de cobrar por hora</span>.</h2>
+        <p class="lede">Não importa o nicho — se você fatura entregando expertise, a HEXX foi pensada pra você. Alguns dos profissionais que já confiam na gente:</p>
+      </div>
+
+      <div class="audience-grid">
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v18"/>
+            <path d="M5 21h14"/>
+            <path d="M6 8l-3 6c0 1.7 1.3 3 3 3s3-1.3 3-3l-3-6z"/>
+            <path d="M18 8l-3 6c0 1.7 1.3 3 3 3s3-1.3 3-3l-3-6z"/>
+            <path d="M5 8h14"/>
+          </svg>
+          <h3>Advogados</h3>
+          <p>Atuação como autônomo, sociedade unipessoal ou banca — com gestão do PJ e do recolhimento correto.</p>
+        </div>
+
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4v6a4 4 0 0 0 8 0V4"/>
+            <path d="M8 14v3a4 4 0 0 0 4 4 4 4 0 0 0 4-4v-2"/>
+            <circle cx="18" cy="11" r="3"/>
+          </svg>
+          <h3>Médicos e Dentistas</h3>
+          <p>Consultórios próprios, plantões e atendimento particular — com Fator R ativo pra reduzir a alíquota.</p>
+        </div>
+
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          <h3>Programadores e TI</h3>
+          <p>Devs PJ, freelas e consultores que faturam pra fora — incluindo clientes internacionais e SaaS próprios.</p>
+        </div>
+
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+            <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+            <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+            <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.83-.44-1.12-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.66h1.99c3.05 0 5.55-2.5 5.55-5.55C21.97 6.01 17.46 2 12 2z"/>
+          </svg>
+          <h3>Designers e Agências</h3>
+          <p>Branding, social, agências de marketing e estúdios criativos — projetos avulsos ou recorrência.</p>
+        </div>
+
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.3 8.7 8.7 21.3a2.41 2.41 0 0 1-3.4 0L2.7 18.7a2.41 2.41 0 0 1 0-3.4L15.3 2.7a2.41 2.41 0 0 1 3.4 0l2.6 2.6a2.41 2.41 0 0 1 0 3.4z"/>
+            <path d="m7 17 3-3"/>
+            <path d="m11 13 3-3"/>
+            <path d="m15 9 3-3"/>
+          </svg>
+          <h3>Arquitetos e Engenheiros</h3>
+          <p>Projetos, consultoria técnica e ART/RRT — com emissão de notas e controle de medições integrado.</p>
+        </div>
+
+        <div class="audience">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+          </svg>
+          <h3>Psicólogos e Terapeutas</h3>
+          <p>Atendimento clínico, online ou em consultório — com modelo tributário pensado pra honorário recorrente.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA FINAL (com formulário) ========== -->
+  <section class="cta-final" id="contato">
+    <span class="eyebrow">Vamos começar?</span>
+    <h2>Sua sexta-feira <span class="serif">de volta</span>.</h2>
+    <p>Mais de 247 prestadores em SC já saíram da rotina contábil. Deixe seus dados e a gente te liga em até 1 dia útil — sem script, sem robô.</p>
+
+    <form class="contact-form" id="hexxForm" novalidate>
+      <div class="form-row">
+        <label>
+          <span class="l">Nome</span>
+          <input type="text" name="nome" placeholder="Seu nome completo" required>
+        </label>
+        <label>
+          <span class="l">E-mail</span>
+          <input type="email" name="email" placeholder="voce@email.com" required>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>
+          <span class="l">WhatsApp</span>
+          <input type="tel" name="whatsapp" placeholder="(00) 00000-0000" required>
+        </label>
+        <label>
+          <span class="l">Sua atuação</span>
+          <select name="profissao" required>
+            <option value="">Selecione...</option>
+            <option>Advogado(a)</option>
+            <option>Médico(a) / Dentista</option>
+            <option>Programador(a) / TI</option>
+            <option>Designer / Agência</option>
+            <option>Arquiteto(a) / Engenheiro(a)</option>
+            <option>Psicólogo(a) / Terapeuta</option>
+            <option>Consultor(a)</option>
+            <option>Outro prestador de serviço</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span class="l">Conte um pouco do seu momento (opcional)</span>
+        <textarea name="mensagem" rows="3" placeholder="Ex.: estou abrindo CNPJ, quero trocar de contador, preciso de BPO..."></textarea>
+      </label>
+      <div class="form-footer">
+        <p class="privacy">Ao enviar, você concorda em receber contato da equipe HEXX por e-mail e WhatsApp.</p>
+        <button type="submit" class="btn btn-dark">Quero ser contatado</button>
+      </div>
+      <div class="form-success" id="hexxFormSuccess">
+        Recebemos seus dados — nossa equipe entra em contato em até 1 dia útil. Obrigado!
+      </div>
+    </form>
+
+    <div class="hero-wordmark">HEXX</div>
+  </section>
+
+  <script>
+    (function(){
+      const form = document.getElementById('hexxForm');
+      const success = document.getElementById('hexxFormSuccess');
+      if(!form) return;
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(!form.checkValidity()){ form.reportValidity(); return; }
+        // TODO: integrar com endpoint real
+        form.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+        success.classList.add('show');
+        success.scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    })();
+  </script>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <div class="brand">
+            <span class="brand-mark">H</span>
+            <span>HEXX</span>
+          </div>
+          <p class="tagline">Sua contabilidade, no seu bolso. Tecnologia exclusiva para prestadores de serviço.</p>
+        </div>
+        <div>
+          <h4>Plataforma</h4>
+          <ul>
+            <li><a href="#hexxa">Conheça a Hexxa</a></li>
+            <li><a href="planos.html">Planos</a></li>
+            <li><a href="#">Trocar de Contabilidade</a></li>
+            <li><a href="#">Login</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contato</h4>
+          <ul>
+            <li>WhatsApp: (47) 9999-0000</li>
+            <li>contato@hexx.com.br</li>
+            <li>Navegantes — SC</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li>HEXX Contabilidade Digital Ltda.</li>
+            <li>CNPJ: XX.XXX.XXX/0001-XX</li>
+            <li>CRC SC-047967/O</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 HEXX Contabilidade Digital — Todos os direitos reservados.</span>
+        <span>Feito em Navegantes / SC</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

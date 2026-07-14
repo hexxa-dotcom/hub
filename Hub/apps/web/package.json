@@ -1,0 +1,43 @@
+{
+  "name": "@hexxa/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/localizations": "^4.12.1",
+    "@clerk/nextjs": "^7.5.13",
+    "@hexxa/core": "*",
+    "@hexxa/db": "*",
+    "@hexxa/integrations": "*",
+    "@react-pdf/renderer": "^4.5.1",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.108.0",
+    "@tanstack/react-query": "^5.62.0",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
+    "fast-xml-parser": "^5.9.3",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.469.0",
+    "next": "^16.2.9",
+    "pdf-parse": "^2.4.5",
+    "react": "~19.2.3",
+    "react-dom": "~19.2.3",
+    "tailwind-merge": "^2.6.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.3"
+  }
+}

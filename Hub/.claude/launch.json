@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hexxa-digital-hub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/filipeheck/Downloads/Projeto hexxa/hexxa-hub/apps/web",
+      "port": 3300,
+      "autoPort": true
+    }
+  ]
+}

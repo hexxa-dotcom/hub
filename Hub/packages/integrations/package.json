@@ -1,0 +1,22 @@
+{
+  "name": "@hexxa/integrations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hexxa/core": "*",
+    "node-forge": "^1.4.0",
+    "xml-crypto": "^6.1.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node-forge": "^1.3.14",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,143 @@
+import { getTenantContext } from '@/lib/server/tenant';
+import { taxHistory, getDb, eq, desc } from '@hexxa/db';
+import { AlertCircle, TrendingUp, Info, BarChart2 } from 'lucide-react';
+
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+export default async function TermometroTributarioPage() {
+  const ctx = await getTenantContext();
+  const db = getDb();
+
+  const history = await db.select()
+    .from(taxHistory)
+    .where(eq(taxHistory.companyId, ctx.companyId))
+    .orderBy(desc(taxHistory.referenceMonth))
+    .limit(1);
+
+  const currentHistory = history[0];
+  const rba12 = currentHistory ? parseFloat(currentHistory.rba12) : 0;
+  
+  // Limites do Simples Nacional
+  const LIMITE_TETO = 4800000;
+  const LIMITE_SUBLIMITE = 3600000;
+  
+  const pctTeto = Math.min((rba12 / LIMITE_TETO) * 100, 100);
+  const isNearSublimite = rba12 >= (LIMITE_SUBLIMITE * 0.8);
+  const isOverSublimite = rba12 >= LIMITE_SUBLIMITE;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+          <BarChart2 className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">Termômetro Tributário</h1>
+          <p className="text-sm text-ink-soft">
+            Acompanhe o limite do seu faturamento para evitar desenquadramento ou aumento repentino de impostos.
+          </p>
+        </div>
+      </div>
+
+      {!currentHistory ? (
+        <div className="rounded-2xl border border-dashed border-line p-10 text-center">
+          <p className="text-ink-soft font-medium">Nenhum dado tributário disponível.</p>
+          <p className="text-ink-soft/70 text-sm mt-1">A contabilidade atualizará esta área assim que o primeiro PGDAS for processado.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Card Principal: RBA12 */}
+          <div className="lg:col-span-2 rounded-2xl border border-line bg-surface-card p-6 shadow-sm relative overflow-hidden">
+            <h2 className="text-sm font-semibold text-ink mb-6 flex items-center justify-between">
+              Faturamento Acumulado (RBA12)
+              <span className="text-xs font-normal px-2 py-1 bg-black/[0.07] dark:bg-white/5 rounded text-ink-soft">Ref: {currentHistory.referenceMonth}</span>
+            </h2>
+            <div className="mb-6">
+              <div className="flex items-baseline gap-3">
+                <p className="text-3xl font-bold text-ink">{BRL.format(rba12)}</p>
+                <p className="text-sm text-ink-soft mt-1">Faturado nos últimos 12 meses</p>
+              </div>
+            </div>
+            
+            <div className="relative pt-6 pb-2">
+              <div className="h-4 w-full bg-black/[0.07] rounded-full dark:bg-white/5 overflow-hidden relative flex">
+                <div 
+                  className={`h-full transition-all duration-1000 ${pctTeto > 95 ? 'bg-critical' : pctTeto > 75 ? 'bg-warn' : 'bg-brand-500'}`}
+                  style={{ width: `${pctTeto}%` }}
+                />
+              </div>
+              
+              {/* Markers */}
+              <div className="absolute inset-0 pointer-events-none">
+                {/* Sublimite */}
+                <div className="absolute top-1 h-10 border-l border-dashed border-ink-soft/40" style={{ left: `${(LIMITE_SUBLIMITE/LIMITE_TETO)*100}%` }}>
+                  <div className="absolute -top-5 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-ink-soft">Sublimite (R$ 3,6M)</div>
+                </div>
+                {/* Teto */}
+                <div className="absolute top-1 h-10 border-r border-dashed border-critical/50" style={{ left: '100%' }}>
+                  <div className="absolute -top-5 -translate-x-full whitespace-nowrap text-[10px] font-semibold text-critical pr-1">Teto (R$ 4,8M)</div>
+                </div>
+              </div>
+            </div>
+
+            {isOverSublimite ? (
+              <div className="mt-6 flex items-start gap-3 rounded-xl bg-critical/10 p-4 text-critical">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">Atenção: Sublimite Ultrapassado</p>
+                  <p className="text-xs mt-1">A empresa ultrapassou R$ 3,6 milhões e passará a recolher ICMS/ISS fora do Simples Nacional.</p>
+                </div>
+              </div>
+            ) : isNearSublimite ? (
+              <div className="mt-6 flex items-start gap-3 rounded-xl bg-warn/10 p-4 text-warn">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">Aviso de Proximidade</p>
+                  <p className="text-xs mt-1">O faturamento está próximo do sublimite de R$ 3,6M. Faltam apenas {BRL.format(LIMITE_SUBLIMITE - rba12)}.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 flex items-start gap-3 rounded-xl bg-brand-500/10 p-4 text-brand-600 dark:text-brand-400">
+                <TrendingUp className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">Situação Confortável</p>
+                  <p className="text-xs mt-1">Você tem margem de {BRL.format(LIMITE_SUBLIMITE - rba12)} antes de atingir o sublimite estadual/municipal.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cards Secundários */}
+          <div className="flex flex-col gap-6">
+            <div className="rounded-2xl border border-line bg-surface-card p-6 shadow-sm">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-4">Carga Tributária Atual</h3>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-bold text-ink">{currentHistory.effectiveRate}%</span>
+                <span className="text-sm text-ink-soft mb-1">efetiva no mês</span>
+              </div>
+              <div className="mt-4 pt-4 border-t border-line">
+                <p className="text-sm text-ink-soft">
+                  Enquadramento atual:<br/>
+                  <strong className="text-ink mt-1 block">{currentHistory.taxBracket}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-line bg-surface-card p-6 shadow-sm">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-4">Previsão Próximo Mês</h3>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-brand-500/10 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-brand-600 dark:text-brand-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-ink-soft">Baseado no RBA12</p>
+                  <p className="font-semibold text-ink">Manutenção da Faixa</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
