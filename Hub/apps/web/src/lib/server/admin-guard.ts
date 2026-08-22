@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
 
-function allowedEmails(): string[] {
+export function allowedEmails(): string[] {
   return (process.env.ADMIN_ALLOWED_EMAILS ?? '')
     .split(',')
     .map((s) => s.trim().toLowerCase())

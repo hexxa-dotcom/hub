@@ -1,4 +1,5 @@
 import { Users } from '@phosphor-icons/react/dist/ssr';
+import { TaxThermometerService } from '@hexxa/core';
 import { HubSocios } from './HubSocios';
 import { listPartnersAction } from './actions';
 import { listDistributionsAction } from '../distribuicao-lucros/actions';
@@ -16,6 +17,14 @@ export default async function Page() {
   ]);
 
   const prolaboreMinimoRecomendado = proLaboreMinimoParaFatorR(simplesInputs.rbt12, simplesInputs.folhaEmpregados12);
+  // Mesma fonte de verdade do Fator R usada em Termômetro Tributário, Dashboard,
+  // Balanço e emissão de NFSe — evita a página divergir das outras (por
+  // exemplo, uma conta com rbt12=0 já mostrou "favorável" aqui mas
+  // "desfavorável" no resto do sistema antes desta correção).
+  const { fatorRFavorable } = new TaxThermometerService().simplesPosition({
+    rbt12: simplesInputs.rbt12,
+    payroll12: simplesInputs.folha12,
+  });
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -34,7 +43,7 @@ export default async function Page() {
         initialDistribuicoes={distribuicoes}
         prolaboreMinimoRecomendado={prolaboreMinimoRecomendado}
         prolaboreAtualTotal={simplesInputs.prolabore12 / 12}
-        fatorRFavoravel={simplesInputs.rbt12 > 0 ? simplesInputs.folha12 / simplesInputs.rbt12 >= 0.28 : true}
+        fatorRFavoravel={fatorRFavorable}
       />
     </div>
   );

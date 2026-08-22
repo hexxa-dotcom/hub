@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
 import { DrizzleTaxGuideRepository } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
-
-function categoriaDe(taxName: string) {
-  const n = taxName.toUpperCase();
-  if (n.includes('DAS')) return 'DAS';
-  if (n.includes('DARF')) return 'DARF';
-  if (n.includes('ISS')) return 'ISS';
-  return 'OUTRA';
-}
+import { categoriaDe } from '@/lib/guias';
 
 export async function GET() {
   try {

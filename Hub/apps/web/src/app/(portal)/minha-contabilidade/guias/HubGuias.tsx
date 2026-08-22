@@ -4,13 +4,12 @@ import { useState } from 'react';
 import { Receipt, Copy, Check, CheckCircle, Clock, Warning, CaretDown, CaretUp, Plus, X, DownloadSimple, CalendarBlank, CurrencyDollar, Funnel, Spinner, ArrowSquareOut, Faders } from '@phosphor-icons/react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
+import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type GuiaStatus = TaxGuideStatusValue;
 type Guia = TaxGuideRecord;
-/** Categoria é derivada do nome livre (`taxName`) — não existe coluna própria no banco. */
-type GuiaCategoria = 'DAS' | 'DARF' | 'ISS' | 'PARCELAMENTO' | 'FGTS' | 'DIVERSA';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -22,16 +21,6 @@ const CAT_CONFIG: Record<GuiaCategoria, { label: string; cls: string }> = {
   FGTS:         { label: 'FGTS',         cls: 'bg-green-500/10 text-green-600 dark:text-green-400' },
   DIVERSA:      { label: 'Diversa',      cls: 'bg-ink/10 text-ink-soft' },
 };
-
-function categoriaDe(taxName: string): GuiaCategoria {
-  const n = taxName.toUpperCase();
-  if (n.includes('DAS')) return 'DAS';
-  if (n.includes('DARF')) return 'DARF';
-  if (n.includes('ISS')) return 'ISS';
-  if (n.includes('PARCEL')) return 'PARCELAMENTO';
-  if (n.includes('FGTS')) return 'FGTS';
-  return 'DIVERSA';
-}
 
 const STATUS_CONFIG: Record<GuiaStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
   OPEN:     { label: 'Pendente',  cls: 'bg-warn/10 text-warn',          icon: Clock },
