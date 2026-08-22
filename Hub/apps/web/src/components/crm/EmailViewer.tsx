@@ -20,7 +20,7 @@ export default function EmailViewer({ customerId, companyId, onReply }: { custom
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/emails/sync?customerId=${customerId}&companyId=${companyId}`);
+      const res = await fetch(`/api/emails/sync?customerId=${customerId}`);
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Erro ao sincronizar e-mails');

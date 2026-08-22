@@ -14,11 +14,9 @@ import { contractStatus, billingCycle, invoiceStatus, signatureStatus } from './
  * com a migration se ela mudar.
  */
 export const nfseConfig = pgTable('nfse_config', {
-  id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id')
-    .notNull()
-    .references(() => company.id, { onDelete: 'cascade' })
-    .unique(),
+    .primaryKey()
+    .references(() => company.id, { onDelete: 'cascade' }),
   ambiente: text('ambiente').notNull().default('homologacao'), // homologacao | producao
   cnpj: text('cnpj'),
   razaoSocial: text('razao_social'),
@@ -53,12 +51,14 @@ export const nfseServiceProfile = pgTable('nfse_service_profile', {
   companyId: uuid('company_id')
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
+  nome: text('nome').notNull(),
+  itemListaServico: text('item_lista_servico').notNull(),
+  codigoTributacaoMunicipio: text('codigo_tributacao_municipio'),
   cnae: text('cnae'),
-  municipalServiceCode: text('municipal_service_code'),
-  defaultIssRate: numeric('default_iss_rate', { precision: 5, scale: 2 }),
-  isDefault: text('is_default').default('false'),
+  aliquotaIss: numeric('aliquota_iss', { precision: 5, scale: 2 }),
+  defaultDescription: text('default_description'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const customer = pgTable('customer', {

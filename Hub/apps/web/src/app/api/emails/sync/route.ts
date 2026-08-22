@@ -1,32 +1,45 @@
 import { NextResponse } from 'next/server';
-import { getDb, withTenant } from '@hexxa/db/client';
+import { withTenant } from '@hexxa/db/client';
 import { emailAccount, emailMessage, customer } from '@hexxa/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
+import { getTenantContext } from '@/lib/server/tenant';
 
 export async function GET(req: Request) {
   try {
+    // companyId sempre vem da sessão — nunca de query param, para não deixar
+    // um cliente autenticado ler a caixa de e-mail (e a senha IMAP em claro)
+    // de outra empresa passando um companyId arbitrário na URL.
+    const ctx = await getTenantContext();
+    const companyId = ctx.companyId;
+
     const { searchParams } = new URL(req.url);
-    const companyId = searchParams.get('companyId');
     const customerId = searchParams.get('customerId');
 
-    if (!companyId || !customerId) {
-      return NextResponse.json({ error: 'Missing companyId or customerId' }, { status: 400 });
+    if (!customerId) {
+      return NextResponse.json({ error: 'Missing customerId' }, { status: 400 });
     }
 
-    const db = getDb();
-    
-    // 1. Obter a conta de e-mail do tenant
-    const accountRows = await db.select().from(emailAccount).where(eq(emailAccount.companyId, companyId)).execute();
-    const account = accountRows[0];
+    const { account, cust, existingRemoteIds } = await withTenant(companyId, async (tx) => {
+      // 1. Obter a conta de e-mail do tenant
+      const accountRows = await tx.select().from(emailAccount).where(eq(emailAccount.companyId, companyId)).execute();
+      // 2. Obter o e-mail do cliente — restrito à mesma empresa
+      const custRows = await tx
+        .select()
+        .from(customer)
+        .where(and(eq(customer.id, customerId), eq(customer.companyId, companyId)))
+        .execute();
+      const acc = accountRows[0];
+      const existing = acc
+        ? await tx.select({ remoteId: emailMessage.remoteId }).from(emailMessage).where(eq(emailMessage.accountId, acc.id)).execute()
+        : [];
+      return { account: acc, cust: custRows[0], existingRemoteIds: new Set(existing.map((e) => e.remoteId)) };
+    });
+
     if (!account || !account.isActive || !account.imapHost || !account.password) {
       return NextResponse.json({ error: 'No active email account found for this company' }, { status: 404 });
     }
-
-    // 2. Obter o e-mail do cliente (customer)
-    const custRows = await db.select().from(customer).where(eq(customer.id, customerId)).execute();
-    const cust = custRows[0];
     if (!cust || !cust.email) {
       return NextResponse.json({ error: 'Customer has no email address' }, { status: 400 });
     }
@@ -65,10 +78,7 @@ export async function GET(req: Request) {
     for (let uid of uidsToFetch) {
       const msg = await client.fetchOne(uid, { source: true, uid: true });
       if (msg && msg.source) {
-        // Checar se já existe no banco
-        const exists = await db.select().from(emailMessage).where(and(eq(emailMessage.remoteId, String(uid)), eq(emailMessage.accountId, account.id))).execute();
-        
-        if (exists.length === 0) {
+        if (!existingRemoteIds.has(String(uid))) {
           const parsed = await simpleParser(msg.source);
           newMessages.push({
             companyId,
@@ -90,18 +100,17 @@ export async function GET(req: Request) {
 
     await client.logout();
 
-    // 4. Salvar novas mensagens no banco
-    if (newMessages.length > 0) {
-      await withTenant(companyId, async (tx) => {
+    // 4. Salvar novas mensagens e reler tudo deste cliente (ordenado)
+    const allMessages = await withTenant(companyId, async (tx) => {
+      if (newMessages.length > 0) {
         await tx.insert(emailMessage).values(newMessages).execute();
-      });
-    }
-
-    // 5. Retornar todas as mensagens deste cliente do banco (ordenadas)
-    const allMessages = await db.select()
-      .from(emailMessage)
-      .where(and(eq(emailMessage.customerId, customerId), eq(emailMessage.companyId, companyId)))
-      .execute();
+      }
+      return tx
+        .select()
+        .from(emailMessage)
+        .where(and(eq(emailMessage.customerId, customerId), eq(emailMessage.companyId, companyId)))
+        .execute();
+    });
 
     return NextResponse.json({ messages: allMessages.sort((a, b) => new Date(a.sentAt!).getTime() - new Date(b.sentAt!).getTime()) });
   } catch (err: any) {
