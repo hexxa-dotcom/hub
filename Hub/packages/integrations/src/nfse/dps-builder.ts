@@ -22,7 +22,6 @@ export interface DpsServico {
   cTribNac?: string;               // Código tributação nacional 6 dígitos ex: "171900"; derivado se omitido
   aliquotaIss?: number;            // % (não vai mais na DPS — calculado pelo município)
   codigoTributacaoMunicipio?: string; // cTribMun (opcional)
-  tpRetISSQN?: string;             // "1"=retido tomador, "2"=não retido; default "2"
 }
 
 export interface DpsParams {
@@ -104,7 +103,11 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
 
   // cTribNac: usa override ou deriva do item LC116
   const cTribNac = s.cTribNac ?? lcItemToCTribNac(s.itemListaServico);
-  // tpRetISSQN (Padrão Nacional): '1' = Não Retido, '2' = Retido pelo Tomador
+  // tpRetISSQN, conforme Manual de Integração NFS-e Padrão Nacional v1.01
+  // (campo B-132): 1 = Não Retido; 2 = Retido pelo Tomador; 3 = Retido pelo
+  // Intermediário. Confirmado contra o manual oficial em 2026-08-22 — havia
+  // um comentário divergente e incorreto no campo (já removido) dizendo o
+  // contrário; o valor abaixo está correto e bate com o manual.
   const tpRetISSQN = input.retainIss ? '2' : '1';
 
   const addr = input.customer.address;
