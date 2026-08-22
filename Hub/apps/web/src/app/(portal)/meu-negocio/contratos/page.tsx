@@ -10,7 +10,8 @@ async function getSignatureRequests() {
     const ctx = await getTenantContext();
     const service = makeContractSignatureService();
     return await service.list(ctx);
-  } catch {
+  } catch (err) {
+    console.error('[meu-negocio/contratos/page] falha ao listar assinaturas:', err);
     return [];
   }
 }

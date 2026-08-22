@@ -17,7 +17,8 @@ async function getCustomers(ctx: TenantContext) {
       `);
     });
     return data as unknown as Customer[];
-  } catch {
+  } catch (err) {
+    console.error('[meu-negocio/emails/page] falha ao listar clientes:', err);
     return [];
   }
 }

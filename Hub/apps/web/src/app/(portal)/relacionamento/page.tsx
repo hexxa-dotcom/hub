@@ -19,7 +19,8 @@ async function getCustomers(companyId: string) {
       `);
     });
     return (data as unknown) as Customer[];
-  } catch {
+  } catch (err) {
+    console.error('[relacionamento/page] falha ao listar clientes:', err);
     return [];
   }
 }
@@ -29,7 +30,8 @@ async function getContracts() {
     const ctx = await getTenantContext();
     const service = makeContractSignatureService();
     return await service.list(ctx);
-  } catch {
+  } catch (err) {
+    console.error('[relacionamento/page] falha ao listar assinaturas:', err);
     return [];
   }
 }
@@ -70,7 +72,8 @@ async function getBusinessContracts() {
         status,
       };
     });
-  } catch {
+  } catch (err) {
+    console.error('[relacionamento/page] falha ao listar contratos comerciais:', err);
     return [];
   }
 }

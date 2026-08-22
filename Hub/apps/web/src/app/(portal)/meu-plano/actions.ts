@@ -48,7 +48,8 @@ export async function getHistoricoCobrancasAction(asaasSubscriptionId: string | 
   try {
     const { data } = await listSubscriptionPayments(asaasSubscriptionId);
     return data;
-  } catch {
+  } catch (err) {
+    console.error('[meu-plano/actions] falha ao buscar histórico de cobranças no Asaas:', err);
     return [];
   }
 }

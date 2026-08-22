@@ -18,7 +18,8 @@ export default async function Page() {
   let dbReady = true;
   try {
     items = await listDistributionsAction();
-  } catch {
+  } catch (err) {
+    console.error('[distribuicao-lucros/page] falha ao listar distribuições:', err);
     dbReady = false;
   }
 

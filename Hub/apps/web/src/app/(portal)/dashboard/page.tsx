@@ -120,7 +120,8 @@ export default async function DashboardPage() {
     issuingCount = data.issuing;
     if (data.hasClosure) lastClosureDate = lastMonthStr;
     openDasGuide = data.dasGuide;
-  } catch {
+  } catch (err) {
+    console.error('[dashboard/page] falha ao carregar dados do dashboard:', err);
     loadError = true;
   }
 

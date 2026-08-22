@@ -9,7 +9,8 @@ async function getGuias() {
   try {
     const ctx = await getTenantContext();
     return await new DrizzleTaxGuideRepository().listAll(ctx);
-  } catch {
+  } catch (err) {
+    console.error('[guias/page] falha ao listar guias:', err);
     return [];
   }
 }

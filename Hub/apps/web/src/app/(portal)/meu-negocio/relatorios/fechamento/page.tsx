@@ -22,7 +22,9 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
         .where(eq(monthlyClosure.companyId, ctx.companyId))
         .orderBy(desc(monthlyClosure.referenceMonth));
     });
-  } catch (error) {}
+  } catch (error) {
+    console.error('[fechamento/page] falha ao listar fechamentos:', error);
+  }
 
   if (!closures || closures.length === 0) {
     return (

@@ -58,7 +58,8 @@ export default async function Page() {
     if (data?.length) {
       clientes = data as Customer[];
     }
-  } catch {
+  } catch (err) {
+    console.error('[meu-negocio/clientes/page] falha ao listar clientes:', err);
     dbReady = false;
   }
 
