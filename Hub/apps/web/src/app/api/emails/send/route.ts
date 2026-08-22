@@ -4,6 +4,7 @@ import { emailAccount, emailMessage, customer } from '@hexxa/db/schema';
 import { eq, and } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
 import { getTenantContext } from '@/lib/server/tenant';
+import { decryptSecret } from '@/lib/server/secret-crypto';
 
 export async function POST(req: Request) {
   try {
@@ -44,10 +45,10 @@ export async function POST(req: Request) {
     const transporter = nodemailer.createTransport({
       host: account.smtpHost,
       port: Number(account.smtpPort) || 465,
-      secure: Number(account.smtpPort) === 465, 
+      secure: Number(account.smtpPort) === 465,
       auth: {
         user: account.emailAddress,
-        pass: account.password,
+        pass: decryptSecret(account.password)!,
       },
     });
 

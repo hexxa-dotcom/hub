@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getDb, withTenant } from '@hexxa/db/client';
+import { withTenant } from '@hexxa/db/client';
 import { emailAccount } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
 import { ImapFlow } from 'imapflow';
 import { getTenantContext } from '@/lib/server/tenant';
+import { encryptSecret } from '@/lib/server/secret-crypto';
 
 export async function POST(req: Request) {
   try {
@@ -38,11 +39,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid IMAP credentials', details: err.message }, { status: 401 });
     }
 
-    // Save to database
+    // Save to database — senha sempre criptografada em repouso (AES-256-GCM).
+    const encryptedPassword = encryptSecret(password);
     await withTenant(companyId, async (tx) => {
       // Upsert account
       const existing = await tx.select().from(emailAccount).where(eq(emailAccount.companyId, companyId)).execute();
-      
+
       if (existing.length > 0) {
         await tx.update(emailAccount).set({
           imapHost,
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
           smtpHost,
           smtpPort: String(smtpPort || 465),
           emailAddress,
-          password, // In a real app, encrypt this using AES
+          password: encryptedPassword,
           isActive: true
         }).where(eq(emailAccount.companyId, companyId)).execute();
       } else {
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
           smtpHost,
           smtpPort: String(smtpPort || 465),
           username: emailAddress,
-          password // In a real app, encrypt this
+          password: encryptedPassword
         }).execute();
       }
     });

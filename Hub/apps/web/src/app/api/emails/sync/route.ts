@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { getTenantContext } from '@/lib/server/tenant';
+import { decryptSecret } from '@/lib/server/secret-crypto';
 
 export async function GET(req: Request) {
   try {
@@ -44,6 +45,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Customer has no email address' }, { status: 400 });
     }
     const custEmail = cust.email;
+    const imapPassword = decryptSecret(account.password);
 
     // 3. Conectar ao IMAP e buscar (Lazy Sync)
     const client = new ImapFlow({
@@ -52,7 +54,7 @@ export async function GET(req: Request) {
       secure: true,
       auth: {
         user: account.emailAddress,
-        pass: account.password
+        pass: imapPassword!
       },
       logger: false
     });

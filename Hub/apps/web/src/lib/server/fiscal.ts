@@ -2,6 +2,7 @@ import 'server-only';
 import type { TenantContext } from '@hexxa/core';
 import { loadCertFromBase64, type CertMaterial } from '@hexxa/integrations';
 import { withTenant, sql } from '@hexxa/db';
+import { encryptSecret, decryptSecret } from './secret-crypto';
 
 export interface NfseConfig {
   ambiente: 'homologacao' | 'producao';
@@ -68,8 +69,8 @@ export async function getNfseConfig(ctx: TenantContext): Promise<NfseConfig | nu
       aliquotaIss: r.aliquota_iss != null ? Number(r.aliquota_iss) : null,
       serieDps: (r.serie_dps as string) ?? '00001',
       proxNumeroDps: (r.prox_numero_dps as number) ?? 1,
-      certPfxB64: (r.cert_pfx_b64 as string) ?? null,
-      certPassword: (r.cert_password as string) ?? null,
+      certPfxB64: decryptSecret(r.cert_pfx_b64 as string | null),
+      certPassword: decryptSecret(r.cert_password as string | null),
     };
   });
 }
@@ -105,8 +106,16 @@ export async function saveNfseConfig(ctx: TenantContext, input: Partial<NfseConf
     const aliquotaIss = input.aliquotaIss !== undefined ? input.aliquotaIss : existing?.aliquota_iss;
     const serieDps = input.serieDps !== undefined ? input.serieDps : (existing?.serie_dps ?? '00001');
     const proxNumeroDps = input.proxNumeroDps !== undefined ? input.proxNumeroDps : (existing?.prox_numero_dps ?? 1);
-    const certPfxB64 = input.certPfxB64 !== undefined ? input.certPfxB64 : existing?.cert_pfx_b64;
-    const certPassword = input.certPassword !== undefined ? input.certPassword : existing?.cert_password;
+    // Certificado/senha: se vier um valor novo no input, criptografa antes
+    // de gravar; se não veio (input undefined), mantém o valor já
+    // criptografado que já estava no banco — nunca re-criptografa o que já
+    // está criptografado, e nunca grava segredo em texto puro.
+    const certPfxB64 = input.certPfxB64 !== undefined
+      ? (input.certPfxB64 ? encryptSecret(input.certPfxB64) : null)
+      : existing?.cert_pfx_b64;
+    const certPassword = input.certPassword !== undefined
+      ? (input.certPassword ? encryptSecret(input.certPassword) : null)
+      : existing?.cert_password;
 
     if (existing) {
       await tx.execute(sql`
