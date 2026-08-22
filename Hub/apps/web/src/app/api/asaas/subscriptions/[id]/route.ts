@@ -8,11 +8,20 @@ import {
   AsaasError,
   type BillingType,
 } from '@/lib/asaas';
+import { requireAdminApi } from '@/lib/server/admin-guard';
 
 type Params = { params: Promise<{ id: string }> };
 
+// Só o contador/admin vê/altera/cancela assinatura de qualquer empresa por
+// aqui — sem isso, qualquer usuário logado (de qualquer empresa cliente)
+// conseguia ver, trocar de plano ou CANCELAR a assinatura de qualquer outra
+// empresa só sabendo o ID da subscription no Asaas.
+
 /** GET /api/asaas/subscriptions/[id]?payments=true */
 export async function GET(_req: NextRequest, { params }: Params) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const url = new URL(_req.url);
@@ -36,6 +45,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
  *  Body: { plano?, billingType? } — troca plano/forma de pagamento
  */
 export async function PUT(req: NextRequest, { params }: Params) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const { plano, billingType } = await req.json();
@@ -61,6 +73,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 /** DELETE /api/asaas/subscriptions/[id] — cancela */
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const result = await cancelSubscription(id);

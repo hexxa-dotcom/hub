@@ -4,12 +4,17 @@ import {
   findCustomerByCpfCnpj,
   AsaasError,
 } from '@/lib/asaas';
+import { requireAdminApi } from '@/lib/server/admin-guard';
 
 /** POST /api/asaas/customers
  *  Body: { name, cpfCnpj, email, phone?, externalReference? }
  *  Retorna o customer existente se já cadastrado, ou cria um novo.
+ *  Só o contador/admin gerencia assinatura de qualquer empresa por aqui.
  */
 export async function POST(req: NextRequest) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const { name, cpfCnpj, email, phone, externalReference } = body;

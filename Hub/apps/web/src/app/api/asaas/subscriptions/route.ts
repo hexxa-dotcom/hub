@@ -6,12 +6,17 @@ import {
   AsaasError,
   type BillingType,
 } from '@/lib/asaas';
+import { requireAdminApi } from '@/lib/server/admin-guard';
 
 /** POST /api/asaas/subscriptions
  *  Body: { customerId, plano, billingType, clienteId }
  *  Cria assinatura mensal para o cliente no plano selecionado.
+ *  Só o contador/admin gerencia assinatura de qualquer empresa por aqui.
  */
 export async function POST(req: NextRequest) {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+
   try {
     const { customerId, plano, billingType = 'PIX', clienteId } = await req.json();
 
