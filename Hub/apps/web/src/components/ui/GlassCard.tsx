@@ -1,4 +1,4 @@
-import {  ArrowUpRight  } from '@phosphor-icons/react/dist/ssr';
+import { ArrowUpRight } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import Link from 'next/link';
 import type { Route } from 'next';
@@ -10,9 +10,9 @@ type Props = {
   value?: string;
   hint?: string;
   trend?: Trend;
-  /** card principal indigo, texto branco. */
+  /** card principal verde floresta escuro com texto claro */
   highlight?: boolean;
-  /** botão circular de seta no canto (estilo da referência). */
+  /** botão circular de seta no canto */
   action?: boolean;
   glass?: boolean;
   tone?: 'default' | 'ok' | 'warn' | 'critical';
@@ -22,10 +22,10 @@ type Props = {
 };
 
 const toneText: Record<NonNullable<Props['tone']>, string> = {
-  default: 'text-ink',
-  ok: 'text-ok',
-  warn: 'text-warn',
-  critical: 'text-critical',
+  default: 'text-[#231F20] dark:text-[#FEFDF3]',
+  ok: 'text-[#2F4A3C] dark:text-[#DFFFAE]',
+  warn: 'text-[#c27803] dark:text-[#fbbf24]',
+  critical: 'text-[#e11d48] dark:text-[#fb7185]',
 };
 
 export function GlassCard({
@@ -44,14 +44,21 @@ export function GlassCard({
   return (
     <section
       className={twMerge(
-        'rounded-card p-5',
-        highlight ? 'card-highlight' : glass ? 'glass' : 'card-flat',
-        href && 'hover-lift',
+        'rounded-3xl p-5 md:p-6 transition-all duration-300',
+        highlight
+          ? 'bg-[#1E3328] text-[#FEFDF3] shadow-lg border border-[#2F4A3C]'
+          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:border-black/10 dark:hover:border-white/20',
+        href && 'hover:-translate-y-1 hover:shadow-md cursor-pointer',
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className={twMerge('text-sm font-medium', highlight ? 'text-white/85' : 'text-ink-soft')}>
+        <h3
+          className={twMerge(
+            'text-xs font-semibold uppercase tracking-wider',
+            highlight ? 'text-[#DFFFAE]' : 'text-[#6E6A61] dark:text-[#A8A49C]'
+          )}
+        >
           {title}
         </h3>
         {action && (
@@ -60,10 +67,10 @@ export function GlassCard({
               href={href}
               title="Ver detalhes"
               className={twMerge(
-                'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors',
+                'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-all duration-200',
                 highlight
-                  ? 'bg-white/20 text-white hover:bg-white/30'
-                  : 'border border-line text-ink-soft hover:bg-black/5 dark:hover:bg-white/10',
+                  ? 'bg-[#2F4A3C] text-[#DFFFAE] hover:bg-[#DFFFAE] hover:text-[#1E3328]'
+                  : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20]',
               )}
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -72,10 +79,10 @@ export function GlassCard({
             <button
               aria-label="Ver detalhes"
               className={twMerge(
-                'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors',
+                'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-all duration-200',
                 highlight
-                  ? 'bg-white/20 text-white hover:bg-white/30'
-                  : 'border border-line text-ink-soft hover:bg-black/5 dark:hover:bg-white/10',
+                  ? 'bg-[#2F4A3C] text-[#DFFFAE] hover:bg-[#DFFFAE] hover:text-[#1E3328]'
+                  : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20]',
               )}
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -87,8 +94,8 @@ export function GlassCard({
       {value && (
         <p
           className={twMerge(
-            'mt-3 text-[28px] font-semibold tracking-tight tabular',
-            highlight ? 'text-white' : toneText[tone],
+            'mt-3 text-2xl sm:text-3xl font-semibold tracking-tight font-serif tabular',
+            highlight ? 'text-[#FEFDF3]' : toneText[tone],
           )}
         >
           {value}
@@ -96,23 +103,23 @@ export function GlassCard({
       )}
 
       {(trend || hint) && (
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {trend && (
             <span
               className={twMerge(
-                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                 highlight
-                  ? 'bg-white/20 text-white'
+                  ? 'bg-[#DFFFAE] text-[#1E3328]'
                   : trend.positive
-                    ? 'bg-ok/10 text-ok'
-                    : 'bg-critical/10 text-critical',
+                    ? 'bg-[#EFFFD6] dark:bg-[#2F4A3C] text-[#2F4A3C] dark:text-[#DFFFAE]'
+                    : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300',
               )}
             >
-              {trend.positive ? '▲' : '▼'} {trend.label}
+              {trend.positive ? '↑' : '↓'} {trend.label}
             </span>
           )}
           {hint && (
-            <span className={twMerge('text-xs', highlight ? 'text-white/70' : 'text-ink-soft')}>
+            <span className={twMerge('text-xs', highlight ? 'text-[#FEFDF3]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]')}>
               {hint}
             </span>
           )}

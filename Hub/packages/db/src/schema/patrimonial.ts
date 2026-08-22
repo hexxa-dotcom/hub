@@ -26,6 +26,9 @@ export const property = pgTable('property', {
   acquisitionDate: date('acquisition_date'),
   depreciationRate: numeric('depreciation_rate', { precision: 5, scale: 2 }), // Taxa anual (ex: 4.00, 10.00, 20.00)
   residualValue: numeric('residual_value', { precision: 14, scale: 2 }), // Valor residual (não deprecia)
+  /** 'PJ' = bem da empresa; 'PF' = patrimônio pessoal de um sócio (ver partnerId). */
+  ownerType: text('owner_type').notNull().default('PJ'),
+  partnerId: uuid('partner_id').references(() => partner.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -71,7 +74,11 @@ export const partner = pgTable('partner', {
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  cpf: text('cpf'),
   ownershipPct: numeric('ownership_pct', { precision: 6, scale: 3 }).notNull(),
+  /** Pró-labore mensal recorrente — entra na folha de 12 meses do Fator R. */
+  proLabore: numeric('pro_labore', { precision: 14, scale: 2 }).notNull().default('0'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Painel de Rentabilidade do Sócio — lucro após impostos (Lucro Presumido), por mês. */

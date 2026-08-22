@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { PencilSimple, Copy, CaretDown, CaretUp, ArrowRight, Trash, QrCode, Plus, FileText, Clock, PaperPlaneRight, CheckCircle, XCircle, X } from '@phosphor-icons/react';
+import { useRouter } from 'next/navigation';
+import { PencilSimple, Copy, CaretDown, CaretUp, ArrowRight, Trash, QrCode, Plus, FileText, Clock, PaperPlaneRight, CheckCircle, XCircle, X, Spinner } from '@phosphor-icons/react';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
+import type { PropostaRow } from './actions';
+import { savePropostaAction, setPropostaStatusAction, deletePropostaAction } from './actions';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -10,17 +13,7 @@ type PropStatus = 'rascunho' | 'enviada' | 'aprovada' | 'rejeitada' | 'expirada'
 
 type PropostaItem = { id: string; descricao: string; qtd: number; valor: number };
 
-type Proposta = {
-  id: string;
-  numero: string;
-  cliente: string;
-  titulo: string;
-  itens: PropostaItem[];
-  validade: string;
-  status: PropStatus;
-  criadaEm: string;
-  obs: string | null;
-};
+type Proposta = PropostaRow;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -36,45 +29,6 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 const fi = 'w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
 const lb = 'text-xs font-medium text-ink-soft';
 
-// ── Seed ─────────────────────────────────────────────────────────────────────
-
-function initPropostas(): Proposta[] {
-  const yr = new Date().getFullYear();
-  return [
-    {
-      id: '1', numero: `PROP-${yr}-001`, cliente: 'Empresa ABC Ltda', titulo: 'Desenvolvimento de sistema de gestão',
-      itens: [
-        { id: 'i1', descricao: 'Levantamento de requisitos', qtd: 1, valor: 3000 },
-        { id: 'i2', descricao: 'Desenvolvimento do sistema', qtd: 1, valor: 18000 },
-        { id: 'i3', descricao: 'Treinamento e implantação', qtd: 1, valor: 2500 },
-      ],
-      validade: `${yr}-07-30`, status: 'enviada', criadaEm: `${yr}-06-15`, obs: 'Proposta enviada por e-mail em 15/06.',
-    },
-    {
-      id: '2', numero: `PROP-${yr}-002`, cliente: 'Consultoria XYZ', titulo: 'Consultoria mensal em TI',
-      itens: [
-        { id: 'i4', descricao: 'Horas de consultoria (10h/mês)', qtd: 3, valor: 2000 },
-      ],
-      validade: `${yr}-07-15`, status: 'aprovada', criadaEm: `${yr}-06-01`, obs: null,
-    },
-    {
-      id: '3', numero: `PROP-${yr}-003`, cliente: 'Startup DEF', titulo: 'Criação de identidade visual',
-      itens: [
-        { id: 'i5', descricao: 'Logo e manual de marca', qtd: 1, valor: 4500 },
-        { id: 'i6', descricao: 'Papelaria e templates', qtd: 1, valor: 1500 },
-      ],
-      validade: `${yr}-06-20`, status: 'expirada', criadaEm: `${yr}-05-20`, obs: null,
-    },
-    {
-      id: '4', numero: `PROP-${yr}-004`, cliente: 'Cliente Novo', titulo: 'Site institucional responsivo',
-      itens: [
-        { id: 'i7', descricao: 'Design e desenvolvimento', qtd: 1, valor: 7800 },
-      ],
-      validade: `${yr}-08-01`, status: 'rascunho', criadaEm: `${yr}-06-25`, obs: null,
-    },
-  ];
-}
-
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
@@ -87,10 +41,10 @@ function totalProposta(p: Proposta) {
 // ── Modal Nova Proposta ───────────────────────────────────────────────────────
 
 function ModalProposta({
-  proposta, onSave, onClose, nextNumero,
+  proposta, onSaved, onClose, nextNumero,
 }: {
   proposta: Proposta | null;
-  onSave: (p: Omit<Proposta, 'id' | 'criadaEm' | 'status'>) => void;
+  onSaved: () => void;
   onClose: () => void;
   nextNumero: string;
 }) {
@@ -101,6 +55,7 @@ function ModalProposta({
   const [itens, setItens] = useState<PropostaItem[]>(
     proposta?.itens ?? [{ id: '1', descricao: '', qtd: 1, valor: 0 }],
   );
+  const [saving, setSaving] = useState(false);
 
   function addItem() {
     setItens(prev => [...prev, { id: Date.now().toString(), descricao: '', qtd: 1, valor: 0 }]);
@@ -110,9 +65,20 @@ function ModalProposta({
     setItens(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    onSave({ numero: proposta?.numero ?? nextNumero, cliente, titulo, validade, obs: obs || null, itens });
+    setSaving(true);
+    try {
+      await savePropostaAction({
+        id: proposta?.id,
+        numero: proposta?.numero ?? nextNumero,
+        cliente, titulo, validade, obs,
+        itens: itens.map(i => ({ descricao: i.descricao, qtd: Number(i.qtd), valor: Number(i.valor) })),
+      });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
   }
 
   const total = itens.reduce((s, i) => s + Number(i.qtd) * Number(i.valor), 0);
@@ -184,9 +150,9 @@ function ModalProposta({
               className="flex-1 rounded-xl border border-line py-2 text-sm font-medium hover:bg-surface-hover transition-colors">
               Cancelar
             </button>
-            <button type="submit"
-              className="flex-1 rounded-xl bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
-              {proposta ? 'Salvar' : 'Criar proposta'}
+            <button type="submit" disabled={saving}
+              className="flex-1 rounded-xl bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-60">
+              {saving ? 'Salvando...' : proposta ? 'Salvar' : 'Criar proposta'}
             </button>
           </div>
         </form>
@@ -199,12 +165,14 @@ function ModalProposta({
 
 type StatusFilter = PropStatus | 'todas';
 
-export function HubPropostas() {
-  const [propostas, setPropostas] = useState<Proposta[]>(initPropostas);
+export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[] }) {
+  const router = useRouter();
+  const propostas = initialPropostas;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todas');
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [pixModal, setPixModal] = useState<{ open: boolean; propostaId: string | null }>({ open: false, propostaId: null });
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const filtered = propostas.filter(p => statusFilter === 'todas' || p.status === statusFilter);
 
@@ -215,24 +183,29 @@ export function HubPropostas() {
 
   const nextNumero = `PROP-${new Date().getFullYear()}-${String(propostas.length + 1).padStart(3, '0')}`;
 
-  function handleSave(data: Omit<Proposta, 'id' | 'criadaEm' | 'status'>) {
-    if (modal.editId) {
-      setPropostas(prev => prev.map(p => p.id === modal.editId ? { ...p, ...data } : p));
-    } else {
-      setPropostas(prev => [{
-        ...data, id: Date.now().toString(),
-        criadaEm: new Date().toISOString().slice(0, 10), status: 'rascunho',
-      }, ...prev]);
-    }
+  function handleSaved() {
     setModal({ open: false, editId: null });
+    router.refresh();
   }
 
-  function setStatus(id: string, status: PropStatus) {
-    setPropostas(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  async function setStatus(id: string, status: PropStatus) {
+    setBusyId(id);
+    try {
+      await setPropostaStatusAction(id, status);
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
   }
 
-  function deleteProposta(id: string) {
-    setPropostas(prev => prev.filter(p => p.id !== id));
+  async function deleteProposta(id: string) {
+    setBusyId(id);
+    try {
+      await deletePropostaAction(id);
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
   }
 
   const editingProposta = modal.editId ? propostas.find(p => p.id === modal.editId) ?? null : null;
@@ -417,7 +390,7 @@ export function HubPropostas() {
         <ModalProposta
           proposta={editingProposta}
           nextNumero={nextNumero}
-          onSave={handleSave}
+          onSaved={handleSaved}
           onClose={() => setModal({ open: false, editId: null })}
         />
       )}

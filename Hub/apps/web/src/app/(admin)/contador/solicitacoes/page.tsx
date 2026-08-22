@@ -27,6 +27,7 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
         ticketId: ticketMessage.ticketId,
         body: ticketMessage.body,
         createdAt: ticketMessage.createdAt,
+        sender: ticketMessage.sender,
         authorName: appUser.name,
       })
       .from(ticketMessage)
@@ -49,7 +50,7 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
     status: t.status,
     criada: t.createdAt.toISOString().slice(0, 10),
     respostas: (messagesByTicket.get(t.id) ?? []).map(m => ({
-      autor: m.authorName ?? 'Admin',
+      autor: m.sender === 'ACCOUNTING' ? (m.authorName ?? 'Equipe Contábil') : 'Cliente',
       msg: m.body,
       quando: m.createdAt.toLocaleString('pt-BR'),
     })),

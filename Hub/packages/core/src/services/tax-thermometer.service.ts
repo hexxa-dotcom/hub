@@ -31,6 +31,8 @@ export interface SimplesPosition {
   faixaMin: number;
   faixaMax: number;
   nominalRate: number; // alíquota nominal da faixa atual (%)
+  /** Alíquota efetiva real: ((RBT12 × alíquota nominal) − parcela a deduzir) / RBT12. */
+  effectiveRate: number;
   /** Quanto falta (R$) para entrar na próxima faixa; null se já na última. */
   toNextFaixa: number | null;
   nextRate: number | null; // alíquota nominal da próxima faixa (%)
@@ -47,6 +49,9 @@ const FAIXA_LIMITS = [180_000, 360_000, 720_000, 1_800_000, 3_600_000, 4_800_000
 /** Alíquotas nominais por faixa — Anexo III e Anexo V. */
 const RATES_III = [6, 11.2, 13.5, 16, 21, 33];
 const RATES_V = [15.5, 18, 19.5, 20.5, 23, 30.5];
+/** Parcela a deduzir (R$) por faixa — LC 123/2006, tabelas Anexo III e V. */
+const PD_III = [0, 9_360, 17_640, 35_640, 125_640, 648_000];
+const PD_V = [0, 4_500, 9_900, 17_100, 62_100, 540_000];
 
 export class TaxThermometerService {
   evaluate(input: ThermometerInput): ThermometerResult {
@@ -67,6 +72,7 @@ export class TaxThermometerService {
     const fatorR = input.rbt12 > 0 ? input.payroll12 / input.rbt12 : 0;
     const anexo: 'III' | 'V' = fatorR >= FATOR_R_LIMIT ? 'III' : 'V';
     const rates = anexo === 'III' ? RATES_III : RATES_V;
+    const pds = anexo === 'III' ? PD_III : PD_V;
 
     let idx = FAIXA_LIMITS.findIndex((limit) => input.rbt12 <= limit);
     if (idx === -1) idx = FAIXA_LIMITS.length - 1; // acima do teto → última faixa
@@ -76,6 +82,9 @@ export class TaxThermometerService {
     const faixaMax = FAIXA_LIMITS[idx]!;
     const toNextFaixa = isLast ? null : Math.max(0, faixaMax - input.rbt12);
     const nextRate = isLast ? null : rates[idx + 1]!;
+    const nominalRate = rates[idx]!;
+    const effectiveRate =
+      input.rbt12 > 0 ? Math.max(0, (input.rbt12 * (nominalRate / 100) - pds[idx]!) / input.rbt12) * 100 : 0;
 
     return {
       anexo,
@@ -84,7 +93,8 @@ export class TaxThermometerService {
       faixa: idx + 1,
       faixaMin,
       faixaMax,
-      nominalRate: rates[idx]!,
+      nominalRate,
+      effectiveRate,
       toNextFaixa,
       nextRate,
       ceiling: 4_800_000,

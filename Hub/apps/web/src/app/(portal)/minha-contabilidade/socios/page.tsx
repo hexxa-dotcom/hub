@@ -1,7 +1,22 @@
-import {  Users  } from '@phosphor-icons/react/dist/ssr';
+import { Users } from '@phosphor-icons/react/dist/ssr';
 import { HubSocios } from './HubSocios';
+import { listPartnersAction } from './actions';
+import { listDistributionsAction } from '../distribuicao-lucros/actions';
+import { getTenantContext } from '@/lib/server/tenant';
+import { getSimplesInputs, proLaboreMinimoParaFatorR } from '@/lib/server/fiscal';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+export default async function Page() {
+  const ctx = await getTenantContext();
+  const [partners, distribuicoes, simplesInputs] = await Promise.all([
+    listPartnersAction(),
+    listDistributionsAction(),
+    getSimplesInputs(ctx),
+  ]);
+
+  const prolaboreMinimoRecomendado = proLaboreMinimoParaFatorR(simplesInputs.rbt12, simplesInputs.folhaEmpregados12);
+
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
@@ -14,7 +29,13 @@ export default function Page() {
         </p>
       </header>
 
-      <HubSocios />
+      <HubSocios
+        initialPartners={partners}
+        initialDistribuicoes={distribuicoes}
+        prolaboreMinimoRecomendado={prolaboreMinimoRecomendado}
+        prolaboreAtualTotal={simplesInputs.prolabore12 / 12}
+        fatorRFavoravel={simplesInputs.rbt12 > 0 ? simplesInputs.folha12 / simplesInputs.rbt12 >= 0.28 : true}
+      />
     </div>
   );
 }

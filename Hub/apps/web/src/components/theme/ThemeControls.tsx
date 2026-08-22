@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Sun, Moon } from '@phosphor-icons/react';
+import { Sun, Moon } from 'lucide-react';
 import { getStoredTheme, resolveTheme, setTheme, type Theme } from '@/lib/theme';
 
 const OPTS: { v: Theme; label: string }[] = [
@@ -16,7 +16,7 @@ export function ThemeSegmented() {
   useEffect(() => setLocal(getStoredTheme()), []);
 
   return (
-    <div className="flex rounded-xl border border-line p-0.5 text-xs">
+    <div className="flex rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-1 text-xs">
       {OPTS.map((o) => (
         <button
           key={o.v}
@@ -24,10 +24,10 @@ export function ThemeSegmented() {
             setLocal(o.v);
             setTheme(o.v);
           }}
-          className={`rounded-xl px-2.5 py-1 transition-colors ${
+          className={`rounded-full px-3 py-1 font-medium transition-all ${
             theme === o.v
-              ? 'bg-brand-500/12 font-medium text-brand-700 dark:text-brand-300'
-              : 'text-ink-soft hover:text-ink'
+              ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
+              : 'text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] dark:hover:text-[#FEFDF3]'
           }`}
         >
           {o.label}
@@ -37,7 +37,7 @@ export function ThemeSegmented() {
   );
 }
 
-/** Botão claro/escuro (usado na sidebar / topo mobile). */
+/** Botão claro/escuro (usado no topo ou sidebar). */
 export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const [dark, setDark] = useState(false);
   useEffect(() => setDark(resolveTheme(getStoredTheme()) === 'dark'), []);
@@ -48,16 +48,28 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
     setTheme(next);
   }
 
+  if (collapsed) {
+    return (
+      <button
+        onClick={toggle}
+        type="button"
+        aria-label="Alternar tema"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20] transition-colors"
+      >
+        {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={toggle}
+      type="button"
       aria-label="Alternar tema"
-      className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10 ${
-        collapsed ? 'justify-center' : ''
-      }`}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
     >
-      {dark ? <Sun className="h-[18px] w-[18px] shrink-0" /> : <Moon className="h-[18px] w-[18px] shrink-0" />}
-      {!collapsed && <span>{dark ? 'Tema claro' : 'Tema escuro'}</span>}
+      {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+      <span>{dark ? 'Tema claro' : 'Tema escuro'}</span>
     </button>
   );
 }

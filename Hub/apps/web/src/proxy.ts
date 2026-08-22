@@ -16,8 +16,10 @@ const isPublicRoute = createRouteMatcher([
   '/__clerk(.*)',
 ]);
 
+const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
+
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  if (!DEV_SKIP_AUTH && !isPublicRoute(req)) {
     await auth.protect();
   }
 });

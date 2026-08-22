@@ -5,7 +5,7 @@ import { EnvelopeSimple, PaperPlaneRight, X, Gear, User } from '@phosphor-icons/
 import EmailViewer from '@/components/crm/EmailViewer';
 import EmailComposer from '@/components/crm/EmailComposer';
 
-type Customer = {
+export type Customer = {
   id: string;
   name: string;
   email: string | null;

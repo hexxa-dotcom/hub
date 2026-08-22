@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
-type LogoVariant = 'minimal' | 'dot' | 'badge' | 'icon' | 'classic';
+// Enquanto DEV_SKIP_AUTH estiver ativo (testes locais, sem Clerk), os botões
+// "Entrar" pulam a tela de login e vão direto pras páginas — reverte sozinho
+// quando NEXT_PUBLIC_DEV_SKIP_AUTH voltar pra "false".
+const DEV_SKIP_AUTH = process.env.NEXT_PUBLIC_DEV_SKIP_AUTH === 'true';
+const LOGIN_CLIENTE_HREF = DEV_SKIP_AUTH ? '/dashboard' : '/auth/login';
+const LOGIN_CONTADOR_HREF = DEV_SKIP_AUTH ? '/contador' : '/auth/login?redirect_url=%2Fcontador';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [variant, setVariant] = useState<LogoVariant>('minimal');
+  const [entrarOpen, setEntrarOpen] = useState(false);
+  const entrarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,64 +25,35 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const closeMobile = () => setMobileOpen(false);
+  useEffect(() => {
+    if (!entrarOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (entrarRef.current && !entrarRef.current.contains(e.target as Node)) {
+        setEntrarOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEntrarOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [entrarOpen]);
 
-  const renderLogo = () => {
-    switch (variant) {
-      case 'minimal':
-        // Opção 1A: hexx hub (hub em verde-limão)
-        return (
-          <span className="logo-flex">
-            <b className="logo-main">hexx</b>
-            <span className="logo-accent">hub</span>
-          </span>
-        );
-      case 'dot':
-        // Opção 1B: hexx.hub (com ponto tech)
-        return (
-          <span className="logo-flex">
-            <b className="logo-main">hexx</b>
-            <span className="logo-dot">.</span>
-            <span className="logo-subtext">hub</span>
-          </span>
-        );
-      case 'badge':
-        // Opção 2: hexx [ HUB ] (marca + badge de produto)
-        return (
-          <span className="logo-flex">
-            <b className="logo-main">hexx</b>
-            <span className="logo-tag-hub">HUB</span>
-          </span>
-        );
-      case 'icon':
-        // Opção 3: ⬡ hexx hub (ícone geométrico moderno)
-        return (
-          <span className="logo-flex">
-            <svg className="logo-hex-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
-              <circle cx="12" cy="12" r="3" fill="currentColor" />
-            </svg>
-            <b className="logo-main">hexx</b>
-            <span className="logo-subtext">hub</span>
-          </span>
-        );
-      case 'classic':
-        // Opção 4: hexx digital (original)
-        return (
-          <span className="logo-flex">
-            <b className="logo-main">hexx</b>
-            <span className="logo-subtext">digital</span>
-          </span>
-        );
-    }
-  };
+  const closeMobile = () => setMobileOpen(false);
 
   return (
     <>
       <header className={`landing-header on-dark ${scrolled ? 'scrolled' : ''}`} id="nav">
         <div className="landing-wrap">
           <Link className="landing-logo" href="/">
-            {renderLogo()}
+            <span className="logo-flex">
+              <b className="logo-main">hexx</b>
+              <span className="logo-tag-hub">HUB</span>
+            </span>
           </Link>
 
           <nav className="landing-nav-center">
@@ -89,9 +66,30 @@ export function Navbar() {
           </nav>
 
           <div className="landing-nav-right">
-            <Link className="entrar" href={'/sign-in' as any}>
-              Entrar
-            </Link>
+            <div className="entrar-dropdown" ref={entrarRef}>
+              <button
+                type="button"
+                className="entrar"
+                aria-haspopup="true"
+                aria-expanded={entrarOpen}
+                onClick={() => setEntrarOpen((v) => !v)}
+              >
+                Entrar
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`entrar-chevron ${entrarOpen ? 'open' : ''}`}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div className={`entrar-menu ${entrarOpen ? 'open' : ''}`} role="menu">
+                <Link href={LOGIN_CLIENTE_HREF as any} role="menuitem" onClick={() => setEntrarOpen(false)}>
+                  <span className="entrar-menu-title">Entrar como Cliente</span>
+                  <span className="entrar-menu-sub">Acessar o painel da minha empresa</span>
+                </Link>
+                <Link href={LOGIN_CONTADOR_HREF as any} role="menuitem" onClick={() => setEntrarOpen(false)}>
+                  <span className="entrar-menu-title">Entrar como Contador</span>
+                  <span className="entrar-menu-sub">Acessar a área do contador</span>
+                </Link>
+              </div>
+            </div>
             <a className="btn-landing landing-nav-cta" href="#contato">
               Fale com a Hexx
             </a>
@@ -108,48 +106,14 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Floating Logo Switcher for User Testing */}
-      <aside className="logo-switcher-bar" aria-label="Seletor de estilo do logo">
-        <div className="switcher-label">Escolha o Logo:</div>
-        <div className="switcher-buttons">
-          <button
-            className={`switch-btn ${variant === 'minimal' ? 'active' : ''}`}
-            onClick={() => setVariant('minimal')}
-          >
-            1. hexx <b>hub</b>
-          </button>
-          <button
-            className={`switch-btn ${variant === 'dot' ? 'active' : ''}`}
-            onClick={() => setVariant('dot')}
-          >
-            2. hexx<b>.</b>hub
-          </button>
-          <button
-            className={`switch-btn ${variant === 'badge' ? 'active' : ''}`}
-            onClick={() => setVariant('badge')}
-          >
-            3. hexx <b>[HUB]</b>
-          </button>
-          <button
-            className={`switch-btn ${variant === 'icon' ? 'active' : ''}`}
-            onClick={() => setVariant('icon')}
-          >
-            4. ⬡ hexx <b>hub</b>
-          </button>
-          <button
-            className={`switch-btn ${variant === 'classic' ? 'active' : ''}`}
-            onClick={() => setVariant('classic')}
-          >
-            5. hexx <b>digital</b>
-          </button>
-        </div>
-      </aside>
-
       {/* Mobile Drawer */}
       <div className={`mobile-drawer ${mobileOpen ? 'open' : ''}`}>
         <div className="mobile-drawer-head">
           <Link className="landing-logo" href="/" onClick={closeMobile} style={{ color: 'var(--cream)' }}>
-            {renderLogo()}
+            <span className="logo-flex">
+              <b className="logo-main">hexx</b>
+              <span className="logo-tag-hub">HUB</span>
+            </span>
           </Link>
           <button
             onClick={closeMobile}
@@ -184,8 +148,11 @@ export function Navbar() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <Link href={'/sign-in' as any} className="btn-landing btn-landing-white" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
-            Acessar Minha Conta (Entrar)
+          <Link href={LOGIN_CLIENTE_HREF as any} className="btn-landing btn-landing-white" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
+            Entrar como Cliente
+          </Link>
+          <Link href={LOGIN_CONTADOR_HREF as any} className="btn-landing btn-landing-white" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
+            Entrar como Contador
           </Link>
           <a href="#contato" className="btn-landing btn-landing-lime" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
             Falar com a Hexx

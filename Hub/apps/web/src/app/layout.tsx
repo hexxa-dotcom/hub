@@ -1,7 +1,20 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { ptBR } from '@clerk/localizations';
 import type { Metadata } from 'next';
+import { Source_Serif_4, Nunito_Sans } from 'next/font/google';
 import './globals.css';
+
+const serifFont = Source_Serif_4({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
+const sansFont = Nunito_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hexxdigital.com.br'),
@@ -18,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen antialiased">
+      <body className={`min-h-screen antialiased ${serifFont.variable} ${sansFont.variable} font-sans`}>
         <ClerkProvider localization={ptBR}>
           {children}
         </ClerkProvider>

@@ -296,7 +296,9 @@ export async function reserveNextDpsNumber(ctx: TenantContext): Promise<number> 
  * RBT12 (receita bruta dos últimos 12 meses) e folha dos últimos 12 meses,
  * para Fator R / faixa do Simples. Janela real de 12 meses, não o histórico todo.
  */
-export async function getSimplesInputs(ctx: TenantContext): Promise<{ rbt12: number; folha12: number }> {
+export async function getSimplesInputs(
+  ctx: TenantContext,
+): Promise<{ rbt12: number; folha12: number; folhaEmpregados12: number; prolabore12: number }> {
   return withTenant(ctx.companyId, async (tx) => {
     const rbtRes = await tx.execute(sql`
       SELECT coalesce(sum(amount), 0) AS total
@@ -306,14 +308,37 @@ export async function getSimplesInputs(ctx: TenantContext): Promise<{ rbt12: num
         AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
         AND reference_month < date_trunc('month', now())::date
     `);
+    // Só CLT/Sócio entram na base do Fator R — contratado PJ não conta como folha.
     const folhaRes = await tx.execute(sql`
       SELECT coalesce(sum(salary), 0) AS total
       FROM employee
-      WHERE company_id = ${ctx.companyId} AND status = 'ACTIVE'
+      WHERE company_id = ${ctx.companyId} AND status = 'ACTIVE' AND vinculo IN ('CLT', 'Socio')
     `);
+    // Fator R = (folha + pró-labore dos sócios) / RBT12 — pró-labore entra na
+    // base tanto quanto salário de empregado (LC 123/2006, art. 18, §24).
+    const prolaboreRes = await tx.execute(sql`
+      SELECT coalesce(sum(pro_labore), 0) AS total
+      FROM partner
+      WHERE company_id = ${ctx.companyId}
+    `);
+    const folhaEmpregadosMensal = Number(folhaRes[0]?.total ?? 0);
+    const prolaboreMensal = Number(prolaboreRes[0]?.total ?? 0);
     return {
       rbt12: Number(rbtRes[0]?.total ?? 0),
-      folha12: Number(folhaRes[0]?.total ?? 0) * 12,
+      folha12: (folhaEmpregadosMensal + prolaboreMensal) * 12,
+      folhaEmpregados12: folhaEmpregadosMensal * 12,
+      prolabore12: prolaboreMensal * 12,
     };
   });
+}
+
+/**
+ * Pró-labore mensal mínimo (somado entre os sócios) para manter o Fator R
+ * favorável (≥ 28%, Anexo III) dado o faturamento atual — usado pela
+ * calculadora de pró-labore saudável em Sócios. Não conta o pró-labore já
+ * lançado (é o valor NECESSÁRIO, não o atual).
+ */
+export function proLaboreMinimoParaFatorR(rbt12: number, folhaEmpregados12: number): number {
+  const alvo = 0.28 * rbt12 - folhaEmpregados12;
+  return Math.max(0, alvo / 12);
 }

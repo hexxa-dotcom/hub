@@ -147,7 +147,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
 
           <div className="h-px w-full bg-line" />
 
-          {/* Seções de Detalhes (Mockadas p/ Visualização) */}
+          {/* Destaques e alertas calculados a partir do fechamento real */}
           <div className="grid md:grid-cols-2 gap-8">
             
             <section className="space-y-4">

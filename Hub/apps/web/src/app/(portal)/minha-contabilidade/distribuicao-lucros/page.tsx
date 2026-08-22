@@ -1,21 +1,10 @@
 import {  HandCoins, Users  } from '@phosphor-icons/react/dist/ssr';
-import { withTenant } from '@hexxa/db';
-import { profitDistribution } from '@hexxa/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { getTenantContext } from '@/lib/server/tenant';
 import { DistForm } from './DistForm';
 import { LucroCard } from './LucroCard';
+import { listDistributionsAction } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const YEAR = new Date().getFullYear();
-
-type Dist = {
-  id: string;
-  partner_name: string;
-  amount: number | string;
-  distributed_at: string;
-  notes: string | null;
-};
 
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -25,32 +14,16 @@ function fmtDate(iso: string) {
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  let items: Dist[] = [];
+  let items: Awaited<ReturnType<typeof listDistributionsAction>> = [];
   let dbReady = true;
   try {
-    const ctx = await getTenantContext();
-
-    const data = await withTenant(ctx.companyId, async (tx) => {
-      return tx
-        .select({
-          id: profitDistribution.id,
-          partner_name: profitDistribution.partnerName,
-          amount: profitDistribution.amount,
-          distributed_at: profitDistribution.distributedAt,
-          notes: profitDistribution.notes,
-        })
-        .from(profitDistribution)
-        .where(eq(profitDistribution.companyId, ctx.companyId))
-        .orderBy(desc(profitDistribution.distributedAt));
-    });
-
-    items = data as Dist[];
+    items = await listDistributionsAction();
   } catch {
     dbReady = false;
   }
 
-  const total = items.reduce((s, i) => s + Number(i.amount), 0);
-  const partners = new Set(items.map((i) => i.partner_name)).size;
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  const partners = new Set(items.map((i) => i.partnerName)).size;
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -112,10 +85,10 @@ export default async function Page() {
             <tbody>
               {items.map((i) => (
                 <tr key={i.id} className="border-t border-line">
-                  <td className="py-2">{fmtDate(i.distributed_at)}</td>
-                  <td>{i.partner_name}</td>
+                  <td className="py-2">{fmtDate(i.distributedAt)}</td>
+                  <td>{i.partnerName}</td>
                   <td className="text-ink-soft">{i.notes ?? '—'}</td>
-                  <td className="text-right font-medium">{BRL.format(Number(i.amount))}</td>
+                  <td className="text-right font-medium">{BRL.format(i.amount)}</td>
                 </tr>
               ))}
             </tbody>

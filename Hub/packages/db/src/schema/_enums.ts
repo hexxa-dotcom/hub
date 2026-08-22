@@ -57,6 +57,10 @@ export const propertyKind = pgEnum('property_kind', [
   'HOUSE',
   'COMMERCIAL',
   'LAND',
+  'VEHICLE',
+  'MACHINERY',
+  'FURNITURE',
+  'IT_EQUIPMENT',
   'OTHER',
 ]);
 export const propertyStatus = pgEnum('property_status', [

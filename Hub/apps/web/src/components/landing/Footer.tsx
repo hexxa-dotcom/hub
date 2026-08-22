@@ -7,9 +7,10 @@ export function Footer() {
         <div className="foot-grid">
           <div className="foot-brand">
             <Link className="landing-logo" href="/">
-              <b>hexx</b>
-              <span>hub</span>
-              <span className="logo-sub">digital</span>
+              <span className="logo-flex">
+                <b className="logo-main">hexx</b>
+                <span className="logo-tag-hub">HUB</span>
+              </span>
             </Link>
             <div className="foot-statement landing-serif">
               Clareza pra decidir.

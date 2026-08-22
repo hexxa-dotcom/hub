@@ -58,6 +58,20 @@ export const accountingContract = pgTable('accounting_contract', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Documentos institucionais (alvará, CND, contrato social...) — "Arquivos Permanentes". */
+export const companyDocument = pgTable('company_document', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  category: text('category').notNull(), // ALVARA | CONTRATO | CND | OUTRO
+  name: text('name').notNull(),
+  issuedAt: date('issued_at'),
+  expiresAt: date('expires_at'),
+  fileUrl: text('file_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const employee = pgTable('employee', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id')
@@ -69,6 +83,10 @@ export const employee = pgTable('employee', {
   salary: numeric('salary', { precision: 14, scale: 2 }),
   status: employeeStatus('status').notNull().default('ACTIVE'),
   admissionDate: date('admission_date'),
+  /** CLT | PJ | Socio | Estagiario — só CLT/Socio entram na folha do Fator R. */
+  vinculo: text('vinculo').notNull().default('CLT'),
+  departamento: text('departamento'),
+  email: text('email'),
 });
 
 export const payslip = pgTable('payslip', {

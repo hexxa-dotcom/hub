@@ -1,24 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Buildings, FileText, SquaresFour, Plus, X, Clock, CheckCircle, Warning, XCircle, CaretDown, CaretUp, MagnifyingGlass, Stack, Briefcase, Scroll, TrendUp, Users, PaperPlaneRight, CalendarBlank, ArrowRight, ChatCircle } from '@phosphor-icons/react';
+import { useRouter } from 'next/navigation';
+import { Buildings, FileText, SquaresFour, Plus, X, Clock, CheckCircle, Warning, XCircle, CaretDown, CaretUp, MagnifyingGlass, Stack, Briefcase, Scroll, TrendUp, Users, PaperPlaneRight, CalendarBlank, ArrowRight, ChatCircle, Spinner, Trash } from '@phosphor-icons/react';
+import type { SolicitacaoRow, SolicitacaoStatus } from './actions';
+import { criarSolicitacaoAction, cancelarSolicitacaoAction } from './actions';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type SolicitacaoStatus = 'solicitado' | 'em_analise' | 'em_andamento' | 'concluido' | 'cancelado';
 type Prioridade = 'normal' | 'urgente';
 
-type Solicitacao = {
-  id: string;
-  servico: string;
-  categoria: string;
-  descricao: string;
-  prioridade: Prioridade;
-  status: SolicitacaoStatus;
-  criadaEm: string;
-  atualizadaEm: string;
-  resposta: string | null;
-};
+type Solicitacao = SolicitacaoRow;
 
 type Servico = {
   id: string;
@@ -117,42 +109,31 @@ function fmtDate(iso: string) {
   return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR');
 }
 
-// ── Seed ──────────────────────────────────────────────────────────────────────
-
-function seedSolicitacoes(): Solicitacao[] {
-  const add = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-  return [
-    { id: 'sol1', servico: 'Certidão Negativa Federal (CND)', categoria: 'Certidões e Declarações', descricao: 'Preciso da CND para participar de uma licitação municipal até o final do mês.', prioridade: 'urgente', status: 'concluido',    criadaEm: add(-20), atualizadaEm: add(-17), resposta: 'Certidão emitida e enviada para o seu e-mail. Válida por 180 dias.' },
-    { id: 'sol2', servico: 'Parcelamento PGFN',               categoria: 'Parcelamentos e Regularização', descricao: 'Tenho débito de R$ 18.000 na PGFN e gostaria de parcelar em até 24x.', prioridade: 'normal',  status: 'em_andamento', criadaEm: add(-10), atualizadaEm: add(-3),  resposta: 'Simulação de parcelamento enviada por e-mail. Aguardando sua confirmação para prosseguir.' },
-    { id: 'sol3', servico: 'Alteração de endereço',           categoria: 'Alterações Empresariais',       descricao: 'Mudamos para a Rua das Flores, 500, sala 12, São Paulo/SP CEP 01310-100.', prioridade: 'normal',  status: 'em_analise',   criadaEm: add(-5),  atualizadaEm: add(-5),  resposta: null },
-  ];
-}
-
 // ── Formulário de solicitação ─────────────────────────────────────────────────
 
-function FormSolicitacao({ servico, onClose, onSubmit }: {
+function FormSolicitacao({ servico, onClose, onSubmitted }: {
   servico: Servico;
   onClose: () => void;
-  onSubmit: (s: Solicitacao) => void;
+  onSubmitted: () => void;
 }) {
   const [prioridade, setPrioridade] = useState<Prioridade>('normal');
+  const [enviando, setEnviando] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const now = new Date().toISOString().slice(0, 10);
-    onSubmit({
-      id: crypto.randomUUID(),
-      servico: servico.nome,
-      categoria: servico.categoria,
-      descricao: String(fd.get('descricao') ?? '').trim(),
-      prioridade,
-      status: 'solicitado',
-      criadaEm: now,
-      atualizadaEm: now,
-      resposta: null,
-    });
-    onClose();
+    setEnviando(true);
+    try {
+      await criarSolicitacaoAction({
+        servico: servico.nome,
+        descricao: String(fd.get('descricao') ?? '').trim(),
+        prioridade,
+      });
+      onSubmitted();
+      onClose();
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -192,8 +173,8 @@ function FormSolicitacao({ servico, onClose, onSubmit }: {
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="submit" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
-              <PaperPlaneRight className="h-4 w-4" /> Enviar solicitação
+            <button type="submit" disabled={enviando} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
+              {enviando ? <Spinner className="h-4 w-4 animate-spin" /> : <PaperPlaneRight className="h-4 w-4" />} {enviando ? 'Enviando...' : 'Enviar solicitação'}
             </button>
             <button type="button" onClick={onClose} className="rounded-xl border border-line px-4 py-2.5 text-sm text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">
               Cancelar
@@ -292,8 +273,20 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
 // ── Minhas Solicitações ───────────────────────────────────────────────────────
 
 function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<SolicitacaoStatus | 'todas'>('todas');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function handleCancelar(id: string) {
+    setBusyId(id);
+    try {
+      await cancelarSolicitacaoAction(id);
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const filtered = filter === 'todas' ? solicitacoes : solicitacoes.filter(s => s.status === filter);
   const counts = { todas: solicitacoes.length, solicitado: 0, em_analise: 0, em_andamento: 0, concluido: 0, cancelado: 0 } as Record<string, number>;
@@ -336,7 +329,7 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{s.servico}</p>
-                  <p className="text-xs text-ink-soft">{s.categoria} · {fmtDate(s.criadaEm)}</p>
+                  <p className="text-xs text-ink-soft">{fmtDate(s.criadaEm)}</p>
                 </div>
                 <div className="hidden shrink-0 items-center gap-2 sm:flex">
                   {s.prioridade === 'urgente' && (
@@ -360,9 +353,15 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
                       <p className="mt-1 text-sm">{s.resposta}</p>
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-3 text-xs text-ink-soft">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
                     <span>Criada em {fmtDate(s.criadaEm)}</span>
                     <span>Atualizada em {fmtDate(s.atualizadaEm)}</span>
+                    {(s.status === 'solicitado' || s.status === 'em_analise') && (
+                      <button type="button" onClick={() => handleCancelar(s.id)} disabled={busyId === s.id}
+                        className="ml-auto inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-critical/10 hover:text-critical disabled:opacity-50">
+                        {busyId === s.id ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />} Cancelar
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -378,9 +377,10 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
 
 type TabKey = 'catalogo' | 'solicitacoes';
 
-export function HubServicos() {
+export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Solicitacao[] }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>('catalogo');
-  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>(seedSolicitacoes);
+  const solicitacoes = initialSolicitacoes;
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null);
 
   const pendentes = solicitacoes.filter(s => ['solicitado', 'em_analise', 'em_andamento'].includes(s.status)).length;
@@ -389,9 +389,9 @@ export function HubServicos() {
     setServicoSelecionado(s);
   }
 
-  function handleSubmit(s: Solicitacao) {
-    setSolicitacoes(prev => [s, ...prev]);
+  function handleSubmitted() {
     setTab('solicitacoes');
+    router.refresh();
   }
 
   return (
@@ -450,7 +450,7 @@ export function HubServicos() {
         <FormSolicitacao
           servico={servicoSelecionado}
           onClose={() => setServicoSelecionado(null)}
-          onSubmit={handleSubmit}
+          onSubmitted={handleSubmitted}
         />
       )}
     </div>

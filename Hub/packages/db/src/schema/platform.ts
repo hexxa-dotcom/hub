@@ -32,6 +32,7 @@ export const ticket = pgTable('ticket', {
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
   subject: text('subject').notNull(),
+  category: text('category'),
   status: ticketStatus('status').notNull().default('OPEN'),
   priority: ticketPriority('priority').notNull().default('MEDIUM'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -43,6 +44,7 @@ export const ticketMessage = pgTable('ticket_message', {
     .notNull()
     .references(() => ticket.id, { onDelete: 'cascade' }),
   authorUserId: uuid('author_user_id').references(() => appUser.id),
+  sender: text('sender').notNull().default('CLIENT'), // 'CLIENT' | 'ACCOUNTING'
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

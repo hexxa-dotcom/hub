@@ -89,7 +89,40 @@ export const contract = pgTable('contract', {
   billingCycle: billingCycle('billing_cycle').notNull().default('MONTHLY'),
   status: contractStatus('status').notNull().default('DRAFT'),
   nextBillingDate: date('next_billing_date'),
+  endDate: date('end_date'),
+  notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Contrato comercial do próprio tenant com clientes/fornecedores dele
+ * (ENTRADA = ele presta o serviço → contas a receber; SAIDA = ele contrata
+ * → contas a pagar). Quando a contraparte também é empresa na Hexxa
+ * (achada pelo CNPJ), gera o contrato espelho do outro lado e liga os dois
+ * via mirrorContractId. Não confundir com `contract` (cliente de assessoria
+ * contábil) nem com `accountingContract` (contrato da Hexxa com o tenant).
+ */
+export const businessContract = pgTable('business_contract', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // ENTRADA | SAIDA
+  title: text('title').notNull(),
+  partyName: text('party_name').notNull(),
+  partyCnpj: text('party_cnpj'),
+  counterpartyCompanyId: uuid('counterparty_company_id').references(() => company.id),
+  mirrorContractId: uuid('mirror_contract_id'),
+  value: numeric('value', { precision: 14, scale: 2 }).notNull(),
+  dueDay: integer('due_day').notNull(),
+  startDate: date('start_date').notNull(),
+  endDate: date('end_date').notNull(),
+  status: text('status').notNull().default('ATIVO'), // ATIVO | CANCELADO
+  autoEmitNfse: boolean('auto_emit_nfse').notNull().default(false),
+  lastNfseEmitted: boolean('last_nfse_emitted').notNull().default(false),
+  nfseNumber: text('nfse_number'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** NFSe emitida via API. */

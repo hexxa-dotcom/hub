@@ -1,23 +1,22 @@
 import { EnvelopeSimple } from '@phosphor-icons/react/dist/ssr';
 import { getTenantContext } from '@/lib/server/tenant';
-import { createClient } from '@supabase/supabase-js';
-import { HubEmails } from './HubEmails';
+import type { TenantContext } from '@hexxa/core';
+import { withTenant, sql } from '@hexxa/db';
+import { HubEmails, type Customer } from './HubEmails';
 
 export const dynamic = 'force-dynamic';
 
-async function getCustomers() {
+async function getCustomers(ctx: TenantContext) {
   try {
-    const ctx = await getTenantContext();
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { data } = await sb
-      .from('customer')
-      .select('id, name, document, email, phone, type, address')
-      .eq('company_id', ctx.companyId)
-      .order('name');
-    return data ?? [];
+    const data = await withTenant(ctx.companyId, async (tx) => {
+      return tx.execute(sql`
+        SELECT id, name, document, email, phone, type, address
+        FROM customer
+        WHERE company_id = ${ctx.companyId}
+        ORDER BY name
+      `);
+    });
+    return data as unknown as Customer[];
   } catch {
     return [];
   }
@@ -25,7 +24,7 @@ async function getCustomers() {
 
 export default async function Page() {
   const ctx = await getTenantContext();
-  const customers = await getCustomers();
+  const customers = await getCustomers(ctx);
 
   return (
     <div className="mx-auto w-full space-y-6">

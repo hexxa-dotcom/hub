@@ -4,190 +4,151 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   Hexxa Hub — Design System "Sobriedade" (claro + escuro)
-   Base neutra, um único acento (azul royal), cor apenas com
-   significado. Cards sólidos, bordas nítidas, cantos moderados.
+   Hexxa Hub — Design System Editorial Fintech
+   Paleta: Cream, Warm Beige, Deep Forest Green, Lime, Olive.
+   Tipografia: Source Serif 4 + Nunito Sans.
    ============================================================ */
 
 @theme {
-  /* Marca — Azul Moderno (Cornflower Blue da referência) */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #75a7ff;
-  --color-brand-500: #6b9dfc; /* Azul principal do botão "Transfer" */
-  --color-brand-600: #5484ed;
-  --color-brand-700: #4269c7;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  /* Marca & Acentos */
+  --color-hexxa-cream: #FEFDF3;
+  --color-hexxa-beige: #F4EFE4;
+  --color-hexxa-beige-deep: #EAE3D3;
+  --color-hexxa-ink: #231F20;
+  --color-hexxa-dark: #1C180D;
+  --color-hexxa-lime: #DFFFAE;
+  --color-hexxa-lime-soft: #EFFFD6;
+  --color-hexxa-green: #2F4A3C;
+  --color-hexxa-green-dark: #1E3328;
+  --color-hexxa-blue: #A2C1CD;
+  --color-hexxa-olive: #5F6E46;
+  --color-hexxa-muted: #6E6A61;
 
-  /* Sidebar Escura — Grafite/Carvão */
-  --color-navy: #22242b;
-  --color-sidebar: #22242b;
+  /* Aliases compatíveis com o tema anterior */
+  --color-brand-50: #EFFFD6;
+  --color-brand-100: #DFFFAE;
+  --color-brand-200: #c9f58c;
+  --color-brand-300: #b0e86b;
+  --color-brand-400: #5F6E46;
+  --color-brand-500: #2F4A3C;
+  --color-brand-600: #1E3328;
+  --color-brand-700: #16261e;
+  --color-brand-800: #0f1a14;
+  --color-brand-900: #080f0c;
 
-  /* Superfícies Soft Neumorphic / Cinza Metálico Alto Contraste */
-  --color-surface: #e2e8f0; /* Fundo cinza metálico titânio */
-  --color-surface-card: var(--color-surface-card-val); /* Dinâmico: branco no claro, grafite no escuro */
-  --color-ink: var(--color-ink-val); /* Dinâmico: Escuro fora dos cards no modo claro, Branco nos cards */
-  --color-ink-soft: var(--color-ink-soft-val); /* Dinâmico */
-  --color-line: var(--color-line-val); /* Dinâmico: escura sobre fundo claro, clara sobre fundo escuro */
+  /* Sidebar */
+  --color-navy: #1E3328;
+  --color-sidebar: #1E3328;
 
-  /* Estados — legíveis e um pouco mais sóbrios (sem neon) */
-  --color-ok: #65a30d; /* Verde-limão pastel, mais moderno que o verde-floresta padrão */
-  --color-warn: #d97706;
+  /* Superfícies Dinâmicas */
+  --color-surface: var(--color-surface-val);
+  --color-surface-card: var(--color-surface-card-val);
+  --color-ink: var(--color-ink-val);
+  --color-ink-soft: var(--color-ink-soft-val);
+  --color-line: var(--color-line-val);
+
+  /* Estados */
+  --color-ok: #2F4A3C;
+  --color-warn: #c27803;
   --color-critical: #e11d48;
 
-  --radius-card: 1.75rem; /* Cantos generosos, no espírito "continuous corner" da Apple */
+  --radius-card: 1.5rem;
+  --radius-pill: 9999px;
+
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 :root {
   color-scheme: light;
 
-  --color-ink-val: #0f172a; /* Texto principal — slate-900, contraste real em fundo claro */
-  --color-ink-soft-val: #5b6472; /* Subtítulos — cinza médio legível em fundo claro */
-  /* Cinza morno translúcido (vibrancy/material do iOS: Control Center,
-     Notification Center) — não é uma cor sólida, é um "vidro fosco" com
-     blur (ver .glass/.card-flat) que deixa o que está atrás influenciar
-     sutilmente o tom. Mesma ideia nos dois temas, ela só fica mais escura
-     sobre fundo escuro por natureza (blur real, não um valor fixo). */
-  --color-surface-card-val: rgba(142, 142, 150, 0.45);
-  --color-line-val: rgba(15, 23, 42, 0.1); /* Borda escura sutil — visível sobre fundo claro */
+  --cream: #FEFDF3;
+  --ink: #231F20;
+  --dark: #1C180D;
+  --lime: #DFFFAE;
+  --lime-soft: #EFFFD6;
+  --green: #2F4A3C;
+  --green-dark: #1E3328;
+  --beige: #F4EFE4;
+  --beige-deep: #EAE3D3;
+  --blue: #A2C1CD;
+  --olive: #5F6E46;
+  --muted: #6E6A61;
 
-  --glass-bg: rgba(142, 142, 150, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.35);
-  --glass-blur: blur(28px) saturate(150%);
+  --color-surface-val: #FEFDF3;
+  --color-surface-card-val: #F4EFE4;
+  --color-ink-val: #231F20;
+  --color-ink-soft-val: #6E6A61;
+  --color-line-val: rgba(35, 31, 32, 0.08);
 
-  /* Destaque 3D: Gradiente com o azul moderno */
-  --grad-highlight:
-    radial-gradient(120% 100% at 85% -20%, rgba(255, 255, 255, 0.3), transparent 55%),
-    linear-gradient(150deg, #75a7ff 0%, #6b9dfc 50%, #4269c7 100%);
+  --glass-bg: rgba(244, 239, 228, 0.85);
+  --glass-border: rgba(35, 31, 32, 0.08);
+  --glass-blur: blur(20px) saturate(140%);
 
-  /* Hero claro (mantendo o azul para destaques de botões/menus) */
-  --grad-hero:
-    radial-gradient(120% 80% at 20% -20%, rgba(255, 255, 255, 0.3), transparent 55%),
-    linear-gradient(170deg, #75a7ff 0%, #6b9dfc 55%, #4269c7 100%);
+  --rail-bg: #1E3328;
+  --sidebar-panel: #1E3328;
 
-  /* Sidebar Escura — fixa nos dois temas (âncora visual da marca) */
-  --rail-bg: rgba(34, 36, 43, 0.95);
-  --sidebar-panel: #22242b;
-
-  /* Sombras difusas e suaves, como as "vibrancy panels" da Apple: baixa
-     opacidade, bem espalhadas, sem bordas duras. */
-  --shadow-soft: 0 8px 24px -8px rgba(15, 23, 42, 0.14);
-  --shadow-glass: 0 1px 1px rgba(15, 23, 42, 0.04), 0 20px 44px -14px rgba(15, 23, 42, 0.22);
-  --shadow-highlight: 0 16px 32px -12px rgba(66, 105, 199, 0.35);
+  --shadow-soft: 0 8px 24px -8px rgba(35, 31, 32, 0.08);
+  --shadow-glass: 0 10px 30px -10px rgba(35, 31, 32, 0.06);
+  --shadow-highlight: 0 16px 36px -12px rgba(30, 51, 40, 0.25);
 }
 
 .dark {
   color-scheme: dark;
-  --color-surface: #0a0b0f; /* Grafite quase-preto — não puro #000, dá profundidade */
-  --color-surface-card-val: rgba(120, 120, 128, 0.5); /* Mesmo vidro morno, mais escuro sobre fundo escuro */
-  --color-ink-val: #f4f5f7; /* Off-white — menos "estridente" que #fff puro */
-  --color-ink-soft-val: #9aa1ae;
-  --color-line-val: rgba(255, 255, 255, 0.1);
 
-  --glass-bg: rgba(120, 120, 128, 0.5);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-blur: blur(28px) saturate(150%);
+  --color-surface-val: #121614;
+  --color-surface-card-val: #1a201c;
+  --color-ink-val: #FEFDF3;
+  --color-ink-soft-val: #a8a49c;
+  --color-line-val: rgba(254, 253, 243, 0.1);
 
-  --grad-highlight:
-    radial-gradient(120% 100% at 85% -20%, rgba(148, 179, 255, 0.12), transparent 55%),
-    linear-gradient(150deg, #2955c9 0%, #1e3a8a 55%, #17296b 100%);
-  --grad-hero:
-    radial-gradient(120% 80% at 20% -20%, rgba(148, 179, 255, 0.08), transparent 55%),
-    linear-gradient(170deg, #14161c 0%, #0a0b0f 55%, #0a0b0f 100%);
+  --glass-bg: rgba(26, 32, 28, 0.85);
+  --glass-border: rgba(254, 253, 243, 0.12);
+  --glass-blur: blur(20px) saturate(140%);
 
-  --rail-bg: rgba(10, 11, 15, 0.7);
-  --sidebar-panel: rgba(20, 22, 28, 0.9);
+  --rail-bg: #0f1411;
+  --sidebar-panel: #141a16;
 
-  --shadow-soft: 0 2px 6px rgba(0, 0, 0, 0.5);
-  --shadow-glass: 0 8px 20px rgba(0, 0, 0, 0.45);
-  --shadow-highlight: 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-highlight: 0 16px 36px rgba(0, 0, 0, 0.6);
 
-  /* Estados no escuro — vívidos o bastante sem virar neon */
-  --color-ok: #a3e635; /* Verde-limão pastel, versão clara pro fundo escuro */
+  --color-ok: #DFFFAE;
   --color-warn: #fbbf24;
   --color-critical: #fb7185;
 }
 
-/* Fundo da Aplicação & Garantia de Contraste */
+/* Fundo da Aplicação */
 body {
-  background: radial-gradient(120% 120% at 50% 0%, #f7f9fc 0%, #eef1f7 45%, #e3e8f0 100%);
-  background-attachment: fixed;
+  background-color: var(--color-surface-val);
   color: var(--color-ink-val);
+  font-family: var(--font-sans);
 }
 
-.dark body {
-  background: radial-gradient(120% 120% at 50% 0%, #14161c 0%, #0a0b0f 55%, #000000 100%);
-  background-attachment: fixed;
-  color: var(--color-ink-val);
+/* Tipografia */
+.font-serif {
+  font-family: var(--font-serif);
 }
 
-/* .card-dark é para cards EXPLICITAMENTE escuros sempre (navy/black/zinc-950),
-   independente do tema — por isso força texto claro sempre.
-   .card-flat / .glass / bg-surface-card agora são vidro translúcido (material
-   "vibrancy" — ver --glass-bg/--glass-blur): sobre fundo claro o vidro lê
-   claro, sobre fundo escuro lê escuro. Por isso o texto dentro deles NÃO é
-   mais forçado — ele simplesmente segue --color-ink/--color-ink-soft do tema
-   ativo, que já é a cor correta (forçar branco aqui deixava o texto invisível
-   quando o vidro ficava claro no tema claro).
-   OBS histórica: isso também já casou por engano com QUALQUER classe contendo
-   "bg-black" (ex.: hover:bg-black/5) via seletor de substring [class*="bg-black"],
-   forçando texto branco sem querer — por isso o marcador é explícito (.card-dark). */
-.card-dark {
-  --color-ink-val: #ffffff;
-  --color-ink-soft-val: #a1a1aa;
-  --color-ink: #ffffff;
-  --color-ink-soft: #a1a1aa;
-  color: #ffffff !important;
+.font-sans {
+  font-family: var(--font-sans);
 }
 
-/* Anula classes utilitárias de texto escuro (text-slate-900, text-gray-900, etc)
-   que o Tailwind injeta, dentro de cards realmente escuros. */
-.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-slate-900,
-.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-slate-800,
-.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-gray-900,
-.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-gray-800,
-.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-zinc-900 {
-  color: #ffffff !important;
+/* Cards */
+@utility card-warm {
+  background: var(--color-surface-card-val);
+  border: 1px solid var(--color-line-val);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass);
 }
 
-.card-dark :is(p, span, div, label, td).text-slate-500,
-.card-dark :is(p, span, div, label, td).text-slate-600,
-.card-dark :is(p, span, div, label, td).text-gray-500,
-.card-dark :is(p, span, div, label, td).text-gray-600,
-.card-dark .text-ink-soft {
-  color: #a1a1aa !important;
+@utility card-flat {
+  background: var(--color-surface-card-val);
+  border: 1px solid var(--color-line-val);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass);
 }
 
-/* Hero azul da referência (sidebar, telas de auth, banners). */
-@utility hero-blue {
-  background: var(--grad-hero);
-}
-
-/* Sidebar em liquid glass fosco — mesmo idioma visual da barra do topo. */
-@utility sidebar-rail {
-  background: var(--rail-bg);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
-}
-
-@utility sidebar-panel {
-  background: var(--sidebar-panel);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
-}
-
-/* Card de destaque (KPI principal) — navy profundo sólido. */
-@utility card-highlight {
-  background: var(--grad-highlight);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--shadow-highlight);
-}
-
-/* Card padrão: sólido, borda nítida, sombra mínima (sem vidro/blur). */
 @utility glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -197,23 +158,81 @@ body {
   backdrop-filter: var(--glass-blur);
 }
 
-@utility card-flat {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+/* Sidebar utilities */
+@utility sidebar-rail {
+  background: var(--rail-bg);
 }
 
-/* Dígitos tabulares — números de KPI/tabelas alinham na vertical. */
-@utility tabular {
-  font-variant-numeric: tabular-nums;
+@utility sidebar-panel {
+  background: var(--sidebar-panel);
 }
 
-/* ------------------------------------------------------------
-   Animações — sutis, com easing suave; respeitam reduced-motion
-   ------------------------------------------------------------ */
+/* Botões Estilo Landing */
+@utility btn-lime {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #DFFFAE;
+  color: #231F20;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -8px rgba(223, 255, 174, 0.6);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@utility btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #231F20;
+  color: #FEFDF3;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -8px rgba(35, 31, 32, 0.4);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@utility btn-forest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #2F4A3C;
+  color: #FEFDF3;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    background-color: #1E3328;
+    box-shadow: 0 10px 24px -8px rgba(47, 74, 60, 0.4);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Animações */
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -226,171 +245,16 @@ body {
 }
 
 @utility animate-fade-up {
-  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Elevação macia (Animacao suave Neumorphic) e Seleção em Branco */
-@utility hover-lift {
-  transition:
-    transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 200ms ease;
-
-  &:hover {
-    transform: translateY(-4px) scale(1.01);
-    /* Clareia a cor real do card (gunmetal, azul, etc.) em vez de
-       substituí-la por um branco translúcido fixo — antes isso "lavava"
-       qualquer card pra um tom quase branco ao passar o mouse. */
-    filter: brightness(1.12);
-    box-shadow:
-      0 30px 60px -12px rgba(0, 0, 0, 0.2),
-      0 0 20px rgba(0, 0, 0, 0.1);
-  }
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-up {
-    animation: none;
-  }
-  .hover-lift,
-  .hover-lift:hover {
-    transform: none;
-    transition: none;
-  }
-}
-
-/* Oculta scrollbar visual, mantendo a rolagem ativa */
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
   }
 }
-
-/* Badge pill com ponto azul (rótulos de seção da referência). */
-@utility badge-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 9999px;
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-line);
-  padding: 0.3rem 0.85rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-ink-soft);
-  box-shadow: var(--shadow-soft);
-
-  &::before {
-    content: '';
-    height: 0.5rem;
-    width: 0.5rem;
-    border-radius: 9999px;
-    background: var(--color-brand-600);
-  }
-}
-
-/* Botão primário — azul da marca, sólido (sem gradiente/glow). */
-@utility btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 9999px;
-  background: var(--color-brand-600);
-  color: #fff;
-  font-weight: 500;
-  box-shadow: var(--shadow-soft);
-  transition:
-    transform 150ms ease,
-    background-color 150ms ease;
-
-  &:hover {
-    background: var(--color-brand-700);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-/* Botão escuro pill (estilo "Get Started" da referência). */
-@utility btn-dark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 9999px;
-  background: var(--color-navy);
-  color: #fff;
-  font-weight: 500;
-  transition: filter 150ms ease;
-
-  &:hover {
-    filter: brightness(1.25);
-  }
-}
-
-/* ------------------------------------------------------------
-   Aba ativa "ligada" ao conteúdo (estilo da referência Jobie):
-   Fundo animado via opacidade para que os cantos côncavos
-   não "descolem" durante a transição.
-   ------------------------------------------------------------ */
-/* Pill de destaque do item ativo — contida dentro da sidebar (sempre escura),
-   em azul (mesma cor de acento do resto do sistema). Antes usava
-   var(--color-surface) com um recorte côncavo pra "conectar" com o fundo do
-   conteúdo — fazia sentido quando sidebar e conteúdo dividiam a mesma cor de
-   fundo, mas agora a sidebar é sempre escura e o conteúdo muda de tom (claro/
-   escuro/gunmetal), então aquele fundo neutro cinza-claro só criava uma
-   mancha e uma emenda visível descolada do resto da paleta. */
-.nav-tab-bg {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.85rem;
-  background: rgba(84, 132, 237, 0.16);
-  border: 1px solid rgba(147, 197, 253, 0.18);
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  pointer-events: none;
-  z-index: 0;
-}
-.nav-tab-bg.active {
-  opacity: 1;
-}
-
-/* ------------------------------------------------------------
-   Efeito côncavo (transparente) na barra principal
-   ------------------------------------------------------------ */
-.concave-primary {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 12px; /* margem para a esquerda */
-  background: var(--sidebar-panel); /* mesma cor do painel de vidro */
-  border-radius: 20px 0 0 20px;
-  z-index: 0;
-}
-
-.concave-primary::before,
-.concave-primary::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  background-color: transparent;
-  pointer-events: none;
-}
-
-.concave-primary::before {
-  top: -20px;
-  border-bottom-right-radius: 20px;
-  box-shadow: 10px 10px 0 10px var(--sidebar-panel);
-}
-
-.concave-primary::after {
-  bottom: -20px;
-  border-top-right-radius: 20px;
-  box-shadow: 10px -10px 0 10px var(--sidebar-panel);
-}
-

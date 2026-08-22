@@ -10,7 +10,7 @@ export async function replyToTicketAction(ticketId: string, body: string) {
   if (!msg) return { error: 'Digite uma resposta.' };
   try {
     const db = getDb();
-    await db.insert(ticketMessage).values({ ticketId, body: msg });
+    await db.insert(ticketMessage).values({ ticketId, body: msg, sender: 'ACCOUNTING' });
     await db.update(ticket).set({ status: 'IN_PROGRESS' }).where(eq(ticket.id, ticketId));
     revalidatePath('/contador/solicitacoes');
     return { success: true };

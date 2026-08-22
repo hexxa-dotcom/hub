@@ -1,7 +1,12 @@
 import {  ClipboardText  } from '@phosphor-icons/react/dist/ssr';
 import { HubPropostas } from './HubPropostas';
+import { listPropostasAction } from './actions';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+export default async function Page() {
+  const propostas = await listPropostasAction();
+
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
@@ -10,11 +15,11 @@ export default function Page() {
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Propostas e Orçamentos</h1>
         </div>
         <p className="mt-0.5 text-sm text-ink-soft">
-          Crie, envie e acompanhe propostas comerciais. Converta aprovadas em nota fiscal com um clique.
+          Crie, envie e acompanhe propostas comerciais. Aprovadas viram ponto de partida pra emitir nota fiscal.
         </p>
       </header>
 
-      <HubPropostas />
+      <HubPropostas initialPropostas={propostas} />
     </div>
   );
 }

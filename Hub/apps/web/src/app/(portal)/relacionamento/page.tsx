@@ -1,24 +1,24 @@
 import {  Handshake  } from '@phosphor-icons/react/dist/ssr';
-import { HubRelacionamento } from './HubRelacionamento';
+import { HubRelacionamento, type Customer } from './HubRelacionamento';
 import { makeContractSignatureService } from '@/lib/server/container';
-import { createClient } from '@supabase/supabase-js';
+import { withTenant, sql } from '@hexxa/db';
+import { listTarefasAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 import { getTenantContext } from '@/lib/server/tenant';
 
-async function getCustomers() {
+async function getCustomers(companyId: string) {
   try {
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { data } = await sb
-      .from('customer')
-      .select('id, name, document, email, phone, type, address')
-      .eq('company_id', (await getTenantContext()).companyId)
-      .order('name');
-    return data ?? [];
+    const data = await withTenant(companyId, async (tx) => {
+      return tx.execute(sql`
+        SELECT id, name, document, email, phone, type, address
+        FROM customer
+        WHERE company_id = ${companyId}
+        ORDER BY name
+      `);
+    });
+    return (data as unknown) as Customer[];
   } catch {
     return [];
   }
@@ -34,32 +34,42 @@ async function getContracts() {
   }
 }
 
-import { withTenant, sql } from '@hexxa/db';
-
 async function getBusinessContracts() {
   try {
     const ctx = await getTenantContext();
     const data = await withTenant(ctx.companyId, async (tx) => {
       return await tx.execute(sql`
-        SELECT 
-          c.id, c.customer_id, cu.name as customer_name, c.title as tipo, c.value as valor, 
-          c.status, c.created_at as inicio
+        SELECT
+          c.id, c.customer_id, cu.name as customer_name, c.title as tipo, c.value as valor,
+          c.status, c.created_at as inicio, c.end_date as fim, c.notes as observacoes
         FROM contract c
         LEFT JOIN customer cu ON cu.id = c.customer_id
         WHERE c.company_id = ${ctx.companyId}
       `);
     });
-    return data.map((r: any) => ({
-      id: r.id,
-      clienteId: r.customer_id,
-      clienteNome: r.customer_name || 'Desconhecido',
-      tipo: r.tipo,
-      inicio: new Date(r.inicio).toISOString().split('T')[0]!,
-      fim: new Date(new Date(r.inicio).getTime() + 365*24*60*60*1000).toISOString().split('T')[0]!,
-      valor: Number(r.valor),
-      observacoes: null,
-      status: (r.status === 'ACTIVE' ? 'ativo' : r.status === 'DRAFT' ? 'rascunho' : 'expirado') as 'ativo' | 'rascunho' | 'expirado' | 'renovar',
-    }));
+    const today = new Date();
+    return data.map((r: any) => {
+      const fim = r.fim ? new Date(r.fim).toISOString().split('T')[0]! : null;
+      let status: 'ativo' | 'rascunho' | 'expirado' | 'renovar' = 'ativo';
+      if (r.status !== 'ACTIVE') {
+        status = r.status === 'DRAFT' ? 'rascunho' : 'expirado';
+      } else if (fim) {
+        const end = new Date(fim);
+        const days = (end.getTime() - today.getTime()) / 86_400_000;
+        status = days < 0 ? 'expirado' : days <= 30 ? 'renovar' : 'ativo';
+      }
+      return {
+        id: r.id,
+        clienteId: r.customer_id,
+        clienteNome: r.customer_name || 'Desconhecido',
+        tipo: r.tipo,
+        inicio: new Date(r.inicio).toISOString().split('T')[0]!,
+        fim,
+        valor: Number(r.valor),
+        observacoes: r.observacoes ?? null,
+        status,
+      };
+    });
   } catch {
     return [];
   }
@@ -67,7 +77,12 @@ async function getBusinessContracts() {
 
 export default async function Page() {
   const ctx = await getTenantContext();
-  const [customers, contracts, businessContracts] = await Promise.all([getCustomers(), getContracts(), getBusinessContracts()]);
+  const [customers, contracts, businessContracts, tarefas] = await Promise.all([
+    getCustomers(ctx.companyId),
+    getContracts(),
+    getBusinessContracts(),
+    listTarefasAction(),
+  ]);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -81,7 +96,7 @@ export default async function Page() {
         </p>
       </header>
 
-      <HubRelacionamento companyId={ctx.companyId} initialCustomers={customers} initialContracts={contracts} initialBusinessContracts={businessContracts} />
+      <HubRelacionamento companyId={ctx.companyId} initialCustomers={customers} initialContracts={contracts} initialBusinessContracts={businessContracts} initialTarefas={tarefas} />
     </div>
   );
 }

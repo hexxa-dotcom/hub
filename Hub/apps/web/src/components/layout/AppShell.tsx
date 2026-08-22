@@ -3,49 +3,84 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { SquaresFour, AddressBook, Receipt, Signature, ChartBar, Scroll, Users, Bank, LockKey, Lifebuoy, CreditCard, Gear, List, X, Bell, ChatCircle, HandCoins, Archive, FileCode, Handshake, Stack, UsersThree, ClipboardText, Scales, TrendDown, TrendUp, House, Briefcase, CurrencyDollar, FileText, Folder, Faders, Plug, CaretDown } from '@phosphor-icons/react';
-import type { Icon } from '@phosphor-icons/react';
+import {
+  LayoutDashboard,
+  Handshake,
+  Contact,
+  FileText,
+  FileSignature,
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  Plug,
+  Receipt,
+  UsersRound,
+  Coins,
+  ClipboardList,
+  FolderArchive,
+  Users,
+  Landmark,
+  Layers,
+  ShieldCheck,
+  LifeBuoy,
+  CreditCard,
+  Settings,
+  ChevronDown,
+  Menu,
+  X,
+  Bell,
+  MessageCircle,
+  Building2,
+  Briefcase,
+  Wallet,
+  Folder,
+  FileSpreadsheet,
+  Gauge,
+  Sparkles,
+  Search,
+  Sun,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
-import { GlobalSearch } from './GlobalSearch';
+import { CommandMenu } from './CommandMenu';
+import { QuickActionsMenu } from './QuickActionsMenu';
 
-const ICONS: Record<string, Icon> = {
-  '/dashboard': SquaresFour,
+const ICONS: Record<string, LucideIcon> = {
+  '/dashboard': LayoutDashboard,
+  '/meu-negocio/notas': Receipt,
+  '/meu-negocio/contas-a-pagar': TrendingDown,
+  '/meu-negocio/contas-a-receber': TrendingUp,
+  '/meu-negocio/conciliacao': Scale,
+  '/meu-negocio/hub-financeiro': TrendingUp,
+  '/meu-negocio/clientes': Contact,
   '/relacionamento': Handshake,
-  '/meu-negocio/clientes': AddressBook,
-  '/meu-negocio/notas': Scroll,
-  '/meu-negocio/contratos': Signature,
-  '/meu-negocio/hub-financeiro': ChartBar,
-  '/meu-negocio/fiscal': FileCode,
-  '/minha-contabilidade/termometro-tributario': ChartBar,
-  '/meu-negocio/conciliacao': Scales,
-  '/meu-negocio/contas-a-pagar': TrendDown,
-  '/meu-negocio/contas-a-receber': TrendUp,
-  '/configuracoes/integracoes': Plug,
+  '/meu-negocio/contratos': FileSignature,
+  '/meu-negocio/propostas': ClipboardList,
+  '/meu-negocio/fiscal': FileSpreadsheet,
   '/minha-contabilidade/guias': Receipt,
-  '/minha-contabilidade/socios': UsersThree,
-  '/minha-contabilidade/distribuicao-lucros': HandCoins,
-  '/meu-negocio/propostas': ClipboardText,
-  '/minha-contabilidade/arquivos': Archive,
+  '/minha-contabilidade/termometro-tributario': Gauge,
+  '/minha-contabilidade/socios': UsersRound,
+  '/minha-contabilidade/distribuicao-lucros': Coins,
   '/minha-contabilidade/departamento-pessoal': Users,
-  '/patrimonial': Bank,
-  '/mais/servicos': Stack,
-  '/cofre': LockKey,
-  '/suporte': Lifebuoy,
+  '/meu-negocio/relatorios/fechamento': FileText,
+  '/patrimonial': Landmark,
+  '/cofre': ShieldCheck,
+  '/minha-contabilidade/arquivos': FolderArchive,
+  '/suporte': LifeBuoy,
   '/meu-plano': CreditCard,
-  '/configuracoes': Gear,
+  '/mais/servicos': Layers,
+  '/configuracoes': Settings,
+  '/configuracoes/integracoes': Plug,
 };
 
-const GROUP_ICONS: Record<string, Icon> = {
-  'Meu Negócio': House,
-  'Clientes & CRM': Users,
-  'Gestão Comercial': Briefcase,
-  'Hub Financeiro': CurrencyDollar,
+const GROUP_ICONS: Record<string, LucideIcon> = {
+  'Meu Dia': Sparkles,
+  'Meu Negócio': Building2,
   'Minha Contabilidade': FileText,
-  'Arquivos & Patrimônio': Folder,
-  'Sistema': Gear,
-  'Suporte e Serviços': Lifebuoy,
+  'Patrimônio & Cofre': Landmark,
+  'Sistema & Suporte': Settings,
 };
 
 const STORAGE_KEY = 'hexxa.sidebar.collapsed';
@@ -53,20 +88,20 @@ const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com minha contabilidade.')}`;
 
 function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const s = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
+  const s = size === 'sm' ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm';
   return (
-    <span className={`grid ${s} shrink-0 place-items-center rounded-[0.8rem] bg-brand-600 text-sm font-bold text-white shadow-md`}>
+    <span className={`grid ${s} shrink-0 place-items-center rounded-2xl bg-[#1E3328] font-bold text-[#DFFFAE] border border-[#2F4A3C] shadow-sm`}>
       H
     </span>
   );
 }
 
 function itemClass(active: boolean) {
-  const base = 'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors duration-200';
+  const base = 'flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-all duration-200';
   if (active) {
-    return `${base} font-semibold text-brand-600 dark:text-brand-300`;
+    return `${base} font-bold bg-[#DFFFAE] text-[#1E3328] shadow-sm`;
   }
-  return `${base} rounded-xl text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 hover:text-ink mr-3`;
+  return `${base} font-medium text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3]`;
 }
 
 function NavList({
@@ -81,8 +116,8 @@ function NavList({
   return (
     <ul className="space-y-1">
       {items.map((i) => {
-        const active = pathname === i.href || pathname.startsWith(`${i.href}/`);
-        const IconCmp = ICONS[i.href] || SquaresFour;
+        const active = pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(`${i.href}/`));
+        const IconCmp = ICONS[i.href] || LayoutDashboard;
 
         return (
           <li key={i.href} className="group relative list-none">
@@ -91,15 +126,12 @@ function NavList({
               onClick={onNavigate}
               className={itemClass(active)}
             >
-              {/* O fundo ativo é renderizado quando selecionado, conectando-se ao conteúdo principal */}
-              <div className={`nav-tab-bg ${active ? 'active' : ''}`} />
               <IconCmp
-                weight={active ? 'fill' : 'regular'}
-                className={`relative z-10 h-5 w-5 shrink-0 transition-all duration-300 group-hover:scale-110 ${
-                  active ? 'text-brand-600 dark:text-brand-300 drop-shadow-sm' : ''
+                className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                  active ? 'text-[#1E3328]' : 'text-[#6E6A61] dark:text-[#A8A49C]'
                 }`}
               />
-              <span className="relative z-10 truncate">{i.label}</span>
+              <span className="truncate">{i.label}</span>
             </Link>
           </li>
         );
@@ -135,10 +167,9 @@ function AppShellInner({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [avisoAdmin, setAvisoAdmin] = useState(false);
-  
-  // O grupo ativo é sincronizado primariamente pela URL, mas pode ser mudado pelo clique na barra primária
-  const [activeGroup, setActiveGroup] = useState<string>('Meu Negócio');
+  const [activeGroup, setActiveGroup] = useState<string>('Meu Dia');
 
   useEffect(() => {
     if (searchParams.get('aviso') === 'sem-acesso-contador') setAvisoAdmin(true);
@@ -147,44 +178,41 @@ function AppShellInner({
   useEffect(() => setCollapsed(localStorage.getItem(STORAGE_KEY) === '1'), []);
   useEffect(() => setMobileOpen(false), [pathname]);
 
-  // Sincroniza o grupo ativo com a rota atual ao carregar ou mudar de página
   useEffect(() => {
     const currentSection = sections.find(s => 
-      s.items.some(i => pathname === i.href || pathname.startsWith(`${i.href}/`))
+      s.items.some(i => pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(`${i.href}/`)))
     );
     if (currentSection) {
       setActiveGroup(currentSection.title);
     }
   }, [pathname, sections]);
 
-  function toggleCollapse() {
-    setCollapsed((c) => {
-      const next = !c;
-      localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-      return next;
-    });
-  }
-
   const activeSectionData = sections.find((s) => s.title === activeGroup) || sections[0];
 
   const hour = new Date().getHours();
-  let greeting = 'Olá, Felipe';
-  if (hour >= 5 && hour < 12) greeting = 'Bom dia, Felipe';
-  else if (hour >= 12 && hour < 18) greeting = 'Boa tarde, Felipe';
-  else greeting = 'Boa noite, Felipe';
+  let greeting = 'Olá';
+  if (hour >= 5 && hour < 12) greeting = 'Bom dia';
+  else if (hour >= 12 && hour < 18) greeting = 'Boa tarde';
+  else greeting = 'Boa noite';
 
   return (
-    <div className="flex min-h-screen bg-surface">
-      {/* Container das Sidebars Desktop (Auto-recolhe no mouse leave) */}
+    <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
+      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+
+      {/* Container das Sidebars Desktop */}
       <div
         className="sticky top-0 hidden h-screen shrink-0 lg:flex z-40"
         onMouseLeave={() => setCollapsed(true)}
       >
-        {/* Sidebar Primária (Estreita, Fixa) — ícones flutuantes, sem fundo */}
-        <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 py-4 z-40 flex">
-          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto no-scrollbar w-full items-center pt-4">
+        {/* Sidebar Primária (Estreita em Verde Floresta Profundo) */}
+        <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 py-5 z-40 flex bg-[#1E3328] border-r border-[#2F4A3C]/40 text-[#FEFDF3]">
+          <Link href="/dashboard" className="transition-transform hover:scale-105">
+            <BrandMark />
+          </Link>
+
+          <nav className="flex flex-1 flex-col gap-2.5 overflow-y-auto no-scrollbar w-full items-center pt-2">
             {sections.map((s) => {
-              const IconCmp = GROUP_ICONS[s.title] || SquaresFour;
+              const IconCmp = GROUP_ICONS[s.title] || LayoutDashboard;
               const isActive = activeGroup === s.title;
               return (
                 <button
@@ -197,65 +225,65 @@ function AppShellInner({
                   onClick={() => {
                     setActiveGroup(s.title);
                     if (collapsed) setCollapsed(false);
-                    // Se o grupo tiver apenas 1 item (ex: Dashboard), navega direto
                     if (s.items.length === 1 && s.items[0]) {
                       router.push(s.items[0].href as never);
                     }
                   }}
-                  className={`group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-300 ${
+                  className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive
-                      ? 'text-brand-600 dark:text-brand-300 scale-110 drop-shadow-[0_0_10px_rgba(84,132,237,0.35)]'
-                      : 'text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 hover:text-ink'
+                      ? 'bg-[#DFFFAE] text-[#1E3328] font-bold shadow-md scale-105'
+                      : 'text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3]'
                   }`}
                 >
-                  <IconCmp weight={isActive ? 'duotone' : 'regular'} className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+                  <IconCmp className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
                 </button>
               );
             })}
           </nav>
         </aside>
 
-        {/* Sidebar Secundária (Expansível) — mesmo vidro translúcido dos cards */}
+        {/* Sidebar Secundária (Expansível em Warm Beige) */}
         <aside
-          className={`h-full shrink-0 flex-col card-flat !rounded-l-none transition-all duration-300 ease-out z-30 flex overflow-hidden ${
-            collapsed ? 'w-0 !border-none opacity-0' : 'w-64 opacity-100'
+          className={`h-full shrink-0 flex-col bg-[#F4EFE4] dark:bg-[#1A201C] border-r border-black/5 dark:border-white/10 transition-all duration-300 ease-out z-30 flex overflow-hidden ${
+            collapsed ? 'w-0 !border-none opacity-0' : 'w-64 opacity-100 shadow-xl'
           }`}
         >
-        <div className="flex shrink-0 flex-col border-b border-line">
-          {/* Workspace Switcher */}
-          <div className="p-3">
-            <button className="flex w-full items-center justify-between rounded-xl p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-bold shadow-sm border border-brand-200/50 dark:border-brand-800/50">
-                  {company
-                    ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
-                    : 'H'}
-                </div>
-                <div className="flex flex-col items-start overflow-hidden text-left">
-                  <span className="w-full truncate text-sm font-semibold text-ink leading-tight">
+          <div className="flex shrink-0 flex-col border-b border-black/5 dark:border-white/10">
+            {/* Workspace Switcher */}
+            <div className="p-3">
+              <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2F4A3C] text-[#DFFFAE] font-bold text-sm shadow-sm">
                     {company
-                      ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
-                      : 'Hexx Solutions'}
-                  </span>
-                  <span className="w-full truncate text-[11px] font-medium text-ink-soft">
-                    {company?.cnpj || 'Sem CNPJ'}
-                  </span>
+                      ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
+                      : 'H'}
+                  </div>
+                  <div className="flex flex-col items-start overflow-hidden text-left">
+                    <span className="w-full truncate text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight">
+                      {company
+                        ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
+                        : 'Hexxa Solutions'}
+                    </span>
+                    <span className="w-full truncate text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C]">
+                      {company?.cnpj || 'Ambiente Ativo'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <CaretDown weight="bold" className="h-4 w-4 shrink-0 text-ink-soft" />
-            </button>
+                <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
+              </button>
+            </div>
+
+            {/* Active Group Title */}
+            <div className="px-5 pb-3 pt-1 flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE]">{activeGroup}</span>
+            </div>
           </div>
 
-          {/* Active Group Title */}
-          <div className="px-6 pb-3 pt-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">{activeGroup}</span>
+          <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-4">
+            <NavList items={activeSectionData?.items || []} pathname={pathname} />
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto no-scrollbar pl-4 pr-0 pb-8 mt-4">
-          <NavList items={activeSectionData?.items || []} pathname={pathname} />
-        </div>
-      </aside>
+        </aside>
       </div>
 
       {/* Drawer mobile + backdrop */}
@@ -263,27 +291,27 @@ function AppShellInner({
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm" onClick={() => setMobileOpen(false)} aria-hidden />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col card-flat !rounded-l-none transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#FEFDF3] dark:bg-[#1A201C] border-r border-black/10 dark:border-white/10 transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-[72px] shrink-0 items-center justify-between px-6 border-b border-line">
+        <div className="flex h-[72px] shrink-0 items-center justify-between px-6 border-b border-black/5 dark:border-white/10 bg-[#1E3328] text-white">
           <div className="flex items-center gap-3">
             <BrandMark size="sm" />
-            <span className="text-base font-bold text-ink">Hexx Hub</span>
+            <span className="text-base font-serif font-bold text-[#DFFFAE]">Hexx Hub</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Fechar menu"
-            className="rounded-xl p-2 text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+            className="rounded-xl p-2 text-white/80 transition-colors hover:bg-white/10"
           >
-            <X weight="bold" className="h-5 w-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto no-scrollbar py-6 pl-5 pr-0 space-y-8">
+        <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-4 space-y-6">
           {sections.map(s => (
             <div key={s.title}>
-              <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-wider text-ink-soft">
+              <h3 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE]">
                 {s.title}
               </h3>
               <NavList items={s.items} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
@@ -294,46 +322,62 @@ function AppShellInner({
 
       {/* Coluna de conteúdo principal */}
       <div className="flex min-w-0 flex-1 flex-col">
-
-          {/* Top bar desktop */}
-        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-line bg-surface/70 px-6 py-4 backdrop-blur-xl lg:flex">
-          
+        {/* Top bar desktop */}
+        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-8 py-3.5 backdrop-blur-xl lg:flex">
           {/* User Greeting */}
           <div className="flex items-center gap-3">
-            <span className="text-xl font-extrabold tracking-tight text-ink">
+            <h2 className="text-xl font-serif font-semibold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
               {greeting}
+            </h2>
+            <span className="inline-flex items-center rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+              Conta Ativa
             </span>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
+          {/* Center / Right Actions */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Quick Action Button */}
+            <QuickActionsMenu />
+
+            {/* Spotlight Search Trigger */}
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] shadow-sm hover:border-[#2F4A3C] dark:hover:border-[#DFFFAE] transition-all w-60 justify-between group"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3]" />
+                <span>Buscar comandos...</span>
+              </div>
+              <kbd className="hidden sm:inline-flex items-center rounded-md bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6A61] dark:text-[#A8A49C]">
+                ⌘K
+              </kbd>
+            </button>
+
             <OrganizationSwitcher
               hidePersonal
               afterSelectOrganizationUrl="/dashboard"
               afterCreateOrganizationUrl="/dashboard"
             />
-            <GlobalSearch />
             <ThemeToggle collapsed />
             <UserButton />
             
             <div className="relative group">
               <button
                 aria-label="Notificações"
-                className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-surface-card text-ink-soft transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:scale-105"
+                className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] transition-all hover:bg-[#DFFFAE] hover:text-[#231F20]"
               >
-                <Bell weight="duotone" className="h-5 w-5" />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-critical shadow-[0_0_0_2px_var(--color-surface-card)]" />
+                <Bell className="h-4 w-4" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e11d48]" />
               </button>
               
-              <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-2xl border border-line bg-surface-card shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <div className="p-4 border-b border-line flex items-center justify-between">
-                  <span className="font-semibold text-ink">Notificações</span>
-                  <span className="text-xs text-brand-600 font-medium cursor-pointer hover:underline">Marcar como lidas</span>
+              <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-4">
+                <div className="border-b border-black/5 dark:border-white/5 pb-2 mb-2 flex items-center justify-between">
+                  <span className="font-bold text-xs text-[#231F20] dark:text-[#FEFDF3]">Notificações</span>
+                  <span className="text-[11px] text-[#2F4A3C] dark:text-[#DFFFAE] font-bold cursor-pointer hover:underline">Marcar lidas</span>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
-                  <div className="p-4 text-center text-sm text-ink-soft">
-                    Nenhuma notificação no momento.
-                  </div>
+                <div className="text-center py-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                  Nenhuma notificação nova no momento.
                 </div>
               </div>
             </div>
@@ -341,21 +385,27 @@ function AppShellInner({
         </header>
 
         {/* Top bar mobile */}
-        <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-line bg-surface-card/70 px-4 backdrop-blur-xl lg:hidden">
-          <button
-            onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menu"
-            className="rounded-xl p-2 text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            <List className="h-6 w-6" />
-          </button>
-          <div className="flex items-center gap-3">
-            <BrandMark size="sm" />
-            <span className="font-bold text-ink">Hexx Hub</span>
-          </div>
+        <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-4 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-2">
-            <UserButton />
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Abrir menu"
+              className="rounded-xl p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <QuickActionsMenu />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCommandOpen(true)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/10 text-[#6E6A61]"
+            >
+              <Search className="h-4 w-4" />
+            </button>
             <ThemeToggle collapsed />
+            <UserButton />
           </div>
         </header>
 
@@ -375,10 +425,10 @@ function AppShellInner({
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Falar com a contabilidade no WhatsApp"
-          className="fixed bottom-6 right-6 z-40 flex h-14 items-center gap-3 rounded-full bg-[#25D366] px-5 font-bold text-white shadow-xl transition-transform hover:scale-105 hover:shadow-2xl"
+          className="fixed bottom-6 right-6 z-40 flex h-13 items-center gap-2.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 font-bold text-[#DFFFAE] shadow-xl transition-all duration-200 hover:scale-105 border border-[#2F4A3C]"
         >
-          <ChatCircle weight="fill" className="h-6 w-6" />
-          <span className="hidden sm:inline">Atendimento</span>
+          <MessageCircle className="h-5 w-5" />
+          <span className="hidden sm:inline text-sm">Falar com Contador</span>
         </a>
       )}
     </div>

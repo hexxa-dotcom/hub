@@ -1,7 +1,12 @@
 import {  Stack  } from '@phosphor-icons/react/dist/ssr';
 import { HubServicos } from './HubServicos';
+import { listSolicitacoesAction } from './actions';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+export default async function Page() {
+  const solicitacoes = await listSolicitacoesAction();
+
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
@@ -14,7 +19,7 @@ export default function Page() {
         </p>
       </header>
 
-      <HubServicos />
+      <HubServicos initialSolicitacoes={solicitacoes} />
     </div>
   );
 }

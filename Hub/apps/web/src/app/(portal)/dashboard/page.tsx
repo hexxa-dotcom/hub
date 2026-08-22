@@ -1,11 +1,26 @@
 import { GlassCard } from '@/components/ui/GlassCard';
 import { LABELS } from '@hexxa/core/language';
 import { TaxThermometerService } from '@hexxa/core';
-import {  CaretDown, Calendar, Warning, Clock, Percent, FileText  } from '@phosphor-icons/react/dist/ssr';
+import {
+  Calendar,
+  AlertTriangle,
+  Clock,
+  Percent,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  TrendingUp,
+  Sparkles,
+} from 'lucide-react';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { withTenant, sql } from '@hexxa/db';
 import { DashboardActions } from './DashboardActions';
+import { RevenueChart } from './RevenueChart';
+import { DueDatesTimeline } from './DueDatesTimeline';
+import { HealthScoreCard } from './HealthScoreCard';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -13,6 +28,7 @@ const pct = (n: number, d = 1) => `${(n * 100).toLocaleString('pt-BR', { maximum
 const rate = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 
 type Entry = {
+  id?: string;
   amount: number | string;
   type: string;
   status: string;
@@ -22,14 +38,9 @@ type Entry = {
   category_name?: string | null;
 };
 
-/**
- * Paleta categórica validada (lightness/chroma/CVD/contraste OK nos 2 temas):
- * azul royal · ciano · violeta · âmbar. A cauda vira "Outros" em cinza.
- */
-const CAT_COLORS = ['#2563eb', '#0891b2', '#8b5cf6', '#d97706'];
-const OUTROS_COLOR = '#94a3b8';
+const CAT_COLORS = ['#2F4A3C', '#A2C1CD', '#5F6E46', '#8FA85B'];
+const OUTROS_COLOR = '#C5BBAA';
 
-/** Top 4 categorias reais + cauda agregada em "Outros". */
 function buildCategorias(receivables: Entry[]) {
   const byCat = new Map<string, number>();
   for (const r of receivables) {
@@ -77,7 +88,7 @@ export default async function DashboardPage() {
     folha12 = simples12.folha12;
     const data = await withTenant(ctx.companyId, async (tx) => {
       const fe = await tx.execute(sql`
-        SELECT fe.amount, fe.type, fe.status, fe.reference_month, fe.due_date, fe.description,
+        SELECT fe.id, fe.amount, fe.type, fe.status, fe.reference_month, fe.due_date, fe.description,
                c.name AS category_name
         FROM financial_entry fe
         LEFT JOIN category c ON c.id = fe.category_id
@@ -110,8 +121,6 @@ export default async function DashboardPage() {
     if (data.hasClosure) lastClosureDate = lastMonthStr;
     openDasGuide = data.dasGuide;
   } catch {
-    // Falha real ao carregar (banco indisponível, etc.) — não mostrar como
-    // se o faturamento fosse zero, avisar que os dados não puderam ser lidos.
     loadError = true;
   }
 
@@ -125,16 +134,21 @@ export default async function DashboardPage() {
   const lucro = faturamentoMes - despesasMes;
   const margem = faturamentoMes > 0 ? lucro / faturamentoMes : 0;
 
-  // série mensal (últimos 8 meses) para o gráfico
+  // série mensal para o gráfico
   const byMonth = new Map<string, number>();
   for (const r of receivables) byMonth.set(r.reference_month, (byMonth.get(r.reference_month) ?? 0) + Number(r.amount));
   const series = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-8);
-  const maxVal = Math.max(1, ...series.map(([, v]) => v));
-  const maxIdx = series.reduce((mi, [, v], i, arr) => (v > arr[mi]![1] ? i : mi), 0);
-  const monthLabel = (iso: string) =>
-    new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+  
+  const chartData = series.map(([iso, amount]) => {
+    const d = new Date(`${iso}T00:00:00`);
+    return {
+      month: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+      rawMonth: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+      amount,
+      isCurrentMonth: iso === curMonth,
+    };
+  });
 
-  // tendência do faturamento vs. mês anterior
   const prev = series.length >= 2 ? series[series.length - 2]![1] : 0;
   const fatTrend = prev > 0 ? (faturamentoMes - prev) / prev : 0;
 
@@ -142,16 +156,14 @@ export default async function DashboardPage() {
   const faixaProgress =
     simples.faixaMax > simples.faixaMin ? (rbt12 - simples.faixaMin) / (simples.faixaMax - simples.faixaMin) : 0;
   
-  // Lê a provisão real gerada pela emissão das notas (despesas de imposto)
   const provisao = entries
     .filter((e) => e.type === 'PAYABLE' && e.reference_month === curMonth && String(e.description || '').includes('Provisão de Imposto'))
     .reduce((s, e) => s + Number(e.amount), 0);
 
-  // Donut por categoria REAL dos recebíveis do mês (fallback: todos os recebíveis)
   const recebiveisMes = receivables.filter((e) => e.reference_month === curMonth);
   const categorias = buildCategorias(recebiveisMes.length ? recebiveisMes : receivables);
 
-  // Avisos reais: contas vencidas / a vencer em 7 dias + notas em processamento
+  // Avisos reais
   const todayIso = now.toISOString().slice(0, 10);
   const in7DaysIso = new Date(now.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
   const pendentes = entries.filter((e) => e.type === 'PAYABLE' && e.status === 'PENDING' && e.due_date);
@@ -163,40 +175,74 @@ export default async function DashboardPage() {
   if (issuingCount) avisos.push({ tone: 'info', text: `${issuingCount} nota${issuingCount > 1 ? 's' : ''} aguardando processamento no Emissor Nacional` });
   const tudoEmDia = vencidas.length === 0;
 
+  // Itens para a Timeline de Vencimentos
+  const timelineItems = [
+    ...(openDasGuide
+      ? [
+          {
+            id: 'das-guide',
+            type: 'tax' as const,
+            title: 'Guia do Simples Nacional (DAS)',
+            amount: openDasGuide.amount,
+            dueDate: openDasGuide.dueDate,
+            status: openDasGuide.dueDate < todayIso ? ('overdue' as const) : ('pending' as const),
+            link: '/minha-contabilidade/guias',
+          },
+        ]
+      : []),
+    ...entries
+      .filter((e) => e.due_date && e.status === 'PENDING')
+      .slice(0, 8)
+      .map((e) => ({
+        id: String(e.id || Math.random()),
+        type: e.type === 'PAYABLE' ? ('payable' as const) : ('receivable' as const),
+        title: e.description || (e.type === 'PAYABLE' ? 'Conta a Pagar' : 'Recebível'),
+        amount: Number(e.amount),
+        dueDate: e.due_date!,
+        status: e.due_date! < todayIso ? ('overdue' as const) : ('pending' as const),
+        link: e.type === 'PAYABLE' ? '/meu-negocio/contas-a-pagar' : '/meu-negocio/contas-a-receber',
+      })),
+  ];
+
   return (
-    <div className="mx-auto w-full space-y-6">
-      <header className="animate-fade-up relative overflow-hidden card-flat p-5 sm:p-6 text-ink">
-        <div className="relative z-10 flex flex-col gap-5">
+    <div className="mx-auto w-full space-y-8 animate-fade-up">
+      {/* Header Editorial */}
+      <header className="relative overflow-hidden rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 text-[#231F20] dark:text-[#FEFDF3] shadow-sm">
+        <div className="relative z-10 flex flex-col gap-6">
           {/* Top Row: Tags / Badges */}
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-            <span className="rounded-full bg-black/5 dark:bg-white/10 px-3 py-1 text-[11px] font-medium border border-line text-ink-soft">
-              Dashboard do Meu Negócio
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm">
+              <Sparkles className="h-3 w-3" /> Dashboard do Meu Negócio
             </span>
 
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1 text-[11px] font-medium border border-line text-ink-soft">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/10 px-3.5 py-1 text-xs font-medium border border-black/5 dark:border-white/10 text-[#6E6A61] dark:text-[#A8A49C]">
                 <Calendar className="h-3.5 w-3.5" /> {dateFormatted}
               </span>
 
               {tudoEmDia ? (
-                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-ok/10 px-3 py-1 text-[11px] font-medium text-ok border border-line">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ok"></span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-3.5 py-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]/50">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                   Tudo em dia
                 </span>
               ) : (
-                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-critical/10 px-3 py-1 text-[11px] font-medium text-critical border border-line">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-critical"></span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-950/50 px-3.5 py-1 text-xs font-bold text-red-700 dark:text-red-300 border border-red-200">
+                  <AlertCircle className="h-3.5 w-3.5" />
                   Pendências em aberto
                 </span>
               )}
             </div>
           </div>
 
-          {/* Bottom Row: Greeting & Actions */}
+          {/* Bottom Row: Title & Actions */}
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight mb-1 text-ink">Resumo Financeiro</h1>
-              <p className="text-ink-soft text-sm max-w-lg">O balanço financeiro e contábil do seu negócio, em tempo real.</p>
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] mb-1">
+                Resumo Operacional &amp; Financeiro
+              </h1>
+              <p className="text-[#6E6A61] dark:text-[#A8A49C] text-sm max-w-xl">
+                Acompanhe o faturamento em tempo real, provisão de impostos e fluxo de caixa da sua empresa.
+              </p>
             </div>
 
             <DashboardActions />
@@ -205,91 +251,87 @@ export default async function DashboardPage() {
       </header>
 
       {loadError && (
-        <div className="flex items-center gap-3 rounded-2xl border border-critical/30 bg-critical/10 p-4 text-critical">
-          <Warning className="h-5 w-5 shrink-0" />
+        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">
-            Não foi possível carregar os dados financeiros agora. Os valores abaixo podem estar incompletos — recarregue a página em instantes.
+            Não foi possível carregar alguns dados financeiros. Recarregue a página em instantes.
           </p>
         </div>
       )}
 
       {lastClosureDate && (
-        <div className="bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+        <div className="bg-[#EFFFD6] border border-[#DFFFAE] dark:bg-[#1E3328] dark:border-[#2F4A3C] rounded-3xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E3328] text-[#DFFFAE] font-bold shadow-sm">
               <FileText className="h-5 w-5" />
             </span>
             <div>
-              <p className="font-semibold text-brand-900 dark:text-brand-100">O seu fechamento mensal está pronto!</p>
-              <p className="text-sm text-brand-700 dark:text-brand-300">Resumo financeiro e notas do mês anterior já foram processados pela contabilidade.</p>
+              <p className="font-serif font-bold text-[#1E3328] dark:text-[#DFFFAE]">O fechamento mensal está pronto!</p>
+              <p className="text-xs text-[#2F4A3C] dark:text-[#A8A49C]">Resumo contábil e notas fiscais do mês anterior consolidadas com sucesso.</p>
             </div>
           </div>
           <Link 
             href={`/meu-negocio/relatorios/fechamento?month=${lastClosureDate}`}
-            className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors whitespace-nowrap"
+            className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105 whitespace-nowrap"
           >
-            Ver Relatório Completo
+            Ver Relatório Completo →
           </Link>
         </div>
       )}
 
-      {/* KPIs — entrada escalonada */}
+      {/* KPIs — com rollup de números suaves */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <GlassCard
           action
+          highlight
           href="/meu-negocio/notas"
           title={LABELS.monthlyRevenue}
           value={BRL.format(faturamentoMes)}
           trend={fatTrend ? { label: pct(Math.abs(fatTrend)), positive: fatTrend >= 0 } : undefined}
           hint="vs. mês anterior"
-          className="animate-fade-up"
         />
-        <GlassCard action href="/meu-negocio/fiscal" title={LABELS.estimatedTax} value={BRL.format(provisao)} hint={`estimado (Anexo ${simples.anexo})`} className="animate-fade-up [animation-delay:60ms]" />
-        <GlassCard action href="/meu-negocio/contas-a-pagar" title={LABELS.monthlyExpenses} value={BRL.format(despesasMes)} hint="saídas do mês" className="animate-fade-up [animation-delay:120ms]" />
-        <GlassCard action href="/meu-negocio/hub-financeiro" title={LABELS.netProfit} value={BRL.format(lucro)} hint="faturamento − despesas" className="animate-fade-up [animation-delay:180ms]" />
+        <GlassCard
+          action
+          href="/meu-negocio/fiscal"
+          title={LABELS.estimatedTax}
+          value={BRL.format(provisao)}
+          hint={`estimado (Anexo ${simples.anexo})`}
+        />
+        <GlassCard
+          action
+          href="/meu-negocio/contas-a-pagar"
+          title={LABELS.monthlyExpenses}
+          value={BRL.format(despesasMes)}
+          hint="saídas do mês"
+        />
+        <GlassCard
+          action
+          href="/meu-negocio/hub-financeiro"
+          title={LABELS.netProfit}
+          value={BRL.format(lucro)}
+          hint="faturamento − despesas"
+        />
       </div>
 
-      {/* Gráfico + composição por categoria */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <GlassCard title="Faturamento — últimos meses" action href="/meu-negocio/hub-financeiro" className="animate-fade-up [animation-delay:120ms] lg:col-span-2">
-          <div className="mt-5 flex gap-4">
-            <div className="flex h-56 flex-col justify-between py-1 text-right text-[10px] tabular text-ink-soft">
-              {[1, 0.75, 0.5, 0.25, 0].map((f) => (
-                <span key={f}>R$ {Math.round((maxVal * f) / 1000)}k</span>
-              ))}
-            </div>
-            <div className="flex h-56 flex-1 gap-2.5">
-              {series.map(([iso, v], i) => (
-                <div key={iso} className="group flex flex-1 flex-col">
-                  <div className="relative flex flex-1 items-end">
-                    {/* Rótulo direto no destaque; os demais aparecem no hover */}
-                    <span
-                      className={`absolute left-1/2 z-10 -translate-x-1/2 -translate-y-2 whitespace-nowrap rounded-xl border border-line bg-surface-card px-2 py-1 text-[11px] font-semibold tabular shadow-md transition-opacity duration-150 ${
-                        i === maxIdx ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`}
-                      style={{ bottom: `${(v / maxVal) * 100}%` }}
-                    >
-                      {BRL.format(v)}
-                    </span>
-                    <div
-                      className={`w-full rounded-t transition-colors duration-150 ${
-                        i === maxIdx ? 'bg-brand-600' : 'bg-brand-500/70 group-hover:bg-brand-500'
-                      }`}
-                      style={{ height: `${(v / maxVal) * 100}%` }}
-                    />
-                  </div>
-                  <span className="mt-2 text-center text-[10px] text-ink-soft">{monthLabel(iso)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Gráfico Recharts Shadcn + composição por categoria */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <GlassCard
+          title="Faturamento Histórico"
+          action
+          href="/meu-negocio/hub-financeiro"
+          className="lg:col-span-2"
+        >
+          <RevenueChart data={chartData} />
         </GlassCard>
 
-        <GlassCard title="Receita por categoria" action href="/meu-negocio/hub-financeiro" className="animate-fade-up [animation-delay:180ms]">
+        <GlassCard
+          title="Receita por Categoria"
+          action
+          href="/meu-negocio/hub-financeiro"
+        >
           {categorias.length ? (
             <div className="mt-5 space-y-4">
-              {/* Barra empilhada horizontal — parte-a-todo com respiro de 2px entre segmentos */}
-              <div className="flex h-3.5 w-full gap-[2px] overflow-hidden rounded-full">
+              <div className="flex h-3.5 w-full gap-[2px] overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
                 {categorias.map((c) => (
                   <div
                     key={c.label}
@@ -299,108 +341,135 @@ export default async function DashboardPage() {
                   />
                 ))}
               </div>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2.5 text-xs sm:text-sm">
                 {categorias.map((c) => (
                   <li key={c.label} className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
-                    <span className="flex-1 truncate text-ink-soft">{c.label}</span>
-                    <span className="tabular text-xs text-ink-soft">{BRL.format(c.value)}</span>
-                    <span className="w-10 text-right font-medium tabular">{pct(c.pct / 100, 0)}</span>
+                    <span className="flex-1 truncate text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</span>
+                    <span className="tabular font-medium text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}</span>
+                    <span className="w-10 text-right font-bold tabular text-[#6E6A61] dark:text-[#A8A49C]">{pct(c.pct / 100, 0)}</span>
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <p className="mt-6 text-sm text-ink-soft">Sem recebíveis registrados ainda — emita notas ou lance recebimentos para ver a distribuição por categoria.</p>
+            <p className="mt-6 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+              Sem recebíveis no mês — emita notas fiscais para visualizar a distribuição por serviço.
+            </p>
           )}
         </GlassCard>
       </div>
 
-      {/* Margem + Termômetro + Avisos */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <GlassCard title="Margem de Lucro Real" action href="/meu-negocio/hub-financeiro" className="animate-fade-up [animation-delay:240ms]">
-          <div className="mt-2 flex items-end justify-between">
-            <p className="text-[28px] font-semibold tracking-tight tabular text-ok">{pct(margem)}</p>
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-ok/10 text-ok">
-              <Percent className="h-[18px] w-[18px]" />
+      {/* Linha do Tempo de Vencimentos & Saúde Fiscal */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <DueDatesTimeline items={timelineItems} />
+        </div>
+        <div className="lg:col-span-2">
+          <HealthScoreCard
+            tudoEmDia={tudoEmDia}
+            fatorR={simples.fatorR}
+            anexo={simples.anexo}
+          />
+        </div>
+      </div>
+
+      {/* Margem + Termômetro Tributário + Caixa Postal */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <GlassCard
+          title="Margem Operacional Real"
+          action
+          href="/meu-negocio/hub-financeiro"
+        >
+          <div className="mt-3 flex items-end justify-between">
+            <p className="text-3xl font-serif font-bold tracking-tight tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{pct(margem)}</p>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#1E3328] dark:text-[#DFFFAE]">
+              <Percent className="h-4 w-4" />
             </span>
           </div>
-          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-            <div className="h-full rounded-full bg-ok transition-[width] duration-700 ease-out" style={{ width: pct(Math.max(0, margem), 0) }} />
+          <div className="mt-3.5 h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+            <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(Math.max(0, margem), 0) }} />
           </div>
-          <ul className="mt-3 space-y-1 text-xs text-ink-soft">
-            <li className="flex justify-between"><span>Faturamento</span><span className="font-medium text-ink">{BRL.format(faturamentoMes)}</span></li>
-            <li className="flex justify-between"><span>Despesas</span><span className="font-medium text-ink">{BRL.format(despesasMes)}</span></li>
-            <li className="flex justify-between"><span>Lucro líquido</span><span className="font-medium text-ink">{BRL.format(lucro)}</span></li>
+          <ul className="mt-4 space-y-1.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <li className="flex justify-between"><span>Faturamento</span><span className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(faturamentoMes)}</span></li>
+            <li className="flex justify-between"><span>Despesas</span><span className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(despesasMes)}</span></li>
+            <li className="flex justify-between border-t border-black/5 dark:border-white/5 pt-1"><span>Lucro líquido</span><span className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(lucro)}</span></li>
           </ul>
         </GlassCard>
 
-        <GlassCard title={LABELS.taxThermometer} action href="/meu-negocio/fiscal" className="animate-fade-up [animation-delay:300ms]">
-          <p className="mt-2 text-[22px] font-semibold tracking-tight">Anexo {simples.anexo} · Faixa {simples.faixa}</p>
-          <p className="-mt-0.5 text-xs text-ink-soft">Alíquota nominal {rate(simples.nominalRate)}</p>
-          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-            <div className="h-full rounded-full bg-brand-600 transition-[width] duration-700 ease-out" style={{ width: pct(faixaProgress, 0) }} />
+        <GlassCard
+          title={LABELS.taxThermometer}
+          action
+          href="/meu-negocio/fiscal"
+        >
+          <p className="mt-2 text-xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Anexo {simples.anexo} · Faixa {simples.faixa}</p>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Alíquota nominal {rate(simples.nominalRate)}</p>
+          <div className="mt-3.5 h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+            <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(faixaProgress, 0) }} />
           </div>
           {simples.toNextFaixa !== null ? (
-            <p className="mt-2 text-xs text-ink-soft">
-              Faltam <span className="font-semibold text-ink">{BRL.format(simples.toNextFaixa)}</span> para a Faixa{' '}
+            <p className="mt-2 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+              Faltam <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(simples.toNextFaixa)}</span> para a Faixa{' '}
               {simples.faixa + 1} (alíquota sobe para {rate(simples.nextRate ?? 0)}).
             </p>
           ) : (
-            <p className="mt-2 text-xs text-warn">Você está na última faixa — atenção ao teto do Simples.</p>
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">Você está na última faixa — atenção ao teto do Simples.</p>
           )}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
-              Fator R {simples.fatorR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Anexo {simples.anexo}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+              Fator R {simples.fatorR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-xs text-ink-soft">
+            <span className="inline-flex items-center rounded-full bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 px-2.5 py-0.5 text-xs font-medium text-[#6E6A61] dark:text-[#A8A49C]">
               {pct(simples.ceilingUsagePct)} do teto
             </span>
           </div>
         </GlassCard>
 
-        <GlassCard title="Caixa Postal & Recados" action href="/suporte" className="animate-fade-up [animation-delay:360ms]">
-          <div className="mt-3 space-y-2 text-xs">
-            {/* Recado de Entrega de Documentos da Contabilidade — só aparece
-                quando existe mesmo uma guia de DAS em aberto para a empresa. */}
+        <GlassCard
+          title="Caixa Postal &amp; Avisos"
+          action
+          href="/suporte"
+        >
+          <div className="mt-3 space-y-2.5 text-xs">
             {openDasGuide && (
-              <div className="rounded-xl border border-brand-400/30 bg-brand-500/10 p-3 space-y-1.5">
-                <div className="flex items-center justify-between font-bold text-brand-600 dark:text-brand-300">
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="h-4 w-4" /> Guia do Simples Nacional (DAS)
+              <div className="rounded-2xl border border-[#DFFFAE] bg-[#EFFFD6] dark:bg-[#1E3328] dark:border-[#2F4A3C] p-3.5 space-y-1.5 shadow-sm">
+                <div className="flex items-center justify-between font-bold text-[#1E3328] dark:text-[#DFFFAE]">
+                  <span className="flex items-center gap-1.5 font-serif text-sm">
+                    <FileText className="h-4 w-4" /> Guia DAS Simples
                   </span>
-                  <span className="rounded-full bg-brand-500/20 px-2 py-0.5 text-[10px]">Novo Documento</span>
+                  <span className="rounded-full bg-[#1E3328] text-[#DFFFAE] px-2 py-0.5 text-[10px] font-bold">Pendente</span>
                 </div>
-                <p className="text-ink-soft">
-                  Guia do DAS no valor de {BRL.format(openDasGuide.amount)} disponível para pagamento.
+                <p className="text-[#2F4A3C] dark:text-[#A8A49C] text-xs">
+                  Guia do DAS no valor de <strong>{BRL.format(openDasGuide.amount)}</strong> disponível para pagamento.
                 </p>
-                <div className="pt-1 flex items-center justify-between border-t border-brand-500/10">
-                  <span className="text-[10px] text-ink-soft">
+                <div className="pt-2 flex items-center justify-between border-t border-black/5 dark:border-white/10">
+                  <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
                     Vencimento: {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
                   </span>
-                  <Link href="/minha-contabilidade/guias" className="font-bold text-brand-600 hover:underline">Pagar / Ver Guia →</Link>
+                  <Link href="/minha-contabilidade/guias" className="font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline flex items-center gap-1">
+                    Ver Guia <ArrowRight className="h-3 w-3" />
+                  </Link>
                 </div>
               </div>
             )}
 
-            {/* Recados e Alertas do Sistema */}
             {avisos.map((a) => (
               <div
                 key={a.text}
                 className={
                   a.tone === 'critical'
-                    ? 'flex items-center gap-2.5 rounded-xl bg-critical/10 p-3 text-critical'
+                    ? 'flex items-center gap-2.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 p-3 text-red-700 dark:text-red-300'
                     : a.tone === 'warn'
-                      ? 'flex items-center gap-2.5 rounded-xl bg-warn/10 p-3 text-warn'
-                      : 'flex items-center gap-2.5 rounded-xl bg-white/5 border border-white/10 p-3 text-ink-soft'
+                      ? 'flex items-center gap-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 p-3 text-amber-800 dark:text-amber-300'
+                      : 'flex items-center gap-2.5 rounded-2xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 p-3 text-[#6E6A61] dark:text-[#A8A49C]'
                 }
               >
                 {a.tone === 'critical' ? (
-                  <Warning className="h-4 w-4 shrink-0" />
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
                 ) : a.tone === 'warn' ? (
-                  <Clock className="h-4 w-4 shrink-0" />
+                  <Clock className="h-4 w-4 shrink-0 text-amber-600" />
                 ) : (
-                  <FileText className="h-4 w-4 shrink-0" />
+                  <FileText className="h-4 w-4 shrink-0 text-[#2F4A3C]" />
                 )}
                 <span className="flex-1 font-medium">{a.text}</span>
               </div>

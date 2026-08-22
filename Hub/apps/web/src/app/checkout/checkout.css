@@ -57,20 +57,27 @@
   letter-spacing: -0.01em;
 }
 
-.checkout-logo b { font-weight: 800; }
-.checkout-logo span { font-weight: 500; }
-.checkout-logo .logo-sub {
-  font-size: 10px;
+.checkout-logo .logo-flex {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkout-logo .logo-main {
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 1px 6px;
+  letter-spacing: -0.02em;
+}
+
+.checkout-logo .logo-tag-hub {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
   border-radius: 6px;
   background: rgba(223, 255, 174, 0.15);
   color: var(--lime);
-  border: 1px solid rgba(223, 255, 174, 0.3);
-  margin-left: 6px;
-  transform: translateY(-2px);
+  border: 1px solid rgba(223, 255, 174, 0.35);
+  transform: translateY(-1px);
 }
 
 .checkout-security-badge {

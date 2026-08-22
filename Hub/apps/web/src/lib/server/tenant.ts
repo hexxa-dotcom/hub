@@ -21,7 +21,26 @@ export class NoActiveOrganizationError extends Error {
  * Se a organização ainda não tem empresa vinculada, cria uma na hora
  * (o CNPJ real é preenchido depois em Configurações).
  */
+const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
+
+/**
+ * Bypass de login só para desenvolvimento local (DEV_SKIP_AUTH=true no
+ * .env.local, nunca em produção): assume a primeira empresa cadastrada no
+ * banco como tenant, sem passar pelo Clerk. Exige que já exista pelo menos
+ * uma empresa — se o banco estiver vazio, cai no fluxo normal de onboarding.
+ */
+async function getDevTenantContext(): Promise<TenantContext> {
+  const db = getDb();
+  const [first] = await db.select({ id: company.id, type: company.type }).from(company).limit(1);
+  if (!first) throw new NoActiveOrganizationError();
+  return { companyId: first.id, companyType: first.type, userId: 'dev-skip-auth' };
+}
+
 export async function getTenantContext(): Promise<TenantContext> {
+  if (DEV_SKIP_AUTH) {
+    return getDevTenantContext();
+  }
+
   const { userId, orgId } = await auth();
 
   if (!userId || !orgId) {

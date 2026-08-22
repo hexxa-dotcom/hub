@@ -1,17 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Plus, Trash, UploadSimple, Spinner, CheckCircle, WarningCircle, UserPlus, 
-  ArrowSquareOut, ArrowsClockwise, Clock, XCircle, EnvelopeSimple, CaretDown, CaretUp, 
+import { useRouter } from 'next/navigation';
+import {
+  Plus, Trash, UploadSimple, Spinner, CheckCircle, WarningCircle, UserPlus,
+  ArrowSquareOut, ArrowsClockwise, Clock, XCircle, EnvelopeSimple, CaretDown, CaretUp,
   QrCode, FileText, TrendUp, ArrowDownRight, ArrowUpRight, Check, X, Percent, ArrowClockwise,
-  PencilSimpleLine, Signature, FolderSimple
+  PencilSimpleLine, Signature, FolderSimple, LinkSimple
 } from '@phosphor-icons/react';
 import { DocusealBuilder } from '@docuseal/react';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { ContractWizard } from './ContractWizard';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
-import { createLancamento } from '../hub-financeiro/actions';
+import {
+  type ContractRow,
+  createContractAction,
+  reajustarContratoAction,
+  renovarContratoAction,
+  cancelarContratoAction,
+  marcarNfseEmitidaAction,
+} from './actions';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,72 +29,6 @@ const lbl = 'text-xs font-medium text-ink-soft';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-type ContractType = 'ENTRADA' | 'SAIDA';
-type ContractStatus = 'ATIVO' | 'CANCELADO' | 'RENOVADO' | 'EXPIRANDO';
-
-type ServiceContract = {
-  id: string;
-  type: ContractType;
-  title: string;
-  partyName: string;
-  value: number;
-  dueDay: number;
-  startDate: string;
-  endDate: string;
-  status: ContractStatus;
-  autoEmitNfse: boolean;
-  lastNfseEmitted: boolean;
-  nfseNumber?: string;
-  createdAt: string;
-};
-
-// Seed de Contratos Iniciais
-const INITIAL_CONTRACTS: ServiceContract[] = [
-  {
-    id: 'c-1',
-    type: 'ENTRADA',
-    title: 'Prestação de Serviços de TI & Suporte',
-    partyName: 'Clínica Santa Maria Ltda',
-    value: 3500,
-    dueDay: 15,
-    startDate: '2026-01-01',
-    endDate: '2026-12-31',
-    status: 'ATIVO',
-    autoEmitNfse: true,
-    lastNfseEmitted: true,
-    nfseNumber: '000142',
-    createdAt: '2026-01-01T10:00:00Z',
-  },
-  {
-    id: 'c-2',
-    type: 'ENTRADA',
-    title: 'Consultoria Financeira & Controladoria',
-    partyName: 'Advocacia Oliveira & Associados',
-    value: 5200,
-    dueDay: 20,
-    startDate: '2026-02-01',
-    endDate: '2027-01-31',
-    status: 'ATIVO',
-    autoEmitNfse: false,
-    lastNfseEmitted: false,
-    createdAt: '2026-02-01T10:00:00Z',
-  },
-  {
-    id: 'c-3',
-    type: 'SAIDA',
-    title: 'Serviço Terceirizado de Infraestrutura Cloud',
-    partyName: 'TechSolutions Servidores PJ',
-    value: 1200,
-    dueDay: 10,
-    startDate: '2026-01-01',
-    endDate: '2026-12-31',
-    status: 'ATIVO',
-    autoEmitNfse: false,
-    lastNfseEmitted: true,
-    createdAt: '2026-01-01T10:00:00Z',
-  },
-];
-
 const TABS = [
   { key: 'entrada', label: 'Contratos de Entrada (Clientes)', icon: ArrowUpRight },
   { key: 'saida', label: 'Contratos de Saída (Fornecedores)', icon: ArrowDownRight },
@@ -94,25 +36,37 @@ const TABS = [
   { key: 'docuseal', label: 'Construtor DocuSeal', icon: Signature },
 ];
 
-export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequestSummary[] }) {
+export function ContratosClient({
+  initialDocs,
+  initialContracts,
+}: {
+  initialDocs: SignatureRequestSummary[];
+  initialContracts: ContractRow[];
+}) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('entrada');
-  const [contracts, setContracts] = useState<ServiceContract[]>(INITIAL_CONTRACTS);
+  const [contracts, setContracts] = useState<ContractRow[]>(initialContracts);
   const [docs, setDocs] = useState<SignatureRequestSummary[]>(initialDocs);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [wizardMode, setWizardMode] = useState<'upload' | 'generate'>('upload');
-  
+  const [savingContract, setSavingContract] = useState(false);
+
+  useEffect(() => setContracts(initialContracts), [initialContracts]);
+
   // DocuSeal Token
   const [docusealToken, setDocusealToken] = useState<string | null>(null);
 
   // Modais
   const [showNewContractForm, setShowNewContractForm] = useState(false);
-  const [selectedPixModal, setSelectedPixModal] = useState<ServiceContract | null>(null);
-  const [selectedNfseModal, setSelectedNfseModal] = useState<ServiceContract | null>(null);
-  const [selectedReajusteModal, setSelectedReajusteModal] = useState<ServiceContract | null>(null);
-  
-  // Reajuste % input
+  const [selectedPixModal, setSelectedPixModal] = useState<ContractRow | null>(null);
+  const [selectedNfseModal, setSelectedNfseModal] = useState<ContractRow | null>(null);
+  const [selectedReajusteModal, setSelectedReajusteModal] = useState<ContractRow | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  // Reajuste % / NFSe manual
   const [reajustePct, setReajustePct] = useState('5');
-  const [nfseSuccess, setNfseSuccess] = useState<string | null>(null);
+  const [nfseNumeroInput, setNfseNumeroInput] = useState('');
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
 
   // Form de Assinatura
   const [name, setName] = useState('');
@@ -149,10 +103,15 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
       });
   }, []);
 
+  function flashMessage(msg: string) {
+    setActionMessage(msg);
+    setTimeout(() => setActionMessage(null), 6000);
+  }
+
   // Contratos Filtrados
   const entradas = contracts.filter(c => c.type === 'ENTRADA');
   const saidas = contracts.filter(c => c.type === 'SAIDA');
-  
+
   const totalEntradaMensal = entradas.filter(c => c.status === 'ATIVO').reduce((sum, c) => sum + c.value, 0);
   const totalSaidaMensal = saidas.filter(c => c.status === 'ATIVO').reduce((sum, c) => sum + c.value, 0);
 
@@ -165,39 +124,27 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
     const dueDay = Number(fd.get('dueDay'));
     const title = String(fd.get('title'));
     const partyName = String(fd.get('partyName'));
+    const partyCnpj = String(fd.get('partyCnpj') ?? '');
 
-    const newContract: ServiceContract = {
-      id: crypto.randomUUID(),
-      type,
-      title,
-      partyName,
-      value: valor,
-      dueDay,
-      startDate: String(fd.get('startDate')),
-      endDate: String(fd.get('endDate')),
-      status: 'ATIVO',
-      autoEmitNfse: fd.get('autoEmitNfse') === 'on',
-      lastNfseEmitted: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    const dueMonth = new Date().toISOString().substring(0, 7);
-    const dueDateStr = `${dueMonth}-${String(dueDay).padStart(2, '0')}`;
-
+    setSavingContract(true);
     try {
-      await createLancamento({
-        tipo: type === 'ENTRADA' ? 'RECEBER' : 'PAGAR',
-        descricao: `[Contrato] ${title} — ${partyName}`,
-        valor,
-        vencimento: dueDateStr,
-        parcelas: 12,
+      const result = await createContractAction({
+        type,
+        title,
+        partyName,
+        partyCnpj,
+        value: valor,
+        dueDay,
+        startDate: String(fd.get('startDate')),
+        endDate: String(fd.get('endDate')),
+        autoEmitNfse: fd.get('autoEmitNfse') === 'on',
       });
-    } catch (err) {
-      console.error('Erro ao gerar lançamentos financeiros do contrato:', err);
+      flashMessage(result.message);
+      setShowNewContractForm(false);
+      router.refresh();
+    } finally {
+      setSavingContract(false);
     }
-
-    setContracts(prev => [newContract, ...prev]);
-    setShowNewContractForm(false);
   }
 
   async function handleUploadSignature(e: React.FormEvent) {
@@ -231,43 +178,54 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
     }
   }
 
-  function handleReajustar(contractId: string) {
+  async function handleReajustar(contractId: string) {
     const pct = parseFloat(reajustePct) || 0;
     if (pct <= 0) return;
-
-    setContracts(prev => prev.map(c => {
-      if (c.id !== contractId) return c;
-      const newValue = c.value * (1 + pct / 100);
-      return { ...c, value: newValue };
-    }));
-
-    setSelectedReajusteModal(null);
+    setActionBusyId(contractId);
+    try {
+      const result = await reajustarContratoAction(contractId, pct);
+      flashMessage(result.message);
+      setSelectedReajusteModal(null);
+      router.refresh();
+    } finally {
+      setActionBusyId(null);
+    }
   }
 
-  function handleRenovar(contractId: string) {
-    setContracts(prev => prev.map(c => {
-      if (c.id !== contractId) return c;
-      const oldEnd = new Date(c.endDate);
-      oldEnd.setFullYear(oldEnd.getFullYear() + 1);
-      return { ...c, endDate: oldEnd.toISOString().split('T')[0]!, status: 'ATIVO' };
-    }));
+  async function handleRenovar(contractId: string) {
+    setActionBusyId(contractId);
+    try {
+      const result = await renovarContratoAction(contractId);
+      flashMessage(result.message);
+      router.refresh();
+    } finally {
+      setActionBusyId(null);
+    }
   }
 
-  function handleCancelar(contractId: string) {
-    setContracts(prev => prev.map(c => {
-      if (c.id !== contractId) return c;
-      return { ...c, status: 'CANCELADO' };
-    }));
+  async function handleCancelar(contractId: string) {
+    setActionBusyId(contractId);
+    try {
+      const result = await cancelarContratoAction(contractId);
+      flashMessage(result.message);
+      router.refresh();
+    } finally {
+      setActionBusyId(null);
+    }
   }
 
-  function handleEmitirNfseManual(c: ServiceContract) {
-    setContracts(prev => prev.map(item => {
-      if (item.id !== c.id) return item;
-      return { ...item, lastNfseEmitted: true, nfseNumber: `000${Math.floor(100 + Math.random() * 900)}` };
-    }));
-    setNfseSuccess(`NFSe emitida com sucesso para ${c.partyName}! Número: 000143.`);
-    setSelectedNfseModal(null);
-    setTimeout(() => setNfseSuccess(null), 5000);
+  async function handleMarcarNfseEmitida(c: ContractRow) {
+    if (!nfseNumeroInput.trim()) return;
+    setActionBusyId(c.id);
+    try {
+      const result = await marcarNfseEmitidaAction(c.id, nfseNumeroInput.trim());
+      flashMessage(result.message);
+      setSelectedNfseModal(null);
+      setNfseNumeroInput('');
+      router.refresh();
+    } finally {
+      setActionBusyId(null);
+    }
   }
 
   return (
@@ -291,10 +249,10 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
         ))}
       </div>
 
-      {nfseSuccess && (
+      {actionMessage && (
         <div className="flex items-center gap-3 rounded-2xl bg-ok/10 border border-ok/30 p-4 text-sm text-ok font-medium animate-in fade-in">
           <CheckCircle className="h-5 w-5 shrink-0" />
-          {nfseSuccess}
+          {actionMessage}
         </div>
       )}
 
@@ -376,6 +334,14 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
                 </div>
 
                 <div>
+                  <label className={lbl}>CNPJ da contraparte (opcional)</label>
+                  <input name="partyCnpj" placeholder="00.000.000/0000-00" className={`mt-1 ${field}`} />
+                  <p className="mt-1 text-[11px] text-ink-soft">
+                    Se a contraparte também for cliente Hexxa, o contrato e os lançamentos são sincronizados dos dois lados automaticamente.
+                  </p>
+                </div>
+
+                <div>
                   <label className={lbl}>Valor Mensal (R$) *</label>
                   <input name="value" required type="number" step="0.01" min="1" placeholder="0,00" className={`mt-1 ${field}`} />
                 </div>
@@ -406,8 +372,9 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600">
-                  <Check className="h-4 w-4" /> Salvar Contrato e Gerar Lançamentos
+                <button type="submit" disabled={savingContract} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
+                  {savingContract ? <Spinner className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {savingContract ? 'Salvando...' : 'Salvar Contrato e Gerar Lançamentos'}
                 </button>
                 <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-black/5">
                   Cancelar
@@ -429,6 +396,11 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
                       }`}>
                         {c.status}
                       </span>
+                      {c.linkedOnPlatform && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-bold text-brand-600 dark:text-brand-400">
+                          <LinkSimple className="h-3 w-3" /> Sincronizado (também é cliente Hexxa)
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-ink-soft mt-0.5">
                       {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong>{c.partyName}</strong> · Vencimento todo dia {c.dueDay}
@@ -470,7 +442,7 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
                           onClick={() => setSelectedNfseModal(c)}
                           className="inline-flex items-center gap-1 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-500/20 dark:text-brand-400"
                         >
-                          <FileText className="h-3.5 w-3.5" /> Emitir NFSe
+                          <FileText className="h-3.5 w-3.5" /> Marcar NFSe Emitida
                         </button>
 
                         <button
@@ -494,16 +466,18 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
                     <button
                       type="button"
                       onClick={() => handleRenovar(c.id)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink hover:bg-black/5"
+                      disabled={actionBusyId === c.id}
+                      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink hover:bg-black/5 disabled:opacity-50"
                     >
-                      <ArrowClockwise className="h-3.5 w-3.5" /> Renovar (+12m)
+                      {actionBusyId === c.id ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <ArrowClockwise className="h-3.5 w-3.5" />} Renovar (+12m)
                     </button>
 
                     {c.status === 'ATIVO' && (
                       <button
                         type="button"
                         onClick={() => handleCancelar(c.id)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-critical/10 px-2.5 py-1.5 text-xs font-medium text-critical hover:bg-critical/20"
+                        disabled={actionBusyId === c.id}
+                        className="inline-flex items-center gap-1 rounded-xl bg-critical/10 px-2.5 py-1.5 text-xs font-medium text-critical hover:bg-critical/20 disabled:opacity-50"
                       >
                         Cancelar
                       </button>
@@ -512,6 +486,10 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
                 </div>
               </div>
             ))}
+
+            {(activeTab === 'entrada' ? entradas : saidas).length === 0 && (
+              <p className="text-sm text-ink-soft py-8 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : 'saída'} cadastrado ainda.</p>
+            )}
           </div>
         </div>
       )}
@@ -687,9 +665,9 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-ink flex items-center gap-2">
                 <FileText className="h-5 w-5 text-brand-500" />
-                Emitir Nota Fiscal (NFSe) do Contrato
+                Marcar Nota Fiscal (NFSe) como Emitida
               </h3>
-              <button onClick={() => setSelectedNfseModal(null)} className="text-ink-soft hover:text-ink"><X className="h-5 w-5" /></button>
+              <button onClick={() => { setSelectedNfseModal(null); setNfseNumeroInput(''); }} className="text-ink-soft hover:text-ink"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="space-y-2 text-sm bg-black/5 dark:bg-white/5 p-4 rounded-xl">
@@ -698,12 +676,28 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
               <p><span className="text-ink-soft">Valor da Nota:</span> <strong className="text-ok">{BRL.format(selectedNfseModal.value)}</strong></p>
             </div>
 
+            <p className="text-xs text-ink-soft">
+              A emissão real acontece em <strong>Meu Negócio → Notas</strong>. Aqui você só informa o número da nota já emitida, pra vincular ao contrato.
+            </p>
+
+            <div>
+              <label className={lbl}>Número da NFSe emitida *</label>
+              <input
+                value={nfseNumeroInput}
+                onChange={e => setNfseNumeroInput(e.target.value)}
+                placeholder="Ex.: 000142"
+                className={`mt-1 ${field}`}
+              />
+            </div>
+
             <button
               type="button"
-              onClick={() => handleEmitirNfseManual(selectedNfseModal)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
+              onClick={() => handleMarcarNfseEmitida(selectedNfseModal)}
+              disabled={actionBusyId === selectedNfseModal.id || !nfseNumeroInput.trim()}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Confirmar e Transmitir NFSe à Prefeitura
+              {actionBusyId === selectedNfseModal.id ? <Spinner className="h-4 w-4 animate-spin" /> : null}
+              Confirmar
             </button>
           </div>
         </div>
@@ -729,7 +723,8 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
             </div>
 
             <p className="text-xs text-ink-soft">
-              Aplica um reajuste percentual no valor mensal do contrato <strong>{selectedReajusteModal.title}</strong>.
+              Aplica um reajuste percentual no valor mensal do contrato <strong>{selectedReajusteModal.title}</strong>
+              {selectedReajusteModal.linkedOnPlatform ? ' (e do lado espelhado com a contraparte)' : ''}.
             </p>
 
             <div>
@@ -746,9 +741,10 @@ export function ContratosClient({ initialDocs }: { initialDocs: SignatureRequest
             <button
               type="button"
               onClick={() => handleReajustar(selectedReajusteModal.id)}
-              className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
+              disabled={actionBusyId === selectedReajusteModal.id}
+              className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Aplicar Reajuste
+              {actionBusyId === selectedReajusteModal.id ? 'Aplicando...' : 'Aplicar Reajuste'}
             </button>
           </div>
         </div>

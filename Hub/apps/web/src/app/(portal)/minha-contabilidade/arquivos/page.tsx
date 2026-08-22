@@ -1,125 +1,27 @@
-'use client';
+import { FileText } from '@phosphor-icons/react/dist/ssr';
+import { listDocumentsAction } from './actions';
+import { ArquivosClient } from './ArquivosClient';
 
-import { useMemo, useState } from 'react';
-import { FileText, Signature, ShieldCheck, File as FileIcon, DownloadSimple, UploadSimple, type Icon } from '@phosphor-icons/react';
+export const dynamic = 'force-dynamic';
 
-type Category = 'ALVARA' | 'CONTRATO' | 'CND' | 'OUTRO';
-
-type Doc = {
-  id: string;
-  category: Category;
-  name: string;
-  issuedAt?: string;
-  expiresAt?: string;
-};
-
-const CATS: Record<Category, { label: string; icon: Icon; badge: string }> = {
-  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-brand-500/10 text-brand-700 dark:text-brand-300' },
-  CONTRATO: { label: 'Contratos', icon: Signature, badge: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
-  CND: { label: 'CNDs', icon: ShieldCheck, badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' },
-  OUTRO: { label: 'Outros', icon: FileIcon, badge: 'bg-surface-card border border-line text-ink-soft dark:bg-white/10' },
-};
-
-const today = new Date();
-function addDays(n: number) {
-  const d = new Date(today);
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-function fmt(iso?: string) {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-function validity(expiresAt?: string) {
-  if (!expiresAt) return null;
-  const diff = Math.ceil((new Date(expiresAt).getTime() - today.getTime()) / 86_400_000);
-  if (diff < 0) return { label: 'Vencida', cls: 'bg-critical/10 text-critical' };
-  if (diff <= 30) return { label: `Vence em ${diff} dia${diff === 1 ? '' : 's'}`, cls: 'bg-warn/10 text-warn' };
-  return { label: 'Válida', cls: 'bg-ok/10 text-ok' };
-}
-
-const DOCS: Doc[] = [
-  { id: '1', category: 'ALVARA', name: 'Alvará de Funcionamento', issuedAt: '2025-01-15' },
-  { id: '2', category: 'ALVARA', name: 'Alvará do Corpo de Bombeiros (AVCB)', issuedAt: '2025-03-02', expiresAt: addDays(120) },
-  { id: '3', category: 'CONTRATO', name: 'Contrato Social', issuedAt: '2020-05-10' },
-  { id: '4', category: 'CONTRATO', name: 'Última Alteração Contratual', issuedAt: '2024-08-22' },
-  { id: '5', category: 'CND', name: 'CND Federal (Receita / PGFN)', expiresAt: addDays(95) },
-  { id: '6', category: 'CND', name: 'CND Estadual', expiresAt: addDays(12) },
-  { id: '7', category: 'CND', name: 'CND Municipal', expiresAt: addDays(-8) },
-  { id: '8', category: 'CND', name: 'CRF / FGTS', expiresAt: addDays(40) },
-  { id: '9', category: 'OUTRO', name: 'Cartão CNPJ', issuedAt: '2025-02-01' },
-];
-
-const FILTERS: ('TODOS' | Category)[] = ['TODOS', 'ALVARA', 'CONTRATO', 'CND', 'OUTRO'];
-
-export default function Page() {
-  const [filter, setFilter] = useState<'TODOS' | Category>('TODOS');
-
-  const docs = useMemo(
-    () => (filter === 'TODOS' ? DOCS : DOCS.filter((d) => d.category === filter)),
-    [filter],
-  );
-
-  const alerts = DOCS.filter((d) => {
-    const v = validity(d.expiresAt);
-    return v && v.label !== 'Válida';
-  }).length;
+export default async function Page() {
+  const docs = await listDocumentsAction();
 
   return (
     <div className="mx-auto w-full space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Arquivos Permanentes</h1>
+          <div className="flex items-center gap-2">
+            <FileText className="h-6 w-6 text-brand-500" />
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">Arquivos Permanentes</h1>
+          </div>
           <p className="mt-0.5 text-sm text-ink-soft">
-            Documentos da empresa sempre à mão — alvarás, contratos, CNDs e mais. Disponibilizados pela sua contabilidade.
+            Documentos da empresa sempre à mão — alvarás, contratos, CNDs e mais.
           </p>
         </div>
       </header>
 
-      {alerts > 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          {alerts} certidão(ões) vencendo ou vencida(s) — vale renovar.
-        </div>
-      )}
-
-      {/* Lista */}
-      <section className="card-flat divide-y divide-line rounded-card">
-        {docs.map((d) => {
-          const cat = CATS[d.category];
-          const Icon = cat.icon;
-          const v = validity(d.expiresAt);
-          return (
-            <div key={d.id} className="flex items-center gap-4 p-4">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate font-medium">{d.name}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${cat.badge}`}>{cat.label}</span>
-                  {v && <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${v.cls}`}>{v.label}</span>}
-                </div>
-                <p className="mt-0.5 text-xs text-ink-soft">
-                  {d.issuedAt && <>Emitido em {fmt(d.issuedAt)}</>}
-                  {d.issuedAt && d.expiresAt && ' · '}
-                  {d.expiresAt && <>Validade {fmt(d.expiresAt)}</>}
-                  {!d.issuedAt && !d.expiresAt && 'Documento permanente'}
-                </p>
-              </div>
-              <a
-                href="#"
-                aria-label={`Baixar ${d.name}`}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-              >
-                <DownloadSimple className="h-4 w-4" /> Baixar
-              </a>
-            </div>
-          );
-        })}
-        {docs.length === 0 && <p className="p-5 text-sm text-ink-soft">Nenhum documento nesta categoria.</p>}
-      </section>
+      <ArquivosClient initialDocs={docs} />
     </div>
   );
 }

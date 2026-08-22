@@ -145,9 +145,10 @@ function CheckoutContent() {
       <header className="checkout-header">
         <div className="wrap">
           <Link href="/" className="checkout-logo">
-            <b>hexx</b>
-            <span>hub</span>
-            <span className="logo-sub">digital</span>
+            <span className="logo-flex">
+              <b className="logo-main">hexx</b>
+              <span className="logo-tag-hub">HUB</span>
+            </span>
           </Link>
           <div className="checkout-security-badge">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

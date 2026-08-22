@@ -1,6 +1,7 @@
 import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
+import { listContractsAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ async function getSignatureRequests() {
 }
 
 export default async function Page() {
-  const initialDocs = await getSignatureRequests();
+  const [initialDocs, initialContracts] = await Promise.all([getSignatureRequests(), listContractsAction()]);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -26,7 +27,7 @@ export default async function Page() {
         </p>
       </header>
 
-      <ContratosClient initialDocs={initialDocs} />
+      <ContratosClient initialDocs={initialDocs} initialContracts={initialContracts} />
     </div>
   );
 }

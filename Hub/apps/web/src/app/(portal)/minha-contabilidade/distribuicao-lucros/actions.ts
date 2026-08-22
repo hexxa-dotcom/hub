@@ -1,11 +1,38 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { withTenant } from '@hexxa/db';
+import { withTenant, eq, desc } from '@hexxa/db';
 import { profitDistribution } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export type DistState = { ok: boolean; message: string };
+
+export type DistributionRow = {
+  id: string;
+  partnerName: string;
+  amount: number;
+  distributedAt: string;
+  notes: string | null;
+};
+
+/** Lista real das distribuições de lucro do tenant — usada por esta página e por Sócios. */
+export async function listDistributionsAction(): Promise<DistributionRow[]> {
+  const ctx = await getTenantContext();
+  const rows = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select()
+      .from(profitDistribution)
+      .where(eq(profitDistribution.companyId, ctx.companyId))
+      .orderBy(desc(profitDistribution.distributedAt));
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    partnerName: r.partnerName,
+    amount: Number(r.amount),
+    distributedAt: r.distributedAt,
+    notes: r.notes,
+  }));
+}
 
 /** Lança uma distribuição de lucro — grava no banco (chega à contabilidade). */
 export async function addDistribution(_prev: DistState, formData: FormData): Promise<DistState> {

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useActionState } from 'react';
+import { useState, useRef, useEffect, useActionState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Signature, Scan, SquaresFour, Plus, MagnifyingGlass, Phone, EnvelopeSimple, MapPin, Buildings, Spinner, CheckCircle, WarningCircle, X, Trash, ArrowSquareOut, ArrowsClockwise, Clock, XCircle, CaretDown, CaretUp, UserPlus, UploadSimple, PaperPlaneRight, Copy, Check, PencilSimpleLine, CalendarBlank, CurrencyDollar, FileText, Warning, Shield, ClipboardText, Target } from '@phosphor-icons/react';
 import EmailViewer from '@/components/crm/EmailViewer';
@@ -9,10 +10,20 @@ import { addCustomerAction, type CustomerState } from '../meu-negocio/clientes/a
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { ContratosClient } from '../meu-negocio/contratos/ContratosClient';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
+import {
+  createRelContractAction,
+  deleteRelContractAction,
+  createTarefaAction,
+  updateTarefaStatusAction,
+  deleteTarefaAction,
+  type TarefaRow,
+  type TarefaStatus,
+  type TarefaPrioridade,
+} from './actions';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Customer = {
+export type Customer = {
   id: string;
   name: string;
   document: string | null;
@@ -30,25 +41,13 @@ type Contrato = {
   clienteNome: string;
   tipo: string;
   inicio: string;
-  fim: string;
+  fim: string | null;
   valor: number | null;
   observacoes: string | null;
   status: ContratoStatus;
 };
 
-type TarefaStatus = 'pendente' | 'em_andamento' | 'concluida';
-type TarefaPrioridade = 'baixa' | 'normal' | 'alta' | 'urgente';
-
-type Tarefa = {
-  id: string;
-  titulo: string;
-  descricao: string | null;
-  clienteNome: string | null;
-  status: TarefaStatus;
-  prioridade: TarefaPrioridade;
-  prazo: string | null;
-  criadaEm: string;
-};
+type Tarefa = TarefaRow;
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -69,15 +68,8 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
-function computeStatus(inicio: string, fim: string): ContratoStatus {
-  const now = new Date();
-  const end = new Date(fim);
-  const start = new Date(inicio);
-  if (end < now) return 'expirado';
-  if (start > now) return 'rascunho';
-  const days = (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  if (days <= 30) return 'renovar';
-  return 'ativo';
+function fmtFim(fim: string | null) {
+  return fim ? new Date(fim).toLocaleDateString('pt-BR') : 'sem data definida';
 }
 
 const STATUS_CONFIG: Record<ContratoStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
@@ -118,18 +110,6 @@ function prazoInfo(prazo: string | null): { text: string; cls: string } {
   if (days === 1) return { text: 'Amanhã', cls: 'text-warn' };
   return { text: new Date(prazo).toLocaleDateString('pt-BR'), cls: 'text-ink-soft' };
 }
-
-function seedTarefas(): Tarefa[] {
-  const add = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-  return [
-    { id: 't1', titulo: 'Enviar proposta de renovação', descricao: 'Preparar proposta atualizada do contrato de assessoria.', clienteNome: 'Varejo Express ME', status: 'pendente', prioridade: 'alta', prazo: add(5), criadaEm: add(-3) },
-    { id: 't2', titulo: 'Reunião de onboarding', descricao: 'Apresentar o portal ao cliente e configurar acesso.', clienteNome: 'Tech Solutions Ltda', status: 'em_andamento', prioridade: 'normal', prazo: add(2), criadaEm: add(-7) },
-    { id: 't3', titulo: 'Revisar contrato antes de assinar', descricao: null, clienteNome: null, status: 'pendente', prioridade: 'urgente', prazo: add(1), criadaEm: add(-1) },
-    { id: 't4', titulo: 'Cadastrar novo cliente no sistema', descricao: null, clienteNome: 'Alfa Indústria SA', status: 'concluida', prioridade: 'baixa', prazo: null, criadaEm: add(-10) },
-    { id: 't5', titulo: 'Atualizar dados cadastrais', descricao: 'Verificar endereço e contatos atualizados.', clienteNome: 'Tech Solutions Ltda', status: 'pendente', prioridade: 'normal', prazo: add(10), criadaEm: add(-2) },
-  ];
-}
-
 
 // ── Visão Geral ───────────────────────────────────────────────────────────────
 
@@ -237,7 +217,7 @@ function VisaoGeral({
                     <FileText className="h-4 w-4 shrink-0 text-brand-400" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{c.clienteNome}</p>
-                      <p className="truncate text-xs text-ink-soft">{c.tipo} · até {new Date(c.fim).toLocaleDateString('pt-BR')}</p>
+                      <p className="truncate text-xs text-ink-soft">{c.tipo} · até {fmtFim(c.fim)}</p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.cls}`}>{cfg.label}</span>
                   </div>
@@ -682,29 +662,30 @@ function EmailConfigForm({ companyId, onClose }: { companyId: string; onClose: (
   );
 }
 
-function ContratoForm({ customers, onClose, onAdded }: { customers: Customer[]; onClose: () => void; onAdded: (c: Contrato) => void }) {
+function ContratoForm({ customers, onClose, onAdded }: { customers: Customer[]; onClose: () => void; onAdded: () => void }) {
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const inicio = String(fd.get('inicio') ?? '');
     const fim = String(fd.get('fim') ?? '');
-    const novo: Contrato = {
-      id: crypto.randomUUID(),
-      clienteId: String(fd.get('clienteId') ?? '') || null,
-      clienteNome: String(fd.get('clienteNome') ?? '').trim(),
-      tipo: String(fd.get('tipo') ?? 'Prestação de Serviços'),
-      inicio,
-      fim,
-      valor: Number(fd.get('valor')) || null,
-      observacoes: String(fd.get('observacoes') ?? '').trim() || null,
-      status: computeStatus(inicio, fim),
-    };
-    onAdded(novo);
-    onClose();
-    setSubmitting(false);
+    try {
+      await createRelContractAction({
+        clienteId: String(fd.get('clienteId') ?? '') || null,
+        clienteNome: String(fd.get('clienteNome') ?? '').trim(),
+        tipo: String(fd.get('tipo') ?? 'Prestação de Serviços'),
+        valor: Number(fd.get('valor')) || 0,
+        inicio,
+        fim,
+        observacoes: String(fd.get('observacoes') ?? '').trim(),
+      });
+      onAdded();
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -760,10 +741,24 @@ function ContratoForm({ customers, onClose, onAdded }: { customers: Customer[]; 
 }
 
 function ContratosTab({ customers, initialBusinessContracts }: { customers: Customer[]; initialBusinessContracts: Contrato[] }) {
+  const router = useRouter();
   const [contratos, setContratos] = useState<Contrato[]>(initialBusinessContracts);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<ContratoStatus | 'todos'>('todos');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  useEffect(() => setContratos(initialBusinessContracts), [initialBusinessContracts]);
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    try {
+      await deleteRelContractAction(id);
+      router.refresh();
+    } finally {
+      setRemovingId(null);
+    }
+  }
 
   const filtered = filter === 'todos' ? contratos : contratos.filter(c => c.status === filter);
   const counts = { todos: contratos.length, ativo: 0, renovar: 0, expirado: 0, rascunho: 0 };
@@ -808,7 +803,7 @@ function ContratosTab({ customers, initialBusinessContracts }: { customers: Cust
         </button>
       </div>
 
-      {showForm && <ContratoForm customers={customers} onClose={() => setShowForm(false)} onAdded={c => { setContratos(prev => [c, ...prev]); }} />}
+      {showForm && <ContratoForm customers={customers} onClose={() => setShowForm(false)} onAdded={() => router.refresh()} />}
 
       {/* Lista */}
       {filtered.length === 0 ? (
@@ -822,7 +817,7 @@ function ContratosTab({ customers, initialBusinessContracts }: { customers: Cust
             const cfg = STATUS_CONFIG[c.status];
             const StatusIcon = cfg.icon;
             const isExp = expanded === c.id;
-            const daysLeft = Math.ceil((new Date(c.fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+            const daysLeft = c.fim ? Math.ceil((new Date(c.fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
             return (
               <div key={c.id}>
                 <button type="button" onClick={() => setExpanded(isExp ? null : c.id)}
@@ -832,13 +827,15 @@ function ContratosTab({ customers, initialBusinessContracts }: { customers: Cust
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{c.clienteNome}</p>
-                    <p className="truncate text-xs text-ink-soft">{c.tipo} · {new Date(c.inicio).toLocaleDateString('pt-BR')} — {new Date(c.fim).toLocaleDateString('pt-BR')}</p>
+                    <p className="truncate text-xs text-ink-soft">{c.tipo} · {new Date(c.inicio).toLocaleDateString('pt-BR')} — {fmtFim(c.fim)}</p>
                   </div>
                   <div className="hidden shrink-0 text-right sm:block">
                     {c.valor && <p className="text-sm font-medium">R$ {c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</p>}
-                    <p className={`text-xs ${daysLeft < 0 ? 'text-critical' : daysLeft <= 30 ? 'text-warn' : 'text-ink-soft'}`}>
-                      {daysLeft < 0 ? `Expirou há ${Math.abs(daysLeft)} dias` : `${daysLeft} dias restantes`}
-                    </p>
+                    {daysLeft !== null && (
+                      <p className={`text-xs ${daysLeft < 0 ? 'text-critical' : daysLeft <= 30 ? 'text-warn' : 'text-ink-soft'}`}>
+                        {daysLeft < 0 ? `Expirou há ${Math.abs(daysLeft)} dias` : `${daysLeft} dias restantes`}
+                      </p>
+                    )}
                   </div>
                   <span className={`hidden shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold sm:inline-flex ${cfg.cls}`}>{cfg.label}</span>
                   {isExp ? <CaretUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <CaretDown className="h-4 w-4 shrink-0 text-ink-soft" />}
@@ -847,7 +844,7 @@ function ContratosTab({ customers, initialBusinessContracts }: { customers: Cust
                   <div className="mx-4 mb-3 rounded-xl bg-surface-card border border-line p-4 dark:bg-white/5 space-y-2">
                     <div className="grid gap-3 sm:grid-cols-3 text-sm">
                       <div><p className={lbl}>Início</p><p className="font-medium">{new Date(c.inicio).toLocaleDateString('pt-BR')}</p></div>
-                      <div><p className={lbl}>Término</p><p className="font-medium">{new Date(c.fim).toLocaleDateString('pt-BR')}</p></div>
+                      <div><p className={lbl}>Término</p><p className="font-medium">{fmtFim(c.fim)}</p></div>
                       {c.valor && <div><p className={lbl}>Valor mensal</p><p className="font-medium">R$ {c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>}
                     </div>
                     {c.observacoes && (
@@ -857,9 +854,9 @@ function ContratosTab({ customers, initialBusinessContracts }: { customers: Cust
                       </div>
                     )}
                     <div className="flex gap-2 pt-1">
-                      <button type="button" onClick={() => setContratos(prev => prev.filter(x => x.id !== c.id))}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-critical/30 px-3 py-1.5 text-xs text-critical hover:bg-critical/10">
-                        <Trash className="h-3.5 w-3.5" /> Remover
+                      <button type="button" onClick={() => handleRemove(c.id)} disabled={removingId === c.id}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-critical/30 px-3 py-1.5 text-xs text-critical hover:bg-critical/10 disabled:opacity-50">
+                        {removingId === c.id ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />} Remover
                       </button>
                     </div>
                   </div>
@@ -1174,27 +1171,24 @@ function CnpjTab() {
 
 // ── Tarefas Tab ───────────────────────────────────────────────────────────────
 
-function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; onClose: () => void; onAdded: (t: Tarefa) => void }) {
+function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; onClose: () => void; onAdded: () => void }) {
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const clienteNome = String(fd.get('clienteNome') ?? '').trim() || null;
-    const novo: Tarefa = {
-      id: crypto.randomUUID(),
+    await createTarefaAction({
       titulo: String(fd.get('titulo') ?? '').trim(),
       descricao: String(fd.get('descricao') ?? '').trim() || null,
       clienteNome,
-      status: 'pendente',
       prioridade: (fd.get('prioridade') as TarefaPrioridade) ?? 'normal',
       prazo: String(fd.get('prazo') ?? '') || null,
-      criadaEm: new Date().toISOString().slice(0, 10),
-    };
-    onAdded(novo);
-    onClose();
+    });
     setSubmitting(false);
+    onAdded();
+    onClose();
   }
 
   return (
@@ -1247,7 +1241,7 @@ function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; on
   );
 }
 
-function TarefasTab({ customers, tarefas, onUpdate }: { customers: Customer[]; tarefas: Tarefa[]; onUpdate: (fn: (prev: Tarefa[]) => Tarefa[]) => void }) {
+function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; tarefas: Tarefa[]; onChanged: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<TarefaStatus | 'todas'>('todas');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -1256,12 +1250,14 @@ function TarefasTab({ customers, tarefas, onUpdate }: { customers: Customer[]; t
   const counts = { todas: tarefas.length, pendente: 0, em_andamento: 0, concluida: 0 } as Record<string, number>;
   tarefas.forEach(t => { counts[t.status] = (counts[t.status] ?? 0) + 1; });
 
-  function changeStatus(id: string, status: TarefaStatus) {
-    onUpdate(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  async function changeStatus(id: string, status: TarefaStatus) {
+    await updateTarefaStatusAction(id, status);
+    onChanged();
   }
-  function remove(id: string) {
-    onUpdate(prev => prev.filter(t => t.id !== id));
+  async function remove(id: string) {
+    await deleteTarefaAction(id);
     setExpanded(null);
+    onChanged();
   }
 
   return (
@@ -1291,7 +1287,7 @@ function TarefasTab({ customers, tarefas, onUpdate }: { customers: Customer[]; t
         </button>
       </div>
 
-      {showForm && <TarefaForm customers={customers} onClose={() => setShowForm(false)} onAdded={t => { onUpdate(prev => [t, ...prev]); }} />}
+      {showForm && <TarefaForm customers={customers} onClose={() => setShowForm(false)} onAdded={onChanged} />}
 
       {/* Lista */}
       {filtered.length === 0 ? (
@@ -1374,10 +1370,11 @@ const TABS: { key: TabKey; label: string; icon: React.FC<{ className?: string }>
   { key: 'cnpj',       label: 'Consulta CNPJ',     icon: Scan },
 ];
 
-export function HubRelacionamento({ companyId, initialCustomers, initialContracts, initialBusinessContracts }: { companyId: string; initialCustomers: Customer[]; initialContracts: SignatureRequestSummary[]; initialBusinessContracts: Contrato[] }) {
+export function HubRelacionamento({ companyId, initialCustomers, initialContracts, initialBusinessContracts, initialTarefas }: { companyId: string; initialCustomers: Customer[]; initialContracts: SignatureRequestSummary[]; initialBusinessContracts: Contrato[]; initialTarefas: Tarefa[] }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>('geral');
   const [contratos] = useState<Contrato[]>(initialBusinessContracts);
-  const [tarefas, setTarefas] = useState<Tarefa[]>(seedTarefas);
+  const tarefas = initialTarefas;
 
   return (
     <div className="space-y-5">
@@ -1395,7 +1392,7 @@ export function HubRelacionamento({ companyId, initialCustomers, initialContract
 
       {tab === 'geral'      && <VisaoGeral customers={initialCustomers} contracts={initialContracts} contratos={contratos} tarefas={tarefas} onTab={setTab} />}
       {tab === 'clientes'   && <ClientesTab initial={initialCustomers} />}
-      {tab === 'tarefas'    && <TarefasTab customers={initialCustomers} tarefas={tarefas} onUpdate={setTarefas} />}
+      {tab === 'tarefas'    && <TarefasTab customers={initialCustomers} tarefas={tarefas} onChanged={() => router.refresh()} />}
       {tab === 'assinatura' && <AssinaturaTab initial={initialContracts} />}
       {tab === 'cnpj'       && <CnpjTab />}
     </div>

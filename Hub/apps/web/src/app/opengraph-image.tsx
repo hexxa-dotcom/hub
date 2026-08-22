@@ -25,23 +25,23 @@ export default async function Image() {
       >
         {/* Header Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', fontSize: '38px' }}>
-            <span style={{ fontWeight: 900, color: '#DFFFAE' }}>hexx</span>
-            <span style={{ fontWeight: 700, color: '#FEFDF3' }}>hub</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '38px' }}>
+            <span style={{ fontWeight: 900, color: '#FEFDF3' }}>hexx</span>
             <span
               style={{
-                fontSize: '13px',
+                display: 'flex',
+                fontSize: '14px',
                 fontWeight: 800,
                 color: '#DFFFAE',
-                border: '1px solid rgba(223, 255, 174, 0.4)',
-                borderRadius: '6px',
-                padding: '2px 8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                marginLeft: '8px',
+                border: '1.5px solid rgba(223, 255, 174, 0.4)',
+                background: 'rgba(223, 255, 174, 0.12)',
+                borderRadius: '8px',
+                padding: '3px 10px',
+                letterSpacing: '0.12em',
+                transform: 'translateY(-2px)',
               }}
             >
-              digital
+              HUB
             </span>
           </div>
           <div

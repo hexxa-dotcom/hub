@@ -3,46 +3,63 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useClerk, useUser } from '@clerk/nextjs';
-import { SquaresFour, Users, FileText, CreditCard, Bell, Gear, CaretRight, List, X, SignOut, ShieldCheck, Receipt, Question, Warning, ClipboardText, PaperPlaneRight, ChartBar, Signature, Shield, Stack } from '@phosphor-icons/react';
+import { useClerk, UserButton } from '@clerk/nextjs';
+import {
+  LayoutDashboard,
+  Users,
+  Receipt,
+  ClipboardList,
+  FileSignature,
+  CreditCard,
+  AlertTriangle,
+  BarChart3,
+  Send,
+  Shield,
+  Layers,
+  Settings,
+  ChevronRight,
+  Menu,
+  X,
+  LogOut,
+  ArrowLeft,
+  HelpCircle,
+  Bell,
+  Sparkles,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ContadorSearch } from './ContadorSearch';
+import { ThemeToggle } from '@/components/theme/ThemeControls';
 
-type NavItemDef = { label: string; href: string; icon: typeof SquaresFour; badge?: number };
+type NavItemDef = { label: string; href: string; icon: LucideIcon; badge?: number };
 
-/**
- * Três zonas: "Meu dia" é a rotina operacional do contador (o que abre todo
- * dia), "Negócio" é a gestão comercial da Hexxa como SaaS (planos, MRR,
- * renovação), "Sistema" é configuração/infra. Mesmo modelo de acesso de
- * antes — só a organização visual muda.
- */
 function buildNavGroups(openTicketsCount: number): { label: string; items: NavItemDef[] }[] {
   return [
     {
       label: 'Meu dia',
       items: [
-        { label: 'Visão geral', href: '/contador', icon: SquaresFour },
+        { label: 'Visão geral', href: '/contador', icon: LayoutDashboard },
         { label: 'Clientes', href: '/contador/clientes', icon: Users },
-        { label: 'Solicitações', href: '/contador/solicitacoes', icon: Question, badge: openTicketsCount || undefined },
+        { label: 'Solicitações', href: '/contador/solicitacoes', icon: HelpCircle, badge: openTicketsCount || undefined },
         { label: 'Notas Fiscais', href: '/contador/notas', icon: Receipt },
-        { label: 'Fechamentos', href: '/contador/fechamentos', icon: ClipboardText },
-        { label: 'Contratos', href: '/contador/contratos', icon: Signature },
+        { label: 'Fechamentos', href: '/contador/fechamentos', icon: ClipboardList },
+        { label: 'Contratos', href: '/contador/contratos', icon: FileSignature },
       ],
     },
     {
       label: 'Negócio',
       items: [
         { label: 'Planos & assinaturas', href: '/contador/planos', icon: CreditCard },
-        { label: 'Renovações em risco', href: '/contador/renovacoes', icon: Warning },
-        { label: 'Relatórios', href: '/contador/relatorios', icon: ChartBar },
-        { label: 'Comunicações', href: '/contador/comunicacoes', icon: PaperPlaneRight },
+        { label: 'Renovações em risco', href: '/contador/renovacoes', icon: AlertTriangle },
+        { label: 'Relatórios', href: '/contador/relatorios', icon: BarChart3 },
+        { label: 'Comunicações', href: '/contador/comunicacoes', icon: Send },
       ],
     },
     {
       label: 'Sistema',
       items: [
         { label: 'Usuários & acesso', href: '/contador/usuarios', icon: Shield },
-        { label: 'Integrações', href: '/contador/integracoes', icon: Stack },
-        { label: 'Configurações', href: '/contador/configuracoes', icon: Gear },
+        { label: 'Integrações', href: '/contador/integracoes', icon: Layers },
+        { label: 'Configurações', href: '/contador/configuracoes', icon: Settings },
       ],
     },
   ];
@@ -53,26 +70,28 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
   const active = pathname === item.href || (item.href !== '/contador' && pathname.startsWith(item.href));
   const Icon = item.icon;
   return (
-    <li className="group relative">
-      <Link href={item.href as never}
-        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+    <li className="group relative list-none">
+      <Link
+        href={item.href as never}
+        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
           active
-            ? 'bg-white/15 text-white'
-            : 'text-white/70 hover:bg-white/10 hover:text-white'
-        } ${collapsed ? 'justify-center' : ''}`}>
-        <Icon className="h-[18px] w-[18px] shrink-0" />
+            ? 'bg-[#DFFFAE] text-[#1E3328] font-bold shadow-sm'
+            : 'text-[#FEFDF3]/75 hover:bg-white/10 hover:text-[#FEFDF3]'
+        } ${collapsed ? 'justify-center px-0' : ''}`}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
         {!collapsed && item.badge ? (
-          <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
+          <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-[#DFFFAE] text-[#1E3328] px-1.5 text-[10px] font-bold">
             {item.badge}
           </span>
         ) : null}
         {collapsed && item.badge ? (
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-orange-500" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#DFFFAE]" />
         ) : null}
       </Link>
       {collapsed && (
-        <span className="pointer-events-none absolute left-full top-1/2 z-30 ml-2 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-[#1E3328] border border-[#2F4A3C] px-3 py-1.5 text-xs text-[#FEFDF3] opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
           {item.label}
         </span>
       )}
@@ -86,59 +105,54 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
-  const { user } = useUser();
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
   const navGroups = buildNavGroups(openTicketsCount);
-  const iniciais = (user?.fullName || user?.primaryEmailAddress?.emailAddress || '??')
-    .split(/[\s@.]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]!.toUpperCase())
-    .join('');
 
   function sair() {
     signOut(() => router.push('/'));
   }
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={`flex h-full flex-col bg-slate-900 text-white ${mobile ? 'p-3' : 'py-4 pl-3 pr-0'}`}>
+    <div className={`flex h-full flex-col bg-[#1E3328] text-[#FEFDF3] border-r border-[#2F4A3C]/40 ${mobile ? 'p-4' : 'py-5 px-3'}`}>
       {/* Brand */}
-      <div className={`flex items-center gap-2.5 px-2 pb-5 ${collapsed && !mobile ? 'justify-center' : ''}`}>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand-500 text-sm font-bold">
+      <div className={`flex items-center gap-3 pb-5 border-b border-[#2F4A3C]/40 ${collapsed && !mobile ? 'justify-center px-0' : 'px-2'}`}>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#2F4A3C] text-[#DFFFAE] border border-[#DFFFAE]/30 text-sm font-bold shadow-sm">
           H
         </span>
         {(!collapsed || mobile) && (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight">Hexxa</p>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-400">Área do Contador</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-serif font-bold text-[#FEFDF3] leading-tight">Hexxa Hub</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#DFFFAE]">Área do Contador</p>
           </div>
         )}
         {!mobile && (
-          <button onClick={() => setCollapsed(c => !c)}
-            className="ml-auto rounded-xl p-1 text-white/40 hover:bg-white/10 hover:text-white transition-colors"
-            aria-label={collapsed ? 'Expandir' : 'Recolher'}>
-            <CaretRight className={`h-4 w-4 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="ml-auto rounded-xl p-1.5 text-[#FEFDF3]/60 hover:bg-white/10 hover:text-white transition-colors"
+            aria-label={collapsed ? 'Expandir' : 'Recolher'}
+          >
+            <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`} />
           </button>
         )}
         {mobile && (
-          <button onClick={() => setMobileOpen(false)} className="ml-auto rounded-xl p-1 text-white/40 hover:text-white">
-            <X className="h-4 w-4" />
+          <button onClick={() => setMobileOpen(false)} className="ml-auto rounded-xl p-1.5 text-white/60 hover:text-white">
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto pr-3">
-        {navGroups.map((group, gi) => (
-          <div key={group.label} className={gi > 0 ? 'mt-4' : ''}>
+      <nav className="flex-1 overflow-y-auto no-scrollbar pt-4 space-y-5">
+        {navGroups.map((group) => (
+          <div key={group.label}>
             {(!collapsed || mobile) && (
-              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#DFFFAE]/70">
                 {group.label}
               </p>
             )}
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {group.items.map(item => <NavItem key={item.href} item={item} collapsed={collapsed && !mobile} />)}
             </ul>
           </div>
@@ -146,60 +160,74 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-white/10 pt-3 pr-3 space-y-1 ${collapsed && !mobile ? 'px-0' : ''}`}>
-        <Link href="/dashboard" as="/dashboard"
-          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-white/50 hover:bg-white/10 hover:text-white transition-colors ${collapsed && !mobile ? 'justify-center' : ''}`}>
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          {(!collapsed || mobile) && 'Voltar ao Portal'}
+      <div className={`border-t border-[#2F4A3C]/40 pt-4 space-y-1.5 ${collapsed && !mobile ? 'px-0' : ''}`}>
+        <Link
+          href="/dashboard"
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          {(!collapsed || mobile) && <span>Voltar ao Portal</span>}
         </Link>
-        <button onClick={sair} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs text-white/50 hover:bg-white/10 hover:text-white transition-colors ${collapsed && !mobile ? 'justify-center' : ''}`}>
-          <SignOut className="h-4 w-4 shrink-0" />
-          {(!collapsed || mobile) && 'Sair'}
+        <button
+          onClick={sair}
+          className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {(!collapsed || mobile) && <span>Sair</span>}
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
       {/* Sidebar desktop */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 transition-[width] duration-200 lg:block ${collapsed ? 'w-[68px]' : 'w-56'}`}>
+      <aside className={`sticky top-0 hidden h-screen shrink-0 transition-all duration-300 ease-out lg:block z-40 ${collapsed ? 'w-[76px]' : 'w-64'}`}>
         <Sidebar />
       </aside>
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-56 transition-transform duration-200 lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 ease-out lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar mobile />
       </aside>
 
-      {/* Main */}
+      {/* Main container */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80">
-          <button onClick={() => setMobileOpen(true)} className="rounded-xl p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden">
-            <List className="h-5 w-5" />
-          </button>
-          <ContadorSearch />
-          <div className="ml-auto flex items-center gap-2">
-            <Link href="/contador/solicitacoes"
-              className="relative grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
-              <Bell className="h-[18px] w-[18px]" />
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-6 lg:px-8 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileOpen(true)} className="rounded-xl p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 lg:hidden">
+              <Menu className="h-5 w-5" />
+            </button>
+            <ContadorSearch />
+          </div>
+
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <ThemeToggle collapsed />
+            
+            <Link
+              href="/contador/solicitacoes"
+              title="Solicitações abertas"
+              className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20] transition-colors"
+            >
+              <Bell className="h-4 w-4" />
               {openTicketsCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-orange-500 px-0.5 text-[9px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#e11d48] px-1 text-[9px] font-bold text-white shadow-sm">
                   {openTicketsCount}
                 </span>
               )}
             </Link>
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-slate-600 to-slate-900 text-xs font-semibold text-white">
-              {iniciais}
-            </span>
+
+            <div className="flex items-center gap-2 pl-1 border-l border-black/10 dark:border-white/10">
+              <UserButton />
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-5 lg:p-8">{children}</main>
+        <main className="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto">{children}</main>
       </div>
     </div>
   );

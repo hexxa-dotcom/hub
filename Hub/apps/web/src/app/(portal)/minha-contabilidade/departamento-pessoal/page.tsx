@@ -1,7 +1,12 @@
-import {  Users  } from '@phosphor-icons/react/dist/ssr';
+import { Users } from '@phosphor-icons/react/dist/ssr';
 import { HubDP } from './HubDP';
+import { listEmployeesAction } from './actions';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+export default async function Page() {
+  const colaboradores = await listEmployeesAction();
+
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
@@ -14,7 +19,7 @@ export default function Page() {
         </p>
       </header>
 
-      <HubDP />
+      <HubDP initialColaboradores={colaboradores} />
     </div>
   );
 }
