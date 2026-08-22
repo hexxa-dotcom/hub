@@ -49,7 +49,9 @@ export async function createRelContractAction(input: {
       value: String(input.valor || 0),
       billingCycle: 'MONTHLY',
       status: 'ACTIVE',
-      nextBillingDate: input.fim || null,
+      // Primeira cobrança no início do contrato — o cron de cobrança
+      // (api/cron/cobranca) avança essa data a cada ciclo faturado.
+      nextBillingDate: input.inicio || null,
       endDate: input.fim || null,
       notes: input.observacoes || null,
     });

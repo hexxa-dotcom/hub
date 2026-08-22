@@ -47,6 +47,8 @@ export const financialEntry = pgTable('financial_entry', {
   source: text('source').notNull().default('MANUAL'),
   sourceId: uuid('source_id'),
   externalId: text('external_id'),
+  paidAt: date('paid_at'),
+  notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
