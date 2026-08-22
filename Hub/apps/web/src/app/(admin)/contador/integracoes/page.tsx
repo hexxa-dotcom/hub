@@ -19,8 +19,8 @@ function AsaasSetup() {
   const [show, setShow] = useState(false);
 
   const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/asaas/webhooks`
-    : 'https://seu-dominio.com/api/asaas/webhooks';
+    ? `${window.location.origin}/api/webhooks/asaas`
+    : 'https://seu-dominio.com/api/webhooks/asaas';
 
   const steps: SetupStep[] = [
     {
