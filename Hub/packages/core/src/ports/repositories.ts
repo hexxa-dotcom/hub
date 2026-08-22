@@ -32,6 +32,8 @@ export interface ServiceInvoicePatch {
   status?: InvoiceStatus;
   providerProtocol?: string;
   nfseNumber?: string;
+  /** 'gov' = emissão real; 'mock' = modo de teste (ver NfseIssueResult.isMock). */
+  providerMode?: 'gov' | 'mock';
 }
 
 export interface ServiceInvoiceRecord {
@@ -43,6 +45,7 @@ export interface ServiceInvoiceRecord {
   status: string;
   nfseNumber: string | null;
   providerProtocol: string | null;
+  providerMode: string | null;
 }
 
 export interface ServiceInvoiceRepository {
@@ -64,4 +67,34 @@ export interface NewFinancialEntry {
 
 export interface FinancialEntryRepository {
   create(ctx: TenantContext, data: NewFinancialEntry): Promise<{ id: string }>;
+}
+
+export interface NewSignatureRequest {
+  title: string;
+  signerName: string;
+  signerEmail: string;
+  subjectType: 'CONTRACT' | 'LEASE' | 'DOCUMENT';
+  subjectId: string;
+}
+
+export interface SignatureRequestPatch {
+  status?: 'PENDING' | 'SENT' | 'SIGNED' | 'REFUSED' | 'EXPIRED';
+  providerEnvelopeId?: string;
+}
+
+export interface SignatureRequestRecord {
+  id: string;
+  title: string | null;
+  signerName: string | null;
+  signerEmail: string | null;
+  status: string;
+  providerEnvelopeId: string | null;
+  createdAt: string;
+}
+
+export interface SignatureRequestRepository {
+  create(ctx: TenantContext, data: NewSignatureRequest): Promise<{ id: string }>;
+  updateStatus(ctx: TenantContext, id: string, patch: SignatureRequestPatch): Promise<void>;
+  listRecent(ctx: TenantContext, limit?: number): Promise<SignatureRequestRecord[]>;
+  findById(ctx: TenantContext, id: string): Promise<SignatureRequestRecord | null>;
 }

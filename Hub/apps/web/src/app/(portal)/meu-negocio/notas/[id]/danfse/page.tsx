@@ -1,6 +1,6 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { resolveNfsePort } from '@/lib/server/container';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, serviceInvoice, eq, and } from '@hexxa/db';
 import { redirect } from 'next/navigation';
 import { XMLParser } from 'fast-xml-parser';
 import DanfseLayout from './DanfseLayout';
@@ -12,15 +12,19 @@ export default async function DanfsePage({ params }: { params: Promise<{ id: str
     redirect('/auth/login');
   }
 
-  const sb = await createRawClient();
-  const { data: nota } = await sb
-    .from('service_invoice')
-    .select('*')
-    .eq('id', id)
-    .eq('company_id', ctx.companyId)
-    .single();
+  const [nota] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select()
+      .from(serviceInvoice)
+      .where(
+        and(
+          eq(serviceInvoice.id, id),
+          eq(serviceInvoice.companyId, ctx.companyId)
+        )
+      );
+  });
 
-  if (!nota || !nota.provider_protocol) {
+  if (!nota || !nota.providerProtocol) {
     return (
       <div className="flex h-screen items-center justify-center p-4 text-center">
         <div>
@@ -37,7 +41,7 @@ export default async function DanfsePage({ params }: { params: Promise<{ id: str
       throw new Error('Integration adapter does not support downloading XML');
     }
 
-    const xmlBuffer = await port.download(nota.provider_protocol, 'xml');
+    const xmlBuffer = await port.download(nota.providerProtocol, 'xml');
     const xmlString = xmlBuffer.toString('utf-8');
 
     const parser = new XMLParser({
@@ -51,7 +55,7 @@ export default async function DanfsePage({ params }: { params: Promise<{ id: str
     // O objeto raiz deve ser <NFSe> ou <DPS>
     const root = jsonObj?.NFSe || jsonObj;
     
-    return <DanfseLayout data={root} notaId={id} protocol={nota.provider_protocol} />;
+    return <DanfseLayout data={root} notaId={id} protocol={nota.providerProtocol} />;
   } catch (err: any) {
     return (
       <div className="flex h-screen items-center justify-center p-4 text-center">

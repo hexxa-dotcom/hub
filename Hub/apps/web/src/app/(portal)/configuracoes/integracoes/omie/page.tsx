@@ -1,8 +1,9 @@
 import { GlassCard } from '@/components/ui/GlassCard';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import {  ArrowLeft, ArrowSquareOut  } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { OmieSetupForm } from './OmieSetupForm';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export const metadata = {
@@ -11,19 +12,27 @@ export const metadata = {
 
 export default async function OmieSetupPage() {
   const ctx = await getTenantContext();
-  const supabase = await createRawClient();
-  
+
   // Buscar se já tem algo configurado
-  const { data: credential } = await supabase
-    .from('integration_credential')
-    .select('secret_ref, active')
-    .eq('company_id', ctx.companyId)
-    .eq('provider', 'omie')
-    .single();
+  const [credential] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({
+        secretRef: integrationCredential.secretRef,
+        active: integrationCredential.active,
+      })
+      .from(integrationCredential)
+      .where(
+        and(
+          eq(integrationCredential.companyId, ctx.companyId),
+          eq(integrationCredential.provider, 'omie')
+        )
+      );
+  });
 
   const isConnected = credential?.active || false;
-  const appKey = credential?.secret_ref?.app_key || '';
-  const appSecret = credential?.secret_ref?.app_secret || '';
+  const secretData = credential?.secretRef as { app_key?: string, app_secret?: string } | undefined;
+  const appKey = secretData?.app_key || '';
+  const appSecret = secretData?.app_secret || '';
 
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -66,7 +75,7 @@ export default async function OmieSetupPage() {
                     Faça login na sua conta do Omie e acesse o aplicativo (empresa) que deseja integrar.
                   </p>
                   <a href="https://app.omie.com.br/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">
-                    Abrir Omie <ExternalLink className="h-3.5 w-3.5" />
+                    Abrir Omie <ArrowSquareOut className="h-3.5 w-3.5" />
                   </a>
                 </li>
                 <li className="pl-8">

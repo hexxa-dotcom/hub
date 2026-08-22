@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export async function POST(request: Request) {
@@ -11,36 +12,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'App Key e App Secret são obrigatórios.' }, { status: 400 });
     }
 
-    const supabase = await createRawClient();
+    await withTenant(ctx.companyId, async (tx) => {
+      // Verifica se já existe config para o omie
+      const [existing] = await tx
+        .select({ id: integrationCredential.id, secretRef: integrationCredential.secretRef })
+        .from(integrationCredential)
+        .where(
+          and(
+            eq(integrationCredential.companyId, ctx.companyId),
+            eq(integrationCredential.provider, 'omie')
+          )
+        );
 
-    // Verifica se já existe config para o omie
-    const { data: existing } = await supabase
-      .from('integration_credential')
-      .select('id, secret_ref')
-      .eq('company_id', ctx.companyId)
-      .eq('provider', 'omie')
-      .single();
+      const newSecretRef = {
+        ...((existing?.secretRef as any) || {}),
+        app_key: appKey,
+        app_secret: appSecret,
+      };
 
-    const newSecretRef = {
-      ...(existing?.secret_ref || {}),
-      app_key: appKey,
-      app_secret: appSecret,
-    };
-
-    if (existing) {
-      await supabase
-        .from('integration_credential')
-        .update({ secret_ref: newSecretRef, active: true })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('integration_credential').insert({
-        company_id: ctx.companyId,
-        kind: 'ERP',
-        provider: 'omie',
-        secret_ref: newSecretRef,
-        active: true, // Omie não precisa de OAuth redirect, então já fica ativo
-      });
-    }
+      if (existing) {
+        await tx
+          .update(integrationCredential)
+          .set({ secretRef: newSecretRef, active: true })
+          .where(eq(integrationCredential.id, existing.id));
+      } else {
+        await tx.insert(integrationCredential).values({
+          companyId: ctx.companyId,
+          kind: 'ERP',
+          provider: 'omie',
+          secretRef: newSecretRef,
+          active: true, // Omie não precisa de OAuth redirect, então já fica ativo
+        });
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

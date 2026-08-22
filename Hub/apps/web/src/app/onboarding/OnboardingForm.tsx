@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Building2, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Buildings, Spinner, ArrowRight, CheckCircle } from '@phosphor-icons/react';
 import { completeOnboardingAction, type OnboardingState } from './actions';
 
 const initialState: OnboardingState = { ok: true, message: '' };
@@ -49,7 +49,7 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
     <div className="w-full max-w-md">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl">
-          <Building2 className="h-8 w-8 text-white" />
+          <Buildings className="h-8 w-8 text-white" />
         </div>
         <h1 className="mb-2 text-2xl font-semibold tracking-tight text-white">
           Bem-vindo ao Hexx Hub
@@ -87,12 +87,12 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
 
           {consultando && (
             <p className="flex items-center gap-2 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" /> Consultando a Receita…
+              <Spinner className="h-4 w-4 animate-spin" /> Consultando a Receita…
             </p>
           )}
           {preview?.razaoSocial && (
             <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 <strong>{preview.razaoSocial}</strong>
                 {preview.municipio ? ` — ${preview.municipio}` : ''}
@@ -106,7 +106,7 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
             className="group mt-2 flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-3 font-medium text-white transition-all hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Spinner className="h-5 w-5 animate-spin" />
             ) : (
               <>
                 Configurar minha empresa

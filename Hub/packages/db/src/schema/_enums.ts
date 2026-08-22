@@ -85,6 +85,8 @@ export const integrationKind = pgEnum('integration_kind', [
   'NFSE',
   'ELECTRONIC_SIGNATURE',
   'OPEN_FINANCE',
+  'ERP',
+  'GATEWAY',
 ]);
 export const subscriptionStatus = pgEnum('subscription_status', [
   'ACTIVE',

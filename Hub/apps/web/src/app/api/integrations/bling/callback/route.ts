@@ -1,30 +1,45 @@
 import { NextResponse } from 'next/server';
-import { createRawClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  
+  const state = searchParams.get('state');
+
   if (!code) {
     return NextResponse.json({ error: 'Código de autorização não encontrado.' }, { status: 400 });
+  }
+
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get('bling_oauth_state')?.value;
+  cookieStore.delete('bling_oauth_state');
+  if (!expectedState || !state || state !== expectedState) {
+    return NextResponse.json({ error: 'State inválido ou expirado. Tente conectar novamente.' }, { status: 400 });
   }
 
   try {
     // Obter contexto da empresa logada
     const ctx = await getTenantContext();
-    const supabase = await createRawClient();
 
     // Verificar se já existe conexão para o Bling
-    const { data: existing } = await supabase
-      .from('integration_credential')
-      .select('id, secret_ref')
-      .eq('company_id', ctx.companyId)
-      .eq('provider', 'bling')
-      .single();
+    const [existing] = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({ id: integrationCredential.id, secretRef: integrationCredential.secretRef })
+        .from(integrationCredential)
+        .where(
+          and(
+            eq(integrationCredential.companyId, ctx.companyId),
+            eq(integrationCredential.provider, 'bling')
+          )
+        );
+    });
 
-    const BLING_CLIENT_ID = existing?.secret_ref?.client_id;
-    const BLING_CLIENT_SECRET = existing?.secret_ref?.client_secret;
+    const secretData = existing?.secretRef as any;
+    const BLING_CLIENT_ID = secretData?.client_id;
+    const BLING_CLIENT_SECRET = secretData?.client_secret;
 
     if (!BLING_CLIENT_ID || !BLING_CLIENT_SECRET) {
       return NextResponse.json({ error: 'Credenciais do Bling não configuradas.' }, { status: 500 });
@@ -59,28 +74,30 @@ export async function GET(request: Request) {
     expiresAt.setSeconds(expiresAt.getSeconds() + tokenData.expires_in);
 
     const secretRef = {
-      ...(existing?.secret_ref || {}),
+      ...(secretData || {}),
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       expires_at: expiresAt.toISOString(),
     };
 
-    if (existing) {
-      // Atualizar
-      await supabase
-        .from('integration_credential')
-        .update({ secret_ref: secretRef, active: true })
-        .eq('id', existing.id);
-    } else {
-      // Inserir (na prática não entra aqui se já validou que existe o ID e Secret, mas por via das dúvidas)
-      await supabase.from('integration_credential').insert({
-        company_id: ctx.companyId,
-        kind: 'ERP',
-        provider: 'bling',
-        secret_ref: secretRef,
-        active: true,
-      });
-    }
+    await withTenant(ctx.companyId, async (tx) => {
+      if (existing) {
+        // Atualizar
+        return tx
+          .update(integrationCredential)
+          .set({ secretRef, active: true })
+          .where(eq(integrationCredential.id, existing.id));
+      } else {
+        // Inserir (na prática não entra aqui se já validou que existe o ID e Secret, mas por via das dúvidas)
+        return tx.insert(integrationCredential).values({
+          companyId: ctx.companyId,
+          kind: 'ERP',
+          provider: 'bling',
+          secretRef,
+          active: true,
+        });
+      }
+    });
 
     // Redirecionar de volta para a página de integrações
     return NextResponse.redirect(new URL('/configuracoes/integracoes', request.url));

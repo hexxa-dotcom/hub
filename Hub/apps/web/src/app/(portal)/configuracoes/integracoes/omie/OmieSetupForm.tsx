@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Key, Lock, CheckCircle2 } from 'lucide-react';
+import { Key, Lock, CheckCircle } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 
 interface OmieSetupFormProps {
@@ -41,7 +41,7 @@ export function OmieSetupForm({ initialAppKey, initialAppSecret, isConnected }: 
         
         {isConnected && (
           <div className="mb-6 flex items-start gap-3 p-4 bg-ok/10 border border-ok/20 rounded-2xl">
-            <CheckCircle2 className="h-5 w-5 text-ok shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-ok shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-ok mb-1">Integração Ativa</h4>
               <p className="text-xs text-ok/80">

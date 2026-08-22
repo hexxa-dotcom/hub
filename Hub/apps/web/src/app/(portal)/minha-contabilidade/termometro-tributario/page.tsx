@@ -1,18 +1,19 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { taxHistory, getDb, eq, desc } from '@hexxa/db';
-import { AlertCircle, TrendingUp, Info, BarChart2 } from 'lucide-react';
+import { taxHistory, withTenant, eq, desc } from '@hexxa/db';
+import {  WarningCircle, TrendUp, ChartBar  } from '@phosphor-icons/react/dist/ssr';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default async function TermometroTributarioPage() {
   const ctx = await getTenantContext();
-  const db = getDb();
 
-  const history = await db.select()
-    .from(taxHistory)
-    .where(eq(taxHistory.companyId, ctx.companyId))
-    .orderBy(desc(taxHistory.referenceMonth))
-    .limit(1);
+  const history = await withTenant(ctx.companyId, async (tx) => {
+    return tx.select()
+      .from(taxHistory)
+      .where(eq(taxHistory.companyId, ctx.companyId))
+      .orderBy(desc(taxHistory.referenceMonth))
+      .limit(1);
+  });
 
   const currentHistory = history[0];
   const rba12 = currentHistory ? parseFloat(currentHistory.rba12) : 0;
@@ -29,12 +30,12 @@ export default async function TermometroTributarioPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-          <BarChart2 className="h-5 w-5" />
+          <ChartBar className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Termômetro Tributário</h1>
+          <h1 className="text-2xl font-semibold text-ink">Quanto Pago de Imposto (Fator R)</h1>
           <p className="text-sm text-ink-soft">
-            Acompanhe o limite do seu faturamento para evitar desenquadramento ou aumento repentino de impostos.
+            Acompanhe a sua alíquota efetiva de impostos, a economia gerada pelo Fator R e o limite de faturamento do Simples Nacional.
           </p>
         </div>
       </div>
@@ -45,12 +46,13 @@ export default async function TermometroTributarioPage() {
           <p className="text-ink-soft/70 text-sm mt-1">A contabilidade atualizará esta área assim que o primeiro PGDAS for processado.</p>
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Card Principal: RBA12 */}
-          <div className="lg:col-span-2 rounded-2xl border border-line bg-surface-card p-6 shadow-sm relative overflow-hidden">
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Card Principal: RBA12 */}
+            <div className="lg:col-span-2 rounded-2xl border border-line bg-surface-card p-6 shadow-sm relative overflow-hidden">
             <h2 className="text-sm font-semibold text-ink mb-6 flex items-center justify-between">
               Faturamento Acumulado (RBA12)
-              <span className="text-xs font-normal px-2 py-1 bg-black/[0.07] dark:bg-white/5 rounded text-ink-soft">Ref: {currentHistory.referenceMonth}</span>
+              <span className="text-xs font-normal px-2 py-1 bg-surface-card border border-line dark:bg-white/5 rounded text-ink-soft">Ref: {currentHistory.referenceMonth}</span>
             </h2>
             <div className="mb-6">
               <div className="flex items-baseline gap-3">
@@ -60,7 +62,7 @@ export default async function TermometroTributarioPage() {
             </div>
             
             <div className="relative pt-6 pb-2">
-              <div className="h-4 w-full bg-black/[0.07] rounded-full dark:bg-white/5 overflow-hidden relative flex">
+              <div className="h-4 w-full bg-surface-card border border-line rounded-full dark:bg-white/5 overflow-hidden relative flex">
                 <div 
                   className={`h-full transition-all duration-1000 ${pctTeto > 95 ? 'bg-critical' : pctTeto > 75 ? 'bg-warn' : 'bg-brand-500'}`}
                   style={{ width: `${pctTeto}%` }}
@@ -82,7 +84,7 @@ export default async function TermometroTributarioPage() {
 
             {isOverSublimite ? (
               <div className="mt-6 flex items-start gap-3 rounded-xl bg-critical/10 p-4 text-critical">
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <WarningCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Atenção: Sublimite Ultrapassado</p>
                   <p className="text-xs mt-1">A empresa ultrapassou R$ 3,6 milhões e passará a recolher ICMS/ISS fora do Simples Nacional.</p>
@@ -90,7 +92,7 @@ export default async function TermometroTributarioPage() {
               </div>
             ) : isNearSublimite ? (
               <div className="mt-6 flex items-start gap-3 rounded-xl bg-warn/10 p-4 text-warn">
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <WarningCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Aviso de Proximidade</p>
                   <p className="text-xs mt-1">O faturamento está próximo do sublimite de R$ 3,6M. Faltam apenas {BRL.format(LIMITE_SUBLIMITE - rba12)}.</p>
@@ -98,7 +100,7 @@ export default async function TermometroTributarioPage() {
               </div>
             ) : (
               <div className="mt-6 flex items-start gap-3 rounded-xl bg-brand-500/10 p-4 text-brand-600 dark:text-brand-400">
-                <TrendingUp className="h-5 w-5 shrink-0 mt-0.5" />
+                <TrendUp className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Situação Confortável</p>
                   <p className="text-xs mt-1">Você tem margem de {BRL.format(LIMITE_SUBLIMITE - rba12)} antes de atingir o sublimite estadual/municipal.</p>
@@ -127,13 +129,14 @@ export default async function TermometroTributarioPage() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-4">Previsão Próximo Mês</h3>
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-brand-500/10 rounded-full">
-                  <TrendingUp className="h-6 w-6 text-brand-600 dark:text-brand-400" />
+                  <TrendUp className="h-6 w-6 text-brand-600 dark:text-brand-400" />
                 </div>
                 <div>
                   <p className="text-sm text-ink-soft">Baseado no RBA12</p>
                   <p className="font-semibold text-ink">Manutenção da Faixa</p>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>

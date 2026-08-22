@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
-import { Loader2, CheckCircle2, Clock, AlertCircle, FileText, X } from 'lucide-react';
+import { Spinner, CheckCircle, Clock, WarningCircle, FileText, X } from '@phosphor-icons/react';
 import { emitNfseAction, cancelNfseAction, refreshNfseStatusAction, type EmitState } from './actions';
 import type { ServiceInvoiceRecord } from '@hexxa/core/ports';
 
@@ -63,7 +63,7 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
   return (
     <div className="space-y-6">
       {/* ── Formulário de emissão ─────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-2xl border border-slate-200 bg-surface-card shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-6 py-4 dark:border-slate-800">
           <h2 className="text-base font-semibold text-slate-900 dark:text-white">Emitir nova NFSe</h2>
           <p className="mt-0.5 text-xs text-slate-500">Preencha os dados do tomador e do serviço prestado</p>
@@ -206,8 +206,8 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
               {state.ok
                 ? state.status === 'ISSUING'
                   ? <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                  : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                : <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  : <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                : <WarningCircle className="mt-0.5 h-4 w-4 shrink-0" />
               }
               <div className="flex-1">
                 <p>{state.message}</p>
@@ -229,7 +229,7 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
               disabled={pending}
               className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
             >
-              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {pending && <Spinner className="h-4 w-4 animate-spin" />}
               {pending ? 'Emitindo…' : 'Emitir NFSe'}
             </button>
           </div>
@@ -264,7 +264,7 @@ function NotasList({ notas }: { notas: ServiceInvoiceRecord[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-2xl border border-slate-200 bg-surface-card shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div className="border-b border-slate-100 px-6 py-4 dark:border-slate-800">
         <h2 className="text-base font-semibold text-slate-900 dark:text-white">Notas emitidas</h2>
       </div>

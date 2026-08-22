@@ -1,7 +1,7 @@
 export type NavItem = { label: string; href: string };
 export type NavSection = { title: string; items: NavItem[] };
 
-/** Menu único e completo agrupado por correlação temática. */
+/** List único e completo agrupado por correlação temática. */
 export const NAV: NavSection[] = [
   {
     title: 'Meu Negócio',
@@ -13,18 +13,17 @@ export const NAV: NavSection[] = [
     title: 'Clientes & CRM',
     items: [
       { label: 'Clientes', href: '/meu-negocio/clientes' },
-      { label: 'Relacionamento', href: '/relacionamento' },
-      { label: 'Propostas', href: '/meu-negocio/propostas' },
-      { label: 'Consulta CNPJ', href: '/meu-negocio/consulta-cnpj' },
+      { label: 'Relacionamento & CRM', href: '/relacionamento' },
+      { label: 'Propostas Comerciais', href: '/meu-negocio/propostas' },
+      { label: 'Caixa de E-mail', href: '/meu-negocio/emails' },
     ],
   },
   {
     title: 'Gestão Comercial',
     items: [
-      { label: 'Contratos', href: '/meu-negocio/contratos' },
+      { label: 'Gestão de Contratos', href: '/meu-negocio/contratos' },
       { label: 'Gestão Fiscal', href: '/meu-negocio/fiscal' },
-      { label: 'Emitir NFS-e', href: '/meu-negocio/nfse' },
-      { label: 'Notas Emitidas', href: '/meu-negocio/notas' },
+      { label: 'Notas Fiscais', href: '/meu-negocio/notas' },
     ],
   },
   {
@@ -41,33 +40,31 @@ export const NAV: NavSection[] = [
     title: 'Minha Contabilidade',
     items: [
       { label: 'Guias de Impostos', href: '/minha-contabilidade/guias' },
-      { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
+      { label: 'Quanto Pago de Imposto', href: '/minha-contabilidade/termometro-tributario' },
+      { label: 'Gestão de Patrimônio', href: '/patrimonial' },
       { label: 'Sócios', href: '/minha-contabilidade/socios' },
       { label: 'Distribuição de Lucros', href: '/minha-contabilidade/distribuicao-lucros' },
-      { label: 'Honorários', href: '/minha-contabilidade/honorarios' },
       { label: 'Departamento Pessoal', href: '/minha-contabilidade/departamento-pessoal' },
     ],
   },
   {
-    title: 'Arquivos & Patrimônio',
+    title: 'Arquivos & Documentos',
     items: [
-      { label: 'Cofre Digital', href: '/cofre' },
       { label: 'Arquivos Permanentes', href: '/minha-contabilidade/arquivos' },
-      { label: 'Gestão de Patrimônio', href: '/patrimonial' },
     ],
   },
   {
-    title: 'Serviços',
+    title: 'Suporte e Serviços',
     items: [
+      { label: 'Meu Plano & Mensalidades', href: '/meu-plano' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
-      { label: 'Suporte', href: '/suporte' },
+      { label: 'Chat de Suporte & Atendimento', href: '/suporte' },
     ],
   },
   {
     title: 'Sistema',
     items: [
-      { label: 'Meu Plano', href: '/meu-plano' },
-      { label: 'Configurações', href: '/configuracoes' },
+      { label: 'Ajustes do Sistema', href: '/configuracoes' },
     ],
   },
 ];

@@ -10,89 +10,155 @@
    ============================================================ */
 
 @theme {
-  /* Marca — azul royal (acento único do sistema) */
+  /* Marca — Azul Moderno (Cornflower Blue da referência) */
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-200: #bfdbfe;
   --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
+  --color-brand-400: #75a7ff;
+  --color-brand-500: #6b9dfc; /* Azul principal do botão "Transfer" */
+  --color-brand-600: #5484ed;
+  --color-brand-700: #4269c7;
   --color-brand-800: #1e40af;
   --color-brand-900: #1e3a8a;
 
-  /* Navy — superfícies de destaque (hero, sidebar, card KPI) */
-  --color-navy: #0e1a2f;
+  /* Sidebar Escura — Grafite/Carvão */
+  --color-navy: #22242b;
+  --color-sidebar: #22242b;
 
-  /* Sidebar — azul-marinho sóbrio (via utility hero-blue) */
-  --color-sidebar: #0e1a2f;
+  /* Superfícies Soft Neumorphic / Cinza Metálico Alto Contraste */
+  --color-surface: #e2e8f0; /* Fundo cinza metálico titânio */
+  --color-surface-card: var(--color-surface-card-val); /* Dinâmico: branco no claro, grafite no escuro */
+  --color-ink: var(--color-ink-val); /* Dinâmico: Escuro fora dos cards no modo claro, Branco nos cards */
+  --color-ink-soft: var(--color-ink-soft-val); /* Dinâmico */
+  --color-line: var(--color-line-val); /* Dinâmico: escura sobre fundo claro, clara sobre fundo escuro */
 
-  /* Superfícies (defaults claros; sobrescritos em .dark) */
-  --color-surface: #e9edf2; /* Fundo cinza-azulado — cards brancos ganham contraste real */
-  --color-surface-card: #ffffff; /* Cards brancos sólidos */
-  --color-ink: #0f172a; /* Texto principal (slate-900) */
-  --color-ink-soft: #475569; /* Texto secundário (slate-600) */
-  --color-line: rgba(15, 23, 42, 0.14); /* Bordas neutras nítidas */
+  /* Estados — legíveis e um pouco mais sóbrios (sem neon) */
+  --color-ok: #65a30d; /* Verde-limão pastel, mais moderno que o verde-floresta padrão */
+  --color-warn: #d97706;
+  --color-critical: #e11d48;
 
-  /* Estados — cor SÓ com significado */
-  --color-ok: #15803d;
-  --color-warn: #b45309;
-  --color-critical: #be123c;
-
-  --radius-card: 1rem;
+  --radius-card: 1.75rem; /* Cantos generosos, no espírito "continuous corner" da Apple */
 }
 
 :root {
   color-scheme: light;
-  --glass-bg: #ffffff; /* Card sólido, sem vidro */
-  --glass-border: rgba(15, 23, 42, 0.1); /* Borda neutra nítida */
-  /* Destaque: degradê refinado num único matiz (azul royal) — moderno, sem neon */
+
+  --color-ink-val: #0f172a; /* Texto principal — slate-900, contraste real em fundo claro */
+  --color-ink-soft-val: #5b6472; /* Subtítulos — cinza médio legível em fundo claro */
+  /* Cinza morno translúcido (vibrancy/material do iOS: Control Center,
+     Notification Center) — não é uma cor sólida, é um "vidro fosco" com
+     blur (ver .glass/.card-flat) que deixa o que está atrás influenciar
+     sutilmente o tom. Mesma ideia nos dois temas, ela só fica mais escura
+     sobre fundo escuro por natureza (blur real, não um valor fixo). */
+  --color-surface-card-val: rgba(142, 142, 150, 0.45);
+  --color-line-val: rgba(15, 23, 42, 0.1); /* Borda escura sutil — visível sobre fundo claro */
+
+  --glass-bg: rgba(142, 142, 150, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-blur: blur(28px) saturate(150%);
+
+  /* Destaque 3D: Gradiente com o azul moderno */
   --grad-highlight:
-    radial-gradient(120% 100% at 85% -20%, rgba(255, 255, 255, 0.14), transparent 55%),
-    linear-gradient(150deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
-  /* Hero claro: mesmo azul royal, com respiro de luz no topo */
+    radial-gradient(120% 100% at 85% -20%, rgba(255, 255, 255, 0.3), transparent 55%),
+    linear-gradient(150deg, #75a7ff 0%, #6b9dfc 50%, #4269c7 100%);
+
+  /* Hero claro (mantendo o azul para destaques de botões/menus) */
   --grad-hero:
-    radial-gradient(120% 80% at 20% -20%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(160deg, #3b82f6 0%, #2563eb 45%, #1e3a8a 100%);
-  /* Sidebar em vidro fosco com tom próprio — itens brancos/ativos destacam */
-  --rail-bg: rgba(219, 228, 240, 0.6);
-  --sidebar-panel: rgba(238, 243, 250, 0.78);
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.07);
-  --shadow-glass: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px -8px rgba(15, 23, 42, 0.12);
-  --shadow-highlight: 0 12px 28px -14px rgba(37, 99, 235, 0.5);
+    radial-gradient(120% 80% at 20% -20%, rgba(255, 255, 255, 0.3), transparent 55%),
+    linear-gradient(170deg, #75a7ff 0%, #6b9dfc 55%, #4269c7 100%);
+
+  /* Sidebar Escura — fixa nos dois temas (âncora visual da marca) */
+  --rail-bg: rgba(34, 36, 43, 0.95);
+  --sidebar-panel: #22242b;
+
+  /* Sombras difusas e suaves, como as "vibrancy panels" da Apple: baixa
+     opacidade, bem espalhadas, sem bordas duras. */
+  --shadow-soft: 0 8px 24px -8px rgba(15, 23, 42, 0.14);
+  --shadow-glass: 0 1px 1px rgba(15, 23, 42, 0.04), 0 20px 44px -14px rgba(15, 23, 42, 0.22);
+  --shadow-highlight: 0 16px 32px -12px rgba(66, 105, 199, 0.35);
 }
 
 .dark {
   color-scheme: dark;
-  --color-surface: #0b0f17; /* Grafite neutro (sem cast azul) */
-  --color-surface-card: #121826; /* Card grafite sólido */
-  --color-ink: #e8ecf3;
-  --color-ink-soft: #9aa5b6;
-  --color-line: rgba(255, 255, 255, 0.12); /* Bordas visíveis — cards definidos */
-  --glass-bg: #121826;
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --color-surface: #0a0b0f; /* Grafite quase-preto — não puro #000, dá profundidade */
+  --color-surface-card-val: rgba(120, 120, 128, 0.5); /* Mesmo vidro morno, mais escuro sobre fundo escuro */
+  --color-ink-val: #f4f5f7; /* Off-white — menos "estridente" que #fff puro */
+  --color-ink-soft-val: #9aa1ae;
+  --color-line-val: rgba(255, 255, 255, 0.1);
+
+  --glass-bg: rgba(120, 120, 128, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-blur: blur(28px) saturate(150%);
+
   --grad-highlight:
-    radial-gradient(120% 100% at 85% -20%, rgba(148, 179, 255, 0.1), transparent 55%),
-    linear-gradient(150deg, #2447a8 0%, #1c3a8f 55%, #142a66 100%);
+    radial-gradient(120% 100% at 85% -20%, rgba(148, 179, 255, 0.12), transparent 55%),
+    linear-gradient(150deg, #2955c9 0%, #1e3a8a 55%, #17296b 100%);
   --grad-hero:
     radial-gradient(120% 80% at 20% -20%, rgba(148, 179, 255, 0.08), transparent 55%),
-    linear-gradient(170deg, #131f38 0%, #0e1830 55%, #0a1222 100%);
-  --rail-bg: rgba(10, 16, 28, 0.55);
-  --sidebar-panel: rgba(18, 24, 38, 0.72);
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-glass: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-highlight: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    linear-gradient(170deg, #14161c 0%, #0a0b0f 55%, #0a0b0f 100%);
 
-  /* Estados dessaturados para o escuro (legibilidade sem estridência) */
-  --color-ok: #4ade80;
+  --rail-bg: rgba(10, 11, 15, 0.7);
+  --sidebar-panel: rgba(20, 22, 28, 0.9);
+
+  --shadow-soft: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --shadow-glass: 0 8px 20px rgba(0, 0, 0, 0.45);
+  --shadow-highlight: 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+
+  /* Estados no escuro — vívidos o bastante sem virar neon */
+  --color-ok: #a3e635; /* Verde-limão pastel, versão clara pro fundo escuro */
   --color-warn: #fbbf24;
   --color-critical: #fb7185;
 }
 
+/* Fundo da Aplicação & Garantia de Contraste */
 body {
-  background: var(--color-surface);
-  color: var(--color-ink);
+  background: radial-gradient(120% 120% at 50% 0%, #f7f9fc 0%, #eef1f7 45%, #e3e8f0 100%);
+  background-attachment: fixed;
+  color: var(--color-ink-val);
+}
+
+.dark body {
+  background: radial-gradient(120% 120% at 50% 0%, #14161c 0%, #0a0b0f 55%, #000000 100%);
+  background-attachment: fixed;
+  color: var(--color-ink-val);
+}
+
+/* .card-dark é para cards EXPLICITAMENTE escuros sempre (navy/black/zinc-950),
+   independente do tema — por isso força texto claro sempre.
+   .card-flat / .glass / bg-surface-card agora são vidro translúcido (material
+   "vibrancy" — ver --glass-bg/--glass-blur): sobre fundo claro o vidro lê
+   claro, sobre fundo escuro lê escuro. Por isso o texto dentro deles NÃO é
+   mais forçado — ele simplesmente segue --color-ink/--color-ink-soft do tema
+   ativo, que já é a cor correta (forçar branco aqui deixava o texto invisível
+   quando o vidro ficava claro no tema claro).
+   OBS histórica: isso também já casou por engano com QUALQUER classe contendo
+   "bg-black" (ex.: hover:bg-black/5) via seletor de substring [class*="bg-black"],
+   forçando texto branco sem querer — por isso o marcador é explícito (.card-dark). */
+.card-dark {
+  --color-ink-val: #ffffff;
+  --color-ink-soft-val: #a1a1aa;
+  --color-ink: #ffffff;
+  --color-ink-soft: #a1a1aa;
+  color: #ffffff !important;
+}
+
+/* Anula classes utilitárias de texto escuro (text-slate-900, text-gray-900, etc)
+   que o Tailwind injeta, dentro de cards realmente escuros. */
+.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-slate-900,
+.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-slate-800,
+.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-gray-900,
+.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-gray-800,
+.card-dark :is(h1, h2, h3, h4, h5, h6, p, span, div, label, td, th).text-zinc-900 {
+  color: #ffffff !important;
+}
+
+.card-dark :is(p, span, div, label, td).text-slate-500,
+.card-dark :is(p, span, div, label, td).text-slate-600,
+.card-dark :is(p, span, div, label, td).text-gray-500,
+.card-dark :is(p, span, div, label, td).text-gray-600,
+.card-dark .text-ink-soft {
+  color: #a1a1aa !important;
 }
 
 /* Hero azul da referência (sidebar, telas de auth, banners). */
@@ -125,15 +191,19 @@ body {
 @utility glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 @utility card-flat {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 /* Dígitos tabulares — números de KPI/tabelas alinham na vertical. */
@@ -159,17 +229,22 @@ body {
   animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Elevação suave em cards clicáveis. */
+/* Elevação macia (Animacao suave Neumorphic) e Seleção em Branco */
 @utility hover-lift {
   transition:
-    transform 200ms ease,
-    box-shadow 200ms ease;
+    transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease;
 
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px) scale(1.01);
+    /* Clareia a cor real do card (gunmetal, azul, etc.) em vez de
+       substituí-la por um branco translúcido fixo — antes isso "lavava"
+       qualquer card pra um tom quase branco ao passar o mouse. */
+    filter: brightness(1.12);
     box-shadow:
-      0 2px 4px rgba(15, 23, 42, 0.06),
-      0 12px 24px -10px rgba(15, 23, 42, 0.18);
+      0 30px 60px -12px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -260,41 +335,26 @@ body {
    Fundo animado via opacidade para que os cantos côncavos
    não "descolem" durante a transição.
    ------------------------------------------------------------ */
+/* Pill de destaque do item ativo — contida dentro da sidebar (sempre escura),
+   em azul (mesma cor de acento do resto do sistema). Antes usava
+   var(--color-surface) com um recorte côncavo pra "conectar" com o fundo do
+   conteúdo — fazia sentido quando sidebar e conteúdo dividiam a mesma cor de
+   fundo, mas agora a sidebar é sempre escura e o conteúdo muda de tom (claro/
+   escuro/gunmetal), então aquele fundo neutro cinza-claro só criava uma
+   mancha e uma emenda visível descolada do resto da paleta. */
 .nav-tab-bg {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-radius: 1.25rem 0 0 1.25rem; /* seletor maior e mais suave */
-  background: var(--color-surface);
+  inset: 0;
+  border-radius: 0.85rem;
+  background: rgba(84, 132, 237, 0.16);
+  border: 1px solid rgba(147, 197, 253, 0.18);
   opacity: 0;
-  transition: opacity 0.25s ease-in-out;
+  transition: opacity 0.2s ease-in-out;
   pointer-events: none;
   z-index: 0;
 }
 .nav-tab-bg.active {
   opacity: 1;
-}
-.nav-tab-bg::before,
-.nav-tab-bg::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  width: 32px;
-  height: 32px;
-  background: var(--color-surface);
-  pointer-events: none;
-}
-.nav-tab-bg::before {
-  top: -32px;
-  -webkit-mask: radial-gradient(circle at top left, transparent 32px, #000 32.5px);
-  mask: radial-gradient(circle at top left, transparent 32px, #000 32.5px);
-}
-.nav-tab-bg::after {
-  bottom: -32px;
-  -webkit-mask: radial-gradient(circle at bottom left, transparent 32px, #000 32.5px);
-  mask: radial-gradient(circle at bottom left, transparent 32px, #000 32.5px);
 }
 
 /* ------------------------------------------------------------

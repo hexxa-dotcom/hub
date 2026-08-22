@@ -1,7 +1,22 @@
-import { Receipt } from 'lucide-react';
+import {  Receipt  } from '@phosphor-icons/react/dist/ssr';
+import { DrizzleTaxGuideRepository } from '@hexxa/db';
+import { getTenantContext } from '@/lib/server/tenant';
 import { HubGuias } from './HubGuias';
 
-export default function Page() {
+export const dynamic = 'force-dynamic';
+
+async function getGuias() {
+  try {
+    const ctx = await getTenantContext();
+    return await new DrizzleTaxGuideRepository().listAll(ctx);
+  } catch {
+    return [];
+  }
+}
+
+export default async function Page() {
+  const guias = await getGuias();
+
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
@@ -14,7 +29,7 @@ export default function Page() {
         </p>
       </header>
 
-      <HubGuias />
+      <HubGuias initial={guias} />
     </div>
   );
 }

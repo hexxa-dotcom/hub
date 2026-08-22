@@ -21,6 +21,8 @@ export const company = pgTable('company', {
   zipcode: text('zipcode'),
   /** Organização do Clerk vinculada (auth multi-empresa). */
   clerkOrgId: text('clerk_org_id').unique(),
+  /** Token BYOK do Autentique para gestão de assinaturas do cliente. */
+  autentiqueToken: text('autentique_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

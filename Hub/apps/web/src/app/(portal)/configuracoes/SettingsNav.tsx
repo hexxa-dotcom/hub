@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, FileCog, Cable, SlidersHorizontal } from 'lucide-react';
+import { Buildings, Users, FileCode, Plug, Faders } from '@phosphor-icons/react';
 
 const MENU = [
-  { label: 'Geral', href: '/configuracoes', icon: Building2 },
+  { label: 'Geral', href: '/configuracoes', icon: Buildings },
   { label: 'Equipe e Acessos', href: '/configuracoes/equipe', icon: Users },
-  { label: 'Fiscal e Tributário', href: '/configuracoes/fiscal', icon: FileCog },
-  { label: 'Integrações', href: '/configuracoes/integracoes', icon: Cable },
-  { label: 'Preferências', href: '/configuracoes/preferencias', icon: SlidersHorizontal },
+  { label: 'Fiscal e Tributário', href: '/configuracoes/fiscal', icon: FileCode },
+  { label: 'Integrações', href: '/configuracoes/integracoes', icon: Plug },
+  { label: 'Preferências', href: '/configuracoes/preferencias', icon: Faders },
 ];
 
 export function SettingsNav() {

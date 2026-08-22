@@ -1,6 +1,6 @@
-import { Handshake } from 'lucide-react';
+import {  Handshake  } from '@phosphor-icons/react/dist/ssr';
 import { HubRelacionamento } from './HubRelacionamento';
-import { listDocuments } from '@/lib/autentique';
+import { makeContractSignatureService } from '@/lib/server/container';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -26,14 +26,48 @@ async function getCustomers() {
 
 async function getContracts() {
   try {
-    return await listDocuments();
+    const ctx = await getTenantContext();
+    const service = makeContractSignatureService();
+    return await service.list(ctx);
+  } catch {
+    return [];
+  }
+}
+
+import { withTenant, sql } from '@hexxa/db';
+
+async function getBusinessContracts() {
+  try {
+    const ctx = await getTenantContext();
+    const data = await withTenant(ctx.companyId, async (tx) => {
+      return await tx.execute(sql`
+        SELECT 
+          c.id, c.customer_id, cu.name as customer_name, c.title as tipo, c.value as valor, 
+          c.status, c.created_at as inicio
+        FROM contract c
+        LEFT JOIN customer cu ON cu.id = c.customer_id
+        WHERE c.company_id = ${ctx.companyId}
+      `);
+    });
+    return data.map((r: any) => ({
+      id: r.id,
+      clienteId: r.customer_id,
+      clienteNome: r.customer_name || 'Desconhecido',
+      tipo: r.tipo,
+      inicio: new Date(r.inicio).toISOString().split('T')[0]!,
+      fim: new Date(new Date(r.inicio).getTime() + 365*24*60*60*1000).toISOString().split('T')[0]!,
+      valor: Number(r.valor),
+      observacoes: null,
+      status: (r.status === 'ACTIVE' ? 'ativo' : r.status === 'DRAFT' ? 'rascunho' : 'expirado') as 'ativo' | 'rascunho' | 'expirado' | 'renovar',
+    }));
   } catch {
     return [];
   }
 }
 
 export default async function Page() {
-  const [customers, contracts] = await Promise.all([getCustomers(), getContracts()]);
+  const ctx = await getTenantContext();
+  const [customers, contracts, businessContracts] = await Promise.all([getCustomers(), getContracts(), getBusinessContracts()]);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -43,11 +77,11 @@ export default async function Page() {
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Relacionamento</h1>
         </div>
         <p className="mt-0.5 text-sm text-ink-soft">
-          Clientes, contratos e consulta de CNPJ em um só lugar.
+          Clientes, contratos, gestão de e-mails e consulta de CNPJ em um só lugar.
         </p>
       </header>
 
-      <HubRelacionamento initialCustomers={customers} initialContracts={contracts} />
+      <HubRelacionamento companyId={ctx.companyId} initialCustomers={customers} initialContracts={contracts} initialBusinessContracts={businessContracts} />
     </div>
   );
 }

@@ -36,6 +36,7 @@ export class DrizzleServiceInvoiceRepository implements ServiceInvoiceRepository
     if (patch.status) set.status = patch.status;
     if (patch.providerProtocol !== undefined) set.providerProtocol = patch.providerProtocol;
     if (patch.nfseNumber !== undefined) set.nfseNumber = patch.nfseNumber;
+    if (patch.providerMode !== undefined) set.providerMode = patch.providerMode;
 
     await withTenant(ctx.companyId, async (tx) => {
       await tx
@@ -62,6 +63,7 @@ export class DrizzleServiceInvoiceRepository implements ServiceInvoiceRepository
         status: r.status,
         nfseNumber: r.nfseNumber,
         providerProtocol: r.providerProtocol,
+        providerMode: r.providerMode,
       }));
     });
   }

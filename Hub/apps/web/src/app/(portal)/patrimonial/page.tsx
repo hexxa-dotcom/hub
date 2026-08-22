@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { PieChart, Calculator, Boxes, Landmark } from 'lucide-react';
+import { ChartPie, Calculator, Package, Bank } from '@phosphor-icons/react';
 
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -26,20 +26,31 @@ const ATIVOS = [
 ];
 
 const TABS = [
-  { id: 'patrimonio', label: 'Patrimônio Líquido', icon: PieChart },
+  { id: 'patrimonio', label: 'Patrimônio Líquido', icon: ChartPie },
   { id: 'dividendos', label: 'Simulador de Dividendos', icon: Calculator },
-  { id: 'ativos', label: 'Gestão de Ativos', icon: Boxes },
+  { id: 'ativos', label: 'Gestão de Ativos', icon: Package },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
+import { getProperties, createProperty } from './actions';
+
 export default function Page() {
   const [tab, setTab] = useState<Tab>('patrimonio');
+  const [ativos, setAtivos] = useState<any[]>(ATIVOS);
+
+  import('react').then((React) => {
+    React.useEffect(() => {
+      getProperties().then(data => {
+        if (data && data.length > 0) setAtivos(data);
+      });
+    }, []);
+  });
 
   return (
     <div className="mx-auto w-full space-y-6">
       <header className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-          <Landmark className="h-5 w-5" />
+          <Bank className="h-5 w-5" />
         </span>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Gestão de Patrimônio</h1>
@@ -66,9 +77,9 @@ export default function Page() {
         })}
       </div>
 
-      {tab === 'patrimonio' && <Patrimonio />}
+      {tab === 'patrimonio' && <Patrimonio ativos={ativos} />}
       {tab === 'dividendos' && <Dividendos />}
-      {tab === 'ativos' && <Ativos />}
+      {tab === 'ativos' && <Ativos ativos={ativos} />}
     </div>
   );
 }
@@ -76,8 +87,8 @@ export default function Page() {
 // ============================================================
 // 1) Dashboard de Patrimônio Líquido
 // ============================================================
-function Patrimonio() {
-  const total = GRUPO.reduce((s, g) => s + g.value, 0);
+function Patrimonio({ ativos }: { ativos: any[] }) {
+  const total = GRUPO.reduce((s, g) => s + g.value, 0) + ativos.reduce((s, a) => s + (a.acq || 0), 0);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -233,8 +244,24 @@ function Row({ label, value }: { label: string; value: string }) {
 // ============================================================
 // 3) Gestão de Ativos (depreciação + impostos)
 // ============================================================
-function Ativos() {
-  const rows = ATIVOS.map((a) => {
+function Ativos({ ativos }: { ativos: any[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [tipo, setTipo] = useState('Imóvel');
+  const [nome, setNome] = useState('');
+  const [valor, setValor] = useState(150000);
+  const [ano, setAno] = useState(YEAR);
+
+  const taxas: Record<string, { rate: number; vida: number }> = {
+    'Imóvel': { rate: 4, vida: 25 },
+    'Máquina ou Equipamento': { rate: 10, vida: 10 },
+    'Móveis e Utensílios': { rate: 10, vida: 10 },
+    'Veículo': { rate: 20, vida: 5 },
+    'Equipamento de Informática': { rate: 20, vida: 5 },
+    'Outro': { rate: 10, vida: 10 },
+  };
+
+  const rows = ativos.map((a) => {
     const anos = Math.max(0, YEAR - a.year);
     const deprAcum = Math.min(a.acq, (a.acq * a.rate * anos) / 100);
     const contabil = a.acq - deprAcum;
@@ -253,6 +280,24 @@ function Ativos() {
     { acq: 0, depr: 0, contabil: 0, imposto: 0 },
   );
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const rate = taxas[tipo]?.rate || 10;
+    const kindStr = (tipo === 'Imóvel' ? 'Imóvel' : tipo === 'Veículo' ? 'Veículo' : 'Outro') as 'Imóvel' | 'Veículo' | 'Outro';
+    try {
+      await createProperty({ name: nome, kind: kindStr, acq: valor, rate, year: ano });
+      setShowForm(false);
+      window.location.reload();
+    } catch (err) {
+      alert('Erro ao criar ativo');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fieldCls = 'mt-1 w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm';
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -263,8 +308,49 @@ function Ativos() {
       </div>
 
       <section className="card-flat overflow-x-auto rounded-card p-5">
-        <h2 className="text-lg font-semibold">Bens da holding</h2>
-        <table className="mt-3 w-full text-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Bens da holding</h2>
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+          >
+            + Adicionar Bem
+          </button>
+        </div>
+
+        {showForm && (
+          <form onSubmit={handleCreate} className="mb-6 rounded-xl bg-surface p-4 border border-line/50">
+            <h3 className="text-sm font-semibold mb-3">Registrar Novo Bem (Patrimônio)</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <label className="text-xs font-medium text-ink-soft">Nome / Descrição</label>
+                <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className={fieldCls} placeholder="Ex: Galpão Logístico" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-ink-soft">Tipo de Bem (Define depreciação)</label>
+                <select value={tipo} onChange={e => setTipo(e.target.value)} className={fieldCls}>
+                  {Object.keys(taxas).map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-ink-soft">Valor de Aquisição (R$)</label>
+                <input required type="number" min={0} value={valor} onChange={e => setValor(Number(e.target.value))} className={fieldCls} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-ink-soft">Ano de Aquisição</label>
+                <input required type="number" min={1900} max={YEAR} value={ano} onChange={e => setAno(Number(e.target.value))} className={fieldCls} />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-xs text-ink-soft">Taxa Legal Aplicada: {taxas[tipo]?.rate || 10}% a.a.</p>
+              <button disabled={loading} type="submit" className="rounded-xl bg-ink px-4 py-2 text-sm font-medium text-surface">
+                {loading ? 'Salvando...' : 'Salvar Bem'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-soft">
               <th className="py-2">Bem</th>
@@ -277,8 +363,8 @@ function Ativos() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.name} className="border-t border-line">
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t border-line">
                 <td className="py-2">{r.name}</td>
                 <td className="text-ink-soft">{r.kind}</td>
                 <td className="text-right">{BRL0.format(r.acq)}<br /><span className="text-xs text-ink-soft">{r.year}</span></td>
@@ -296,6 +382,8 @@ function Ativos() {
           (valor de venda – valor contábil). Estimativas — confirme com a contabilidade.
         </p>
       </section>
+
+      <CalculadoraDepreciacao />
     </div>
   );
 }
@@ -306,5 +394,79 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: 'wa
       <p className="text-xs text-ink-soft">{label}</p>
       <p className={`mt-1 text-lg font-semibold tracking-tight ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</p>
     </div>
+  );
+}
+
+function CalculadoraDepreciacao() {
+  const [tipo, setTipo] = useState('Veículo');
+  const [valor, setValor] = useState(150000);
+  const [ano, setAno] = useState(new Date().getFullYear());
+
+  const taxas: Record<string, { rate: number; vida: number }> = {
+    'Imóvel': { rate: 4, vida: 25 },
+    'Máquina ou Equipamento': { rate: 10, vida: 10 },
+    'Móveis e Utensílios': { rate: 10, vida: 10 },
+    'Veículo': { rate: 20, vida: 5 },
+    'Equipamento de Informática': { rate: 20, vida: 5 },
+  };
+
+  const current = (taxas as any)[tipo] || taxas['Veículo'];
+  const anosUso = Math.max(0, YEAR - ano);
+  const deprAcum = Math.min(valor, (valor * current.rate * anosUso) / 100);
+  const contabil = valor - deprAcum;
+  const deprAnual = valor * (current.rate / 100);
+  const deprMensal = deprAnual / 12;
+
+  const fieldCls = 'mt-1 w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm';
+
+  return (
+    <section className="card-flat rounded-card p-5 mt-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator className="h-5 w-5 text-brand-600" />
+        <h2 className="text-lg font-semibold">Cálculo de Depreciação Automático</h2>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-ink-soft">Tipo de Bem (Define a taxa legal)</label>
+            <select value={tipo} onChange={e => setTipo(e.target.value)} className={fieldCls}>
+              {Object.keys(taxas).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-ink-soft">Valor de Aquisição (R$)</label>
+            <input type="number" value={valor} onChange={e => setValor(Number(e.target.value))} className={fieldCls} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-ink-soft">Ano de Aquisição</label>
+            <input type="number" value={ano} onChange={e => setAno(Number(e.target.value))} className={fieldCls} />
+          </div>
+        </div>
+
+        <div className="md:col-span-2 grid grid-cols-2 gap-4">
+          <div className="bg-surface rounded-xl p-4 border border-line/50">
+            <p className="text-xs text-ink-soft">Taxa Legal / Vida Útil</p>
+            <p className="text-lg font-semibold mt-1">{current.rate}% a.a. <span className="text-sm font-normal text-ink-soft">({current.vida} anos)</span></p>
+          </div>
+          <div className="bg-surface rounded-xl p-4 border border-line/50">
+            <p className="text-xs text-ink-soft">Depreciação Mensal (Quota)</p>
+            <p className="text-lg font-semibold mt-1 text-warn">{BRL.format(deprMensal)}</p>
+          </div>
+          <div className="bg-surface rounded-xl p-4 border border-line/50">
+            <p className="text-xs text-ink-soft">Depreciação Acumulada ({anosUso} anos)</p>
+            <p className="text-lg font-semibold mt-1 text-critical">{BRL.format(deprAcum)}</p>
+          </div>
+          <div className="bg-brand-50 rounded-xl p-4 border border-brand-100 dark:bg-brand-900/20 dark:border-brand-800">
+            <p className="text-xs text-brand-700 dark:text-brand-300 font-medium">Valor Contábil Líquido Atual</p>
+            <p className="text-2xl font-bold mt-1 text-brand-900 dark:text-brand-100">{BRL.format(contabil)}</p>
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-ink-soft mt-5 pt-3 border-t border-line">
+        As taxas utilizadas seguem a Instrução Normativa SRF nº 162/1998 e IN RFB nº 1700/2017 para depreciação linear. 
+        Este é um cálculo gerencial automático. Para a contabilidade oficial de IRPJ/CSLL, fale com nossos especialistas.
+      </p>
+    </section>
   );
 }

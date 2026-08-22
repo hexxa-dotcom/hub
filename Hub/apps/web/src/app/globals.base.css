@@ -1,0 +1,336 @@
+@import 'tailwindcss';
+
+/* Variante dark por classe (.dark no <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Hexxa Hub — Design System "Sobriedade" (claro + escuro)
+   Base neutra, um único acento (azul royal), cor apenas com
+   significado. Cards sólidos, bordas nítidas, cantos moderados.
+   ============================================================ */
+
+@theme {
+  /* Marca — azul royal (acento único do sistema) */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  /* Navy — superfícies de destaque (hero, sidebar, card KPI) */
+  --color-navy: #0e1a2f;
+
+  /* Sidebar — azul-marinho sóbrio (via utility hero-blue) */
+  --color-sidebar: #0e1a2f;
+
+  /* Superfícies (defaults claros; sobrescritos em .dark) */
+  --color-surface: #e9edf2; /* Fundo cinza-azulado — cards brancos ganham contraste real */
+  --color-surface-card: #ffffff; /* Cards brancos sólidos */
+  --color-ink: #0f172a; /* Texto principal (slate-900) */
+  --color-ink-soft: #475569; /* Texto secundário (slate-600) */
+  --color-line: rgba(15, 23, 42, 0.14); /* Bordas neutras nítidas */
+
+  /* Estados — cor SÓ com significado */
+  --color-ok: #15803d;
+  --color-warn: #b45309;
+  --color-critical: #be123c;
+
+  --radius-card: 1rem;
+}
+
+:root {
+  color-scheme: light;
+  --glass-bg: #ffffff; /* Card sólido, sem vidro */
+  --glass-border: rgba(15, 23, 42, 0.1); /* Borda neutra nítida */
+  /* Destaque: degradê refinado num único matiz (azul royal) — moderno, sem neon */
+  --grad-highlight:
+    radial-gradient(120% 100% at 85% -20%, rgba(255, 255, 255, 0.14), transparent 55%),
+    linear-gradient(150deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
+  /* Hero claro: mesmo azul royal, com respiro de luz no topo */
+  --grad-hero:
+    radial-gradient(120% 80% at 20% -20%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(160deg, #3b82f6 0%, #2563eb 45%, #1e3a8a 100%);
+  /* Sidebar em vidro fosco com tom próprio — itens brancos/ativos destacam */
+  --rail-bg: rgba(219, 228, 240, 0.6);
+  --sidebar-panel: rgba(238, 243, 250, 0.78);
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.07);
+  --shadow-glass: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px -8px rgba(15, 23, 42, 0.12);
+  --shadow-highlight: 0 12px 28px -14px rgba(37, 99, 235, 0.5);
+}
+
+.dark {
+  color-scheme: dark;
+  --color-surface: #0b0f17; /* Grafite neutro (sem cast azul) */
+  --color-surface-card: #121826; /* Card grafite sólido */
+  --color-ink: #e8ecf3;
+  --color-ink-soft: #9aa5b6;
+  --color-line: rgba(255, 255, 255, 0.12); /* Bordas visíveis — cards definidos */
+  --glass-bg: #121826;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --grad-highlight:
+    radial-gradient(120% 100% at 85% -20%, rgba(148, 179, 255, 0.1), transparent 55%),
+    linear-gradient(150deg, #2447a8 0%, #1c3a8f 55%, #142a66 100%);
+  --grad-hero:
+    radial-gradient(120% 80% at 20% -20%, rgba(148, 179, 255, 0.08), transparent 55%),
+    linear-gradient(170deg, #131f38 0%, #0e1830 55%, #0a1222 100%);
+  --rail-bg: rgba(10, 16, 28, 0.55);
+  --sidebar-panel: rgba(18, 24, 38, 0.72);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-glass: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-highlight: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+
+  /* Estados dessaturados para o escuro (legibilidade sem estridência) */
+  --color-ok: #4ade80;
+  --color-warn: #fbbf24;
+  --color-critical: #fb7185;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Hero azul da referência (sidebar, telas de auth, banners). */
+@utility hero-blue {
+  background: var(--grad-hero);
+}
+
+/* Sidebar em liquid glass fosco — mesmo idioma visual da barra do topo. */
+@utility sidebar-rail {
+  background: var(--rail-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+@utility sidebar-panel {
+  background: var(--sidebar-panel);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* Card de destaque (KPI principal) — navy profundo sólido. */
+@utility card-highlight {
+  background: var(--grad-highlight);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-highlight);
+}
+
+/* Card padrão: sólido, borda nítida, sombra mínima (sem vidro/blur). */
+@utility glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+@utility card-flat {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-glass);
+}
+
+/* Dígitos tabulares — números de KPI/tabelas alinham na vertical. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   Animações — sutis, com easing suave; respeitam reduced-motion
+   ------------------------------------------------------------ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Elevação suave em cards clicáveis. */
+@utility hover-lift {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.06),
+      0 12px 24px -10px rgba(15, 23, 42, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+  .hover-lift,
+  .hover-lift:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Oculta scrollbar visual, mantendo a rolagem ativa */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Badge pill com ponto azul (rótulos de seção da referência). */
+@utility badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-line);
+  padding: 0.3rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+  box-shadow: var(--shadow-soft);
+
+  &::before {
+    content: '';
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-brand-600);
+  }
+}
+
+/* Botão primário — azul da marca, sólido (sem gradiente/glow). */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-brand-600);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: var(--shadow-soft);
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease;
+
+  &:hover {
+    background: var(--color-brand-700);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Botão escuro pill (estilo "Get Started" da referência). */
+@utility btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-navy);
+  color: #fff;
+  font-weight: 500;
+  transition: filter 150ms ease;
+
+  &:hover {
+    filter: brightness(1.25);
+  }
+}
+
+/* ------------------------------------------------------------
+   Aba ativa "ligada" ao conteúdo (estilo da referência Jobie):
+   Fundo animado via opacidade para que os cantos côncavos
+   não "descolem" durante a transição.
+   ------------------------------------------------------------ */
+.nav-tab-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 1.25rem 0 0 1.25rem; /* seletor maior e mais suave */
+  background: var(--color-surface);
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+  pointer-events: none;
+  z-index: 0;
+}
+.nav-tab-bg.active {
+  opacity: 1;
+}
+.nav-tab-bg::before,
+.nav-tab-bg::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface);
+  pointer-events: none;
+}
+.nav-tab-bg::before {
+  top: -32px;
+  -webkit-mask: radial-gradient(circle at top left, transparent 32px, #000 32.5px);
+  mask: radial-gradient(circle at top left, transparent 32px, #000 32.5px);
+}
+.nav-tab-bg::after {
+  bottom: -32px;
+  -webkit-mask: radial-gradient(circle at bottom left, transparent 32px, #000 32.5px);
+  mask: radial-gradient(circle at bottom left, transparent 32px, #000 32.5px);
+}
+
+/* ------------------------------------------------------------
+   Efeito côncavo (transparente) na barra principal
+   ------------------------------------------------------------ */
+.concave-primary {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 12px; /* margem para a esquerda */
+  background: var(--sidebar-panel); /* mesma cor do painel de vidro */
+  border-radius: 20px 0 0 20px;
+  z-index: 0;
+}
+
+.concave-primary::before,
+.concave-primary::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+.concave-primary::before {
+  top: -20px;
+  border-bottom-right-radius: 20px;
+  box-shadow: 10px 10px 0 10px var(--sidebar-panel);
+}
+
+.concave-primary::after {
+  bottom: -20px;
+  border-top-right-radius: 20px;
+  box-shadow: 10px -10px 0 10px var(--sidebar-panel);
+}
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, ChevronRight, FileText, Users, DollarSign } from 'lucide-react';
+import { MagnifyingGlass, CaretRight, FileText, Users, CurrencyDollar } from '@phosphor-icons/react';
 import { NAV } from '@/lib/nav';
 import Link from 'next/link';
 
@@ -31,7 +31,7 @@ export function GlobalSearch() {
   return (
     <div className="relative" ref={containerRef}>
       <label className="flex w-[220px] items-center gap-2 rounded-full border border-line bg-surface-card px-4 py-2.5 text-sm text-ink-soft shadow-sm transition-all focus-within:shadow-md focus-within:border-brand-400 focus-within:w-[320px]">
-        <Search className="h-4 w-4" />
+        <MagnifyingGlass className="h-4 w-4" />
         <input
           value={query}
           onChange={(e) => {
@@ -60,7 +60,7 @@ export function GlobalSearch() {
                         <span className="font-semibold text-ink">{r.label}</span>
                         <span className="text-xs text-ink-soft">{r.section}</span>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-ink-soft" />
+                      <CaretRight className="h-4 w-4 text-ink-soft" />
                     </Link>
                   </li>
                 ))}

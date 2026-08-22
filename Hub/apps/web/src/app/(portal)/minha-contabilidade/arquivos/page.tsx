@@ -1,15 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  FileCheck,
-  FileSignature,
-  ShieldCheck,
-  File as FileIcon,
-  Download,
-  Upload,
-  type LucideIcon,
-} from 'lucide-react';
+import { FileText, Signature, ShieldCheck, File as FileIcon, DownloadSimple, UploadSimple, type Icon } from '@phosphor-icons/react';
 
 type Category = 'ALVARA' | 'CONTRATO' | 'CND' | 'OUTRO';
 
@@ -21,11 +13,11 @@ type Doc = {
   expiresAt?: string;
 };
 
-const CATS: Record<Category, { label: string; icon: LucideIcon; badge: string }> = {
-  ALVARA: { label: 'Alvarás', icon: FileCheck, badge: 'bg-brand-500/10 text-brand-700 dark:text-brand-300' },
-  CONTRATO: { label: 'Contratos', icon: FileSignature, badge: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
+const CATS: Record<Category, { label: string; icon: Icon; badge: string }> = {
+  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-brand-500/10 text-brand-700 dark:text-brand-300' },
+  CONTRATO: { label: 'Contratos', icon: Signature, badge: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
   CND: { label: 'CNDs', icon: ShieldCheck, badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' },
-  OUTRO: { label: 'Outros', icon: FileIcon, badge: 'bg-black/[0.07] text-ink-soft dark:bg-white/10' },
+  OUTRO: { label: 'Outros', icon: FileIcon, badge: 'bg-surface-card border border-line text-ink-soft dark:bg-white/10' },
 };
 
 const today = new Date();
@@ -83,9 +75,6 @@ export default function Page() {
             Documentos da empresa sempre à mão — alvarás, contratos, CNDs e mais. Disponibilizados pela sua contabilidade.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600">
-          <Upload className="h-4 w-4" /> Enviar arquivo
-        </button>
       </header>
 
       {alerts > 0 && (
@@ -94,27 +83,6 @@ export default function Page() {
           {alerts} certidão(ões) vencendo ou vencida(s) — vale renovar.
         </div>
       )}
-
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const active = filter === f;
-          const labelTxt = f === 'TODOS' ? 'Todos' : CATS[f].label;
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                active
-                  ? 'bg-brand-500 text-white'
-                  : 'border border-line text-ink-soft hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-            >
-              {labelTxt}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Lista */}
       <section className="card-flat divide-y divide-line rounded-card">
@@ -145,7 +113,7 @@ export default function Page() {
                 aria-label={`Baixar ${d.name}`}
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
               >
-                <Download className="h-4 w-4" /> Baixar
+                <DownloadSimple className="h-4 w-4" /> Baixar
               </a>
             </div>
           );

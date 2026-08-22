@@ -1,8 +1,9 @@
 import { GlassCard } from '@/components/ui/GlassCard';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import {  ArrowLeft, ArrowSquareOut  } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { ContaAzulSetupForm } from './ContaAzulSetupForm';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export const metadata = {
@@ -11,19 +12,27 @@ export const metadata = {
 
 export default async function ContaAzulSetupPage() {
   const ctx = await getTenantContext();
-  const supabase = await createRawClient();
-  
+
   // Buscar se já tem algo configurado
-  const { data: credential } = await supabase
-    .from('integration_credential')
-    .select('secret_ref, active')
-    .eq('company_id', ctx.companyId)
-    .eq('provider', 'contaazul')
-    .single();
+  const [credential] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({
+        secretRef: integrationCredential.secretRef,
+        active: integrationCredential.active,
+      })
+      .from(integrationCredential)
+      .where(
+        and(
+          eq(integrationCredential.companyId, ctx.companyId),
+          eq(integrationCredential.provider, 'contaazul')
+        )
+      );
+  });
 
   const isConnected = credential?.active || false;
-  const clientId = credential?.secret_ref?.client_id || '';
-  const clientSecret = credential?.secret_ref?.client_secret || '';
+  const secretData = credential?.secretRef as { client_id?: string, client_secret?: string } | undefined;
+  const clientId = secretData?.client_id || '';
+  const clientSecret = secretData?.client_secret || '';
 
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -66,7 +75,7 @@ export default async function ContaAzulSetupPage() {
                     Faça login no portal de Desenvolvedores da Conta Azul e crie uma nova aplicação.
                   </p>
                   <a href="https://developers.contaazul.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">
-                    Portal Conta Azul <ExternalLink className="h-3.5 w-3.5" />
+                    Portal Conta Azul <ArrowSquareOut className="h-3.5 w-3.5" />
                   </a>
                 </li>
                 <li className="pl-8">

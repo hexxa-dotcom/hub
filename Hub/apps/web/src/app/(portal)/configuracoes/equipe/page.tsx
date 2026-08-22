@@ -1,4 +1,4 @@
-import { Users, UserPlus } from 'lucide-react';
+import {  Users, UserPlus  } from '@phosphor-icons/react/dist/ssr';
 
 export const metadata = {
   title: 'Equipe e Acessos | Hexx Hub',

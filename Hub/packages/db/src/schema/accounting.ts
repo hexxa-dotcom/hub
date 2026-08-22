@@ -38,6 +38,26 @@ export const accountingInvoice = pgTable('accounting_invoice', {
   status: docStatus('status').notNull().default('OPEN'),
 });
 
+/**
+ * Contrato de prestação de serviço da Hexxa com o CLIENTE (empresa), gerado
+ * em /contador/contratos. Não confundir com `contract` (contrato do tenant
+ * com OS CLIENTES dele).
+ */
+export const accountingContract = pgTable('accounting_contract', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  plano: text('plano').notNull(),
+  valor: numeric('valor', { precision: 14, scale: 2 }).notNull(),
+  inicio: date('inicio').notNull(),
+  vigenciaMeses: integer('vigencia_meses'), // null = indeterminado
+  servicos: jsonb('servicos').notNull().default([]),
+  observacao: text('observacao'),
+  status: text('status').notNull().default('ativo'), // ativo | cancelado
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const employee = pgTable('employee', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id')

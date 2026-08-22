@@ -23,6 +23,9 @@ export const property = pgTable('property', {
   status: propertyStatus('status').notNull().default('AVAILABLE'),
   address: text('address'),
   acquisitionValue: numeric('acquisition_value', { precision: 14, scale: 2 }),
+  acquisitionDate: date('acquisition_date'),
+  depreciationRate: numeric('depreciation_rate', { precision: 5, scale: 2 }), // Taxa anual (ex: 4.00, 10.00, 20.00)
+  residualValue: numeric('residual_value', { precision: 14, scale: 2 }), // Valor residual (não deprecia)
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

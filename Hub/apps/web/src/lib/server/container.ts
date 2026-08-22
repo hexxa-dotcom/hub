@@ -1,13 +1,14 @@
 import 'server-only';
-import { ServiceInvoiceService } from '@hexxa/core';
+import { ServiceInvoiceService, ContractSignatureService } from '@hexxa/core';
 import type { TenantContext } from '@hexxa/core';
-import { makeNfsePort, makeGovNfsePort } from '@hexxa/integrations';
+import { makeNfsePort, makeGovNfsePort, makeSignaturePort } from '@hexxa/integrations';
 import type { CertMaterial } from '@hexxa/integrations';
 import type { NfsePort } from '@hexxa/core/ports';
 import {
   DrizzleCustomerRepository,
   DrizzleServiceInvoiceRepository,
   DrizzleFinancialEntryRepository,
+  DrizzleSignatureRequestRepository,
 } from '@hexxa/db';
 import { getNfseConfig, getCertForTenant, isFiscalComplete, reserveNextDpsNumber, type NfseConfig } from './fiscal';
 
@@ -72,4 +73,13 @@ export async function resolveNfsePort(ctx: TenantContext): Promise<NfsePort> {
   const cfg = await getNfseConfig(ctx);
   const cert = await getCertForTenant(ctx);
   return buildNfsePort(cfg, cert);
+}
+
+export const signatureRequestRepository = new DrizzleSignatureRequestRepository();
+
+export function makeContractSignatureService(): ContractSignatureService {
+  return new ContractSignatureService({
+    signature: makeSignaturePort(),
+    requests: signatureRequestRepository,
+  });
 }

@@ -1,5 +1,7 @@
-import { HandCoins, Users } from 'lucide-react';
-import { createRawClient } from '@/lib/supabase/server';
+import {  HandCoins, Users  } from '@phosphor-icons/react/dist/ssr';
+import { withTenant } from '@hexxa/db';
+import { profitDistribution } from '@hexxa/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { getTenantContext } from '@/lib/server/tenant';
 import { DistForm } from './DistForm';
 import { LucroCard } from './LucroCard';
@@ -27,14 +29,22 @@ export default async function Page() {
   let dbReady = true;
   try {
     const ctx = await getTenantContext();
-    const supabase = await createRawClient();
-    const { data, error } = await supabase
-      .from('profit_distribution')
-      .select('id, partner_name, amount, distributed_at, notes')
-      .eq('company_id', ctx.companyId)
-      .order('distributed_at', { ascending: false });
-    if (error) throw error;
-    items = (data ?? []) as Dist[];
+
+    const data = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({
+          id: profitDistribution.id,
+          partner_name: profitDistribution.partnerName,
+          amount: profitDistribution.amount,
+          distributed_at: profitDistribution.distributedAt,
+          notes: profitDistribution.notes,
+        })
+        .from(profitDistribution)
+        .where(eq(profitDistribution.companyId, ctx.companyId))
+        .orderBy(desc(profitDistribution.distributedAt));
+    });
+
+    items = data as Dist[];
   } catch {
     dbReady = false;
   }

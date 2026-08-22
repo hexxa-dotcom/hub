@@ -38,6 +38,7 @@ export interface EmitNfseResult {
   status: 'ISSUING' | 'ISSUED' | 'ERROR';
   nfseNumber?: string;
   financialEntryId?: string;
+  isMock?: boolean;
 }
 
 export interface ServiceInvoiceDeps {
@@ -92,6 +93,7 @@ export class ServiceInvoiceService {
       status: issued.status,
       providerProtocol: issued.providerProtocol,
       nfseNumber: issued.nfseNumber,
+      providerMode: issued.isMock ? 'mock' : 'gov',
     });
 
     // 6. Se não falhou, gera o recebível na camada financeira unificada.
@@ -129,6 +131,7 @@ export class ServiceInvoiceService {
       status: issued.status,
       nfseNumber: issued.nfseNumber,
       financialEntryId,
+      isMock: issued.isMock,
     };
   }
 }

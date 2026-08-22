@@ -1,7 +1,6 @@
 import 'server-only';
 import type { TenantContext } from '@hexxa/core';
 import { loadCertFromBase64, type CertMaterial } from '@hexxa/integrations';
-import { createRawClient } from '@/lib/supabase/server';
 import { withTenant, sql } from '@hexxa/db';
 
 export interface NfseConfig {

@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react';
+import {  ArrowUpRight  } from '@phosphor-icons/react/dist/ssr';
 import { twMerge } from 'tailwind-merge';
 import Link from 'next/link';
 import type { Route } from 'next';

@@ -3,91 +3,49 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Contact2,
-  ScanSearch,
-  Receipt,
-  FileSignature,
-  BarChart3,
-  ScrollText,
-  Users,
-  Wallet,
-  Landmark,
-  Lock,
-  LifeBuoy,
-  CreditCard,
-  Settings,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Menu,
-  X,
-  Search,
-  Bell,
-  MessageCircle,
-  HandCoins,
-  FolderArchive,
-  FileCog,
-  Handshake,
-  Layers,
-  Users2,
-  ClipboardList,
-  Scale,
-  TrendingDown,
-  TrendingUp,
-  Home,
-  Briefcase,
-  DollarSign,
-  FileText,
-  Folder,
-  Settings2,
-  Cable,
-  ChevronDown,
-  type LucideIcon,
-} from 'lucide-react';
+import { SquaresFour, AddressBook, Receipt, Signature, ChartBar, Scroll, Users, Bank, LockKey, Lifebuoy, CreditCard, Gear, List, X, Bell, ChatCircle, HandCoins, Archive, FileCode, Handshake, Stack, UsersThree, ClipboardText, Scales, TrendDown, TrendUp, House, Briefcase, CurrencyDollar, FileText, Folder, Faders, Plug, CaretDown } from '@phosphor-icons/react';
+import type { Icon } from '@phosphor-icons/react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { GlobalSearch } from './GlobalSearch';
 
-const ICONS: Record<string, LucideIcon> = {
-  '/dashboard': LayoutDashboard,
+const ICONS: Record<string, Icon> = {
+  '/dashboard': SquaresFour,
   '/relacionamento': Handshake,
-  '/meu-negocio/clientes': Contact2,
-  '/meu-negocio/consulta-cnpj': ScanSearch,
-  '/meu-negocio/notas': ScrollText,
-  '/meu-negocio/contratos': FileSignature,
-  '/meu-negocio/hub-financeiro': BarChart3,
-  '/meu-negocio/fiscal': FileCog,
-  '/minha-contabilidade/termometro-tributario': BarChart3,
-  '/meu-negocio/conciliacao': Scale,
-  '/meu-negocio/contas-a-pagar': TrendingDown,
-  '/meu-negocio/contas-a-receber': TrendingUp,
-  '/configuracoes/integracoes': Cable,
+  '/meu-negocio/clientes': AddressBook,
+  '/meu-negocio/notas': Scroll,
+  '/meu-negocio/contratos': Signature,
+  '/meu-negocio/hub-financeiro': ChartBar,
+  '/meu-negocio/fiscal': FileCode,
+  '/minha-contabilidade/termometro-tributario': ChartBar,
+  '/meu-negocio/conciliacao': Scales,
+  '/meu-negocio/contas-a-pagar': TrendDown,
+  '/meu-negocio/contas-a-receber': TrendUp,
+  '/configuracoes/integracoes': Plug,
   '/minha-contabilidade/guias': Receipt,
-  '/minha-contabilidade/socios': Users2,
+  '/minha-contabilidade/socios': UsersThree,
   '/minha-contabilidade/distribuicao-lucros': HandCoins,
-  '/meu-negocio/propostas': ClipboardList,
-  '/minha-contabilidade/arquivos': FolderArchive,
+  '/meu-negocio/propostas': ClipboardText,
+  '/minha-contabilidade/arquivos': Archive,
   '/minha-contabilidade/departamento-pessoal': Users,
-  '/minha-contabilidade/honorarios': Wallet,
-  '/patrimonial': Landmark,
-  '/mais/servicos': Layers,
-  '/cofre': Lock,
-  '/suporte': LifeBuoy,
+  '/patrimonial': Bank,
+  '/mais/servicos': Stack,
+  '/cofre': LockKey,
+  '/suporte': Lifebuoy,
   '/meu-plano': CreditCard,
-  '/configuracoes': Settings,
+  '/configuracoes': Gear,
 };
 
-const GROUP_ICONS: Record<string, LucideIcon> = {
-  'Meu Negócio': Home,
+const GROUP_ICONS: Record<string, Icon> = {
+  'Meu Negócio': House,
   'Clientes & CRM': Users,
   'Gestão Comercial': Briefcase,
-  'Hub Financeiro': DollarSign,
+  'Hub Financeiro': CurrencyDollar,
   'Minha Contabilidade': FileText,
   'Arquivos & Patrimônio': Folder,
-  'Sistema': Settings2,
-  'Serviços': Layers,
+  'Sistema': Gear,
+  'Suporte e Serviços': Lifebuoy,
 };
 
 const STORAGE_KEY = 'hexxa.sidebar.collapsed';
@@ -106,10 +64,9 @@ function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
 function itemClass(active: boolean) {
   const base = 'flex items-center gap-3 px-4 py-3 text-sm relative transition-colors duration-200';
   if (active) {
-    // Apenas cores do texto; o fundo animado é renderizado separadamente (.nav-tab-bg)
     return `${base} font-semibold text-brand-600 dark:text-brand-300`;
   }
-  return `${base} rounded-xl text-ink-soft dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/10 hover:text-ink dark:hover:text-white mr-3`;
+  return `${base} rounded-xl text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 hover:text-ink mr-3`;
 }
 
 function NavList({
@@ -125,7 +82,7 @@ function NavList({
     <ul className="space-y-1">
       {items.map((i) => {
         const active = pathname === i.href || pathname.startsWith(`${i.href}/`);
-        const Icon = ICONS[i.href] || LayoutDashboard;
+        const IconCmp = ICONS[i.href] || SquaresFour;
 
         return (
           <li key={i.href} className="group relative list-none">
@@ -136,9 +93,10 @@ function NavList({
             >
               {/* O fundo ativo é renderizado quando selecionado, conectando-se ao conteúdo principal */}
               <div className={`nav-tab-bg ${active ? 'active' : ''}`} />
-              <Icon
-                className={`relative z-10 h-5 w-5 shrink-0 transition-colors ${
-                  active ? 'text-brand-600 dark:text-brand-300' : ''
+              <IconCmp
+                weight={active ? 'fill' : 'regular'}
+                className={`relative z-10 h-5 w-5 shrink-0 transition-all duration-300 group-hover:scale-110 ${
+                  active ? 'text-brand-600 dark:text-brand-300 drop-shadow-sm' : ''
                 }`}
               />
               <span className="relative z-10 truncate">{i.label}</span>
@@ -183,7 +141,7 @@ function AppShellInner({
   const [activeGroup, setActiveGroup] = useState<string>('Meu Negócio');
 
   useEffect(() => {
-    if (searchParams.get('aviso') === 'sem-acesso-admin') setAvisoAdmin(true);
+    if (searchParams.get('aviso') === 'sem-acesso-contador') setAvisoAdmin(true);
   }, [searchParams]);
 
   useEffect(() => setCollapsed(localStorage.getItem(STORAGE_KEY) === '1'), []);
@@ -218,51 +176,49 @@ function AppShellInner({
   return (
     <div className="flex min-h-screen bg-surface">
       {/* Container das Sidebars Desktop (Auto-recolhe no mouse leave) */}
-      <div 
-        className="sticky top-0 hidden h-screen shrink-0 lg:flex z-40 shadow-xl dark:shadow-[4px_0_24px_rgba(0,0,0,0.6)] rounded-r-[2.5rem]"
+      <div
+        className="sticky top-0 hidden h-screen shrink-0 lg:flex z-40"
         onMouseLeave={() => setCollapsed(true)}
       >
-        {/* Sidebar Primária (Estreita, Fixa) */}
-        <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 sidebar-rail py-4 z-40 flex">
-          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto no-scrollbar w-full pl-3 pr-0 pt-4">
+        {/* Sidebar Primária (Estreita, Fixa) — ícones flutuantes, sem fundo */}
+        <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 py-4 z-40 flex">
+          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto no-scrollbar w-full items-center pt-4">
             {sections.map((s) => {
-              const Icon = GROUP_ICONS[s.title] || LayoutDashboard;
+              const IconCmp = GROUP_ICONS[s.title] || SquaresFour;
               const isActive = activeGroup === s.title;
               return (
-                <div key={s.title} className="relative w-full flex justify-end">
-                  {isActive && <div className="concave-primary" />}
-                  <button
-                    title={s.title}
-                    onMouseEnter={() => {
-                      setActiveGroup(s.title);
-                      if (collapsed) setCollapsed(false);
-                    }}
-                    onClick={() => {
-                      setActiveGroup(s.title);
-                      if (collapsed) setCollapsed(false);
-                      // Se o grupo tiver apenas 1 item (ex: Dashboard), navega direto
-                      if (s.items.length === 1 && s.items[0]) {
-                        router.push(s.items[0].href as never);
-                      }
-                    }}
-                    className={`relative z-10 flex h-12 w-[60px] shrink-0 items-center justify-center transition-all duration-300 ${
-                      isActive
-                        ? 'bg-transparent text-brand-600 scale-105 dark:text-brand-300'
-                        : 'text-ink-soft hover:bg-black/5 hover:text-ink dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white mr-3 rounded-[1.25rem]'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </button>
-                </div>
+                <button
+                  key={s.title}
+                  title={s.title}
+                  onMouseEnter={() => {
+                    setActiveGroup(s.title);
+                    if (collapsed) setCollapsed(false);
+                  }}
+                  onClick={() => {
+                    setActiveGroup(s.title);
+                    if (collapsed) setCollapsed(false);
+                    // Se o grupo tiver apenas 1 item (ex: Dashboard), navega direto
+                    if (s.items.length === 1 && s.items[0]) {
+                      router.push(s.items[0].href as never);
+                    }
+                  }}
+                  className={`group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-300 ${
+                    isActive
+                      ? 'text-brand-600 dark:text-brand-300 scale-110 drop-shadow-[0_0_10px_rgba(84,132,237,0.35)]'
+                      : 'text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 hover:text-ink'
+                  }`}
+                >
+                  <IconCmp weight={isActive ? 'duotone' : 'regular'} className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+                </button>
               );
             })}
           </nav>
         </aside>
 
-        {/* Sidebar Secundária (Expansível) */}
+        {/* Sidebar Secundária (Expansível) — mesmo vidro translúcido dos cards */}
         <aside
-          className={`h-full shrink-0 flex-col sidebar-panel transition-all duration-300 ease-out z-30 flex rounded-r-[2.5rem] border-r border-line shadow-[4px_0_16px_rgba(0,0,0,0.05)] dark:shadow-none overflow-hidden ${
-            collapsed ? 'w-0 border-none opacity-0' : 'w-64 opacity-100'
+          className={`h-full shrink-0 flex-col card-flat !rounded-l-none transition-all duration-300 ease-out z-30 flex overflow-hidden ${
+            collapsed ? 'w-0 !border-none opacity-0' : 'w-64 opacity-100'
           }`}
         >
         <div className="flex shrink-0 flex-col border-b border-line">
@@ -271,14 +227,14 @@ function AppShellInner({
             <button className="flex w-full items-center justify-between rounded-xl p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 font-bold shadow-sm border border-brand-200/50 dark:border-brand-800/50">
-                  {company 
-                    ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0]) 
+                  {company
+                    ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
                     : 'H'}
                 </div>
                 <div className="flex flex-col items-start overflow-hidden text-left">
                   <span className="w-full truncate text-sm font-semibold text-ink leading-tight">
-                    {company 
-                      ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName) 
+                    {company
+                      ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
                       : 'Hexx Solutions'}
                   </span>
                   <span className="w-full truncate text-[11px] font-medium text-ink-soft">
@@ -286,16 +242,16 @@ function AppShellInner({
                   </span>
                 </div>
               </div>
-              <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />
+              <CaretDown weight="bold" className="h-4 w-4 shrink-0 text-ink-soft" />
             </button>
           </div>
-          
+
           {/* Active Group Title */}
           <div className="px-6 pb-3 pt-1">
             <span className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">{activeGroup}</span>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto no-scrollbar pl-4 pr-0 pb-8 mt-4">
           <NavList items={activeSectionData?.items || []} pathname={pathname} />
         </div>
@@ -307,7 +263,7 @@ function AppShellInner({
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm" onClick={() => setMobileOpen(false)} aria-hidden />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-surface-card transition-transform duration-300 ease-out lg:hidden rounded-r-3xl shadow-2xl ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col card-flat !rounded-l-none transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -321,7 +277,7 @@ function AppShellInner({
             aria-label="Fechar menu"
             className="rounded-xl p-2 text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
           >
-            <X className="h-5 w-5" />
+            <X weight="bold" className="h-5 w-5" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar py-6 pl-5 pr-0 space-y-8">
@@ -365,7 +321,7 @@ function AppShellInner({
                 aria-label="Notificações"
                 className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-surface-card text-ink-soft transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:scale-105"
               >
-                <Bell className="h-5 w-5" />
+                <Bell weight="duotone" className="h-5 w-5" />
                 <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-critical shadow-[0_0_0_2px_var(--color-surface-card)]" />
               </button>
               
@@ -391,7 +347,7 @@ function AppShellInner({
             aria-label="Abrir menu"
             className="rounded-xl p-2 text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10"
           >
-            <Menu className="h-6 w-6" />
+            <List className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-3">
             <BrandMark size="sm" />
@@ -421,7 +377,7 @@ function AppShellInner({
           aria-label="Falar com a contabilidade no WhatsApp"
           className="fixed bottom-6 right-6 z-40 flex h-14 items-center gap-3 rounded-full bg-[#25D366] px-5 font-bold text-white shadow-xl transition-transform hover:scale-105 hover:shadow-2xl"
         >
-          <MessageCircle className="h-6 w-6" />
+          <ChatCircle weight="fill" className="h-6 w-6" />
           <span className="hidden sm:inline">Atendimento</span>
         </a>
       )}

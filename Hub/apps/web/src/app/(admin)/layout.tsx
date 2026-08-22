@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
-import { AdminShell } from '@/components/admin/AdminShell';
+import { getDb, eq } from '@hexxa/db';
+import { ticket } from '@hexxa/db/schema';
+import { ContadorShell } from '@/components/contador/ContadorShell';
 
 function allowedEmails(): string[] {
   return (process.env.ADMIN_ALLOWED_EMAILS ?? '')
@@ -9,13 +11,17 @@ function allowedEmails(): string[] {
     .filter(Boolean);
 }
 
-/** Área administrativa: exige login (Clerk, via proxy) + e-mail na allowlist. */
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+/** Área do contador: exige login (Clerk, via proxy) + e-mail na allowlist. */
+export default async function ContadorLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const emails = (user?.emailAddresses ?? []).map((e) => e.emailAddress.toLowerCase());
   const isAdmin = emails.some((e) => allowedEmails().includes(e));
   if (!isAdmin) {
-    redirect('/dashboard?aviso=sem-acesso-admin');
+    redirect('/dashboard?aviso=sem-acesso-contador');
   }
-  return <AdminShell>{children}</AdminShell>;
+
+  const db = getDb();
+  const openTickets = await db.select({ id: ticket.id }).from(ticket).where(eq(ticket.status, 'OPEN'));
+
+  return <ContadorShell openTicketsCount={openTickets.length}>{children}</ContadorShell>;
 }

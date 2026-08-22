@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenantContext } from '@/lib/server/tenant';
 import { resolveNfsePort } from '@/lib/server/container';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, serviceInvoice, eq, and } from '@hexxa/db';
 
 export async function GET(
   req: NextRequest,
@@ -19,15 +19,19 @@ export async function GET(
     }
 
     // Acha a nota para verificar se pertence ao tenant e pegar o providerProtocol
-    const sb = await createRawClient();
-    const { data: nota } = await sb
-      .from('service_invoice')
-      .select('id, provider_protocol, status')
-      .eq('id', id)
-      .eq('company_id', ctx.companyId)
-      .single();
+    const [nota] = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({ id: serviceInvoice.id, providerProtocol: serviceInvoice.providerProtocol, status: serviceInvoice.status })
+        .from(serviceInvoice)
+        .where(
+          and(
+            eq(serviceInvoice.id, id),
+            eq(serviceInvoice.companyId, ctx.companyId)
+          )
+        );
+    });
 
-    if (!nota || !nota.provider_protocol) {
+    if (!nota || !nota.providerProtocol) {
       return NextResponse.json({ error: 'NFSe not found or missing protocol' }, { status: 404 });
     }
 
@@ -36,9 +40,9 @@ export async function GET(
       return NextResponse.json({ error: 'Adapter does not support direct download' }, { status: 501 });
     }
 
-    const buffer = await port.download(nota.provider_protocol, type);
+    const buffer = await port.download(nota.providerProtocol, type);
 
-    const filename = `nfse_${nota.provider_protocol}.${type}`;
+    const filename = `nfse_${nota.providerProtocol}.${type}`;
     const contentType = type === 'pdf' ? 'application/pdf' : 'application/xml';
 
     return new NextResponse(buffer as unknown as BodyInit, {

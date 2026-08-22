@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useRef, useState, useCallback } from 'react';
-import { Plus, Search, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, MagnifyingGlass, Spinner, CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { addCustomerAction, type CustomerState } from './actions';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
 
@@ -25,6 +25,8 @@ export function CustomerForm() {
   const cidadeRef = useRef<HTMLInputElement>(null);
   const ufRef = useRef<HTMLSelectElement>(null);
   const cnpjInputRef = useRef<HTMLInputElement>(null);
+  const valorRef = useRef<HTMLInputElement>(null);
+  const diaRef = useRef<HTMLSelectElement>(null);
 
   const formatCnpj = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, 14);
@@ -107,16 +109,16 @@ export function CustomerForm() {
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
               {lookupStatus === 'loading' && (
-                <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
+                <Spinner className="h-4 w-4 animate-spin text-ink-soft" />
               )}
               {lookupStatus === 'found' && (
-                <CheckCircle2 className="h-4 w-4 text-ok" />
+                <CheckCircle className="h-4 w-4 text-ok" />
               )}
               {(lookupStatus === 'not_found' || lookupStatus === 'error') && (
-                <AlertCircle className="h-4 w-4 text-warn" />
+                <WarningCircle className="h-4 w-4 text-warn" />
               )}
               {lookupStatus === 'idle' && (
-                <Search className="h-4 w-4 text-ink-soft/40" />
+                <MagnifyingGlass className="h-4 w-4 text-ink-soft/40" />
               )}
             </span>
           </div>
@@ -197,6 +199,36 @@ export function CustomerForm() {
             </select>
           </div>
         </div>
+
+        <div className="md:col-span-2 pt-2 pb-1">
+          <h3 className="text-sm font-semibold text-ink">Cobrança e Contrato (Opcional)</h3>
+          <p className="text-xs text-ink-soft">Preencha se desejar criar uma assinatura recorrente no Asaas automaticamente.</p>
+        </div>
+
+        {/* Valor Mensalidade */}
+        <div>
+          <label className={lbl}>Valor Mensalidade (R$)</label>
+          <input
+            ref={valorRef}
+            name="valorMensalidade"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Ex: 199.90"
+            className={field}
+          />
+        </div>
+
+        {/* Dia de Vencimento */}
+        <div>
+          <label className={lbl}>Dia de Vencimento</label>
+          <select ref={diaRef} name="diaVencimento" defaultValue="" className={field}>
+            <option value="">—</option>
+            {[5, 10, 15, 20, 25, 28].map(
+              (dia) => <option key={dia} value={dia}>Dia {dia}</option>,
+            )}
+          </select>
+        </div>
       </div>
 
       <button
@@ -205,7 +237,7 @@ export function CustomerForm() {
         className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
       >
         {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Spinner className="h-4 w-4 animate-spin" />
         ) : (
           <Plus className="h-4 w-4" />
         )}

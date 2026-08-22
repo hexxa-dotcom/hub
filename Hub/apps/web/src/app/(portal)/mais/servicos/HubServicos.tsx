@@ -1,12 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Building2, FileText, LayoutGrid, Plus, X, Clock, CheckCircle2,
-  AlertTriangle, XCircle, ChevronDown, ChevronUp, Search,
-  Layers, Briefcase, ScrollText, TrendingUp, Users, Send,
-  CalendarDays, ArrowRight, MessageCircle,
-} from 'lucide-react';
+import { Buildings, FileText, SquaresFour, Plus, X, Clock, CheckCircle, Warning, XCircle, CaretDown, CaretUp, MagnifyingGlass, Stack, Briefcase, Scroll, TrendUp, Users, PaperPlaneRight, CalendarBlank, ArrowRight, ChatCircle } from '@phosphor-icons/react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,16 +32,16 @@ type Servico = {
 
 const STATUS_CONFIG: Record<SolicitacaoStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
   solicitado:   { label: 'Solicitado',   cls: 'bg-ink/10 text-ink-soft',                              icon: Clock },
-  em_analise:   { label: 'Em análise',   cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',  icon: Search },
-  em_andamento: { label: 'Em andamento', cls: 'bg-warn/10 text-warn',                                 icon: AlertTriangle },
-  concluido:    { label: 'Concluído',    cls: 'bg-ok/10 text-ok',                                     icon: CheckCircle2 },
+  em_analise:   { label: 'Em análise',   cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',  icon: MagnifyingGlass },
+  em_andamento: { label: 'Em andamento', cls: 'bg-warn/10 text-warn',                                 icon: Warning },
+  concluido:    { label: 'Concluído',    cls: 'bg-ok/10 text-ok',                                     icon: CheckCircle },
   cancelado:    { label: 'Cancelado',    cls: 'bg-critical/10 text-critical',                          icon: XCircle },
 };
 
 const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls: string; servicos: Servico[] }[] = [
   {
     categoria: 'Alterações Empresariais',
-    icon: Building2,
+    icon: Buildings,
     cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
     servicos: [
       { id: 's1', nome: 'Alteração de endereço',          descricao: 'Atualização do endereço da sede ou filial junto à Receita Federal e órgãos municipais.',         prazo: '5–10 dias úteis', categoria: 'Alterações Empresariais' },
@@ -58,7 +53,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   },
   {
     categoria: 'Parcelamentos e Regularização',
-    icon: TrendingUp,
+    icon: TrendUp,
     cls: 'bg-warn/10 text-warn',
     servicos: [
       { id: 's6', nome: 'Parcelamento REFIS / PERT',      descricao: 'Negociação e adesão a programas federais de parcelamento de débitos tributários.',               prazo: '3–7 dias úteis',  categoria: 'Parcelamentos e Regularização' },
@@ -69,7 +64,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   },
   {
     categoria: 'Certidões e Declarações',
-    icon: ScrollText,
+    icon: Scroll,
     cls: 'bg-ok/10 text-ok',
     servicos: [
       { id: 's10', nome: 'Certidão Negativa Federal (CND)',  descricao: 'Obtenção de CND ou CPEND junto à Receita Federal e PGFN.',                                    prazo: '1–3 dias úteis', categoria: 'Certidões e Declarações' },
@@ -81,7 +76,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   },
   {
     categoria: 'Regime Tributário',
-    icon: Layers,
+    icon: Stack,
     cls: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
     servicos: [
       { id: 's15', nome: 'Migração para Simples Nacional',  descricao: 'Análise de elegibilidade e adesão ao Simples Nacional no período de opção.',                   prazo: 'Conforme calendário', categoria: 'Regime Tributário' },
@@ -198,7 +193,7 @@ function FormSolicitacao({ servico, onClose, onSubmit }: {
           </div>
           <div className="flex gap-2 pt-1">
             <button type="submit" className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
-              <Send className="h-4 w-4" /> Enviar solicitação
+              <PaperPlaneRight className="h-4 w-4" /> Enviar solicitação
             </button>
             <button type="button" onClick={onClose} className="rounded-xl border border-line px-4 py-2.5 text-sm text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">
               Cancelar
@@ -231,18 +226,18 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+          <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar serviço…"
             className="w-full rounded-xl border border-line bg-surface-card py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20" />
         </div>
         <div className="flex flex-wrap gap-1">
           <button type="button" onClick={() => setCatFilter('todas')}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${catFilter === 'todas' ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
+            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${catFilter === 'todas' ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
             Todas
           </button>
           {categorias.map(cat => (
             <button key={cat} type="button" onClick={() => setCatFilter(cat)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${catFilter === cat ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${catFilter === cat ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
               {cat.split(' ')[0]}
             </button>
           ))}
@@ -251,7 +246,7 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
-          <Search className="h-10 w-10 opacity-20" />
+          <MagnifyingGlass className="h-10 w-10 opacity-20" />
           <p className="text-sm">Nenhum serviço encontrado.</p>
         </div>
       ) : (
@@ -275,7 +270,7 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-ink-soft">
-                          <CalendarDays className="mr-0.5 inline h-3 w-3" />{s.prazo}
+                          <CalendarBlank className="mr-0.5 inline h-3 w-3" />{s.prazo}
                         </span>
                         <button type="button" onClick={() => onSolicitar(s)}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600">
@@ -321,7 +316,7 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
       <div className="flex flex-wrap gap-1">
         {([['todas', 'Todas'], ['solicitado', 'Solicitadas'], ['em_analise', 'Em análise'], ['em_andamento', 'Em andamento'], ['concluido', 'Concluídas']] as const).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setFilter(key)}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === key ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
+            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === key ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5'}`}>
             {label} ({counts[key] ?? 0})
           </button>
         ))}
@@ -335,7 +330,7 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
           return (
             <div key={s.id}>
               <button type="button" onClick={() => setExpanded(isExp ? null : s.id)}
-                className="flex w-full items-center gap-3 px-4 py-4 text-left hover:bg-black/3 dark:hover:bg-white/5">
+                className="flex w-full items-center gap-3 px-4 py-4 text-left hover:bg-surface-card border border-line dark:hover:bg-white/5">
                 <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${cfg.cls.split(' ')[0]}`}>
                   <StatusIcon className={`h-4 w-4 ${cfg.cls.split(' ')[1]}`} />
                 </div>
@@ -351,10 +346,10 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
                     <StatusIcon className="h-3 w-3" />{cfg.label}
                   </span>
                 </div>
-                {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
+                {isExp ? <CaretUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <CaretDown className="h-4 w-4 shrink-0 text-ink-soft" />}
               </button>
               {isExp && (
-                <div className="mx-4 mb-3 space-y-3 rounded-xl bg-black/[0.07] p-4 dark:bg-white/5">
+                <div className="mx-4 mb-3 space-y-3 rounded-xl bg-surface-card border border-line p-4 dark:bg-white/5">
                   <div>
                     <p className={lbl}>Sua solicitação</p>
                     <p className="mt-1 text-sm text-ink-soft">{s.descricao}</p>
@@ -421,7 +416,7 @@ export function HubServicos() {
       <div className="card-flat rounded-card flex flex-wrap items-center gap-4 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500/10 text-brand-500">
-            <MessageCircle className="h-5 w-5" />
+            <ChatCircle className="h-5 w-5" />
           </div>
           <div>
             <p className="text-sm font-semibold">Precisa de algo não listado?</p>
@@ -436,8 +431,8 @@ export function HubServicos() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-line bg-black/3 p-1 dark:bg-white/3">
-        {([['catalogo', 'Catálogo de Serviços', LayoutGrid], ['solicitacoes', `Minhas Solicitações${pendentes > 0 ? ` (${pendentes})` : ''}`, FileText]] as const).map(([key, label, Icon]) => (
+      <div className="flex gap-1 rounded-xl border border-line bg-surface-card border border-line p-1 dark:bg-white/3">
+        {([['catalogo', 'Catálogo de Serviços', SquaresFour], ['solicitacoes', `Minhas Solicitações${pendentes > 0 ? ` (${pendentes})` : ''}`, FileText]] as const).map(([key, label, Icon]) => (
           <button key={key} type="button" onClick={() => setTab(key as TabKey)}
             className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
               tab === key ? 'bg-surface-card text-brand-600 shadow-sm dark:text-brand-400' : 'text-ink-soft hover:text-ink'

@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import {  Stack  } from '@phosphor-icons/react/dist/ssr';
 import { HubServicos } from './HubServicos';
 
 export default function Page() {
@@ -6,7 +6,7 @@ export default function Page() {
     <div className="mx-auto w-full space-y-6">
       <header>
         <div className="flex items-center gap-2">
-          <Layers className="h-6 w-6 text-brand-500" />
+          <Stack className="h-6 w-6 text-brand-500" />
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Serviços Adicionais</h1>
         </div>
         <p className="mt-0.5 text-sm text-ink-soft">

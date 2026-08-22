@@ -29,10 +29,11 @@ export const LABELS = {
   referenceMonth: 'Mês de referência',
   // dashboard
   monthlyRevenue: 'Faturamento do Mês',
-  estimatedTax: 'Provisão de Imposto Estimado',
+  estimatedTax: 'Imposto no Mês Que Vem',
   monthlyExpenses: 'Despesas do Mês',
-  taxThermometer: 'Termômetro Tributário',
-  urgentNotices: 'Avisos Urgentes',
+  taxThermometer: 'Quanto Pago de Imposto',
+  netProfit: 'O Que Sobra no Bolso',
+  urgentNotices: 'Caixa Postal & Recados',
   copyPix: 'Copiar Pix',
 } as const;
 

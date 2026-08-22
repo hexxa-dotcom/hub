@@ -1,24 +1,23 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
+  '/',
+  '/checkout(.*)',
+  '/opengraph-image(.*)',
+  '/icon(.*)',
   '/auth(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/api/leads(.*)',
   '/api/asaas/webhooks(.*)',
   '/api/webhooks(.*)',
+  '/api/docuseal/token(.*)',
   '/api/cron(.*)',
   '/__clerk(.*)',
 ]);
 
-const isAllowedWithoutAuthTag = createRouteMatcher([
-  '/onboarding(.*)',
-  '/checkout(.*)',
-  '/admin(.*)'
-]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
     await auth.protect();
   }
 });

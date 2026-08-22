@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { getDb, company, eq } from '@hexxa/db';
-import { getTenantContext } from '@/lib/server/tenant';
+import { getTenantContext, NoActiveOrganizationError } from '@/lib/server/tenant';
 import { OnboardingForm } from './OnboardingForm';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,25 @@ export const dynamic = 'force-dynamic';
  * Se a empresa ativa já tem CNPJ real, volta ao dashboard.
  */
 export default async function OnboardingPage() {
-  const ctx = await getTenantContext();
+  let ctx;
+  try {
+    ctx = await getTenantContext();
+  } catch (err) {
+    if (!(err instanceof NoActiveOrganizationError)) throw err;
+    // Sem organização ativa ainda: pede para criar/selecionar uma antes de
+    // tocar no banco (nunca cai num tenant compartilhado).
+    return (
+      <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
+        <div className="absolute right-4 top-4">
+          <UserButton />
+        </div>
+        <div className="flex flex-col items-center gap-4 rounded-2xl bg-white/10 p-8 text-center border border-white/10">
+          <p className="text-white">Crie ou selecione uma empresa para continuar.</p>
+          <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/onboarding" afterCreateOrganizationUrl="/onboarding" />
+        </div>
+      </div>
+    );
+  }
   const db = getDb();
   const [row] = await db
     .select({ cnpj: company.cnpj, name: company.legalName })

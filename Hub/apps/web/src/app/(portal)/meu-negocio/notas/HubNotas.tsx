@@ -1,11 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import {
-  FileText, AlertTriangle, CheckCircle2, Clock, FlaskConical,
-  ShieldCheck, AlertCircle, RefreshCw, Plus, Users, UserX,
-  ChevronDown, ChevronUp, Download, XCircle, CalendarClock
-} from 'lucide-react';
+import { FileText, Warning, CheckCircle, Clock, Flask, ShieldCheck, WarningCircle, ArrowsClockwise, Plus, Users, UserMinus, CaretDown, CaretUp, DownloadSimple, XCircle, CalendarPlus } from '@phosphor-icons/react';
 import { useActionState } from 'react';
 import { emitNfseAction, cancelNfseAction, type EmitState } from '../nfse/actions';
 import { FiscalForm } from '../fiscal/FiscalForm';
@@ -21,6 +17,10 @@ type Nota = {
   status: string;
   amount: number;
   providerProtocol?: string | null;
+  /** 'mock' = nota de teste, nunca chegou ao governo (ver container.ts). Notas
+   *  antigas (emitidas antes dessa coluna existir) vêm null — tratadas como
+   *  "desconhecido", não como "real", pra não afirmar algo que não sabemos. */
+  providerMode?: string | null;
   customer?: { name?: string; document?: string; email?: string } | null;
 };
 
@@ -62,9 +62,9 @@ function StatusBadge({ status }: { status: string }) {
     CANCELED: 'bg-slate-100 text-slate-500 line-through dark:bg-slate-800 dark:text-slate-500',
     ERROR: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   };
-  const Icon = status === 'ISSUED' ? CheckCircle2
-    : status === 'ERROR' || status === 'CANCELED' ? AlertCircle
-    : status === 'ISSUING' ? RefreshCw
+  const Icon = status === 'ISSUED' ? CheckCircle
+    : status === 'ERROR' || status === 'CANCELED' ? WarningCircle
+    : status === 'ISSUING' ? ArrowsClockwise
     : Clock;
     
   return (
@@ -96,7 +96,7 @@ function Dashboard({ recent, customers, mode, certOk, fiscalOk, config, onEmitir
       {/* ── Status de Ambiente ── */}
       {!ready && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50">
-          <FlaskConical className="h-4 w-4 shrink-0" />
+          <Flask className="h-4 w-4 shrink-0" />
           <span className="flex-1">
             <strong>Modo de teste:</strong> As notas não são enviadas ao governo. Configure o cadastro fiscal e certificado digital.
           </span>
@@ -200,6 +200,14 @@ function Dashboard({ recent, customers, mode, certOk, fiscalOk, config, onEmitir
                       </div>
                       
                       <div className="flex items-center gap-4 shrink-0">
+                        {n.providerMode === 'mock' && (
+                          <span
+                            title="Nota de teste — não foi enviada ao governo"
+                            className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                          >
+                            <Flask className="h-3 w-3" /> Teste
+                          </span>
+                        )}
                         <StatusBadge status={n.status} />
                         <div className="text-right w-24">
                           <p className={`font-bold ${isCanceled ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-slate-100'}`}>
@@ -207,7 +215,7 @@ function Dashboard({ recent, customers, mode, certOk, fiscalOk, config, onEmitir
                           </p>
                         </div>
                         <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                          {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                          {isExpanded ? <CaretUp className="h-5 w-5" /> : <CaretDown className="h-5 w-5" />}
                         </button>
                       </div>
                     </div>
@@ -251,7 +259,7 @@ function Dashboard({ recent, customers, mode, certOk, fiscalOk, config, onEmitir
                                   </a>
                                   <a href={`/api/nfse/${n.id}/xml`} target="_blank" rel="noreferrer"
                                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                                    <Download className="h-3.5 w-3.5" /> Baixar XML
+                                    <DownloadSimple className="h-3.5 w-3.5" /> Baixar XML
                                   </a>
                                   <button onClick={() => onCancel(n.id, n.providerProtocol!)}
                                     className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
@@ -310,7 +318,7 @@ function Dashboard({ recent, customers, mode, certOk, fiscalOk, config, onEmitir
               </>
             ) : (
               <div className="text-center py-4">
-                <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Tudo em dia!</p>
                 <p className="text-xs text-slate-500 mt-1">Nenhum cliente cadastrado está pendente neste mês.</p>
               </div>
@@ -329,7 +337,7 @@ type DestinatarioMode = 'cliente' | 'avulso';
 
 const DEST_TABS: { key: DestinatarioMode; label: string; icon: React.ElementType }[] = [
   { key: 'cliente', label: 'Cliente', icon: Users },
-  { key: 'avulso',  label: 'Não cliente', icon: UserX },
+  { key: 'avulso',  label: 'Não cliente', icon: UserMinus },
 ];
 
 function EmitirNota({ mode, customers, prefillName, prefillDoc, certOk, fiscalOk, profiles }: {
@@ -389,7 +397,7 @@ function EmitirNota({ mode, customers, prefillName, prefillDoc, certOk, fiscalOk
         </div>
       ) : (
         <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-          <FlaskConical className="h-4 w-4 shrink-0" />
+          <Flask className="h-4 w-4 shrink-0" />
           <span>Modo de <strong>teste</strong> — a nota é salva, mas não vai ao governo.</span>
         </div>
       )}
@@ -551,7 +559,7 @@ function EmitirNota({ mode, customers, prefillName, prefillDoc, certOk, fiscalOk
             disabled={!canSubmit}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-8 py-3 text-sm font-bold text-white transition-all hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-brand-500/20"
           >
-            {pending ? <RefreshCw className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
+            {pending ? <ArrowsClockwise className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
             {pending ? 'Emitindo Nota...' : 'Emitir NFSe Agora'}
           </button>
           
@@ -559,7 +567,7 @@ function EmitirNota({ mode, customers, prefillName, prefillDoc, certOk, fiscalOk
             <p className={`flex-1 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
               state.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
             }`}>
-              {state.ok ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
+              {state.ok ? <CheckCircle className="h-5 w-5 shrink-0" /> : <WarningCircle className="h-5 w-5 shrink-0" />}
               {state.message}
             </p>
           )}
@@ -575,7 +583,7 @@ function Agendamentos() {
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
       <div className="h-16 w-16 bg-brand-100 text-brand-600 dark:bg-brand-900/50 dark:text-brand-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-        <CalendarClock className="h-8 w-8" />
+        <CalendarPlus className="h-8 w-8" />
       </div>
       <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Agendamento Automático de Notas</h3>
       <p className="text-slate-500 max-w-md mb-8">
@@ -627,21 +635,21 @@ export function HubNotas(props: Props) {
   return (
     <div className="space-y-6">
       {/* ── Tab bar Moderno ── */}
-      <div className="flex gap-2 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-px">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-card border border-line p-1 dark:bg-white/3">
         {TABS.map(t => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`relative whitespace-nowrap px-4 py-3 text-sm font-bold transition-colors ${
+            className={`relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
               tab === t.key
-                ? 'text-brand-600 border-b-2 border-brand-500 dark:text-brand-400'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                ? 'bg-surface-card text-brand-600 shadow-sm dark:text-brand-400'
+                : 'text-ink-soft hover:text-ink'
             }`}
           >
             {t.label}
             {t.key === 'config' && !props.certOk && (
-              <span className="absolute top-3 right-1 h-2 w-2 rounded-full bg-amber-400 shadow-sm" />
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-400 shadow-sm" />
             )}
           </button>
         ))}
@@ -649,7 +657,7 @@ export function HubNotas(props: Props) {
 
       {isPending && (
         <div className="flex items-center gap-2 rounded-xl bg-brand-50 p-4 text-sm font-semibold text-brand-700 shadow-sm border border-brand-100">
-          <RefreshCw className="h-5 w-5 animate-spin" />
+          <ArrowsClockwise className="h-5 w-5 animate-spin" />
           Cancelando nota fiscal junto à Sefin...
         </div>
       )}

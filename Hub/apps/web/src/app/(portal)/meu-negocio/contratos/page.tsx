@@ -1,30 +1,32 @@
-import { FileSignature } from 'lucide-react';
 import { ContratosClient } from './ContratosClient';
-import { listDocuments, type AutentiqueDocument } from '@/lib/autentique';
+import { makeContractSignatureService } from '@/lib/server/container';
+import { getTenantContext } from '@/lib/server/tenant';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
-  let docs: AutentiqueDocument[] = [];
+async function getSignatureRequests() {
   try {
-    docs = await listDocuments();
+    const ctx = await getTenantContext();
+    const service = makeContractSignatureService();
+    return await service.list(ctx);
   } catch {
-    // Mostra lista vazia se API falhar
+    return [];
   }
+}
+
+export default async function Page() {
+  const initialDocs = await getSignatureRequests();
 
   return (
     <div className="mx-auto w-full space-y-6">
       <header>
-        <div className="flex items-center gap-2">
-          <FileSignature className="h-6 w-6 text-brand-500" />
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Contratos</h1>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Gestão de Contratos de Serviços</h1>
         <p className="mt-0.5 text-sm text-ink-soft">
-          Envie contratos em PDF para assinatura digital com validade jurídica via Autentique.
+          Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais.
         </p>
       </header>
 
-      <ContratosClient initial={docs} />
+      <ContratosClient initialDocs={initialDocs} />
     </div>
   );
 }

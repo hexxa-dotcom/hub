@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { Warning, X } from '@phosphor-icons/react';
 
 type Cert = { tipo: 'A1' | 'A3'; validade: string; titular: string };
 
@@ -27,7 +27,7 @@ export function CertificadoDigitalForm() {
     <div>
       {alertLevel === 'critical' && (
         <div className="mb-4 flex items-start gap-2 rounded-xl bg-critical/10 p-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-critical" />
+          <Warning className="mt-0.5 h-4 w-4 shrink-0 text-critical" />
           <p className="text-sm text-critical font-medium">
             Certificado vence em <strong>{dias} dia{dias !== 1 ? 's' : ''}</strong>! Renove com urgência para evitar interrupção nas emissões.
           </p>
@@ -35,7 +35,7 @@ export function CertificadoDigitalForm() {
       )}
       {alertLevel === 'warn' && (
         <div className="mb-4 flex items-start gap-2 rounded-xl bg-warn/10 p-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
+          <Warning className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <p className="text-sm text-warn">
             Certificado vence em <strong>{dias} dias</strong>. Programe a renovação.
           </p>

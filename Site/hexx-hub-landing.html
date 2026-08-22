@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexx Hub | Sua empresa elevada ª Simples</title>
+<meta name="description" content="O hub all-in-one da Hexx Digital: finanças, contratos, assinatura digital e impostos automáticos para quem toca a própria empresa.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════ TOKENS ══════════════════ */
+:root{
+  --cream:#FEFDF3;
+  --ink:#231F20;
+  --dark:#1C180D;
+  --lime:#DFFFAE;
+  --lime-soft:#EFFFD6;
+  --green:#2F4A3C;
+  --beige:#F4EFE4;
+  --beige-deep:#EAE3D3;
+  --blue:#A2C1CD;
+  --olive:#5F6E46;
+  --muted:#6E6A61;
+  --serif:'Source Serif 4',Georgia,serif;
+  --sans:'Nunito Sans',-apple-system,sans-serif;
+  --r-lg:28px;
+  --r-md:20px;
+  --ease:cubic-bezier(.22,.8,.24,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+section[id]{scroll-margin-top:96px}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--lime);color:var(--ink)}
+img{max-width:100%;display:block}
+.wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+.serif{font-family:var(--serif);font-weight:500}
+
+/* ══════════════════ BUTTONS ══════════════════ */
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer;border:none;font-family:var(--sans);font-size:15px;font-weight:700;padding:16px 30px;border-radius:100px;transition:transform .3s var(--ease),box-shadow .3s var(--ease),background .25s,color .25s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn-lime{background:var(--lime);color:var(--ink)}
+.btn-lime:hover{box-shadow:0 14px 34px -12px rgba(223,255,174,.55)}
+.btn-dark{background:var(--ink);color:var(--cream)}
+.btn-dark:hover{box-shadow:0 14px 34px -14px rgba(35,31,32,.55)}
+.btn-green{background:var(--green);color:var(--cream)}
+.btn-green:hover{box-shadow:0 14px 34px -14px rgba(47,74,60,.5)}
+.btn-white{background:var(--cream);color:var(--ink)}
+.link-arrow{display:inline-flex;align-items:center;gap:10px;font-weight:800;color:var(--ink);text-decoration:none;font-size:16px;padding-bottom:10px;border-bottom:2px solid var(--ink);transition:gap .3s var(--ease)}
+.link-arrow:hover{gap:16px}
+
+/* ══════════════════ NAV ══════════════════ */
+header{position:fixed;top:0;left:0;right:0;z-index:100;transition:background .4s,box-shadow .4s}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:78px}
+header.on-dark{background:linear-gradient(rgba(10,10,8,.55),rgba(10,10,8,0))}
+header.scrolled{background:rgba(254,253,243,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 1px 0 rgba(35,31,32,.07)}
+.logo{display:flex;align-items:baseline;gap:2px;text-decoration:none;font-size:23px;letter-spacing:-.02em;transition:color .4s}
+.logo b{font-weight:800}.logo span{font-weight:400}
+header.on-dark:not(.scrolled) .logo{color:var(--cream)}
+header.scrolled .logo,header:not(.on-dark) .logo{color:var(--ink)}
+.nav-center{display:flex;gap:34px}
+.nav-center a{text-decoration:none;font-size:15px;font-weight:600;transition:opacity .2s,color .4s}
+header.on-dark:not(.scrolled) .nav-center a{color:var(--cream)}
+header.scrolled .nav-center a,header:not(.on-dark) .nav-center a{color:var(--ink)}
+.nav-center a:hover{opacity:.65}
+.nav-right{display:flex;align-items:center;gap:26px}
+.nav-right .entrar{text-decoration:none;font-size:15px;font-weight:600;transition:color .4s}
+header.on-dark:not(.scrolled) .entrar{color:var(--cream)}
+header.scrolled .entrar,header:not(.on-dark) .entrar{color:var(--ink)}
+.nav-cta{font-size:14px;padding:13px 26px}
+header.on-dark:not(.scrolled) .nav-cta{background:var(--cream);color:var(--ink)}
+header.scrolled .nav-cta{background:var(--ink);color:var(--cream)}
+
+/* ══════════════════ HERO ══════════════════ */
+.hero{position:relative;min-height:104vh;display:flex;align-items:center;color:var(--cream);overflow:hidden;
+  background:
+    radial-gradient(1100px 620px at 78% 18%, rgba(96,88,58,.5), transparent 60%),
+    radial-gradient(900px 700px at 90% 75%, rgba(48,58,44,.55), transparent 60%),
+    radial-gradient(700px 500px at 12% 85%, rgba(60,52,30,.35), transparent 65%),
+    linear-gradient(160deg,#121008 0%,#1A160C 45%,#0D0C07 100%);
+}
+.hero::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.06), transparent 100%),
+  radial-gradient(2px 2px at 70% 15%, rgba(255,255,255,.08), transparent 100%),
+  radial-gradient(1.5px 1.5px at 85% 45%, rgba(255,255,255,.05), transparent 100%);
+}
+.hero::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,0) 70%,rgba(18,16,8,.9));pointer-events:none}
+.hero-inner{position:relative;z-index:2;width:100%;padding:150px 0 120px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--lime);margin-bottom:26px}
+.hero-eyebrow::before{content:'';width:26px;height:1.5px;background:var(--lime)}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(48px,5.8vw,86px);line-height:1.08;letter-spacing:-.01em;max-width:680px;margin-bottom:26px}
+.hero .sub{font-size:19px;font-weight:600;opacity:.92;margin-bottom:40px;max-width:520px}
+.hero-chips{position:absolute;z-index:3;right:8%;bottom:24%;display:flex;gap:14px;align-items:stretch}
+.chip-card{background:rgba(24,22,14,.72);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:18px;padding:18px 22px;box-shadow:0 24px 60px -20px rgba(0,0,0,.6);animation:floaty 7s ease-in-out infinite}
+.chip-card.sq{width:82px;display:flex;align-items:center;justify-content:center;animation-delay:1.2s}
+.chip-card.sq svg{width:26px;height:26px}
+.chip-main{min-width:300px;animation-delay:.4s}
+.chip-bar{height:10px;border-radius:100px;background:rgba(255,255,255,.14);overflow:hidden;margin-bottom:12px}
+.chip-bar i{display:block;height:100%;width:0%;border-radius:100px;background:var(--lime);transition:width 1.6s var(--ease)}
+.chip-vals{display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:rgba(254,253,243,.9)}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero-scroll{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:3;color:rgba(254,253,243,.55);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hero-scroll::after{content:'';width:1px;height:34px;background:linear-gradient(rgba(254,253,243,.6),transparent);animation:drip 2s ease-in-out infinite}
+@keyframes drip{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1)}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ══════════════════ CAROUSEL ══════════════════ */
+.carousel-sec{padding:130px 0 90px;position:relative}
+.car-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:60px;align-items:center;min-height:520px}
+.car-grid h2{font-family:var(--serif);font-weight:500;font-size:clamp(42px,4.6vw,68px);line-height:1.06;letter-spacing:-.01em;margin-bottom:38px}
+.car-tag{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:var(--cream);font-size:15px;font-weight:700;border-radius:100px;padding:13px 26px;margin-bottom:28px;transition:opacity .4s}
+.car-tag svg{width:16px;height:16px;flex-shrink:0}
+.car-desc{font-size:19px;line-height:1.55;max-width:420px;margin-bottom:36px;min-height:60px}
+.car-desc b{font-weight:800}
+.car-visual{position:relative;height:520px;display:flex;align-items:center;justify-content:center}
+.car-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(40px) scale(.97);transition:opacity .6s var(--ease),transform .6s var(--ease);pointer-events:none}
+.car-slide.active{opacity:1;transform:none;pointer-events:auto}
+.car-nav{position:absolute;right:0;bottom:-10px;display:flex;gap:12px;z-index:5}
+.car-btn{width:52px;height:52px;border-radius:50%;border:1.5px solid rgba(35,31,32,.25);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:all .25s}
+.car-btn:hover{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.car-btn.solid{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.car-btn.solid:hover{background:var(--green);border-color:var(--green)}
+.car-dots{display:flex;gap:8px;margin-top:30px}
+.car-dot{width:8px;height:8px;border-radius:100px;background:rgba(35,31,32,.18);transition:all .4s var(--ease)}
+.car-dot.active{width:28px;background:var(--ink)}
+
+/* mock cards used inside slides */
+.mock{background:#fff;border:1px solid rgba(35,31,32,.08);border-radius:22px;box-shadow:0 30px 70px -30px rgba(35,31,32,.3);overflow:hidden;max-width:calc(100vw - 56px)}
+.mock-head{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(35,31,32,.07);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mock-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);outline:3px solid var(--lime-soft)}
+.mock-row{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid rgba(35,31,32,.05);font-size:13.5px;font-weight:600}
+.mock-row .neg{color:#B4443C;font-weight:800}.mock-row .pos{color:#3E7A48;font-weight:800}
+.mock-pill{font-size:10.5px;font-weight:800;letter-spacing:.04em;background:var(--lime);border-radius:100px;padding:4px 10px;text-transform:uppercase}
+.mock-pill.gray{background:var(--beige)}
+.mock-big{font-family:var(--serif);font-size:30px;font-weight:600;padding:18px;letter-spacing:-.01em}
+.mock-foot{padding:14px 18px;font-size:12px;color:var(--muted);font-weight:600}
+.mock-float{position:absolute;background:#fff;border-radius:16px;box-shadow:0 20px 50px -18px rgba(35,31,32,.35);border:1px solid rgba(35,31,32,.07);padding:14px 18px;animation:floaty 6s ease-in-out infinite}
+.sigline{font-family:var(--serif);font-style:italic;font-size:26px;border-bottom:1.5px solid var(--ink);padding:6px 4px 2px;min-width:170px}
+
+/* ══════════════════ LOGO MARQUEE ══════════════════ */
+.strip{background:var(--beige);border-radius:var(--r-lg);margin:40px 0 0;padding:64px 0 58px;overflow:hidden}
+.strip h2{font-family:var(--serif);font-weight:600;font-size:clamp(26px,2.6vw,34px);text-align:center;margin-bottom:44px;letter-spacing:-.01em}
+.marquee{display:flex;overflow:hidden;user-select:none;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee-track{display:flex;flex-shrink:0;align-items:center;gap:72px;padding-right:72px;animation:scrollx 30s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+.mq-item{font-family:var(--serif);font-size:22px;font-weight:600;color:rgba(35,31,32,.55);white-space:nowrap;display:flex;align-items:center;gap:14px}
+.mq-item::before{content:'';width:7px;height:7px;border-radius:50%;background:rgba(35,31,32,.3)}
+@keyframes scrollx{to{transform:translateX(-100%)}}
+
+/* ══════════════════ FEATURE CARDS ══════════════════ */
+.features{padding:110px 0 40px}
+.feat-block{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:96px}
+.feat-block.rev .feat-card{order:2}
+.feat-card{background:var(--beige);border-radius:var(--r-lg);padding:60px 56px;min-height:480px;display:flex;flex-direction:column;justify-content:center}
+.tag-lime{display:inline-flex;align-items:center;gap:8px;background:var(--lime);color:var(--ink);font-size:14px;font-weight:800;border-radius:100px;padding:10px 20px;margin-bottom:26px;width:fit-content}
+.tag-lime svg{width:15px;height:15px}
+.feat-card h2{font-family:var(--serif);font-weight:500;font-size:clamp(32px,3.2vw,46px);line-height:1.12;letter-spacing:-.01em;margin-bottom:20px}
+.feat-card>p{font-size:16.5px;color:#4A463E;max-width:440px;margin-bottom:34px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1.5px solid rgba(35,31,32,.3);border-radius:100px;padding:10px 20px;font-size:14px;font-weight:700;background:transparent;transition:all .25s}
+.chip:hover{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.feat-visual{position:relative;min-height:480px;display:flex;align-items:center;justify-content:center}
+
+/* ══════════════════ BIG MARQUEE ══════════════════ */
+.big-marquee{padding:100px 0 60px;overflow:hidden}
+.bigmq{display:flex;overflow:hidden;white-space:nowrap}
+.bigmq-track{display:flex;flex-shrink:0;align-items:center;animation:scrollx 22s linear infinite}
+.bigmq-track span{font-family:var(--serif);font-weight:500;font-size:clamp(60px,8vw,120px);letter-spacing:-.02em;padding-right:60px;display:flex;align-items:center;gap:60px}
+.bigmq-track .glyph{width:.72em;height:.72em;flex-shrink:0;color:var(--ink)}
+
+/* ══════════════════ BENTO (dark) ══════════════════ */
+.bento-sec{background:var(--dark);color:var(--cream);border-radius:40px;margin:60px 20px;padding:120px 0}
+.bento-head{text-align:center;max-width:720px;margin:0 auto 80px}
+.bento-head h2{font-family:var(--serif);font-weight:500;font-size:clamp(38px,4.4vw,60px);line-height:1.1;letter-spacing:-.01em;margin-bottom:22px}
+.bento-head p{font-size:18px;font-weight:600;opacity:.75}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.bcard{border-radius:24px;padding:40px 36px;min-height:360px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;transition:transform .4s var(--ease)}
+.bcard:hover{transform:translateY(-6px)}
+.bcard h3{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.15;margin-bottom:12px}
+.bcard p{font-size:14.5px;line-height:1.55;font-weight:600;max-width:280px}
+.bcard .spark{position:absolute;top:32px;left:34px;width:26px;height:26px}
+.bc-beige{grid-column:span 3;background:var(--beige-deep);color:var(--ink)}
+.bc-blue{grid-column:span 5;background:var(--blue);color:var(--ink)}
+.bc-lime{grid-column:span 4;background:var(--lime);color:var(--ink)}
+.bc-olive{grid-column:span 4;background:linear-gradient(160deg,#66753F,#4A5730);color:var(--cream)}
+.bc-cream{grid-column:span 4;background:var(--cream);color:var(--ink)}
+.bc-green{grid-column:span 4;background:var(--green);color:var(--cream)}
+.bcard .mini{position:absolute;top:26px;right:26px;left:auto;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 16px 40px -16px rgba(0,0,0,.35);color:var(--ink);font-size:12px;font-weight:700}
+.bcard .mini .val{font-family:var(--serif);font-size:20px;font-weight:600}
+.bento-cta{display:flex;justify-content:center;margin-top:64px}
+
+/* ══════════════════ MEDIA SPLIT (paperwork) ══════════════════ */
+.media-split{padding:120px 0 60px}
+.media-card{display:grid;grid-template-columns:1fr 1.15fr;gap:0;background:var(--cream);border:1px solid rgba(35,31,32,.08);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 40px 90px -50px rgba(35,31,32,.25)}
+.media-copy{padding:80px 64px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.media-copy h2{font-family:var(--serif);font-weight:500;font-size:clamp(34px,3.6vw,52px);line-height:1.1;margin-bottom:20px;letter-spacing:-.01em}
+.media-copy p{font-size:16.5px;color:#4A463E;max-width:420px;margin-bottom:40px}
+.media-art{position:relative;background:linear-gradient(150deg,#8F9E6B,#5F6E46 70%);min-height:460px;overflow:hidden}
+.paper{position:absolute;background:#fff;border-radius:10px;box-shadow:0 18px 40px -14px rgba(0,0,0,.4);padding:16px 18px;font-size:11px;font-weight:700;color:var(--muted);animation:floaty 8s ease-in-out infinite}
+.paper .lines i{display:block;height:5px;border-radius:4px;background:#EDE9DE;margin-top:6px}
+.phone{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%);width:220px;height:440px;background:#16130B;border-radius:36px;border:6px solid #2C271A;box-shadow:0 50px 100px -30px rgba(0,0,0,.6);padding:18px 14px;color:var(--cream)}
+.phone .p-head{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.6;text-align:center;margin-bottom:14px}
+.phone .p-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px;margin-bottom:10px;font-size:11.5px;font-weight:700}
+.phone .p-card b{display:block;font-family:var(--serif);font-size:17px;font-weight:600;margin-top:2px}
+.phone .p-ok{color:var(--lime)}
+
+/* ══════════════════ DARK INTEGRATIONS ══════════════════ */
+.integr{background:var(--dark);color:var(--cream);border-radius:40px;margin:60px 20px;padding:110px 0;text-align:center;position:relative;overflow:hidden}
+.integr::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 400px at 50% 0%, rgba(223,255,174,.08), transparent 65%)}
+.integr h2{font-family:var(--serif);font-weight:500;font-size:clamp(36px,4vw,56px);line-height:1.1;margin-bottom:20px;position:relative}
+.integr p{font-size:17px;font-weight:600;opacity:.75;max-width:520px;margin:0 auto 44px;position:relative}
+.integr p b{color:var(--lime)}
+.pill-cloud{position:relative;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:720px;margin:0 auto 52px}
+.pill{border:1px solid rgba(254,253,243,.25);border-radius:100px;padding:12px 24px;font-size:14.5px;font-weight:700;color:rgba(254,253,243,.9);transition:background .25s,border-color .25s,transform .25s}
+.pill:hover{background:rgba(254,253,243,.08);border-color:rgba(254,253,243,.5);transform:translateY(-2px)}
+.pill.hl{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+
+/* ══════════════════ LIME SPLIT (accountant) ══════════════════ */
+.lime-split{margin:60px 20px;border-radius:var(--r-lg);overflow:hidden;display:grid;grid-template-columns:1fr 1fr;background:var(--lime)}
+.lime-copy{padding:96px 72px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.lime-copy h2{font-family:var(--serif);font-weight:500;font-size:clamp(36px,3.8vw,54px);line-height:1.08;letter-spacing:-.01em;margin-bottom:20px}
+.lime-copy>p{font-size:16px;font-weight:600;max-width:400px;margin-bottom:30px;color:#3A3A28}
+.lime-copy .chips{margin-bottom:44px}
+.lime-copy .chip{border-color:rgba(35,31,32,.4)}
+.lime-art{position:relative;background:linear-gradient(160deg,#274434,#16281F 80%);min-height:540px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lime-art::before{content:'';position:absolute;inset:0;background:radial-gradient(500px 400px at 30% 20%, rgba(223,255,174,.14), transparent 60%)}
+.badge-card{position:relative;background:rgba(254,253,243,.06);border:1px solid rgba(254,253,243,.15);backdrop-filter:blur(10px);border-radius:24px;padding:44px 48px;color:var(--cream);text-align:center;max-width:340px}
+.badge-card .glyph{width:56px;height:56px;margin:0 auto 20px;color:var(--lime)}
+.badge-card h3{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1.2;margin-bottom:10px}
+.badge-card p{font-size:14px;font-weight:600;opacity:.8}
+
+/* ══════════════════ CALC BAND ══════════════════ */
+.calc-band{background:var(--lime);margin:0 20px;border-radius:var(--r-lg);padding:110px 0}
+.calc-head{text-align:center;max-width:760px;margin:0 auto 70px}
+.calc-head h2{font-family:var(--serif);font-weight:500;font-size:clamp(36px,4.2vw,58px);line-height:1.1;letter-spacing:-.01em;margin-bottom:16px}
+.calc-head p{font-size:18px;font-weight:700}
+.calc-card{display:grid;grid-template-columns:1.1fr 1fr;background:var(--dark);color:var(--cream);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 50px 110px -50px rgba(28,24,13,.5)}
+.calc-copy{padding:80px 64px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.calc-copy h3{font-family:var(--serif);font-weight:500;font-size:clamp(30px,3vw,44px);line-height:1.12;margin-bottom:24px}
+.calc-copy p{font-size:16px;font-weight:600;opacity:.8;max-width:400px;margin-bottom:40px}
+.calc-copy p b{color:var(--lime)}
+.calc-art{background:linear-gradient(160deg,#243A2D,#131F18);position:relative;display:flex;align-items:center;justify-content:center;padding:60px;min-height:440px}
+.count-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;max-width:400px}
+.count-card{background:rgba(254,253,243,.05);border:1px solid rgba(254,253,243,.12);border-radius:18px;padding:26px 24px}
+.count-card b{display:block;font-family:var(--serif);font-size:34px;font-weight:600;color:var(--lime);letter-spacing:-.01em}
+.count-card span{font-size:12.5px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+
+/* ══════════════════ SUPPORT ══════════════════ */
+.support{padding:130px 0}
+.support-head{max-width:640px;margin-bottom:70px}
+.support-head h2{font-family:var(--serif);font-weight:500;font-size:clamp(34px,4vw,54px);line-height:1.1;letter-spacing:-.01em;margin-bottom:18px}
+.support-head .pre{font-size:14px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:18px;display:block}
+.support-head p{font-size:17px;color:#4A463E;font-weight:600}
+.sup-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.sup-card{background:var(--beige);border-radius:22px;padding:38px 32px;transition:transform .35s var(--ease),background .3s}
+.sup-card:hover{transform:translateY(-6px);background:var(--lime-soft)}
+.sup-card .ic{width:48px;height:48px;border-radius:14px;background:var(--ink);color:var(--lime);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+.sup-card h3{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.2;margin-bottom:10px}
+.sup-card p{font-size:14px;font-weight:600;color:#57534A;line-height:1.55}
+
+/* ══════════════════ FAQ ══════════════════ */
+.faq{padding:40px 0 130px}
+.faq h2{font-family:var(--serif);font-weight:500;font-size:clamp(36px,4.4vw,58px);text-align:center;margin-bottom:70px;letter-spacing:-.01em}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.faq-item{background:#FBFAF0;border:1px solid rgba(35,31,32,.07);border-radius:14px;overflow:hidden;transition:box-shadow .3s}
+.faq-item[open]{box-shadow:0 18px 44px -22px rgba(35,31,32,.18)}
+.faq-item summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 28px;font-size:16px;font-weight:700}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary svg{flex-shrink:0;transition:transform .35s var(--ease)}
+.faq-item[open] summary svg{transform:rotate(180deg)}
+.faq-item .ans{padding:0 28px 26px;font-size:15px;color:#4A463E;font-weight:600;line-height:1.65}
+
+/* ══════════════════ FORM ══════════════════ */
+.form-sec{margin:0 20px 60px;background:var(--dark);border-radius:40px;color:var(--cream);padding:110px 0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:90px;align-items:center}
+.form-side h2{font-family:var(--serif);font-weight:500;font-size:clamp(34px,3.8vw,54px);line-height:1.1;margin-bottom:22px}
+.form-side h2 em{font-style:italic;color:var(--lime)}
+.form-side p{font-size:17px;font-weight:600;opacity:.8;max-width:420px;margin-bottom:38px}
+.form-points{list-style:none}
+.form-points li{display:flex;gap:14px;align-items:center;padding:11px 0;font-size:15px;font-weight:700}
+.form-points .ck{width:24px;height:24px;border-radius:50%;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.form-card{background:var(--cream);color:var(--ink);border-radius:26px;padding:48px}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.field input,.field select{width:100%;border:1.5px solid rgba(35,31,32,.18);border-radius:12px;background:#fff;padding:15px 18px;font-family:var(--sans);font-size:15px;font-weight:600;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(47,74,60,.12)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23231F20' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 18px center}
+.form-card .btn{width:100%;justify-content:center;margin-top:6px}
+.form-note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:16px;font-weight:600}
+.form-ok{display:none;text-align:center;padding:70px 20px}
+.form-ok .ck{width:56px;height:56px;border-radius:50%;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
+.form-ok h3{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:10px}
+.form-ok p{color:var(--muted);font-weight:600;font-size:15px}
+
+/* ══════════════════ FOOTER ══════════════════ */
+.footer{margin:0 20px 20px;background:var(--dark);border-radius:40px;color:var(--cream);padding:96px 0 54px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:70px;margin-bottom:90px}
+.foot-brand .logo{color:var(--cream);font-size:26px;margin-bottom:34px;display:inline-flex}
+.foot-statement{font-family:var(--serif);font-weight:500;font-size:clamp(26px,2.6vw,36px);line-height:1.3;letter-spacing:-.01em}
+.foot-social{display:flex;gap:16px;margin-top:38px}
+.foot-social a{width:42px;height:42px;border-radius:12px;border:1px solid rgba(254,253,243,.2);display:flex;align-items:center;justify-content:center;color:var(--cream);transition:all .25s}
+.foot-social a:hover{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.foot-col h4{font-family:var(--serif);font-size:19px;font-weight:600;margin-bottom:26px}
+.foot-col a{display:block;text-decoration:none;color:var(--cream);font-size:15px;font-weight:700;margin-bottom:6px;transition:color .2s}
+.foot-col a:hover{color:var(--lime)}
+.foot-col small{display:block;font-size:13px;font-weight:600;opacity:.55;margin-bottom:20px}
+.foot-legal{border-top:1px solid rgba(254,253,243,.12);padding-top:36px;font-size:12.5px;font-weight:600;opacity:.6;line-height:1.7;max-width:760px}
+.foot-tag{margin-top:26px;font-size:13px;font-weight:700;opacity:.7}
+
+/* ══════════════════ WHATSAPP FAB ══════════════════ */
+.fab{position:fixed;right:26px;bottom:26px;z-index:90;width:60px;height:60px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 16px 40px -12px rgba(37,211,102,.6);transition:transform .3s var(--ease)}
+.fab:hover{transform:scale(1.08)}
+.fab svg{width:30px;height:30px;fill:#fff}
+
+/* ══════════════════ REVEAL ══════════════════ */
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.12s}.reveal-d2{transition-delay:.24s}.reveal-d3{transition-delay:.36s}
+
+/* ══════════════════ RESPONSIVE ══════════════════ */
+@media(max-width:1080px){
+  .bc-beige,.bc-blue,.bc-lime,.bc-olive,.bc-cream,.bc-green{grid-column:span 6}
+  .sup-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:900px){
+  .wrap{padding:0 24px}
+  .nav-center,.nav-right .entrar{display:none}
+  .hero-chips{position:relative;right:auto;bottom:auto;margin-top:56px;flex-wrap:wrap;padding:0 24px 40px}
+  .hero{min-height:auto}
+  .car-grid{grid-template-columns:1fr;gap:30px;min-height:auto}
+  .car-visual{height:420px}
+  .feat-block,.feat-block.rev{grid-template-columns:1fr}
+  .feat-block.rev .feat-card{order:0}
+  .media-card,.lime-split,.calc-card,.form-grid{grid-template-columns:1fr}
+  .media-copy,.lime-copy,.calc-copy{padding:56px 32px}
+  .faq-grid{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr;gap:50px}
+  .bento-sec,.integr,.form-sec,.footer,.calc-band,.lime-split{margin-left:12px;margin-right:12px}
+  .sup-grid{grid-template-columns:1fr}
+  .form-card{padding:34px 26px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<header class="on-dark" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#"><b>hexx</b><span>digital</span></a>
+    <nav class="nav-center">
+      <a href="#hub">O Hub</a>
+      <a href="#recursos">Recursos</a>
+      <a href="#contabilidade">Contabilidade</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-right">
+      <a class="entrar" href="#contato">Entrar</a>
+      <a class="btn nav-cta" href="#contato">Fale com a Hexx</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <div class="wrap hero-inner">
+    <span class="hero-eyebrow reveal in">Mais que contabilidade</span>
+    <h1 class="reveal in">Sua empresa inteira em um só lugar. Simples.</h1>
+    <p class="sub reveal in reveal-d1">Contabilidade, finanças, contratos e impostos — o hub completo para quem toca o próprio negócio.</p>
+    <a href="#contato" class="btn btn-lime reveal in reveal-d2">Conheça o Hub</a>
+  </div>
+  <div class="hero-chips">
+    <div class="chip-card chip-main">
+      <div class="chip-bar"><i id="hero-bar"></i></div>
+      <div class="chip-vals"><span>R$ 18.800</span><span>R$ 27.700</span></div>
+    </div>
+    <div class="chip-card sq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#DFFFAE" stroke-width="1.6" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg>
+    </div>
+    <div class="chip-card sq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#FEFDF3" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </div>
+  </div>
+  <div class="hero-scroll">Role</div>
+</section>
+
+<!-- ═══════════ CAROUSEL ═══════════ -->
+<section class="carousel-sec" id="hub">
+  <div class="wrap">
+    <div class="car-grid">
+      <div class="reveal">
+        <h2>Mais empresa,<br>menos burocracia.</h2>
+        <div class="car-tag" id="car-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/></svg>
+          <span id="car-tag-text">Gestão financeira completa</span>
+        </div>
+        <p class="car-desc" id="car-desc"><b>Fluxo de caixa, cobranças e conciliação</b> em um painel que qualquer pessoa entende.</p>
+        <a href="#contato" class="btn btn-green">Saiba mais</a>
+        <div class="car-dots" id="car-dots"></div>
+      </div>
+      <div class="car-visual" id="car-visual">
+
+        <!-- Slide 1 · Finanças -->
+        <div class="car-slide active">
+          <div class="mock" style="width:400px">
+            <div class="mock-head"><span class="mock-dot"></span> Visão geral · Julho</div>
+            <div class="mock-big">R$ 24.380,00</div>
+            <div class="mock-row"><span>Projeto — Identidade visual</span><span class="pos">+ R$ 6.500</span></div>
+            <div class="mock-row"><span>Consultoria mensal</span><span class="pos">+ R$ 3.900</span></div>
+            <div class="mock-row"><span>Software e ferramentas</span><span class="neg">− R$ 420</span></div>
+            <div class="mock-foot">Atualizado agora · conciliação automática</div>
+          </div>
+          <div class="mock-float" style="top:8%;right:2%"><span class="mock-pill">Recebido</span><div style="font-weight:800;margin-top:8px;font-size:14px">Pix · R$ 2.300,00</div></div>
+        </div>
+
+        <!-- Slide 2 · Contratos -->
+        <div class="car-slide">
+          <div class="mock" style="width:380px">
+            <div class="mock-head"><span class="mock-dot"></span> Contrato de prestação de serviço</div>
+            <div style="padding:20px 18px 6px">
+              <div style="font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:12px">Proposta #0347 — aceita</div>
+              <div style="font-size:13px;color:var(--muted);font-weight:600;line-height:1.6">Escopo, prazos e condições gerados a partir de um modelo validado juridicamente.</div>
+            </div>
+            <div class="mock-row" style="border-top:1px solid rgba(35,31,32,.05);margin-top:14px"><span>Status</span><span class="mock-pill">Enviado ao cliente</span></div>
+            <div class="mock-foot">Modelos prontos para serviços</div>
+          </div>
+          <div class="mock-float" style="bottom:10%;right:0"><span class="mock-pill gray">Cliente</span><div style="font-weight:800;margin-top:8px;font-size:14px">Abriu o contrato há 2 min</div></div>
+        </div>
+
+        <!-- Slide 3 · Assinatura -->
+        <div class="car-slide">
+          <div class="mock" style="width:380px;text-align:center;padding-bottom:8px">
+            <div class="mock-head" style="justify-content:center"><span class="mock-dot"></span> Assinatura digital</div>
+            <div style="padding:34px 30px 22px;display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="sigline serif">Ana C. Ribeiro</div>
+              <div style="font-size:12px;color:var(--muted);font-weight:700">Assinado digitalmente · validade jurídica</div>
+            </div>
+            <div class="mock-row"><span>Você</span><span class="mock-pill">Assinado</span></div>
+            <div class="mock-row"><span>Cliente</span><span class="mock-pill">Assinado</span></div>
+            <div class="mock-foot">Fechado sem imprimir uma folha</div>
+          </div>
+        </div>
+
+        <!-- Slide 4 · Impostos -->
+        <div class="car-slide">
+          <div class="mock" style="width:380px">
+            <div class="mock-head"><span class="mock-dot"></span> Impostos · calculados sozinhos</div>
+            <div class="mock-big">DAS · R$ 412,30</div>
+            <div class="mock-row"><span>Competência</span><span>Julho/2026</span></div>
+            <div class="mock-row"><span>Vencimento</span><span style="font-weight:800">20/08</span></div>
+            <div class="mock-row"><span>Guia</span><span class="mock-pill">Gerada</span></div>
+            <div class="mock-foot">Você recebe o aviso. A guia chega pronta.</div>
+          </div>
+          <div class="mock-float" style="top:6%;right:4%"><span class="mock-pill">Sem susto</span><div style="font-weight:800;margin-top:8px;font-size:14px">Nada em atraso ✓</div></div>
+        </div>
+
+        <!-- Slide 5 · Relatórios -->
+        <div class="car-slide">
+          <div class="mock" style="width:400px">
+            <div class="mock-head"><span class="mock-dot"></span> Seu mês em números</div>
+            <div style="display:flex;align-items:flex-end;gap:14px;padding:30px 24px 10px;height:170px">
+              <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:40%"></div>
+              <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:62%"></div>
+              <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:50%"></div>
+              <div style="flex:1;background:var(--lime);border-radius:8px 8px 0 0;height:88%"></div>
+            </div>
+            <div class="mock-row"><span>Lucro real do mês</span><span class="pos">R$ 11.240</span></div>
+            <div class="mock-foot">Sem contabilês. Só o que importa.</div>
+          </div>
+        </div>
+
+        <div class="car-nav">
+          <button class="car-btn" id="car-prev" aria-label="Anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button class="car-btn solid" id="car-next" aria-label="Próximo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ MARQUEE STRIP ═══════════ -->
+<div class="wrap">
+  <div class="strip reveal">
+    <h2>Feito para todo tipo de empresa de serviço</h2>
+    <div class="marquee">
+      <div class="marquee-track">
+        <span class="mq-item">Consultorias</span><span class="mq-item">Design &amp; Criativo</span><span class="mq-item">Tecnologia</span><span class="mq-item">Saúde &amp; Bem-estar</span><span class="mq-item">Advocacia</span><span class="mq-item">Arquitetura</span><span class="mq-item">Educação</span><span class="mq-item">Marketing</span>
+      </div>
+      <div class="marquee-track" aria-hidden="true">
+        <span class="mq-item">Consultorias</span><span class="mq-item">Design &amp; Criativo</span><span class="mq-item">Tecnologia</span><span class="mq-item">Saúde &amp; Bem-estar</span><span class="mq-item">Advocacia</span><span class="mq-item">Arquitetura</span><span class="mq-item">Educação</span><span class="mq-item">Marketing</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FEATURE BLOCKS ═══════════ -->
+<section class="features" id="recursos">
+  <div class="wrap">
+
+    <div class="feat-block">
+      <div class="feat-card reveal">
+        <span class="tag-lime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/></svg> Organização financeira</span>
+        <h2>Configure a estrutura da sua empresa em poucos cliques</h2>
+        <p>Cada entrada e saída já aparece categorizada por cliente, projeto e tipo de despesa. Sem planilha, sem retrabalho.</p>
+        <div class="chips">
+          <span class="chip">Fluxo de caixa em tempo real</span>
+          <span class="chip">Categorização automática</span>
+          <span class="chip">Cobranças e recebimentos</span>
+        </div>
+      </div>
+      <div class="feat-visual reveal reveal-d1">
+        <div class="mock" style="width:380px">
+          <div class="mock-head"><span class="mock-dot"></span> Categorias · Julho</div>
+          <div class="mock-row"><span>Serviços prestados</span><span class="pos">+ R$ 18.400</span></div>
+          <div class="mock-row"><span>Ferramentas</span><span class="neg">− R$ 640</span></div>
+          <div class="mock-row"><span>Pró-labore</span><span class="neg">− R$ 5.000</span></div>
+          <div class="mock-row"><span>Impostos</span><span class="neg">− R$ 412</span></div>
+          <div class="mock-foot">Conciliado com seu banco automaticamente</div>
+        </div>
+        <div class="mock-float" style="top:4%;right:6%"><span class="mock-pill">Entrada</span><div style="font-weight:800;margin-top:8px;font-size:14px">R$ 12.000,00 · categorizado</div></div>
+      </div>
+    </div>
+
+    <div class="feat-block rev">
+      <div class="feat-card reveal">
+        <span class="tag-lime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/></svg> Contratos &amp; assinatura</span>
+        <h2>Feche negócios em minutos, não em semanas</h2>
+        <p>Gere contratos profissionais a partir de modelos prontos, envie para o cliente e receba a assinatura digital no mesmo dia.</p>
+        <div class="chips">
+          <span class="chip">Modelos validados</span>
+          <span class="chip">Assinatura com validade jurídica</span>
+          <span class="chip">Acompanhamento em tempo real</span>
+          <span class="chip">Tudo arquivado no Hub</span>
+        </div>
+      </div>
+      <div class="feat-visual reveal reveal-d1">
+        <div class="mock" style="width:360px;text-align:center">
+          <div class="mock-head" style="justify-content:center"><span class="mock-dot"></span> Contrato #0347</div>
+          <div style="padding:30px 28px 18px;display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div class="sigline serif">F. Heck</div>
+            <div style="font-size:12px;color:var(--muted);font-weight:700">Assinado em 19/07 · 14:32</div>
+          </div>
+          <div class="mock-row"><span>Valor do projeto</span><span style="font-weight:800">R$ 8.900,00</span></div>
+          <div class="mock-row"><span>Status</span><span class="mock-pill">Concluído</span></div>
+          <div class="mock-foot">Enviado, assinado e arquivado</div>
+        </div>
+        <div class="mock-float" style="bottom:8%;left:2%"><span class="mock-pill gray">Notificação</span><div style="font-weight:800;margin-top:8px;font-size:14px">Cliente assinou 🎉</div></div>
+      </div>
+    </div>
+
+    <div class="feat-block">
+      <div class="feat-card reveal">
+        <span class="tag-lime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/></svg> Inteligência fiscal</span>
+        <h2>Tome decisões baseadas em dados, não em achismo</h2>
+        <p>Impostos calculados automaticamente, lucro real na tela e relatórios que mostram para onde sua empresa está indo.</p>
+        <div class="chips">
+          <span class="chip">Cálculo automático de impostos</span>
+          <span class="chip">Guias geradas e avisadas</span>
+          <span class="chip">Relatórios sem contabilês</span>
+        </div>
+      </div>
+      <div class="feat-visual reveal reveal-d1">
+        <div class="mock" style="width:390px">
+          <div class="mock-head"><span class="mock-dot"></span> Raio-x do mês</div>
+          <div class="mock-big">Lucro real · R$ 11.240</div>
+          <div style="display:flex;align-items:flex-end;gap:12px;padding:6px 24px 14px;height:130px">
+            <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:38%"></div>
+            <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:58%"></div>
+            <div style="flex:1;background:var(--beige);border-radius:8px 8px 0 0;height:46%"></div>
+            <div style="flex:1;background:var(--lime);border-radius:8px 8px 0 0;height:84%"></div>
+          </div>
+          <div class="mock-row"><span>Imposto do mês</span><span class="mock-pill">Guia pronta</span></div>
+          <div class="mock-foot">Zero susto no dia 20</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════ BIG MARQUEE ═══════════ -->
+<section class="big-marquee">
+  <div class="bigmq">
+    <div class="bigmq-track">
+      <span>Muito mais que contabilidade
+        <svg class="glyph" viewBox="0 0 100 100" fill="currentColor"><rect x="2" y="2" width="30" height="30" rx="6"/><rect x="68" y="2" width="30" height="30" rx="6"/><rect x="35" y="35" width="30" height="30" rx="6"/><rect x="2" y="68" width="30" height="30" rx="6"/><rect x="68" y="68" width="30" height="30" rx="10"/></svg>
+      </span>
+      <span>Muito mais que contabilidade
+        <svg class="glyph" viewBox="0 0 100 100" fill="currentColor"><rect x="2" y="2" width="30" height="30" rx="6"/><rect x="68" y="2" width="30" height="30" rx="6"/><rect x="35" y="35" width="30" height="30" rx="6"/><rect x="2" y="68" width="30" height="30" rx="6"/><rect x="68" y="68" width="30" height="30" rx="10"/></svg>
+      </span>
+    </div>
+    <div class="bigmq-track" aria-hidden="true">
+      <span>Muito mais que contabilidade
+        <svg class="glyph" viewBox="0 0 100 100" fill="currentColor"><rect x="2" y="2" width="30" height="30" rx="6"/><rect x="68" y="2" width="30" height="30" rx="6"/><rect x="35" y="35" width="30" height="30" rx="6"/><rect x="2" y="68" width="30" height="30" rx="6"/><rect x="68" y="68" width="30" height="30" rx="10"/></svg>
+      </span>
+      <span>Muito mais que contabilidade
+        <svg class="glyph" viewBox="0 0 100 100" fill="currentColor"><rect x="2" y="2" width="30" height="30" rx="6"/><rect x="68" y="2" width="30" height="30" rx="6"/><rect x="35" y="35" width="30" height="30" rx="6"/><rect x="2" y="68" width="30" height="30" rx="6"/><rect x="68" y="68" width="30" height="30" rx="10"/></svg>
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ BENTO ═══════════ -->
+<section class="bento-sec">
+  <div class="wrap">
+    <div class="bento-head reveal">
+      <h2>É o fim da bagunça na gestão. Mesmo.</h2>
+      <p>Contabilidade, finanças e burocracia resolvidas — e tempo de sobra pra você fazer o que só você faz.</p>
+    </div>
+    <div class="bento reveal">
+      <div class="bcard bc-beige">
+        <svg class="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg>
+        <h3>Dados &amp; Inteligência</h3>
+        <p>Entenda sua empresa sem interpretar linhas e colunas ou abrir várias abas.</p>
+      </div>
+      <div class="bcard bc-blue">
+        <div class="mini"><span>Contrato #0348</span><div class="val">Assinado ✓</div></div>
+        <h3>Contratos por finalidade</h3>
+        <p>Modelos para projeto fechado, mensalidade recorrente ou hora técnica. Escolha e envie.</p>
+      </div>
+      <div class="bcard bc-lime">
+        <svg class="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h5M8 15h6"/></svg>
+        <h3>Impostos no automático</h3>
+        <p>O Hub calcula, gera a guia e avisa o vencimento. Você só confirma o pagamento.</p>
+      </div>
+      <div class="bcard bc-olive">
+        <div class="mini"><span>Nota fiscal</span><div class="val">Emitida</div></div>
+        <h3>Monitoramento em tempo real</h3>
+        <p>Acompanhe tudo pelo celular ou desktop. Como fizer mais sentido pra você.</p>
+      </div>
+      <div class="bcard bc-cream">
+        <svg class="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 17l5-6 4 4 6-8"/><path d="M3 21h18"/></svg>
+        <h3>Controle por cliente e projeto</h3>
+        <p>Saiba exatamente quanto cada cliente rende — e quanto custa — automaticamente.</p>
+      </div>
+      <div class="bcard bc-green">
+        <svg class="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3>Contabilidade de verdade</h3>
+        <p>Por trás da tecnologia, o time da Hexx: contadores nichados em empresas de serviço.</p>
+      </div>
+    </div>
+    <div class="bento-cta reveal"><a href="#contato" class="btn btn-lime">Quero o Hub na minha empresa</a></div>
+  </div>
+</section>
+
+<!-- ═══════════ MEDIA SPLIT ═══════════ -->
+<section class="media-split">
+  <div class="wrap">
+    <div class="media-card reveal">
+      <div class="media-copy">
+        <h2>Elimine a papelada da sua rotina</h2>
+        <p>Notas, contratos, guias e comprovantes anexados a cada movimentação. Menos operação manual, mais eficiência.</p>
+        <a href="#contato" class="btn btn-dark">Fale com a Hexx</a>
+      </div>
+      <div class="media-art">
+        <div class="paper" style="top:12%;left:8%;width:120px"><span>NOTA FISCAL</span><div class="lines"><i style="width:80%"></i><i style="width:60%"></i><i style="width:70%"></i></div></div>
+        <div class="paper" style="top:60%;left:4%;width:110px;animation-delay:1.4s"><span>DAS · GUIA</span><div class="lines"><i style="width:70%"></i><i style="width:50%"></i></div></div>
+        <div class="paper" style="top:20%;right:6%;width:126px;animation-delay:.8s"><span>CONTRATO</span><div class="lines"><i style="width:85%"></i><i style="width:65%"></i><i style="width:75%"></i></div></div>
+        <div class="paper" style="bottom:10%;right:10%;width:110px;animation-delay:2s"><span>RECIBO</span><div class="lines"><i style="width:60%"></i><i style="width:75%"></i></div></div>
+        <div class="phone">
+          <div class="p-head">Hexx Hub</div>
+          <div class="p-card">Comprovação de despesa <b class="p-ok">Realizada ✓</b></div>
+          <div class="p-card">Contrato anexado <b>Projeto #0347</b></div>
+          <div class="p-card">Guia de imposto <b class="p-ok">Paga ✓</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ INTEGRATIONS DARK ═══════════ -->
+<section class="integr" id="contabilidade">
+  <div class="wrap">
+    <h2 class="reveal">Contabilidade é só o começo.</h2>
+    <p class="reveal reveal-d1">A Hexx cuida dos seus impostos como toda contabilidade deveria. E entrega o que <b>nenhuma outra entrega</b>: a operação inteira da sua empresa em um só hub.</p>
+    <div class="pill-cloud reveal reveal-d2">
+      <span class="pill hl">Contabilidade completa</span>
+      <span class="pill">Gestão financeira</span>
+      <span class="pill hl">Contratos</span>
+      <span class="pill">Assinatura digital</span>
+      <span class="pill hl">Impostos automáticos</span>
+      <span class="pill">Emissão de notas</span>
+      <span class="pill">Relatórios mensais</span>
+      <span class="pill hl">Atendimento humano</span>
+      <span class="pill">E muito mais</span>
+    </div>
+    <a href="#contato" class="btn btn-lime reveal reveal-d3">Começar agora</a>
+  </div>
+</section>
+
+<!-- ═══════════ LIME SPLIT ═══════════ -->
+<section class="lime-split">
+  <div class="lime-copy reveal">
+    <h2>É de mais que um contador que você precisa? A gente tem.</h2>
+    <p>Contador, a gente é — nichado em empresas de serviço. Mas o que você recebe é um parceiro de negócio: tecnologia, rotina organizada e alguém que responde quando você chama.</p>
+    <div class="chips">
+      <span class="chip">Abertura de CNPJ grátis</span>
+      <span class="chip">Enquadramento certo</span>
+      <span class="chip">Migração sem burocracia</span>
+    </div>
+    <a href="#contato" class="link-arrow">Conheça a contabilidade Hexx <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+  <div class="lime-art">
+    <div class="badge-card reveal reveal-d1">
+      <svg class="glyph" viewBox="0 0 100 100" fill="currentColor"><rect x="2" y="2" width="30" height="30" rx="6"/><rect x="68" y="2" width="30" height="30" rx="6"/><rect x="35" y="35" width="30" height="30" rx="6"/><rect x="2" y="68" width="30" height="30" rx="6"/><rect x="68" y="68" width="30" height="30" rx="10"/></svg>
+      <h3>Feito para quem faz tudo sozinho</h3>
+      <p>Autônomos e empresas de serviço sem funcionários. A gente conhece a sua rotina porque trabalha só com ela.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CALC BAND ═══════════ -->
+<section class="calc-band">
+  <div class="wrap">
+    <div class="calc-head reveal">
+      <h2>O que você faria com tempo de sobra?</h2>
+      <p>Simplificar é multiplicar. Quem usa o Hub libera horas perdidas em burocracia toda semana.</p>
+    </div>
+    <div class="calc-card reveal">
+      <div class="calc-copy">
+        <h3>Descubra quanto a burocracia custa pra você</h3>
+        <p>Se tempo é dinheiro, cada segundo conta. Fale com a gente e receba um <b>diagnóstico gratuito</b> da rotina financeira e fiscal da sua empresa.</p>
+        <a href="#contato" class="btn btn-lime">Quero meu diagnóstico</a>
+      </div>
+      <div class="calc-art">
+        <div class="count-grid">
+          <div class="count-card"><b data-count="12">0</b><span>horas/mês de volta</span></div>
+          <div class="count-card"><b data-count="100">0</b><span>% dos impostos no prazo</span></div>
+          <div class="count-card"><b data-count="5">0</b><span>ferramentas em 1 hub</span></div>
+          <div class="count-card"><b data-count="0">0</b><span>planilhas necessárias</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SUPPORT ═══════════ -->
+<section class="support">
+  <div class="wrap">
+    <div class="support-head reveal">
+      <span class="pre">Atendimento de verdade</span>
+      <h2>Bateu a dúvida? Fala com a gente.</h2>
+      <p>Nada de robô que não resolve. Você fala direto com quem entende da sua empresa.</p>
+    </div>
+    <div class="sup-grid">
+      <div class="sup-card reveal">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a8 8 0 10-3 6.2L21 19l-.8-2.8A8 8 0 0021 12z"/></svg></div>
+        <h3>Multicanal, pra todo gosto</h3>
+        <p>WhatsApp, e-mail ou chamada de vídeo. Você escolhe como prefere resolver.</p>
+      </div>
+      <div class="sup-card reveal reveal-d1">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+        <h3>Gente de verdade o tempo todo</h3>
+        <p>Tem coisa que só o calor humano resolve. Fale com nosso time sempre que precisar.</p>
+      </div>
+      <div class="sup-card reveal reveal-d2">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><path d="M9.5 11l2 2 3.5-3.5"/></svg></div>
+        <h3>Cliente em primeiro lugar</h3>
+        <p>Contabilidade nichada significa menos clientes por contador — e mais atenção pra você.</p>
+      </div>
+      <div class="sup-card reveal reveal-d3">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/></svg></div>
+        <h3>Precisa daquela ajuda a mais?</h3>
+        <p>Consultoria dedicada para o momento da sua empresa: abrir, migrar ou crescer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FAQ ═══════════ -->
+<section class="faq" id="faq">
+  <div class="wrap">
+    <h2 class="reveal">Perguntas Frequentes</h2>
+    <div class="faq-grid reveal">
+      <details class="faq-item">
+        <summary>A Hexx é só uma contabilidade? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">Não. A contabilidade é a base — o que você recebe é um hub completo de gestão: finanças, contratos, assinatura digital, impostos e relatórios, com um time que conhece empresas de serviço por dentro.</div>
+      </details>
+      <details class="faq-item">
+        <summary>O que é o Hexx Hub? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">É a plataforma all-in-one da Hexx Digital: gestão financeira, contratos, assinatura digital, cálculo automático de impostos e relatórios — tudo em um só lugar, com a contabilidade da Hexx nos bastidores.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Pra quem é o Hub? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">Para empresas de serviço — principalmente profissionais autônomos que tocam o negócio sozinhos, sem funcionários: consultores, designers, desenvolvedores, terapeutas, advogados e afins.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Ainda não tenho CNPJ. Posso usar? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">Pode — a gente abre pra você. A Hexx cuida da abertura do CNPJ, escolhe o enquadramento tributário certo e já entrega sua empresa funcionando dentro do Hub.</div>
+      </details>
+      <details class="faq-item">
+        <summary>A assinatura digital tem validade jurídica? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">Sim. Os contratos assinados pelo Hub seguem a legislação brasileira de assinaturas eletrônicas, com trilha de auditoria completa: quem assinou, quando e de onde.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Como funciona o cálculo automático de impostos? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">O Hub acompanha seu faturamento, calcula os impostos do seu enquadramento, gera as guias e avisa antes do vencimento. Você só confirma o pagamento — sem susto no fim do mês.</div>
+      </details>
+      <details class="faq-item">
+        <summary>Já tenho contador. Consigo migrar? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="ans">Sim, e a migração é por nossa conta. A Hexx solicita os documentos ao seu contador atual e faz toda a transição sem burocracia pra você.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FORM ═══════════ -->
+<section class="form-sec" id="contato">
+  <div class="wrap">
+    <div class="form-grid">
+      <div class="form-side reveal">
+        <h2>Clareza pra decidir. Liberdade pra crescer. <em>Faça com a Hexx.</em></h2>
+        <p>Deixe seus dados e nossa equipe entra em contato para mostrar o Hub funcionando na prática.</p>
+        <ul class="form-points">
+          <li><span class="ck"><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 5l3.5 3.5L11 1"/></svg></span> Diagnóstico gratuito e sem compromisso</li>
+          <li><span class="ck"><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 5l3.5 3.5L11 1"/></svg></span> Resposta em até 1 dia útil</li>
+          <li><span class="ck"><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 5l3.5 3.5L11 1"/></svg></span> Atendimento direto com especialista</li>
+        </ul>
+      </div>
+      <div class="form-card reveal reveal-d1">
+        <form id="lead-form" novalidate>
+          <div class="field"><label for="nome">Nome</label><input type="text" id="nome" placeholder="Seu nome completo" required></div>
+          <div class="field"><label for="email">E-mail</label><input type="email" id="email" placeholder="voce@empresa.com.br" required></div>
+          <div class="field"><label for="whats">WhatsApp</label><input type="tel" id="whats" placeholder="(00) 00000-0000" required></div>
+          <div class="field"><label for="area">Área de atuação</label>
+            <select id="area">
+              <option value="" selected disabled>Selecione a sua área</option>
+              <option>Consultoria / Assessoria</option>
+              <option>Design / Criativo</option>
+              <option>Tecnologia / Desenvolvimento</option>
+              <option>Saúde / Bem-estar</option>
+              <option>Educação / Mentoria</option>
+              <option>Outros serviços</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-green">Fale com a Hexx →</button>
+          <p class="form-note">Seus dados estão seguros. Nada de spam.</p>
+        </form>
+        <div class="form-ok" id="form-ok">
+          <span class="ck"><svg width="20" height="16" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5l3.5 3.5L11 1"/></svg></span>
+          <h3>Recebido!</h3>
+          <p>Obrigado pelo interesse. Nossa equipe entra em contato em até 1 dia útil.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="logo" href="#"><b>hexx</b><span>digital</span></a>
+        <div class="foot-statement">Clareza pra decidir.<br>Liberdade pra crescer.<br>Muito mais que contabilidade.</div>
+        <div class="foot-social">
+          <a href="#" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8h4V23h-4V8zm7.5 0h3.8v2.05h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V23h-4v-7.9c0-1.88-.03-4.3-2.62-4.3-2.62 0-3.02 2.05-3.02 4.16V23H8V8z"/></svg></a>
+          <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.8" cy="6.2" r="1.2" fill="currentColor" stroke="none"/></svg></a>
+          <a href="#" aria-label="YouTube"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2s-.22-1.6-.9-2.3c-.86-.92-1.82-.93-2.26-.98C16.7 3.7 12 3.7 12 3.7s-4.7 0-7.84.22c-.44.05-1.4.06-2.26.98-.68.7-.9 2.3-.9 2.3S.77 9.07.77 10.94v1.75c0 1.87.23 3.74.23 3.74s.22 1.6.9 2.3c.86.92 2 .89 2.5 1 1.82.17 7.6.22 7.6.22s4.7-.01 7.84-.23c.44-.05 1.4-.06 2.26-.98.68-.7.9-2.3.9-2.3s.23-1.87.23-3.74v-1.75c0-1.87-.23-3.74-.23-3.74zM9.55 15.13V8.6l6.08 3.28-6.08 3.26z"/></svg></a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h4>O Hub</h4>
+        <a href="#recursos">Gestão financeira</a><small>Fluxo de caixa e cobranças</small>
+        <a href="#recursos">Contratos</a><small>Modelos prontos e envio rápido</small>
+        <a href="#recursos">Assinatura digital</a><small>Validade jurídica, sem papel</small>
+        <a href="#recursos">Impostos automáticos</a><small>Guias prontas, sem susto</small>
+      </div>
+      <div class="foot-col">
+        <h4>Outros</h4>
+        <a href="#contabilidade">Contabilidade Hexx</a>
+        <a href="#faq">Perguntas frequentes</a>
+        <a href="#contato">Fale com a gente</a>
+        <a href="mailto:contato@hexxdigital.com.br">contato@hexxdigital.com.br</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      Hexx Digital — Contabilidade e tecnologia para empresas de serviço.<br>
+      Segurança em primeiro lugar. Feito com muita dedicação e empenho especialmente para a sua empresa.
+      <div class="foot-tag">© 2026 Hexx Digital. Todos os direitos reservados. Pra cima!</div>
+    </div>
+  </div>
+</footer>
+
+<!-- WhatsApp FAB -->
+<a class="fab" href="https://wa.me/5500000000000?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20Hexx%20Hub" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 32 32"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.1.6 4.2 1.6 6L4 29l8.2-1.6c1.7.9 3.7 1.5 5.8 1.5 6.6 0 12-5.4 12-12S22.6 3 16 3zm5.9 16.9c-.3.8-1.5 1.5-2.4 1.7-.6.1-1.4.2-4.1-.9-3.5-1.4-5.7-5-5.9-5.2-.2-.2-1.4-1.9-1.4-3.6s.9-2.5 1.2-2.9c.3-.3.7-.4.9-.4h.6c.2 0 .5-.1.7.6.3.8 1 2.6 1.1 2.8.1.2.1.4 0 .6-.1.2-.2.4-.4.6l-.6.7c-.2.2-.4.4-.2.8.2.4 1 1.7 2.2 2.7 1.5 1.3 2.8 1.7 3.2 1.9.4.2.6.2.9-.1.2-.3 1-1.2 1.3-1.6.3-.4.5-.3.9-.2.4.1 2.4 1.1 2.8 1.3.4.2.7.3.8.5.1.2.1 1-.2 1.7z"/></svg>
+</a>
+
+<script>
+// ── Nav state ──
+const nav = document.getElementById('nav');
+const onScrollNav = () => nav.classList.toggle('scrolled', window.scrollY > 60);
+window.addEventListener('scroll', onScrollNav, {passive:true}); onScrollNav();
+
+// ── Hero bar fill ──
+setTimeout(()=>{ document.getElementById('hero-bar').style.width='68%'; }, 600);
+
+// ── Scroll reveal ──
+const io = new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.14});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// ── Carousel ──
+const slides = [...document.querySelectorAll('.car-slide')];
+const tagText = document.getElementById('car-tag-text');
+const desc = document.getElementById('car-desc');
+const dotsWrap = document.getElementById('car-dots');
+const data = [
+  {tag:'Gestão financeira completa', desc:'<b>Fluxo de caixa, cobranças e conciliação</b> em um painel que qualquer pessoa entende.'},
+  {tag:'Contratos em minutos', desc:'<b>Crie e envie contratos profissionais</b> a partir de modelos prontos para serviços.'},
+  {tag:'Assinatura digital', desc:'<b>Feche negócios sem imprimir nada</b>, com assinaturas de validade jurídica.'},
+  {tag:'Impostos automáticos', desc:'<b>O Hub calcula seus impostos sozinho</b> e avisa quanto e quando pagar.'},
+  {tag:'Relatórios e indicadores', desc:'<b>Veja quanto sua empresa realmente lucra</b>, mês a mês, sem contabilês.'}
+];
+let cur = 0, timer;
+slides.forEach((_,i)=>{ const d=document.createElement('span'); d.className='car-dot'+(i===0?' active':''); dotsWrap.appendChild(d); });
+const dots=[...dotsWrap.children];
+function go(n){
+  cur=(n+slides.length)%slides.length;
+  slides.forEach((s,i)=>s.classList.toggle('active',i===cur));
+  dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
+  tagText.style.opacity=0; desc.style.opacity=0;
+  setTimeout(()=>{ tagText.textContent=data[cur].tag; desc.innerHTML=data[cur].desc; tagText.style.opacity=1; desc.style.opacity=1; },220);
+}
+desc.style.transition='opacity .35s'; tagText.style.transition='opacity .35s';
+function auto(){ timer=setInterval(()=>go(cur+1),5200); }
+function resetAuto(){ clearInterval(timer); auto(); }
+document.getElementById('car-next').onclick=()=>{go(cur+1);resetAuto();};
+document.getElementById('car-prev').onclick=()=>{go(cur-1);resetAuto();};
+auto();
+
+// ── Counters ──
+const cio = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting) return; cio.unobserve(e.target);
+    e.target.querySelectorAll('[data-count]').forEach(el=>{
+      const end=+el.dataset.count, dur=1400, t0=performance.now();
+      const step=t=>{ const p=Math.min((t-t0)/dur,1); el.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  });
+},{threshold:.4});
+document.querySelectorAll('.count-grid').forEach(el=>cio.observe(el));
+
+// ── FAQ: close others ──
+document.querySelectorAll('.faq-item').forEach(d=>{
+  d.addEventListener('toggle',()=>{ if(d.open) document.querySelectorAll('.faq-item[open]').forEach(o=>{ if(o!==d) o.open=false; }); });
+});
+
+// ── Form ──
+document.getElementById('lead-form').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  const req=[...this.querySelectorAll('input[required]')];
+  let ok=true;
+  req.forEach(i=>{ const bad=!i.value.trim(); i.style.borderColor=bad?'#B4443C':''; if(bad) ok=false; });
+  if(!ok) return;
+  this.style.display='none';
+  document.getElementById('form-ok').style.display='block';
+});
+document.getElementById('whats').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>6) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length>0) v=`(${v}`;
+  this.value=v;
+});
+</script>
+</body>
+</html>

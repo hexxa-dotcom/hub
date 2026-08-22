@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, Info, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
+import { TrendUp, Info, ArrowsClockwise, Warning, ArrowSquareOut } from '@phosphor-icons/react';
+import { getLancamentos } from '@/app/(portal)/meu-negocio/hub-financeiro/actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -39,22 +40,19 @@ export function LucroCard() {
   const fetchData = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [notasRes, finRes, guiasRes] = await Promise.all([
+      const [notasRes, lancs, guiasRes] = await Promise.all([
         fetch('/api/notas/resumo'),
-        fetch(`/api/financeiro?tipo=PAGAR`),
+        getLancamentos(),
         fetch('/api/guias/resumo'),
       ]);
 
       const notasJson  = notasRes.ok  ? await notasRes.json()  : { total: 0 };
-      const lancs      = finRes.ok    ? await finRes.json()     : [];
       const guiasJson  = guiasRes.ok  ? await guiasRes.json()  : { dasPago: 0 };
 
       // Despesas pagas no mês atual (tipo PAGAR + pago_em no mês)
-      const despesasPagas = (Array.isArray(lancs) ? lancs : [])
-        .filter((l: { pago_em?: string; tipo?: string }) =>
-          l.tipo === 'PAGAR' && l.pago_em?.startsWith(currentMonth),
-        )
-        .reduce((s: number, l: { valor: number }) => s + Number(l.valor), 0);
+      const despesasPagas = lancs
+        .filter((l) => l.tipo === 'PAGAR' && l.pago_em?.startsWith(currentMonth))
+        .reduce((s, l) => s + Number(l.valor), 0);
 
       setDados({
         faturamento: notasJson.total ?? 0,
@@ -86,7 +84,7 @@ export function LucroCard() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-white/80" />
+            <TrendUp className="h-5 w-5 text-white/80" />
             <h2 className="text-base font-semibold">Lucro disponível para distribuição</h2>
           </div>
           <p className="mt-0.5 text-xs text-white/60 capitalize">{mesAtual}</p>
@@ -94,7 +92,7 @@ export function LucroCard() {
         <div className="flex items-center gap-1">
           <button type="button" onClick={fetchData} disabled={refreshing}
             className="rounded-xl p-1.5 text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-40" aria-label="Atualizar">
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
           <button type="button" onClick={() => setShowInfo(v => !v)}
             className="rounded-xl p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Informações">
@@ -110,13 +108,13 @@ export function LucroCard() {
           <p><strong className="text-white">Reserva de capital:</strong> valor não distribuído fica no caixa da empresa como capital de giro.</p>
           <div className="mt-1 flex flex-wrap gap-2 border-t border-white/20 pt-2">
             <span className="inline-flex items-center gap-1 text-white/60">
-              <ExternalLink className="h-3 w-3" />Faturamento: Notas Fiscais emitidas no mês
+              <ArrowSquareOut className="h-3 w-3" />Faturamento: Notas Fiscais emitidas no mês
             </span>
             <span className="inline-flex items-center gap-1 text-white/60">
-              <ExternalLink className="h-3 w-3" />Despesas: Hub Financeiro (contas pagas no mês)
+              <ArrowSquareOut className="h-3 w-3" />Despesas: Hub Financeiro (contas pagas no mês)
             </span>
             <span className="inline-flex items-center gap-1 text-white/60">
-              <ExternalLink className="h-3 w-3" />DAS: Guias de Impostos (DAS marcado como pago no mês)
+              <ArrowSquareOut className="h-3 w-3" />DAS: Guias de Impostos (DAS marcado como pago no mês)
             </span>
           </div>
         </div>
@@ -124,7 +122,7 @@ export function LucroCard() {
 
       {loading ? (
         <div className="mt-6 flex items-center justify-center gap-2 text-white/60">
-          <RefreshCw className="h-4 w-4 animate-spin" />
+          <ArrowsClockwise className="h-4 w-4 animate-spin" />
           <span className="text-sm">Carregando dados…</span>
         </div>
       ) : (
@@ -187,7 +185,7 @@ export function LucroCard() {
 
           {ultrapassaLimite && (
             <div className="mt-2 flex items-start gap-2 rounded-xl bg-warn/20 p-3 text-xs text-white/90">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
+              <Warning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
               <span>
                 Sem contabilidade formal, o limite isento (serviços) é{' '}
                 <strong>{BRL.format(limitePresumido)}</strong> (32% do faturamento).

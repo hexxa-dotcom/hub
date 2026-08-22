@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react';
+import {  Users  } from '@phosphor-icons/react/dist/ssr';
 import { HubDP } from './HubDP';
 
 export default function Page() {

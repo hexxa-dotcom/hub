@@ -1,6 +1,6 @@
-import { Users, FileText, Handshake, Eye } from 'lucide-react';
+import {  Users, FileText, Handshake, Eye  } from '@phosphor-icons/react/dist/ssr';
 import { CustomerForm } from './CustomerForm';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, customer, eq, desc } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export const dynamic = 'force-dynamic';
@@ -39,14 +39,24 @@ export default async function Page() {
   let dbReady = true;
   try {
     const ctx = await getTenantContext();
-    const supabase = await createRawClient();
-    const { data, error } = await supabase
-      .from('customer')
-      .select('id, name, document, email, phone, type, address')
-      .eq('company_id', ctx.companyId)
-      .order('created_at', { ascending: false });
-    if (!error && data?.length) {
-      clientes = (data ?? []) as Customer[];
+    const data = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({
+          id: customer.id,
+          name: customer.name,
+          document: customer.document,
+          email: customer.email,
+          phone: customer.phone,
+          type: customer.type,
+          address: customer.address,
+        })
+        .from(customer)
+        .where(eq(customer.companyId, ctx.companyId))
+        .orderBy(desc(customer.createdAt));
+    });
+
+    if (data?.length) {
+      clientes = data as Customer[];
     }
   } catch {
     dbReady = false;

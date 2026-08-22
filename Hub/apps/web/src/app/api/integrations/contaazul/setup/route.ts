@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export async function POST(request: Request) {
@@ -11,36 +12,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Client ID e Secret são obrigatórios.' }, { status: 400 });
     }
 
-    const supabase = await createRawClient();
+    await withTenant(ctx.companyId, async (tx) => {
+      // Verifica se já existe config para o conta azul
+      const [existing] = await tx
+        .select({ id: integrationCredential.id, secretRef: integrationCredential.secretRef })
+        .from(integrationCredential)
+        .where(
+          and(
+            eq(integrationCredential.companyId, ctx.companyId),
+            eq(integrationCredential.provider, 'contaazul')
+          )
+        );
 
-    // Verifica se já existe config para o conta azul
-    const { data: existing } = await supabase
-      .from('integration_credential')
-      .select('id, secret_ref')
-      .eq('company_id', ctx.companyId)
-      .eq('provider', 'contaazul')
-      .single();
+      const newSecretRef = {
+        ...((existing?.secretRef as any) || {}),
+        client_id: clientId,
+        client_secret: clientSecret,
+      };
 
-    const newSecretRef = {
-      ...(existing?.secret_ref || {}),
-      client_id: clientId,
-      client_secret: clientSecret,
-    };
-
-    if (existing) {
-      await supabase
-        .from('integration_credential')
-        .update({ secret_ref: newSecretRef })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('integration_credential').insert({
-        company_id: ctx.companyId,
-        kind: 'ERP',
-        provider: 'contaazul',
-        secret_ref: newSecretRef,
-        active: false, // Ativa apenas após o callback de auth
-      });
-    }
+      if (existing) {
+        await tx
+          .update(integrationCredential)
+          .set({ secretRef: newSecretRef })
+          .where(eq(integrationCredential.id, existing.id));
+      } else {
+        await tx.insert(integrationCredential).values({
+          companyId: ctx.companyId,
+          kind: 'ERP',
+          provider: 'contaazul',
+          secretRef: newSecretRef,
+          active: false, // Ativa apenas após o callback de auth
+        });
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

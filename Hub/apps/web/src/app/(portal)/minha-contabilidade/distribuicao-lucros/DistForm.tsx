@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus } from '@phosphor-icons/react';
 import { addDistribution, type DistState } from './actions';
 
 const initial: DistState = { ok: false, message: '' };

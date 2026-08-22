@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export async function POST(request: Request) {
@@ -11,35 +12,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'O Token de API é obrigatório.' }, { status: 400 });
     }
 
-    const supabase = await createRawClient();
+    await withTenant(ctx.companyId, async (tx) => {
+      // Verifica se já existe config para o nibo
+      const [existing] = await tx
+        .select({ id: integrationCredential.id, secretRef: integrationCredential.secretRef })
+        .from(integrationCredential)
+        .where(
+          and(
+            eq(integrationCredential.companyId, ctx.companyId),
+            eq(integrationCredential.provider, 'nibo')
+          )
+        );
 
-    // Verifica se já existe config para o nibo
-    const { data: existing } = await supabase
-      .from('integration_credential')
-      .select('id, secret_ref')
-      .eq('company_id', ctx.companyId)
-      .eq('provider', 'nibo')
-      .single();
+      const newSecretRef = {
+        ...((existing?.secretRef as any) || {}),
+        api_token: apiToken,
+      };
 
-    const newSecretRef = {
-      ...(existing?.secret_ref || {}),
-      api_token: apiToken,
-    };
-
-    if (existing) {
-      await supabase
-        .from('integration_credential')
-        .update({ secret_ref: newSecretRef, active: true })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('integration_credential').insert({
-        company_id: ctx.companyId,
-        kind: 'ERP',
-        provider: 'nibo',
-        secret_ref: newSecretRef,
-        active: true, // Nibo usa token direto, já fica ativo
-      });
-    }
+      if (existing) {
+        await tx
+          .update(integrationCredential)
+          .set({ secretRef: newSecretRef, active: true })
+          .where(eq(integrationCredential.id, existing.id));
+      } else {
+        await tx.insert(integrationCredential).values({
+          companyId: ctx.companyId,
+          kind: 'ERP',
+          provider: 'nibo',
+          secretRef: newSecretRef,
+          active: true, // Nibo usa token direto, já fica ativo
+        });
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

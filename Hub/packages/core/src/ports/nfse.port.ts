@@ -38,6 +38,9 @@ export interface NfseIssueResult {
   pdfUrl?: string;
   xmlUrl?: string;
   errorMessage?: string;
+  /** true quando veio do MockNfseAdapter (sem certificado configurado) — a UI
+   *  precisa deixar isso visível, nunca mostrar como emissão real. */
+  isMock?: boolean;
 }
 
 export interface NfsePort {

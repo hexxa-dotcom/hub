@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { listDocuments } from '@/lib/autentique';
+import { makeContractSignatureService } from '@/lib/server/container';
+import { getTenantContext } from '@/lib/server/tenant';
 
 export async function GET() {
   try {
-    const docs = await listDocuments();
-    return NextResponse.json(docs);
+    const ctx = await getTenantContext();
+    const service = makeContractSignatureService();
+    const requests = await service.list(ctx);
+    return NextResponse.json(requests);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Erro ao buscar contratos' },

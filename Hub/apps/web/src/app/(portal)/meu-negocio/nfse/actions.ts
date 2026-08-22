@@ -110,7 +110,9 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       ok: true,
       status: 'ISSUED',
       nfseNumber: result.nfseNumber,
-      message: `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!`,
+      message: result.isMock
+        ? `[MODO TESTE] NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} salva, mas NÃO foi enviada ao governo — configure o certificado A1 para emissão real.`
+        : `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!`,
     };
   } catch (err) {
     console.error('ERROR in emitNfseAction:', err);

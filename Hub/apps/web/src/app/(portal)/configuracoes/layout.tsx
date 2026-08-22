@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Settings, Users, Receipt, Cable, SlidersHorizontal } from 'lucide-react';
+import {  Gear, Users, Receipt, Plug, Faders  } from '@phosphor-icons/react/dist/ssr';
 import { SettingsNav } from './SettingsNav'; // I'll create a client component for active state
 
 export const metadata = {

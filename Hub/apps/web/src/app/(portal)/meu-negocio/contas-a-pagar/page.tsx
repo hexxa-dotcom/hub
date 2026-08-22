@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/ui/PagePlaceholder';
+import { HubFinanceiro } from '../hub-financeiro/HubFinanceiro';
 
 export default function Page() {
-  return (
-    <PagePlaceholder
-      title="Contas a Pagar"
-      description="Lançamentos do tipo PAYABLE na camada financeira unificada, organizados por mês."
-    />
-  );
+  return <HubFinanceiro initialTab="pagar" />;
 }

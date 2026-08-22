@@ -9,10 +9,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(import.meta.dirname, '..', '..'),
   },
-  // Redireciona "/" -> "/dashboard" no roteador (sem page raiz).
-  async redirects() {
-    return [{ source: '/', destination: '/dashboard', permanent: false }];
-  },
 };
 
 export default nextConfig;

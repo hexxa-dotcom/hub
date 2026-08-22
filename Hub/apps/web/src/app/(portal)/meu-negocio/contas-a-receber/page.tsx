@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/ui/PagePlaceholder';
+import { HubFinanceiro } from '../hub-financeiro/HubFinanceiro';
 
 export default function Page() {
-  return (
-    <PagePlaceholder
-      title="Contas a Receber"
-      description="Lançamentos do tipo RECEIVABLE; NFSe e aluguéis alimentam esta tela automaticamente."
-    />
-  );
+  return <HubFinanceiro initialTab="receber" />;
 }

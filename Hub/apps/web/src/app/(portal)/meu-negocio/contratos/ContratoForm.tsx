@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Upload, Loader2, CheckCircle2, AlertCircle, UserPlus } from 'lucide-react';
-import type { AutentiqueDocument, Signer } from '@/lib/autentique';
+import { Plus, Trash, UploadSimple, Spinner, CheckCircle, WarningCircle, UserPlus } from '@phosphor-icons/react';
+import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 
 const field = 'w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
 const lbl = 'text-xs font-medium text-ink-soft';
 
-type Props = { onCreated: (doc: AutentiqueDocument) => void };
+type Props = { onCreated: (doc: SignatureRequestSummary) => void };
 
 export function ContratoForm({ onCreated }: Props) {
   const [name, setName] = useState('');
-  const [signers, setSigners] = useState<Signer[]>([{ email: '', action: 'SIGN' }]);
+  const [signers, setSigners] = useState<SignerInput[]>([{ name: '', email: '', role: '' }]);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,14 +19,14 @@ export function ContratoForm({ onCreated }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   function addSigner() {
-    setSigners(s => [...s, { email: '', action: 'SIGN' }]);
+    setSigners(s => [...s, { name: '', email: '', role: '' }]);
   }
 
   function removeSigner(i: number) {
     setSigners(s => s.filter((_, idx) => idx !== i));
   }
 
-  function updateSigner(i: number, patch: Partial<Signer>) {
+  function updateSigner(i: number, patch: Partial<SignerInput>) {
     setSigners(s => s.map((sg, idx) => (idx === i ? { ...sg, ...patch } : sg)));
   }
 
@@ -50,7 +50,7 @@ export function ContratoForm({ onCreated }: Props) {
       if (!res.ok) { setError(data.error ?? 'Erro ao criar contrato.'); return; }
       setSuccess(true);
       setName('');
-      setSigners([{ email: '', action: 'SIGN' }]);
+      setSigners([{ name: '', email: '', role: '' }]);
       setFile(null);
       if (fileRef.current) fileRef.current.value = '';
       onCreated(data);
@@ -61,13 +61,6 @@ export function ContratoForm({ onCreated }: Props) {
       setLoading(false);
     }
   }
-
-  const ACTION_LABELS: Record<string, string> = {
-    SIGN: 'Assinar',
-    APPROVE: 'Aprovar',
-    SIGN_AS_A_WITNESS: 'Testemunha',
-    RECOGNIZE: 'Reconhecer',
-  };
 
   return (
     <form onSubmit={handleSubmit} className="card-flat rounded-card space-y-4 p-5">
@@ -85,11 +78,11 @@ export function ContratoForm({ onCreated }: Props) {
         />
       </div>
 
-      {/* Upload PDF */}
+      {/* UploadSimple PDF */}
       <div>
         <label className={lbl}>Arquivo PDF</label>
         <label className="mt-1 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-surface-card/50 px-4 py-4 transition-colors hover:border-brand-400 hover:bg-brand-500/5">
-          <Upload className="h-5 w-5 shrink-0 text-brand-500" />
+          <UploadSimple className="h-5 w-5 shrink-0 text-brand-500" />
           <span className="text-sm text-ink-soft">
             {file ? (
               <span className="font-medium text-ink">{file.name} <span className="font-normal text-ink-soft">({(file.size / 1024).toFixed(0)} KB)</span></span>
@@ -114,24 +107,22 @@ export function ContratoForm({ onCreated }: Props) {
           {signers.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
+                type="text"
+                placeholder="Nome"
+                value={s.name}
+                onChange={e => updateSigner(i, { name: e.target.value })}
+                className={`flex-1 ${field}`}
+              />
+              <input
                 type="email"
                 placeholder={`email${i + 1}@empresa.com`}
                 value={s.email}
                 onChange={e => updateSigner(i, { email: e.target.value })}
                 className={`flex-1 ${field}`}
               />
-              <select
-                value={s.action}
-                onChange={e => updateSigner(i, { action: e.target.value as Signer['action'] })}
-                className="rounded-xl border border-line bg-surface-card px-2 py-2 text-sm outline-none focus:border-brand-400"
-              >
-                {Object.entries(ACTION_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
               {signers.length > 1 && (
                 <button type="button" onClick={() => removeSigner(i)} className="text-ink-soft hover:text-critical transition-colors">
-                  <Trash2 className="h-4 w-4" />
+                  <Trash className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -149,12 +140,12 @@ export function ContratoForm({ onCreated }: Props) {
       {/* Status */}
       {error && (
         <p className="flex items-center gap-2 rounded-xl bg-critical/10 px-3 py-2 text-sm text-critical">
-          <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+          <WarningCircle className="h-4 w-4 shrink-0" /> {error}
         </p>
       )}
       {success && (
         <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">
-          <CheckCircle2 className="h-4 w-4 shrink-0" /> Contrato enviado! Os signatários receberão o link por e-mail.
+          <CheckCircle className="h-4 w-4 shrink-0" /> Contrato enviado! Os signatários receberão o link por e-mail.
         </p>
       )}
 
@@ -163,7 +154,7 @@ export function ContratoForm({ onCreated }: Props) {
         disabled={loading}
         className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+        {loading ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         {loading ? 'Enviando para assinatura…' : 'Enviar para assinatura'}
       </button>
     </form>

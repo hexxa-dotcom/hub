@@ -1,7 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant } from '@hexxa/db';
+import { profitDistribution } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export type DistState = { ok: boolean; message: string };
@@ -19,17 +20,17 @@ export async function addDistribution(_prev: DistState, formData: FormData): Pro
     }
 
     const ctx = await getTenantContext();
-    const supabase = await createRawClient();
-    const { error } = await supabase.from('profit_distribution').insert({
-      company_id: ctx.companyId,
-      partner_name: partner,
-      amount,
-      distributed_at: date,
-      reference_year: Number(date.slice(0, 4)),
-      notes,
-    });
 
-    if (error) return { ok: false, message: `Não foi possível salvar: ${error.message}` };
+    await withTenant(ctx.companyId, async (tx) => {
+      return tx.insert(profitDistribution).values({
+        companyId: ctx.companyId,
+        partnerName: partner,
+        amount: String(amount),
+        distributedAt: date,
+        referenceYear: Number(date.slice(0, 4)),
+        notes,
+      });
+    });
 
     revalidatePath('/minha-contabilidade/distribuicao-lucros');
     return { ok: true, message: 'Distribuição lançada e enviada à contabilidade.' };

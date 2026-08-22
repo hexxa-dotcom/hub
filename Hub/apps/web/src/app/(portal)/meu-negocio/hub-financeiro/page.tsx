@@ -1,4 +1,4 @@
-import { BarChart3 } from 'lucide-react';
+import {  ChartBar  } from '@phosphor-icons/react/dist/ssr';
 import { HubFinanceiro } from './HubFinanceiro';
 
 export default function Page() {
@@ -6,7 +6,7 @@ export default function Page() {
     <div className="mx-auto w-full space-y-6">
       <header>
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-brand-500" />
+          <ChartBar className="h-6 w-6 text-brand-500" />
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Hub Financeiro</h1>
         </div>
         <p className="mt-0.5 text-sm text-ink-soft">

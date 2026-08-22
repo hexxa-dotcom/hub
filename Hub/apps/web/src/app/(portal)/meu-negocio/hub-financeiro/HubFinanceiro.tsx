@@ -1,33 +1,9 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import {
-  Plus, Trash2, CheckCircle2, AlertCircle, Clock, TrendingUp,
-  TrendingDown, Wallet, AlertTriangle, ChevronDown, ChevronUp,
-  Loader2, X, Calendar, Tag, FileText, ArrowUpRight, ArrowDownRight,
-  RefreshCw, DollarSign,
-} from 'lucide-react';
+import { Plus, Trash, CheckCircle, WarningCircle, Clock, TrendUp, TrendDown, Wallet, Warning, CaretDown, CaretUp, Spinner, X, Calendar, Tag, FileText, ArrowUpRight, ArrowDownRight, ArrowsClockwise, CurrencyDollar, SquaresFour, ArrowCircleDown, ArrowCircleUp, Percent, ChartPie, Bank, QrCode, Copy, PaperPlaneRight } from '@phosphor-icons/react';
 
-// ── Seed data (fallback while Supabase schema cache warms up) ────────────────
-
-function seedData(): Lancamento[] {
-  const d = (offset: number) => {
-    const dt = new Date(); dt.setDate(dt.getDate() + offset);
-    return dt.toISOString().split('T')[0]!;
-  };
-  return [
-    { id: 'seed-1', tipo: 'PAGAR',   descricao: 'Aluguel do escritório',  valor: 3500, vencimento: d(5),   pago_em: null,  categoria: 'Infraestrutura', observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-2', tipo: 'PAGAR',   descricao: 'Internet e telefone',    valor: 450,  vencimento: d(3),   pago_em: null,  categoria: 'Infraestrutura', observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-3', tipo: 'PAGAR',   descricao: 'Honorários contábeis',   valor: 1200, vencimento: d(-4),  pago_em: null,  categoria: 'Serviços',       observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-4', tipo: 'PAGAR',   descricao: 'Licença software ERP',   valor: 980,  vencimento: d(12),  pago_em: d(-1), categoria: 'Tecnologia',     observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-5', tipo: 'PAGAR',   descricao: 'Folha de pagamento',     valor: 8500, vencimento: d(2),   pago_em: null,  categoria: 'Salários',       observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-6', tipo: 'RECEBER', descricao: 'Serviço Empresa ABC Ltda',valor: 8000, vencimento: d(10),  pago_em: null,  categoria: 'Serviços',       observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-7', tipo: 'RECEBER', descricao: 'Consultoria XYZ',        valor: 3500, vencimento: d(-3),  pago_em: null,  categoria: 'Consultoria',    observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-8', tipo: 'RECEBER', descricao: 'Mensalidade Cliente Y',  valor: 2200, vencimento: d(15),  pago_em: d(0),  categoria: 'Mensalidade',    observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-9', tipo: 'RECEBER', descricao: 'Projeto web – Fase 2',   valor: 5500, vencimento: d(8),   pago_em: null,  categoria: 'Projetos',       observacao: null, created_at: new Date().toISOString() },
-    { id: 'seed-10',tipo: 'RECEBER', descricao: 'Retainer mensal DEF',    valor: 4000, vencimento: d(-1),  pago_em: null,  categoria: 'Mensalidade',    observacao: null, created_at: new Date().toISOString() },
-  ];
-}
+import { getLancamentos, createLancamento, updateLancamentoStatus, deleteLancamento } from './actions';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +17,7 @@ type Lancamento = {
   categoria: string | null;
   observacao: string | null;
   created_at: string;
+  statusDb?: string;
 };
 
 type Status = 'pago' | 'vencido' | 'aberto';
@@ -70,12 +47,12 @@ function StatusBadge({ l }: { l: Lancamento }) {
   const isPagar = l.tipo === 'PAGAR';
   if (s === 'pago') return (
     <span className="inline-flex items-center gap-1 rounded-full bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
-      <CheckCircle2 className="h-3 w-3" />{isPagar ? 'Pago' : 'Recebido'}
+      <CheckCircle className="h-3 w-3" />{isPagar ? 'Pago' : 'Recebido'}
     </span>
   );
   if (s === 'vencido') return (
     <span className="inline-flex items-center gap-1 rounded-full bg-critical/10 px-2 py-0.5 text-xs font-medium text-critical">
-      <AlertCircle className="h-3 w-3" />Vencido
+      <WarningCircle className="h-3 w-3" />Vencido
     </span>
   );
   return (
@@ -105,6 +82,7 @@ function LancamentoForm({
   const [vencimento, setVencimento] = useState('');
   const [categoria, setCategoria] = useState(defaultCategoria ?? '');
   const [observacao, setObservacao] = useState('');
+  const [parcelas, setParcelas] = useState(1);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -118,17 +96,21 @@ function LancamentoForm({
     }
     setSaving(true); setErr(null);
     try {
-      const res = await fetch('/api/financeiro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo, descricao, valor: parseFloat(valor.replace(',','.')), vencimento, categoria: categoria || null, observacao: observacao || null }),
+      await createLancamento({
+        tipo,
+        descricao,
+        valor: parseFloat(valor.replace(',', '.')),
+        vencimento,
+        parcelas
       });
-      const data = await res.json();
-      if (!res.ok) { setErr(data.error ?? 'Erro ao salvar.'); return; }
-      onAdd(data);
+      // Cast vazio apenas para não quebrar a tipagem do callback original (que será atualizado)
+      onAdd({} as Lancamento);
       onClose();
-    } catch { setErr('Falha na conexão.'); }
-    finally { setSaving(false); }
+    } catch {
+      setErr('Falha ao salvar no banco de dados.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const field = 'w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
@@ -168,17 +150,28 @@ function LancamentoForm({
           <label className="text-xs font-medium text-ink-soft">Observação</label>
           <input value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Opcional…" className={`mt-1 ${field}`} />
         </div>
+        <div>
+          <label className="text-xs font-medium text-ink-soft">Repetição / Recorrência</label>
+          <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className={`mt-1 ${field}`}>
+            <option value={1}>Lançamento Único (1x)</option>
+            <option value={2}>Recorrente 2 meses (2x)</option>
+            <option value={3}>Recorrente 3 meses (3x)</option>
+            <option value={6}>Recorrente 6 meses (6x)</option>
+            <option value={12}>Recorrente 12 meses (1 ano)</option>
+            <option value={24}>Recorrente 24 meses (2 anos)</option>
+          </select>
+        </div>
       </div>
 
       {err && (
         <p className="flex items-center gap-2 rounded-xl bg-critical/10 px-3 py-2 text-xs text-critical">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{err}
+          <WarningCircle className="h-3.5 w-3.5 shrink-0" />{err}
         </p>
       )}
 
       <div className="flex gap-2 pt-1">
         <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {saving ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Salvar
         </button>
         <button type="button" onClick={onClose} className="rounded-xl border border-line px-4 py-2 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10">
@@ -211,6 +204,7 @@ function LancamentosTab({
   const [marking, setMarking] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectedPixLancamento, setSelectedPixLancamento] = useState<Lancamento | null>(null);
 
   const list = useMemo(() => {
     const base = data.filter(l => l.tipo === tipo);
@@ -230,22 +224,18 @@ function LancamentosTab({
 
   async function togglePago(l: Lancamento) {
     setMarking(l.id);
-    const pago_em = l.pago_em ? null : new Date().toISOString().split('T')[0];
+    const newStatus = l.statusDb === 'PAID' ? 'PENDING' : 'PAID';
     try {
-      const res = await fetch(`/api/financeiro/${l.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pago_em }),
-      });
-      if (res.ok) onUpdate(await res.json());
+      await updateLancamentoStatus(l.id, newStatus as any);
+      onUpdate({} as Lancamento); // trigger refresh
     } finally { setMarking(null); }
   }
 
   async function handleDelete(id: string) {
     setDeleting(id);
     try {
-      const res = await fetch(`/api/financeiro/${id}`, { method: 'DELETE' });
-      if (res.ok) onDelete(id);
+      await deleteLancamento(id);
+      onDelete(id); // trigger refresh
     } finally { setDeleting(null); }
   }
 
@@ -272,7 +262,7 @@ function LancamentosTab({
               className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
                 filter === f.key
                   ? 'bg-brand-500 text-white'
-                  : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'
+                  : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'
               }`}
             >
               {f.label}
@@ -300,13 +290,13 @@ function LancamentosTab({
       {/* Table */}
       {list.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-          <DollarSign className="h-8 w-8 opacity-30" />
+          <CurrencyDollar className="h-8 w-8 opacity-30" />
           <p className="text-sm">Nenhum lançamento encontrado.</p>
         </div>
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
           {/* Desktop header */}
-          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 bg-black/3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
+          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
             <span>Descrição</span>
             <span className="w-28 text-right">Vencimento</span>
             <span className="w-32 text-right">Valor</span>
@@ -321,7 +311,7 @@ function LancamentosTab({
               <div key={l.id}>
                 {/* Row */}
                 <div
-                  className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-black/3 dark:hover:bg-white/3 sm:grid-cols-[1fr_auto_auto_auto_auto] ${
+                  className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-card border border-line dark:hover:bg-white/3 sm:grid-cols-[1fr_auto_auto_auto_auto] ${
                     s === 'vencido' ? 'border-l-2 border-l-critical' : s === 'pago' ? 'opacity-60' : ''
                   }`}
                   onClick={() => setExpanded(isExp ? null : l.id)}
@@ -346,6 +336,16 @@ function LancamentosTab({
                   <span className="hidden w-24 text-center sm:block"><StatusBadge l={l} /></span>
 
                   <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    {!isPagar && !l.pago_em && (
+                      <button
+                        type="button"
+                        title="Gerar Cobrança Pix"
+                        onClick={() => setSelectedPixLancamento(l)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-brand-500/10 px-2 py-1 text-xs font-semibold text-brand-500 hover:bg-brand-500/20"
+                      >
+                        <QrCode className="h-3.5 w-3.5" /> Pix
+                      </button>
+                    )}
                     {/* Mark paid/received */}
                     <button
                       type="button"
@@ -359,8 +359,8 @@ function LancamentosTab({
                       } disabled:opacity-40`}
                     >
                       {marking === l.id
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <CheckCircle2 className="h-4 w-4" />
+                        ? <Spinner className="h-4 w-4 animate-spin" />
+                        : <CheckCircle className="h-4 w-4" />
                       }
                     </button>
                     <button
@@ -371,17 +371,17 @@ function LancamentosTab({
                       className="rounded-xl p-1.5 text-ink-soft transition-colors hover:bg-critical/10 hover:text-critical disabled:opacity-40"
                     >
                       {deleting === l.id
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Trash2 className="h-4 w-4" />
+                        ? <Spinner className="h-4 w-4 animate-spin" />
+                        : <Trash className="h-4 w-4" />
                       }
                     </button>
-                    {isExp ? <ChevronUp className="h-4 w-4 text-ink-soft" /> : <ChevronDown className="h-4 w-4 text-ink-soft" />}
+                    {isExp ? <CaretUp className="h-4 w-4 text-ink-soft" /> : <CaretDown className="h-4 w-4 text-ink-soft" />}
                   </div>
                 </div>
 
                 {/* Expanded row */}
                 {isExp && (
-                  <div className="border-t border-line bg-black/3 px-4 py-3 text-xs dark:bg-white/3">
+                  <div className="border-t border-line bg-surface-card border border-line px-4 py-3 text-xs dark:bg-white/3">
                     <div className="flex flex-wrap gap-4">
                       <div><span className="text-ink-soft">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
                       <div><span className="text-ink-soft">Criado em:</span> <strong>{fmtDate(l.created_at.split('T')[0]!)}</strong></div>
@@ -446,14 +446,14 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
         <div className="card-flat rounded-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-ink-soft">A Pagar (em aberto)</p>
-            <TrendingDown className="h-4 w-4 text-critical" />
+            <TrendDown className="h-4 w-4 text-critical" />
           </div>
           <p className="mt-2 text-xl font-semibold text-critical">{fmt(totalPagar)}</p>
         </div>
         <div className="card-flat rounded-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-ink-soft">A Receber (em aberto)</p>
-            <TrendingUp className="h-4 w-4 text-ok" />
+            <TrendUp className="h-4 w-4 text-ok" />
           </div>
           <p className="mt-2 text-xl font-semibold text-ok">{fmt(totalReceber)}</p>
         </div>
@@ -467,7 +467,7 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
         <div className="card-flat rounded-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs text-ink-soft">Vencidos</p>
-            <AlertTriangle className={`h-4 w-4 ${vencidos.length > 0 ? 'text-critical' : 'text-ink-soft'}`} />
+            <Warning className={`h-4 w-4 ${vencidos.length > 0 ? 'text-critical' : 'text-ink-soft'}`} />
           </div>
           <p className={`mt-2 text-xl font-semibold ${vencidos.length > 0 ? 'text-critical' : 'text-ink-soft'}`}>{vencidos.length}</p>
         </div>
@@ -482,7 +482,7 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
           ) : (
             <div className="space-y-2">
               {proximos.map(l => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl bg-black/3 px-3 py-2 dark:bg-white/5">
+                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl bg-surface-card border border-line px-3 py-2 dark:bg-white/5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{l.descricao}</p>
                     <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)}</p>
@@ -535,7 +535,7 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
       {vencidos.length > 0 && (
         <div className="rounded-xl border border-critical/30 bg-critical/5 p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-critical">
-            <AlertTriangle className="h-4 w-4" />
+            <Warning className="h-4 w-4" />
             {vencidos.length} lançamento{vencidos.length !== 1 ? 's' : ''} vencido{vencidos.length !== 1 ? 's' : ''}
           </p>
           <div className="space-y-1">
@@ -594,7 +594,7 @@ function Conciliacao({ data }: { data: Lancamento[] }) {
         <div className="card-flat rounded-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Contas a pagar</p>
-            <TrendingDown className="h-4 w-4 text-critical" />
+            <TrendDown className="h-4 w-4 text-critical" />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-ink-soft">
@@ -616,7 +616,7 @@ function Conciliacao({ data }: { data: Lancamento[] }) {
         <div className="card-flat rounded-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Contas a receber</p>
-            <TrendingUp className="h-4 w-4 text-ok" />
+            <TrendUp className="h-4 w-4 text-ok" />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-ink-soft">
@@ -657,7 +657,7 @@ function Conciliacao({ data }: { data: Lancamento[] }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${days <= 3 ? 'bg-warn/10 text-warn' : 'bg-black/[0.07] text-ink-soft dark:bg-white/5'}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${days <= 3 ? 'bg-warn/10 text-warn' : 'bg-surface-card border border-line text-ink-soft dark:bg-white/5'}`}>
                       {days === 0 ? 'Hoje' : `${days}d`}
                     </span>
                     <span className={`text-sm font-semibold ${l.tipo === 'PAGAR' ? 'text-critical' : 'text-ok'}`}>
@@ -704,18 +704,17 @@ function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
 
   async function togglePago(l: Lancamento) {
     setMarking(l.id);
-    const pago_em = l.pago_em ? null : new Date().toISOString().split('T')[0];
     try {
-      const res = await fetch(`/api/financeiro/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pago_em }) });
-      if (res.ok) onUpdate(await res.json());
+      await updateLancamentoStatus(l.id, l.pago_em ? 'PENDING' : 'PAID');
+      onUpdate(l);
     } finally { setMarking(null); }
   }
 
   async function handleDelete(id: string) {
     setDeleting(id);
     try {
-      const res = await fetch(`/api/financeiro/${id}`, { method: 'DELETE' });
-      if (res.ok) onDelete(id);
+      await deleteLancamento(id);
+      onDelete(id);
     } finally { setDeleting(null); }
   }
 
@@ -756,7 +755,7 @@ function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
         <div className="flex flex-wrap gap-1">
           {filterBtns.map(f => (
             <button key={f.key} type="button" onClick={() => setFilter(f.key)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
               {f.label}
             </button>
           ))}
@@ -774,13 +773,13 @@ function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-          <DollarSign className="h-8 w-8 opacity-30" />
+          <CurrencyDollar className="h-8 w-8 opacity-30" />
           <p className="text-sm">Nenhum imposto com este filtro.</p>
           <p className="text-xs">Adicione em "A Pagar" com categoria: DAS, ISS, DARF, FGTS, Parcelamento ou Impostos.</p>
         </div>
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
-          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 bg-black/3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
+          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
             <span className="w-20">Tipo</span><span>Descrição</span>
             <span className="w-28 text-right">Vencimento</span><span className="w-32 text-right">Valor</span>
             <span className="w-24 text-center">Status</span><span className="w-20 text-center">Ações</span>
@@ -790,7 +789,7 @@ function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
             const isExp = expanded === l.id;
             return (
               <div key={l.id}>
-                <div className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-black/3 dark:hover:bg-white/3 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] ${s === 'vencido' ? 'border-l-2 border-l-critical' : s === 'pago' ? 'opacity-60' : ''}`}
+                <div className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-card border border-line dark:hover:bg-white/3 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] ${s === 'vencido' ? 'border-l-2 border-l-critical' : s === 'pago' ? 'opacity-60' : ''}`}
                   onClick={() => setExpanded(isExp ? null : l.id)}>
                   <span className={`hidden w-20 shrink-0 rounded-xl px-2 py-0.5 text-[10px] font-bold sm:block ${catCls[l.categoria ?? ''] ?? 'bg-ink/5 text-ink-soft'}`}>
                     {l.categoria ?? 'Imposto'}
@@ -805,17 +804,17 @@ function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
                   <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                     <button type="button" title={l.pago_em ? 'Desfazer' : 'Marcar como pago'} onClick={() => togglePago(l)} disabled={marking === l.id}
                       className={`rounded-xl p-1.5 transition-colors ${l.pago_em ? 'text-ok hover:bg-ok/10' : 'text-ink-soft hover:bg-ok/10 hover:text-ok'} disabled:opacity-40`}>
-                      {marking === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {marking === l.id ? <Spinner className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                     </button>
                     <button type="button" title="Excluir" onClick={() => handleDelete(l.id)} disabled={deleting === l.id}
                       className="rounded-xl p-1.5 text-ink-soft transition-colors hover:bg-critical/10 hover:text-critical disabled:opacity-40">
-                      {deleting === l.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {deleting === l.id ? <Spinner className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
                     </button>
-                    {isExp ? <ChevronUp className="h-4 w-4 text-ink-soft" /> : <ChevronDown className="h-4 w-4 text-ink-soft" />}
+                    {isExp ? <CaretUp className="h-4 w-4 text-ink-soft" /> : <CaretDown className="h-4 w-4 text-ink-soft" />}
                   </div>
                 </div>
                 {isExp && (
-                  <div className="border-t border-line bg-black/3 px-4 py-3 text-xs dark:bg-white/3">
+                  <div className="border-t border-line bg-surface-card border border-line px-4 py-3 text-xs dark:bg-white/3">
                     <div className="flex flex-wrap gap-4">
                       <div><span className="text-ink-soft">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
                       {l.pago_em && <div><span className="text-ink-soft">Pago em:</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
@@ -926,7 +925,7 @@ function DRETab({ data }: { data: Lancamento[] }) {
         <div className="divide-y divide-line">
           {sections.map(sec => (
             <div key={sec.title}>
-              <div className={`flex items-center justify-between px-5 py-3 ${sec.sign === '' ? 'bg-ok/5' : 'bg-black/3 dark:bg-white/3'}`}>
+              <div className={`flex items-center justify-between px-5 py-3 ${sec.sign === '' ? 'bg-ok/5' : 'bg-surface-card border border-line dark:bg-white/3'}`}>
                 <p className="text-sm font-semibold">{sec.title}</p>
                 <p className={`font-semibold ${sec.sign === '' ? 'text-ok' : 'text-critical'}`}>
                   {sec.sign} {fmt(sec.total)}
@@ -1002,7 +1001,7 @@ function FluxoTab({ data }: { data: Lancamento[] }) {
         <div className="flex gap-1">
           {[30, 60, 90].map(d => (
             <button key={d} type="button" onClick={() => setDias(d)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${dias === d ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${dias === d ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
               {d} dias
             </button>
           ))}
@@ -1032,7 +1031,7 @@ function FluxoTab({ data }: { data: Lancamento[] }) {
         </div>
       ) : (
         <div className="card-flat rounded-card overflow-hidden">
-          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 bg-black/3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
+          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
             <span className="w-24">Data</span>
             <span>Descrição</span>
             <span className="w-8" />
@@ -1073,18 +1072,18 @@ function FluxoTab({ data }: { data: Lancamento[] }) {
 
 type TabKey = 'geral' | 'pagar' | 'receber' | 'conciliacao' | 'impostos' | 'dre' | 'fluxo';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'geral',       label: 'Visão Geral' },
-  { key: 'pagar',       label: 'A Pagar' },
-  { key: 'receber',     label: 'A Receber' },
-  { key: 'impostos',    label: 'Impostos' },
-  { key: 'dre',         label: 'DRE' },
-  { key: 'fluxo',       label: 'Fluxo de Caixa' },
-  { key: 'conciliacao', label: 'Conciliação' },
+const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  { key: 'geral',       label: 'Visão Geral', icon: SquaresFour },
+  { key: 'pagar',       label: 'A Pagar', icon: ArrowCircleDown },
+  { key: 'receber',     label: 'A Receber', icon: ArrowCircleUp },
+  { key: 'impostos',    label: 'Impostos', icon: Percent },
+  { key: 'dre',         label: 'DRE', icon: ChartPie },
+  { key: 'fluxo',       label: 'Fluxo de Caixa', icon: TrendUp },
+  { key: 'conciliacao', label: 'Conciliação', icon: Bank },
 ];
 
-export function HubFinanceiro() {
-  const [tab, setTab] = useState<TabKey>('geral');
+export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [data, setData] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1095,18 +1094,10 @@ export function HubFinanceiro() {
     else setRefreshing(true);
     setLoadError(null);
     try {
-      const res = await fetch('/api/financeiro');
-      const json = await res.json();
-      if (!res.ok || !Array.isArray(json)) {
-        // Schema cache ainda aquecendo — usa seed data
-        if (!silent) setData(seedData());
-        else setLoadError('Banco ainda aquecendo. Tente em 1-2 min.');
-        return;
-      }
+      const json = await getLancamentos();
       setData(json);
     } catch {
-      if (!silent) setData(seedData());
-      else setLoadError('Falha na conexão.');
+      setLoadError('Falha na conexão com o banco.');
     }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -1115,9 +1106,9 @@ export function HubFinanceiro() {
 
   async function refresh() { await load(true); }
 
-  function onAdd(l: Lancamento) { setData(d => [l, ...d]); }
-  function onUpdate(l: Lancamento) { setData(d => d.map(x => x.id === l.id ? l : x)); }
-  function onDelete(id: string) { setData(d => d.filter(x => x.id !== id)); }
+  function onAdd(l: Lancamento) { refresh(); }
+  function onUpdate(l: Lancamento) { refresh(); }
+  function onDelete(id: string) { refresh(); }
 
   const vencidos = data.filter(l => getStatus(l) === 'vencido').length;
 
@@ -1125,7 +1116,7 @@ export function HubFinanceiro() {
     <div className="space-y-5">
       {/* Tab bar */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-black/3 p-1 dark:bg-white/3">
+        <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-card border border-line p-1 dark:bg-white/3">
           {TABS.map(t => (
             <button
               key={t.key}
@@ -1153,21 +1144,21 @@ export function HubFinanceiro() {
           title="Atualizar"
           className="rounded-xl border border-line p-2 text-ink-soft transition-colors hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10"
         >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {/* Loading / Error */}
       {loading && (
         <div className="flex items-center justify-center gap-2 py-16 text-ink-soft">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner className="h-5 w-5 animate-spin" />
           <span className="text-sm">Carregando dados financeiros…</span>
         </div>
       )}
 
       {!loading && loadError && (
         <p className="flex items-center gap-2 rounded-xl bg-warn/10 px-4 py-2 text-sm text-warn">
-          <AlertCircle className="h-4 w-4 shrink-0" />{loadError}
+          <WarningCircle className="h-4 w-4 shrink-0" />{loadError}
         </p>
       )}
 

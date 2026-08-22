@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, QrCode, CheckCircle2, Copy } from 'lucide-react';
+import { X, QrCode, CheckCircle, Copy } from '@phosphor-icons/react';
 import { generatePixCharge } from '@/app/(portal)/configuracoes/integracoes/asaas/billing';
 
 interface GeneratePixModalProps {
@@ -92,7 +92,7 @@ export function GeneratePixModal({
           {pixData ? (
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="flex items-center justify-center h-12 w-12 rounded-full bg-ok/10 text-ok">
-                <CheckCircle2 className="h-6 w-6" />
+                <CheckCircle className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-xl text-ink">PIX Gerado!</h3>
               <p className="text-sm text-ink-soft">

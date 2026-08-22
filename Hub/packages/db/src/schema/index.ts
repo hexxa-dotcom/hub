@@ -7,3 +7,4 @@ export * from './tax';
 export * from './accounting';
 export * from './patrimonial';
 export * from './platform';
+export * from './crm';

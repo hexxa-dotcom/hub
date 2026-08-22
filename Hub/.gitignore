@@ -24,6 +24,9 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# claude code local settings
+.claude/settings.local.json
+
 # drizzle
 packages/db/drizzle/meta/_journal_backup*
 .vercel

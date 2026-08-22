@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createRawClient } from '@/lib/supabase/server';
 import { getDb } from '@hexxa/db';
-import { monthlyClosure, financialEntry, company } from '@hexxa/db/schema';
+import { monthlyClosure, financialEntry, company, taxGuide, accountingInvoice, taxHistory, subscription, plan } from '@hexxa/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { TaxThermometerService } from '@hexxa/core';
+import { getSimplesInputs } from '@/lib/server/fiscal';
+import type { TenantContext } from '@hexxa/core';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutos, caso sejam muitos clientes
@@ -15,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabase = await createRawClient();
+    const db = getDb();
 
     // 1. Determinar o mês anterior
     const today = new Date();
@@ -24,11 +26,12 @@ export async function GET(request: Request) {
     const referenceMonthStr = lastMonth.toISOString().split('T')[0] as string;
 
     // 2. Buscar todas as empresas ativas
-    const { data: companies, error: companiesError } = await supabase
-      .from('company')
-      .select('id, name');
+    const companies = await db
+      .select({ id: company.id, legalName: company.legalName, type: company.type })
+      .from(company);
 
-    if (companiesError) throw new Error(companiesError.message);
+    const thermometer = new TaxThermometerService();
+
     if (!companies || companies.length === 0) {
       return NextResponse.json({ message: 'Nenhuma empresa encontrada para processamento.' });
     }
@@ -40,25 +43,30 @@ export async function GET(request: Request) {
     for (const comp of companies) {
       try {
         // Verificar se já existe fechamento para este mês
-        const { data: existing } = await supabase
-          .from('monthly_closure')
-          .select('id')
-          .eq('company_id', comp.id)
-          .eq('reference_month', referenceMonthStr)
-          .single();
+        const [existing] = await db
+          .select({ id: monthlyClosure.id })
+          .from(monthlyClosure)
+          .where(
+            and(
+              eq(monthlyClosure.companyId, comp.id),
+              eq(monthlyClosure.referenceMonth, referenceMonthStr)
+            )
+          );
 
         if (existing) {
           continue; // Já foi fechado
         }
 
         // Agregar Receitas e Despesas do mês anterior
-        const { data: entries, error: entriesError } = await supabase
-          .from('financial_entry')
-          .select('type, amount')
-          .eq('company_id', comp.id)
-          .eq('reference_month', referenceMonthStr);
-
-        if (entriesError) throw new Error(entriesError.message);
+        const entries = await db
+          .select({ type: financialEntry.type, amount: financialEntry.amount })
+          .from(financialEntry)
+          .where(
+            and(
+              eq(financialEntry.companyId, comp.id),
+              eq(financialEntry.referenceMonth, referenceMonthStr)
+            )
+          );
 
         let totalRevenue = 0;
         let totalExpenses = 0;
@@ -84,9 +92,65 @@ export async function GET(request: Request) {
           status: 'CLOSED',
         });
 
+        const nextMonthStr = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]!;
+
+        // RBT12/folha reais (janela de 12 meses) e posição no Simples — mesma
+        // lógica usada na emissão de NFSe (ver emitNfseAction), não mais um
+        // valor fabricado.
+        const ctx: TenantContext = { companyId: comp.id, companyType: comp.type, userId: 'cron' };
+        const { rbt12, folha12 } = await getSimplesInputs(ctx);
+        const simples = thermometer.simplesPosition({ rbt12, payroll12: folha12 });
+
+        // Gerar Guia de DAS (Simples Nacional) se houve faturamento, usando a
+        // alíquota nominal real da faixa/anexo em que a empresa está.
+        if (totalRevenue > 0) {
+          const dasAmount = (totalRevenue * simples.nominalRate) / 100;
+          await getDb().insert(taxGuide).values({
+            companyId: comp.id,
+            taxName: 'DAS - Simples Nacional',
+            referenceMonth: nextMonthStr, // Guia cobrada no mês vigente (sobre o faturamento passado)
+            amount: String(dasAmount),
+            dueDate: new Date(today.getFullYear(), today.getMonth(), 20).toISOString().split('T')[0]!,
+            status: 'OPEN',
+            // TODO: pixCode ainda é um placeholder — gerar cobrança real exige
+            // integração de pagamento própria da plataforma (não a do
+            // Asaas do tenant, que é para cobrar OS CLIENTES da empresa).
+            pixCode: null,
+          });
+
+          await getDb().insert(taxHistory).values({
+            companyId: comp.id,
+            referenceMonth: nextMonthStr.slice(0, 7), // Apenas YYYY-MM
+            rba12: String(rbt12),
+            effectiveRate: simples.nominalRate.toFixed(2),
+            taxBracket: `Anexo ${simples.anexo} - Faixa ${simples.faixa}`,
+          });
+        }
+
+        // Fatura de Honorários (Recorrente) — valor real do plano contratado
+        // pela empresa na plataforma, não mais um valor fixo de exemplo.
+        const [activeSub] = await getDb()
+          .select({ monthlyValue: plan.monthlyValue })
+          .from(subscription)
+          .innerJoin(plan, eq(subscription.planId, plan.id))
+          .where(and(eq(subscription.companyId, comp.id), eq(subscription.status, 'ACTIVE')));
+
+        if (activeSub) {
+          await getDb().insert(accountingInvoice).values({
+            companyId: comp.id,
+            description: 'Honorários Contábeis',
+            value: activeSub.monthlyValue,
+            referenceMonth: nextMonthStr,
+            dueDate: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0]!,
+            status: 'OPEN',
+            // TODO: mesmo placeholder de pixCode acima.
+            pixCode: null,
+          });
+        }
+
         successCount++;
       } catch (err: any) {
-        errors.push(`Erro ao processar empresa ${comp.name}: ${err.message}`);
+        errors.push(`Erro ao processar empresa ${comp.legalName}: ${err.message}`);
       }
     }
 

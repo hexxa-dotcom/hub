@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { updateCompanyAction } from './actions';
-import { Loader2, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Spinner, MagnifyingGlass, CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
 
 export function CompanyForm({ company }: { company: any }) {
@@ -79,7 +79,7 @@ export function CompanyForm({ company }: { company: any }) {
     setMessage(null);
     const formData = new FormData(e.currentTarget);
     try {
-      await updateCompanyAction(company.id, formData);
+      await updateCompanyAction(formData);
       setMessage({ type: 'success', text: 'Dados atualizados com sucesso!' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Erro ao salvar.' });
@@ -136,16 +136,16 @@ export function CompanyForm({ company }: { company: any }) {
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
               {lookupStatus === 'loading' && (
-                <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
+                <Spinner className="h-4 w-4 animate-spin text-ink-soft" />
               )}
               {lookupStatus === 'found' && (
-                <CheckCircle2 className="h-4 w-4 text-ok" />
+                <CheckCircle className="h-4 w-4 text-ok" />
               )}
               {(lookupStatus === 'not_found' || lookupStatus === 'error') && (
-                <AlertCircle className="h-4 w-4 text-warn" />
+                <WarningCircle className="h-4 w-4 text-warn" />
               )}
               {lookupStatus === 'idle' && (
-                <Search className="h-4 w-4 text-ink-soft/40" />
+                <MagnifyingGlass className="h-4 w-4 text-ink-soft/40" />
               )}
             </span>
           </div>
@@ -234,7 +234,7 @@ export function CompanyForm({ company }: { company: any }) {
           disabled={loading}
           className="inline-flex min-w-[120px] items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-70"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar Alterações'}
+          {loading ? <Spinner className="h-4 w-4 animate-spin" /> : 'Salvar Alterações'}
         </button>
         {message && (
           <span className={`text-sm font-medium ${message.type === 'success' ? 'text-ok' : 'text-critical'}`}>

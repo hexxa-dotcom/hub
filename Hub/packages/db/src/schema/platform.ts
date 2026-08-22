@@ -66,6 +66,8 @@ export const subscription = pgTable('subscription', {
   status: subscriptionStatus('status').notNull().default('TRIAL'),
   currentPeriodStart: date('current_period_start'),
   currentPeriodEnd: date('current_period_end'),
+  asaasCustomerId: text('asaas_customer_id'),
+  asaasSubscriptionId: text('asaas_subscription_id'),
 });
 
 /** Credenciais por empresa para cada integração (segredo fica em secret manager). */

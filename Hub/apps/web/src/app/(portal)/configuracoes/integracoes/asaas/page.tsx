@@ -1,8 +1,9 @@
 import { GlassCard } from '@/components/ui/GlassCard';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import {  ArrowLeft, ArrowSquareOut  } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { AsaasSetupForm } from './AsaasSetupForm';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export const metadata = {
@@ -11,17 +12,25 @@ export const metadata = {
 
 export default async function AsaasSetupPage() {
   const ctx = await getTenantContext();
-  const supabase = await createRawClient();
-  
-  const { data: credential } = await supabase
-    .from('integration_credential')
-    .select('secret_ref, active')
-    .eq('company_id', ctx.companyId)
-    .eq('provider', 'asaas')
-    .single();
+
+  const [credential] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({
+        secretRef: integrationCredential.secretRef,
+        active: integrationCredential.active,
+      })
+      .from(integrationCredential)
+      .where(
+        and(
+          eq(integrationCredential.companyId, ctx.companyId),
+          eq(integrationCredential.provider, 'asaas')
+        )
+      );
+  });
 
   const isConnected = credential?.active || false;
-  const accessToken = credential?.secret_ref?.access_token || '';
+  const secretData = credential?.secretRef as { access_token?: string } | undefined;
+  const accessToken = secretData?.access_token || '';
 
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -63,7 +72,7 @@ export default async function AsaasSetupPage() {
                     Ainda não tem conta? Crie sua conta gratuita pelo nosso link de parceria para aproveitar vantagens.
                   </p>
                   <a href="https://www.asaas.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">
-                    Criar conta Asaas <ExternalLink className="h-3.5 w-3.5" />
+                    Criar conta Asaas <ArrowSquareOut className="h-3.5 w-3.5" />
                   </a>
                 </li>
                 <li className="pl-8">

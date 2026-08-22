@@ -1,7 +1,7 @@
 import { GlassCard } from '@/components/ui/GlassCard';
 import { LABELS } from '@hexxa/core/language';
 import { TaxThermometerService } from '@hexxa/core';
-import { ChevronDown, Calendar, AlertTriangle, Clock, Percent, FileText } from 'lucide-react';
+import {  CaretDown, Calendar, Warning, Clock, Percent, FileText  } from '@phosphor-icons/react/dist/ssr';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { withTenant, sql } from '@hexxa/db';
@@ -66,6 +66,8 @@ export default async function DashboardPage() {
   let folha12 = 0;
   let issuingCount = 0;
   let lastClosureDate: string | null = null;
+  let openDasGuide: { amount: number; dueDate: string } | null = null;
+  let loadError = false;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
   try {
@@ -90,17 +92,27 @@ export default async function DashboardPage() {
         WHERE company_id = ${ctx.companyId} AND reference_month = ${lastMonthStr}
         LIMIT 1
       `);
+      const dasGuide = await tx.execute(sql`
+        SELECT amount, due_date FROM tax_guide
+        WHERE company_id = ${ctx.companyId} AND tax_name = 'DAS - Simples Nacional' AND status = 'OPEN'
+        ORDER BY due_date DESC
+        LIMIT 1
+      `);
       return {
         entries: fe as unknown as Entry[],
         issuing: Number(issuing[0]?.n ?? 0),
         hasClosure: closure.length > 0,
+        dasGuide: dasGuide[0] ? { amount: Number(dasGuide[0].amount), dueDate: String(dasGuide[0].due_date) } : null,
       };
     });
     entries = data.entries;
     issuingCount = data.issuing;
     if (data.hasClosure) lastClosureDate = lastMonthStr;
+    openDasGuide = data.dasGuide;
   } catch {
-    // sem banco/acesso — segue com zeros
+    // Falha real ao carregar (banco indisponível, etc.) — não mostrar como
+    // se o faturamento fosse zero, avisar que os dados não puderam ser lidos.
+    loadError = true;
   }
 
   const receivables = entries.filter((e) => e.type === 'RECEIVABLE');
@@ -153,44 +165,53 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <header className="animate-fade-up relative overflow-hidden rounded-2xl hero-blue p-5 sm:p-6 text-white shadow-lg">
+      <header className="animate-fade-up relative overflow-hidden card-flat p-5 sm:p-6 text-ink">
         <div className="relative z-10 flex flex-col gap-5">
           {/* Top Row: Tags / Badges */}
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium border border-white/10">
+            <span className="rounded-full bg-black/5 dark:bg-white/10 px-3 py-1 text-[11px] font-medium border border-line text-ink-soft">
               Dashboard do Meu Negócio
             </span>
-            
+
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium border border-white/10">
+              <span className="flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1 text-[11px] font-medium border border-line text-ink-soft">
                 <Calendar className="h-3.5 w-3.5" /> {dateFormatted}
               </span>
-              
+
               {tudoEmDia ? (
-                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-emerald-300 border border-white/10">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-ok/10 px-3 py-1 text-[11px] font-medium text-ok border border-line">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ok"></span>
                   Tudo em dia
                 </span>
               ) : (
-                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-rose-300 border border-white/10">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+                <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-critical/10 px-3 py-1 text-[11px] font-medium text-critical border border-line">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-critical"></span>
                   Pendências em aberto
                 </span>
               )}
             </div>
           </div>
-          
+
           {/* Bottom Row: Greeting & Actions */}
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight mb-1">Resumo Financeiro</h1>
-              <p className="text-white/70 text-sm max-w-lg">O balanço financeiro e contábil do seu negócio, em tempo real.</p>
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight mb-1 text-ink">Resumo Financeiro</h1>
+              <p className="text-ink-soft text-sm max-w-lg">O balanço financeiro e contábil do seu negócio, em tempo real.</p>
             </div>
-            
+
             <DashboardActions />
           </div>
         </div>
       </header>
+
+      {loadError && (
+        <div className="flex items-center gap-3 rounded-2xl border border-critical/30 bg-critical/10 p-4 text-critical">
+          <Warning className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">
+            Não foi possível carregar os dados financeiros agora. Os valores abaixo podem estar incompletos — recarregue a página em instantes.
+          </p>
+        </div>
+      )}
 
       {lastClosureDate && (
         <div className="bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
@@ -215,7 +236,6 @@ export default async function DashboardPage() {
       {/* KPIs — entrada escalonada */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <GlassCard
-          highlight
           action
           href="/meu-negocio/notas"
           title={LABELS.monthlyRevenue}
@@ -226,7 +246,7 @@ export default async function DashboardPage() {
         />
         <GlassCard action href="/meu-negocio/fiscal" title={LABELS.estimatedTax} value={BRL.format(provisao)} hint={`estimado (Anexo ${simples.anexo})`} className="animate-fade-up [animation-delay:60ms]" />
         <GlassCard action href="/meu-negocio/contas-a-pagar" title={LABELS.monthlyExpenses} value={BRL.format(despesasMes)} hint="saídas do mês" className="animate-fade-up [animation-delay:120ms]" />
-        <GlassCard action href="/meu-negocio/hub-financeiro" title="Lucro Líquido" value={BRL.format(lucro)} hint="faturamento − despesas" className="animate-fade-up [animation-delay:180ms]" />
+        <GlassCard action href="/meu-negocio/hub-financeiro" title={LABELS.netProfit} value={BRL.format(lucro)} hint="faturamento − despesas" className="animate-fade-up [animation-delay:180ms]" />
       </div>
 
       {/* Gráfico + composição por categoria */}
@@ -333,40 +353,59 @@ export default async function DashboardPage() {
             <span className="inline-flex items-center rounded-full bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
               Fator R {simples.fatorR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Anexo {simples.anexo}
             </span>
-            <span className="inline-flex items-center rounded-full bg-black/[0.07] px-2 py-0.5 text-xs text-ink-soft dark:bg-white/10">
+            <span className="inline-flex items-center rounded-full bg-white/10 border border-white/10 px-2 py-0.5 text-xs text-ink-soft">
               {pct(simples.ceilingUsagePct)} do teto
             </span>
           </div>
         </GlassCard>
 
-        <GlassCard title={LABELS.urgentNotices} action href="/meu-negocio/hub-financeiro" className="animate-fade-up [animation-delay:360ms]">
-          {avisos.length ? (
-            <ul className="mt-3 space-y-2 text-sm">
-              {avisos.map((a) => (
-                <li
-                  key={a.text}
-                  className={
-                    a.tone === 'critical'
-                      ? 'flex items-center gap-2.5 rounded-xl bg-critical/10 px-3 py-2 text-critical'
-                      : a.tone === 'warn'
-                        ? 'flex items-center gap-2.5 rounded-xl bg-warn/10 px-3 py-2 text-warn'
-                        : 'flex items-center gap-2.5 rounded-xl bg-brand-500/10 px-3 py-2 text-brand-700 dark:text-brand-300'
-                  }
-                >
-                  {a.tone === 'critical' ? (
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                  ) : a.tone === 'warn' ? (
-                    <Clock className="h-4 w-4 shrink-0" />
-                  ) : (
-                    <FileText className="h-4 w-4 shrink-0" />
-                  )}
-                  {a.text}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-ink-soft">Nenhum aviso urgente — contas em dia e nenhuma nota pendente. ✅</p>
-          )}
+        <GlassCard title="Caixa Postal & Recados" action href="/suporte" className="animate-fade-up [animation-delay:360ms]">
+          <div className="mt-3 space-y-2 text-xs">
+            {/* Recado de Entrega de Documentos da Contabilidade — só aparece
+                quando existe mesmo uma guia de DAS em aberto para a empresa. */}
+            {openDasGuide && (
+              <div className="rounded-xl border border-brand-400/30 bg-brand-500/10 p-3 space-y-1.5">
+                <div className="flex items-center justify-between font-bold text-brand-600 dark:text-brand-300">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="h-4 w-4" /> Guia do Simples Nacional (DAS)
+                  </span>
+                  <span className="rounded-full bg-brand-500/20 px-2 py-0.5 text-[10px]">Novo Documento</span>
+                </div>
+                <p className="text-ink-soft">
+                  Guia do DAS no valor de {BRL.format(openDasGuide.amount)} disponível para pagamento.
+                </p>
+                <div className="pt-1 flex items-center justify-between border-t border-brand-500/10">
+                  <span className="text-[10px] text-ink-soft">
+                    Vencimento: {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
+                  </span>
+                  <Link href="/minha-contabilidade/guias" className="font-bold text-brand-600 hover:underline">Pagar / Ver Guia →</Link>
+                </div>
+              </div>
+            )}
+
+            {/* Recados e Alertas do Sistema */}
+            {avisos.map((a) => (
+              <div
+                key={a.text}
+                className={
+                  a.tone === 'critical'
+                    ? 'flex items-center gap-2.5 rounded-xl bg-critical/10 p-3 text-critical'
+                    : a.tone === 'warn'
+                      ? 'flex items-center gap-2.5 rounded-xl bg-warn/10 p-3 text-warn'
+                      : 'flex items-center gap-2.5 rounded-xl bg-white/5 border border-white/10 p-3 text-ink-soft'
+                }
+              >
+                {a.tone === 'critical' ? (
+                  <Warning className="h-4 w-4 shrink-0" />
+                ) : a.tone === 'warn' ? (
+                  <Clock className="h-4 w-4 shrink-0" />
+                ) : (
+                  <FileText className="h-4 w-4 shrink-0" />
+                )}
+                <span className="flex-1 font-medium">{a.text}</span>
+              </div>
+            ))}
+          </div>
         </GlassCard>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { CheckCircle2, ChevronRight, ChevronLeft, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, CaretRight, CaretLeft, FileText, Spinner } from '@phosphor-icons/react';
 import type { ContractData } from './StandardContractTemplate';
 import { StandardContractTemplate } from './StandardContractTemplate';
 import { pdf } from '@react-pdf/renderer';
@@ -76,7 +76,7 @@ export function ContractWizard({ onGenerated, onCancel }: ContractWizardProps) {
               <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 font-bold text-xs transition-colors ${
                 isActive ? 'border-brand-500 bg-brand-500 text-white' : 'border-line bg-surface-card text-ink-soft'
               }`}>
-                {isActive && !isCurrent ? <CheckCircle2 className="h-4 w-4" /> : s.id}
+                {isActive && !isCurrent ? <CheckCircle className="h-4 w-4" /> : s.id}
               </div>
               <span className={`mt-2 text-xs font-semibold ${isActive ? 'text-brand-600' : 'text-ink-soft'}`}>
                 {s.title}
@@ -211,7 +211,7 @@ export function ContractWizard({ onGenerated, onCancel }: ContractWizardProps) {
       {step === 4 && (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
           <h3 className="font-semibold text-ink mb-4">Revisão</h3>
-          <div className="bg-black/[0.07] dark:bg-white/5 rounded-xl p-4 text-sm space-y-3">
+          <div className="bg-surface-card border border-line dark:bg-white/5 rounded-xl p-4 text-sm space-y-3">
             <p><strong>Contratante:</strong> {data.contractor.name || '(vazio)'}</p>
             <p><strong>Contratada:</strong> {data.contractee.name || '(vazio)'}</p>
             <p><strong>Serviço:</strong> {data.service.description || '(vazio)'}</p>
@@ -230,7 +230,7 @@ export function ContractWizard({ onGenerated, onCancel }: ContractWizardProps) {
           disabled={step === 1 || loading}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
         >
-          <ChevronLeft className="h-4 w-4" /> Voltar
+          <CaretLeft className="h-4 w-4" /> Voltar
         </button>
 
         {step < 4 ? (
@@ -238,7 +238,7 @@ export function ContractWizard({ onGenerated, onCancel }: ContractWizardProps) {
             onClick={nextStep}
             className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-md"
           >
-            Avançar <ChevronRight className="h-4 w-4" />
+            Avançar <CaretRight className="h-4 w-4" />
           </button>
         ) : (
           <button 
@@ -246,7 +246,7 @@ export function ContractWizard({ onGenerated, onCancel }: ContractWizardProps) {
             disabled={loading}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-ok hover:bg-[#00A859] transition-colors shadow-md"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            {loading ? <Spinner className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
             {loading ? 'Gerando...' : 'Gerar e Anexar PDF'}
           </button>
         )}

@@ -4,8 +4,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Hexx Hub Digital',
-  description: 'Portal do Cliente + Hub Operacional',
+  metadataBase: new URL('https://hexxdigital.com.br'),
+  title: 'Hexx Hub • digital',
+  description: 'Portal do Cliente e Hub Operacional de Autogestão',
 };
 
 // Aplica o tema salvo antes da pintura (sem flash claro→escuro).

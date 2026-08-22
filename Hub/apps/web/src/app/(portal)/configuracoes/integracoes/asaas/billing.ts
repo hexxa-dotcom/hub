@@ -1,6 +1,7 @@
 'use server';
 
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 interface PixChargeData {
@@ -13,21 +14,29 @@ interface PixChargeData {
 
 export async function generatePixCharge(data: PixChargeData) {
   const ctx = await getTenantContext();
-  const supabase = await createRawClient();
 
   // 1. Obter a chave da integração
-  const { data: cred } = await supabase
-    .from('integration_credential')
-    .select('secret_ref, active')
-    .eq('company_id', ctx.companyId)
-    .eq('provider', 'asaas')
-    .single();
+  const [cred] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({
+        secretRef: integrationCredential.secretRef,
+        active: integrationCredential.active,
+      })
+      .from(integrationCredential)
+      .where(
+        and(
+          eq(integrationCredential.companyId, ctx.companyId),
+          eq(integrationCredential.provider, 'asaas')
+        )
+      );
+  });
 
-  if (!cred?.active || !cred?.secret_ref?.access_token) {
+  const secretData = cred?.secretRef as any;
+  if (!cred?.active || !secretData?.access_token) {
     throw new Error('Integração com Asaas não configurada ou inativa.');
   }
 
-  const apiKey = cred.secret_ref.access_token;
+  const apiKey = secretData.access_token;
   const asaasBaseUrl = apiKey.includes('sandbox') 
     ? 'https://sandbox.asaas.com/api/v3' 
     : 'https://api.asaas.com/v3';

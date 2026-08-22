@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Edit2, Copy, ChevronDown, ChevronUp, ArrowRight, Trash2, QrCode,
-  Plus, FileText, Clock, Send, CheckCircle2, XCircle, X
-} from 'lucide-react';
+import { PencilSimple, Copy, CaretDown, CaretUp, ArrowRight, Trash, QrCode, Plus, FileText, Clock, PaperPlaneRight, CheckCircle, XCircle, X } from '@phosphor-icons/react';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,9 +25,9 @@ type Proposta = {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<PropStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  rascunho:  { label: 'Rascunho',  cls: 'bg-ink/10 text-ink-soft',          icon: Edit2 },
-  enviada:   { label: 'Enviada',   cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400', icon: Send },
-  aprovada:  { label: 'Aprovada',  cls: 'bg-ok/10 text-ok',                  icon: CheckCircle2 },
+  rascunho:  { label: 'Rascunho',  cls: 'bg-ink/10 text-ink-soft',          icon: PencilSimple },
+  enviada:   { label: 'Enviada',   cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400', icon: PaperPlaneRight },
+  aprovada:  { label: 'Aprovada',  cls: 'bg-ok/10 text-ok',                  icon: CheckCircle },
   rejeitada: { label: 'Rejeitada', cls: 'bg-critical/10 text-critical',      icon: XCircle },
   expirada:  { label: 'Expirada',  cls: 'bg-warn/10 text-warn',              icon: Clock },
 };
@@ -282,7 +279,7 @@ export function HubPropostas() {
           {statusBtns.map(s => (
             <button key={s.key} type="button" onClick={() => setStatusFilter(s.key)}
               className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
-                statusFilter === s.key ? 'bg-brand-500 text-white' : 'bg-black/[0.07] text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'
+                statusFilter === s.key ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'
               }`}>
               {s.label}
             </button>
@@ -312,7 +309,7 @@ export function HubPropostas() {
             return (
               <div key={p.id}>
                 <button type="button" onClick={() => setExpanded(isExp ? null : p.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-black/3 dark:hover:bg-white/5 transition-colors">
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-card border border-line dark:hover:bg-white/5 transition-colors">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono text-ink-soft">{p.numero}</span>
@@ -332,11 +329,11 @@ export function HubPropostas() {
                     <p className="font-semibold text-brand-600 dark:text-brand-400">{BRL.format(total)}</p>
                     <p className="text-xs text-ink-soft">{p.itens.length} item(ns)</p>
                   </div>
-                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
+                  {isExp ? <CaretUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <CaretDown className="h-4 w-4 shrink-0 text-ink-soft" />}
                 </button>
 
                 {isExp && (
-                  <div className="mx-4 mb-3 space-y-3 rounded-xl bg-black/[0.07] p-4 dark:bg-white/5">
+                  <div className="mx-4 mb-3 space-y-3 rounded-xl bg-surface-card border border-line p-4 dark:bg-white/5">
                     {/* Items table */}
                     <table className="w-full text-sm">
                       <thead>
@@ -371,19 +368,19 @@ export function HubPropostas() {
                     <div className="flex flex-wrap gap-2 pt-1">
                       <button type="button" onClick={() => setModal({ open: true, editId: p.id })}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-ink/5 px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-ink/10">
-                        <Edit2 className="h-3.5 w-3.5" /> Editar
+                        <PencilSimple className="h-3.5 w-3.5" /> Editar
                       </button>
                       {p.status === 'rascunho' && (
                         <button type="button" onClick={() => setStatus(p.id, 'enviada')}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-500/20 dark:text-brand-400">
-                          <Send className="h-3.5 w-3.5" /> Marcar como enviada
+                          <PaperPlaneRight className="h-3.5 w-3.5" /> Marcar como enviada
                         </button>
                       )}
                       {p.status === 'enviada' && (
                         <>
                           <button type="button" onClick={() => setStatus(p.id, 'aprovada')}
                             className="inline-flex items-center gap-1.5 rounded-xl bg-ok/10 px-3 py-1.5 text-xs font-medium text-ok hover:bg-ok/20">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Aprovada
+                            <CheckCircle className="h-3.5 w-3.5" /> Aprovada
                           </button>
                           <button type="button" onClick={() => setStatus(p.id, 'rejeitada')}
                             className="inline-flex items-center gap-1.5 rounded-xl bg-critical/10 px-3 py-1.5 text-xs font-medium text-critical hover:bg-critical/20">
@@ -405,7 +402,7 @@ export function HubPropostas() {
                       )}
                       <button type="button" onClick={() => deleteProposta(p.id)}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-ink/5 px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-critical/10 hover:text-critical transition-colors">
-                        <Trash2 className="h-3.5 w-3.5" /> Excluir
+                        <Trash className="h-3.5 w-3.5" /> Excluir
                       </button>
                     </div>
                   </div>

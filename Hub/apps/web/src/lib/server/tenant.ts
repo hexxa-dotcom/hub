@@ -4,11 +4,16 @@ import type { TenantContext } from '@hexxa/core';
 import { getDb, company, eq } from '@hexxa/db';
 
 /**
- * Empresa usada quando não há organização ativa no Clerk (conta pessoal,
- * primeiro acesso) — mantém o comportamento anterior enquanto o usuário
- * não cria/seleciona uma empresa no seletor.
+ * Lançada quando o usuário está autenticado mas não tem organização ativa
+ * selecionada no Clerk. Os chamadores devem tratar isso redirecionando para
+ * a seleção/criação de empresa — nunca resolver para um tenant compartilhado.
  */
-const FALLBACK_COMPANY_ID = 'ad35fdf7-3e07-4ad1-9d5d-ffe1c0356109';
+export class NoActiveOrganizationError extends Error {
+  constructor() {
+    super('Nenhuma organização ativa selecionada.');
+    this.name = 'NoActiveOrganizationError';
+  }
+}
 
 /**
  * Resolve o tenant a partir da sessão do Clerk:
@@ -20,8 +25,7 @@ export async function getTenantContext(): Promise<TenantContext> {
   const { userId, orgId } = await auth();
 
   if (!userId || !orgId) {
-    // Sem login ou sem organização ativa → empresa demo (compatibilidade).
-    return { companyId: FALLBACK_COMPANY_ID, companyType: 'SERVICE', userId: userId ?? 'anon' };
+    throw new NoActiveOrganizationError();
   }
 
   const db = getDb();

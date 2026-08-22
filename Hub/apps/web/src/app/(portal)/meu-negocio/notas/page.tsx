@@ -1,9 +1,9 @@
-import { Receipt } from 'lucide-react';
+import {  Receipt  } from '@phosphor-icons/react/dist/ssr';
 import { HubNotas } from './HubNotas';
 import { serviceInvoiceRepository, nfseMode } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getNfseConfig, isCertConfiguredForTenant, isFiscalComplete, listServiceProfiles } from '@/lib/server/fiscal';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, customer, eq } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +26,20 @@ export default async function Page() {
     ]);
 
     // Busca clientes do tenant real
-    const sb = await createRawClient();
-    const { data: customersData } = await sb
-      .from('customer')
-      .select('id, name, document, email')
-      .eq('company_id', ctx.companyId)
-      .order('name');
+    const customersData = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({
+          id: customer.id,
+          name: customer.name,
+          document: customer.document,
+          email: customer.email,
+        })
+        .from(customer)
+        .where(eq(customer.companyId, ctx.companyId));
+    });
+
+    // Sort customers by name (Drizzle doesn't have robust localeCompare natively yet, but we can do it in memory or with orderBy)
+    customersData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     recent = recentData;
     mode = modeData;

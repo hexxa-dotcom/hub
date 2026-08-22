@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useActionState, useState, useTransition, useRef } from 'react';
-import {
-  Save, Upload, Trash2, CheckCircle2, AlertCircle, Info,
-  FileKey2, Building2, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText,
-} from 'lucide-react';
+import { FloppyDisk, UploadSimple, Trash, CheckCircle, WarningCircle, Info, Key, Buildings, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText } from '@phosphor-icons/react';
 import { saveFiscalAction, uploadCertAction, removeCertAction, createProfileAction, deleteProfileAction, saveTecnicaAction, type FiscalState } from './actions';
 import type { NfseConfig, NfseServiceProfile } from '@/lib/server/fiscal';
 
@@ -839,7 +836,7 @@ function CnaeSugestoes({
                           : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand-500'
                       }`}
                     >
-                      {selected && <CheckCircle2 className="h-3 w-3 shrink-0" />}
+                      {selected && <CheckCircle className="h-3 w-3 shrink-0" />}
                       <span className="font-mono">{lc}</span>
                       <span className="text-slate-400 dark:text-slate-500">·</span>
                       <span className="max-w-[22ch] truncate">{getLabelLC(lc).replace(/^\d+\.\d+ — /, '')}</span>
@@ -912,8 +909,8 @@ function Feedback({ state }: { state: FiscalState }) {
         : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
     }`}>
       {state.ok
-        ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-        : <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        ? <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        : <WarningCircle className="mt-0.5 h-4 w-4 shrink-0" />
       }
       {state.message}
     </div>
@@ -1025,7 +1022,7 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
 
       {/* ── Identificação ── */}
       <div className="space-y-4">
-        <SectionTitle icon={Building2}>Identificação da empresa</SectionTitle>
+        <SectionTitle icon={Buildings}>Identificação da empresa</SectionTitle>
 
         {/* CNPJ — primeiro campo, dispara lookup automático */}
         <div>
@@ -1049,8 +1046,8 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
               )}
-              {cnpjStatus === 'ok' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-              {cnpjStatus === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+              {cnpjStatus === 'ok' && <CheckCircle className="h-4 w-4 text-green-500" />}
+              {cnpjStatus === 'error' && <WarningCircle className="h-4 w-4 text-red-500" />}
             </span>
           </div>
           {cnpjMsg && (
@@ -1224,7 +1221,7 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          <Save className="h-4 w-4" />
+          <FloppyDisk className="h-4 w-4" />
           {pending ? 'Salvando…' : 'Salvar cadastro fiscal'}
         </button>
       </div>
@@ -1258,7 +1255,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
           : 'bg-amber-50 dark:bg-amber-900/10'
       }`}>
         <div className="flex items-center gap-3">
-          <FileKey2 className={`h-5 w-5 ${hasCert ? 'text-green-600' : 'text-amber-600'}`} />
+          <Key className={`h-5 w-5 ${hasCert ? 'text-green-600' : 'text-amber-600'}`} />
           <div>
             <p className={`text-sm font-semibold ${hasCert ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300'}`}>
               {hasCert ? 'Certificado A1 configurado' : 'Nenhum certificado configurado'}
@@ -1276,7 +1273,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
             disabled={isPending}
             className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Remover
+            <Trash className="h-3.5 w-3.5" /> Remover
           </button>
         )}
       </div>
@@ -1293,7 +1290,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
         </ul>
       </div>
 
-      {/* Upload */}
+      {/* UploadSimple */}
       <form action={action} className="space-y-4">
         <div>
           <label className={labelCls}>Arquivo do certificado (.pfx ou .p12)</label>
@@ -1301,7 +1298,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
             className="mt-1 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:bg-brand-900/10"
             onClick={() => fileRef.current?.click()}
           >
-            <Upload className="h-8 w-8 text-slate-300" />
+            <UploadSimple className="h-8 w-8 text-slate-300" />
             {fileName
               ? <p className="text-sm font-medium text-brand-600">{fileName}</p>
               : <p className="text-sm text-slate-400">Clique para selecionar ou arraste o arquivo aqui</p>
@@ -1338,7 +1335,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
             disabled={pending || !fileName}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
           >
-            <Upload className="h-4 w-4" />
+            <UploadSimple className="h-4 w-4" />
             {pending ? 'Validando e salvando…' : 'Enviar certificado'}
           </button>
         </div>
@@ -1395,7 +1392,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
-        <Building2 className="h-5 w-5" />
+        <Buildings className="h-5 w-5" />
         <h3 className="text-lg font-medium">Perfis Fiscais de Serviço</h3>
       </div>
       <p className="text-sm text-slate-500">
@@ -1506,16 +1503,16 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 type Tab = 'empresa' | 'certificado' | 'perfil';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'empresa',      label: 'Dados da empresa',  icon: Building2 },
+  { id: 'empresa',      label: 'Dados da empresa',  icon: Buildings },
   { id: 'perfil',       label: 'Perfis Fiscais',     icon: FileText },
-  { id: 'certificado',  label: 'Certificado A1',     icon: FileKey2 },
+  { id: 'certificado',  label: 'Certificado A1',     icon: Key },
 ];
 
 export function FiscalForm({ config, temCert, profiles }: { config: NfseConfig | null; temCert: boolean; profiles?: any[] }) {
   const [tab, setTab] = useState<Tab>('empresa');
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-2xl border border-slate-200 bg-surface-card shadow-sm dark:border-slate-700 dark:bg-slate-900">
       {/* Abas */}
       <div className="flex border-b border-slate-200 dark:border-slate-700">
         {TABS.map(t => {

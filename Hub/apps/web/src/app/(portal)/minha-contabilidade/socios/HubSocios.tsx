@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Users2, Plus, X, Edit2, CheckCircle2, HandCoins, Send,
-} from 'lucide-react';
+import { Users, Plus, X, PencilSimple, CheckCircle, HandCoins, PaperPlaneRight } from '@phosphor-icons/react';
 import { LucroCard } from '../distribuicao-lucros/LucroCard';
 import { DistForm } from '../distribuicao-lucros/DistForm';
 
@@ -215,7 +213,7 @@ function ProLaboreTab() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button type="button" onClick={() => setModal({ open: true, editId: s.id })}
                     className="rounded-xl p-1.5 text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors">
-                    <Edit2 className="h-4 w-4" />
+                    <PencilSimple className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => toggleLancado(s.id)}
                     className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -224,8 +222,8 @@ function ProLaboreTab() {
                         : 'bg-surface-hover text-ink-soft hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-400'
                     }`}>
                     {s.lancado
-                      ? <><CheckCircle2 className="h-3.5 w-3.5" /> Lançado</>
-                      : <><Send className="h-3.5 w-3.5" /> Lançar no Financeiro</>}
+                      ? <><CheckCircle className="h-3.5 w-3.5" /> Lançado</>
+                      : <><PaperPlaneRight className="h-3.5 w-3.5" /> Lançar no Financeiro</>}
                   </button>
                 </div>
               </div>
@@ -293,7 +291,7 @@ function DistribuicaoTab() {
           <div className="flex items-start justify-between">
             <h3 className="text-sm font-medium text-ink-soft">Sócios contemplados</h3>
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-              <Users2 className="h-[18px] w-[18px]" />
+              <Users className="h-[18px] w-[18px]" />
             </span>
           </div>
           <p className="mt-3 text-[28px] font-semibold tracking-tight">{partners}</p>

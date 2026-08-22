@@ -1,7 +1,8 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { createRawClient } from '@/lib/supabase/server';
+import { withTenant, eq, desc } from '@hexxa/db';
+import { monthlyClosure } from '@hexxa/db/schema';
 import { redirect } from 'next/navigation';
-import { FileText, Printer, CheckCircle2, TrendingUp, TrendingDown, Clock, Users, ArrowRight } from 'lucide-react';
+import {  FileText, Printer, CheckCircle, TrendUp, TrendDown, Clock, Users, ArrowRight  } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -10,16 +11,20 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 
 export default async function FechamentoReportPage({ searchParams }: { searchParams: { month?: string } }) {
   const ctx = await getTenantContext();
-  const supabase = await createRawClient();
 
   // Buscar todos os fechamentos da empresa
-  const { data: closures, error } = await supabase
-    .from('monthly_closure')
-    .select('*')
-    .eq('company_id', ctx.companyId)
-    .order('reference_month', { ascending: false });
+  let closures: any[] = [];
+  try {
+    closures = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select()
+        .from(monthlyClosure)
+        .where(eq(monthlyClosure.companyId, ctx.companyId))
+        .orderBy(desc(monthlyClosure.referenceMonth));
+    });
+  } catch (error) {}
 
-  if (error || !closures || closures.length === 0) {
+  if (!closures || closures.length === 0) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 text-center py-20">
         <Clock className="h-12 w-12 mx-auto text-ink-soft opacity-50 mb-4" />
@@ -108,7 +113,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
             </p>
           </div>
           <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm print:border print:bg-transparent">
-            <CheckCircle2 className="h-5 w-5" />
+            <CheckCircle className="h-5 w-5" />
             <span className="text-sm font-bold tracking-wide">ENVIADO À CONTABILIDADE</span>
           </div>
         </div>
@@ -147,11 +152,11 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
             
             <section className="space-y-4">
               <h3 className="flex items-center gap-2 font-bold text-lg text-ink">
-                <TrendingUp className="h-5 w-5 text-ok" />
+                <TrendUp className="h-5 w-5 text-ok" />
                 Destaques Positivos
               </h3>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3 bg-black/[0.07] dark:bg-white/5 p-4 rounded-2xl">
+                <li className="flex items-start gap-3 bg-surface-card border border-line dark:bg-white/5 p-4 rounded-2xl">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ok/20 text-ok shrink-0">
                     <Users className="h-4 w-4" />
                   </span>
@@ -163,9 +168,9 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
                   </div>
                 </li>
                 {isProfit && (
-                  <li className="flex items-start gap-3 bg-black/[0.07] dark:bg-white/5 p-4 rounded-2xl">
+                  <li className="flex items-start gap-3 bg-surface-card border border-line dark:bg-white/5 p-4 rounded-2xl">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-600 shrink-0">
-                      <TrendingUp className="h-4 w-4" />
+                      <TrendUp className="h-4 w-4" />
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-ink">Margem Positiva</p>
@@ -198,7 +203,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
                 {closure.defaults_count > 0 && (
                   <li className="flex items-start gap-3 bg-warn/10 p-4 rounded-2xl">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warn/20 text-warn shrink-0">
-                      <TrendingDown className="h-4 w-4" />
+                      <TrendDown className="h-4 w-4" />
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-ink">Inadimplentes</p>
