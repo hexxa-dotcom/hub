@@ -216,7 +216,7 @@ export async function createContractAction(input: {
 
   revalidatePath('/meu-negocio/contratos');
   revalidatePath('/meu-negocio/hub-financeiro');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
 
   return {
     ok: true,

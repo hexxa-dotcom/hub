@@ -62,7 +62,7 @@ export async function savePartnerAction(input: {
 
   revalidatePath('/minha-contabilidade/socios');
   revalidatePath('/minha-contabilidade/termometro-tributario');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
   return { ok: true, message: 'Sócio salvo.' };
 }
 
@@ -119,6 +119,6 @@ export async function lancarProLaboreMesAction(partnerId: string): Promise<SaveP
 
   revalidatePath('/minha-contabilidade/socios');
   revalidatePath('/meu-negocio/hub-financeiro');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
   return { ok: true, message: `Pró-labore de ${p.name} lançado no Hub Financeiro.` };
 }

@@ -72,7 +72,7 @@ export async function saveEmployeeAction(input: {
 
   revalidatePath('/minha-contabilidade/departamento-pessoal');
   revalidatePath('/minha-contabilidade/termometro-tributario');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
   return { ok: true, message: 'Colaborador salvo.' };
 }
 
@@ -83,7 +83,7 @@ export async function setEmployeeStatusAction(id: string, status: 'ACTIVE' | 'ON
   });
   revalidatePath('/minha-contabilidade/departamento-pessoal');
   revalidatePath('/minha-contabilidade/termometro-tributario');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
   return { ok: true, message: 'Status atualizado.' };
 }
 

@@ -7,7 +7,7 @@ import { isAdminUser } from '@/lib/server/admin-guard';
 /** Área do contador: exige login (Clerk, via proxy) + e-mail na allowlist. */
 export default async function ContadorLayout({ children }: { children: React.ReactNode }) {
   if (!(await isAdminUser())) {
-    redirect('/dashboard?aviso=sem-acesso-contador');
+    redirect('/cliente?aviso=sem-acesso-contador');
   }
 
   const db = getDb();

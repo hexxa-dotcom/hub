@@ -13,7 +13,7 @@ export const NAV: NavSection[] = [
   {
     title: 'Meu Dia',
     items: [
-      { label: 'Visão Geral', href: '/dashboard' },
+      { label: 'Visão Geral', href: '/cliente' },
       { label: 'Emissão de Notas (NFSe)', href: '/meu-negocio/notas' },
       { label: 'Contas a Pagar', href: '/meu-negocio/contas-a-pagar' },
       { label: 'Contas a Receber', href: '/meu-negocio/contas-a-receber' },

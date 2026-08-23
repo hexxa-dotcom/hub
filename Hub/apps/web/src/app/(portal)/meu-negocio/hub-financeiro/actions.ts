@@ -67,7 +67,7 @@ export async function createLancamento(data: {
   });
 
   revalidatePath('/meu-negocio/hub-financeiro');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
 }
 
 export async function updateLancamentoStatus(id: string, newStatus: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELED') {
@@ -80,7 +80,7 @@ export async function updateLancamentoStatus(id: string, newStatus: 'PENDING' | 
     `);
   });
   revalidatePath('/meu-negocio/hub-financeiro');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
 }
 
 export async function deleteLancamento(id: string) {
@@ -92,5 +92,5 @@ export async function deleteLancamento(id: string) {
     `);
   });
   revalidatePath('/meu-negocio/hub-financeiro');
-  revalidatePath('/dashboard');
+  revalidatePath('/cliente');
 }

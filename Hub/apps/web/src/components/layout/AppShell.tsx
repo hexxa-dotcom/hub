@@ -48,7 +48,7 @@ import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
 
 const ICONS: Record<string, LucideIcon> = {
-  '/dashboard': LayoutDashboard,
+  '/cliente': LayoutDashboard,
   '/meu-negocio/notas': Receipt,
   '/meu-negocio/contas-a-pagar': TrendingDown,
   '/meu-negocio/contas-a-receber': TrendingUp,
@@ -116,7 +116,7 @@ function NavList({
   return (
     <ul className="space-y-1">
       {items.map((i) => {
-        const active = pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(`${i.href}/`));
+        const active = pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`));
         const IconCmp = ICONS[i.href] || LayoutDashboard;
 
         return (
@@ -180,7 +180,7 @@ function AppShellInner({
 
   useEffect(() => {
     const currentSection = sections.find(s => 
-      s.items.some(i => pathname === i.href || (i.href !== '/dashboard' && pathname.startsWith(`${i.href}/`)))
+      s.items.some(i => pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`)))
     );
     if (currentSection) {
       setActiveGroup(currentSection.title);
@@ -206,7 +206,7 @@ function AppShellInner({
       >
         {/* Sidebar Primária (Estreita em Verde Floresta Profundo) */}
         <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 py-5 z-40 flex bg-[#1E3328] border-r border-[#2F4A3C]/40 text-[#FEFDF3]">
-          <Link href="/dashboard" className="transition-transform hover:scale-105">
+          <Link href="/cliente" className="transition-transform hover:scale-105">
             <BrandMark />
           </Link>
 
@@ -356,8 +356,8 @@ function AppShellInner({
 
             <OrganizationSwitcher
               hidePersonal
-              afterSelectOrganizationUrl="/dashboard"
-              afterCreateOrganizationUrl="/dashboard"
+              afterSelectOrganizationUrl="/cliente"
+              afterCreateOrganizationUrl="/cliente"
             />
             <ThemeToggle collapsed />
             <UserButton />

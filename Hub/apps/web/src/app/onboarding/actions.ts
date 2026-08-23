@@ -154,5 +154,5 @@ export async function completeOnboardingAction(
     optanteSimples: data.optanteSimples,
   });
 
-  redirect('/dashboard');
+  redirect('/cliente');
 }

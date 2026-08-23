@@ -106,7 +106,7 @@ export function CommandMenu({
       category: 'Navegação' as const,
       href: item.href,
       icon:
-        item.href === '/dashboard'
+        item.href === '/cliente'
           ? Sparkles
           : item.href.includes('notas')
           ? Receipt

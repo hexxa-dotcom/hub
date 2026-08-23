@@ -162,7 +162,7 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
       {/* Footer */}
       <div className={`border-t border-[#2F4A3C]/40 pt-4 space-y-1.5 ${collapsed && !mobile ? 'px-0' : ''}`}>
         <Link
-          href="/dashboard"
+          href="/cliente"
           className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />

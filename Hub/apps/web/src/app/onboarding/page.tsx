@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 /**
  * Onboarding da empresa: pede só o CNPJ e alimenta todo o sistema
  * (cadastro da empresa + base fiscal) com os dados da Receita.
- * Se a empresa ativa já tem CNPJ real, volta ao dashboard.
+ * Se a empresa ativa já tem CNPJ real, volta pra área do cliente.
  */
 export default async function OnboardingPage() {
   let ctx;
@@ -38,14 +38,14 @@ export default async function OnboardingPage() {
     .where(eq(company.id, ctx.companyId));
 
   if (row && !row.cnpj.startsWith('PENDENTE-')) {
-    redirect('/dashboard');
+    redirect('/cliente');
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
       {/* Trocar de organização ou sair sem ficar preso no onboarding */}
       <div className="absolute right-4 top-4 flex items-center gap-3 rounded-full bg-white/10 px-3 py-1.5 border border-white/10">
-        <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/dashboard" />
+        <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/cliente" />
         <UserButton />
       </div>
       <OnboardingForm companyName={row?.name ?? 'sua empresa'} />

@@ -7,7 +7,7 @@ import Link from 'next/link';
 // "Entrar" pulam a tela de login e vão direto pras páginas — reverte sozinho
 // quando NEXT_PUBLIC_DEV_SKIP_AUTH voltar pra "false".
 const DEV_SKIP_AUTH = process.env.NEXT_PUBLIC_DEV_SKIP_AUTH === 'true';
-const LOGIN_CLIENTE_HREF = DEV_SKIP_AUTH ? '/dashboard' : '/auth/login';
+const LOGIN_CLIENTE_HREF = DEV_SKIP_AUTH ? '/cliente' : '/auth/login';
 const LOGIN_CONTADOR_HREF = DEV_SKIP_AUTH ? '/contador' : '/auth/login?redirect_url=%2Fcontador';
 
 export function Navbar() {

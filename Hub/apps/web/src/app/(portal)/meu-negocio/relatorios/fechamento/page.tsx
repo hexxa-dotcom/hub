@@ -35,7 +35,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
           O fechamento é gerado automaticamente no dia 1º de cada mês.<br/>
           Quando o próximo mês iniciar, seu relatório estará disponível aqui.
         </p>
-        <Link href="/dashboard" className="inline-flex mt-4 items-center gap-2 text-brand-600 font-semibold hover:underline">
+        <Link href="/cliente" className="inline-flex mt-4 items-center gap-2 text-brand-600 font-semibold hover:underline">
           Voltar ao Dashboard <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
