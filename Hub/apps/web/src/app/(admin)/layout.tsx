@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { redirect } from 'next/navigation';
 import { getDb, eq } from '@hexxa/db';
 import { ticket } from '@hexxa/db/schema';

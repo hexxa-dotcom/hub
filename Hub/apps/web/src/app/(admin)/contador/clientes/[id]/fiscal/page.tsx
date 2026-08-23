@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { taxHistory, getDb, eq, desc } from '@hexxa/db';
 import Link from 'next/link';
 import {  ArrowLeft, CloudArrowUp, ChartBar, Calendar  } from '@phosphor-icons/react/dist/ssr';

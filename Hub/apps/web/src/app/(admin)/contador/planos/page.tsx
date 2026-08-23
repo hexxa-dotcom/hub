@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getDb } from '@hexxa/db/client';
 import { plan, subscription } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';

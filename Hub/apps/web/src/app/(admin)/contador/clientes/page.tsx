@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getDb, eq } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket } from '@hexxa/db/schema';
 import { ClientesTable, type Cliente } from './ClientesTable';
