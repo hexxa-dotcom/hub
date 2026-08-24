@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Lock, Shield, User } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme/ThemeControls';
+import { ArrowLeft } from 'lucide-react';
+import '@/app/landing.css';
 
 export function AuthLayout({
   children,
@@ -20,94 +20,99 @@ export function AuthLayout({
   const redirectUrl = searchParams.get('redirect_url') || '';
   const isContador = type === 'contador' || redirectUrl.includes('/contador');
 
-  const activeTitle = title || (isContador ? 'Acesso do Contador' : 'Acesso à Minha Empresa');
-  const activeSubtitle = subtitle || (isContador
-    ? 'Painel restrito para contadores e equipe contábil'
-    : 'Autogestão financeira, notas fiscais e contabilidade em tempo real');
+  const defaultTitle = isContador ? 'Área do Contador' : 'Acesse seu Hub';
+  const defaultSubtitle = isContador
+    ? 'Acesse a gestão contábil, carteira de clientes e rotinas fiscais'
+    : 'Gestão financeira, fiscal e contábil em tempo real';
 
   return (
-    <div className="min-h-screen w-full bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3] flex flex-col justify-between p-4 sm:p-8 animate-fade-up">
-      {/* ── Top Bar ── */}
-      <header className="w-full max-w-5xl mx-auto flex items-center justify-between py-2">
+    // `.landing-page` (landing.css) já define background/color próprios (creme/tinta) e
+    // empatam em especificidade com as classes Tailwind bg-/text- neste mesmo elemento —
+    // por ordem de import, `.landing-page` costuma vencer. Força o tema escuro via style
+    // inline (sempre tem prioridade) para não depender da ordem de carregamento do CSS.
+    <div
+      className="landing-page font-sans min-h-screen flex flex-col justify-between relative overflow-hidden"
+      style={{ backgroundColor: '#121008', color: '#FEFDF3' }}
+    >
+      {/* Glows de Fundo da Landing Page */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[550px] rounded-full blur-3xl opacity-35"
+          style={{
+            background: isContador
+              ? 'radial-gradient(circle, rgba(47, 74, 60, 0.7) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(96, 88, 58, 0.65) 0%, transparent 70%)',
+          }}
+        />
+      </div>
+
+      {/* ── Barra de topo dedicada ao fluxo de autenticação ──
+          (não é o navbar de marketing: sem menu, dropdown "Entrar"
+          nem CTA — nesta tela isso seria redundante) */}
+      <header className="relative z-10 landing-wrap flex items-center justify-between py-6 sm:py-8">
+        <Link href="/" className="landing-logo" style={{ color: 'var(--cream)' }}>
+          <span className="logo-flex">
+            <b className="logo-main">hexx</b>
+            <span className="logo-tag-hub">HUB</span>
+          </span>
+        </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-all hover:scale-105"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-[#DFFFAE] transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Voltar ao site
         </Link>
-
-        <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm group-hover:scale-105 transition-transform">
-            H
-          </span>
-          <div className="flex items-baseline gap-1">
-            <span className="font-serif text-xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
-              hexx
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-widest bg-[#1E3328] text-[#DFFFAE] px-1.5 py-0.5 rounded-md">
-              HUB
-            </span>
-          </div>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <ThemeToggle collapsed />
-        </div>
       </header>
 
-      {/* ── Container Central ── */}
-      <main className="my-auto w-full max-w-md mx-auto py-6 space-y-4">
-        {/* Cabeçalho de Contexto Exclusivo */}
-        <div className="text-center space-y-2 mb-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[11px] font-bold tracking-wider uppercase bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] border border-[#2F4A3C]/20 shadow-sm">
-            {isContador ? (
-              <>
-                <Shield className="h-3.5 w-3.5" /> Área do Contador Parceiro
-              </>
-            ) : (
-              <>
-                <User className="h-3.5 w-3.5" /> Portal do Cliente
-              </>
-            )}
-          </div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            {activeTitle}
+      {/* ── Container Central de Login ── */}
+      <main className="relative z-10 my-auto py-12 sm:py-16 px-4 sm:px-6 w-full max-w-lg mx-auto flex flex-col items-center animate-fade-up">
+        {/* Cabeçalho da Página */}
+        <div className="text-center space-y-2 mb-8 max-w-md">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#FEFDF3]">
+            {title || defaultTitle}
           </h1>
-          <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] max-w-sm mx-auto">
-            {activeSubtitle}
+          <p className="text-sm sm:text-base text-[#FEFDF3]/70 leading-relaxed">
+            {subtitle || defaultSubtitle}
           </p>
         </div>
 
-        {/* Componente Clerk */}
+        {/* Card do Clerk */}
         <div className="w-full flex justify-center">{children}</div>
 
-        {/* Link alternativo de rodapé */}
-        <div className="text-center pt-2">
+        {/* Link Alternativo Discreto */}
+        <div className="mt-6 text-center">
           {isContador ? (
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              É cliente da Hexx?{' '}
-              <Link href="/auth/login" className="font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline">
-                Entrar no Portal do Cliente →
+            <p className="text-xs text-white/50">
+              É cliente da sua empresa?{' '}
+              <Link href="/auth/login" className="font-bold text-[#DFFFAE] hover:underline">
+                Acessar Portal do Cliente →
               </Link>
             </p>
           ) : (
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              É contador parceiro?{' '}
-              <Link href="/auth/login/contador" className="font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline">
-                Entrar na Área do Contador →
+            <p className="text-xs text-white/50">
+              É contador parceiro da Hexx?{' '}
+              <Link href="/auth/login/contador" className="font-bold text-[#DFFFAE] hover:underline">
+                Acessar Área do Contador →
               </Link>
             </p>
           )}
         </div>
       </main>
 
-      {/* ── Footer Discreto ── */}
-      <footer className="w-full max-w-md mx-auto text-center text-xs text-[#6E6A61] dark:text-[#A8A49C] py-4 flex items-center justify-center gap-1.5">
-        <Lock className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-        <span>Ambiente seguro certificado por SSL</span>
+      {/* ── Rodapé Minimalista Integrado ── */}
+      <footer className="relative z-10 py-6 border-t border-white/10 text-center text-xs text-white/40">
+        <div className="landing-wrap flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span>© 2026 Hexx Digital. Todos os direitos reservados.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/#faq" className="hover:text-white/80 transition-colors">Perguntas Frequentes</Link>
+            <span>·</span>
+            <Link href="/#contato" className="hover:text-white/80 transition-colors">Falar com Suporte</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
 }
+
 
