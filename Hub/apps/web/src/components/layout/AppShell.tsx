@@ -110,6 +110,9 @@ function NavList({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  // prefetch=false: com ~20 links sempre visíveis na sidebar, o prefetch
+  // automático do Next dispara todas as rotas dinâmicas (consultas ao banco)
+  // de uma vez ao abrir qualquer página, o que já saturou o pool de conexões.
   return (
     <ul className="space-y-1">
       {items.map((i) => {
@@ -122,6 +125,7 @@ function NavList({
               href={i.href as never}
               onClick={onNavigate}
               className={itemClass(active)}
+              prefetch={false}
             >
               <IconCmp
                 className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${

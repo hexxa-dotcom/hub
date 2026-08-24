@@ -71,8 +71,12 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
   const Icon = item.icon;
   return (
     <li className="group relative list-none">
+      {/* prefetch=false: sidebar tem ~15 links sempre visíveis — o prefetch
+          automático do Next dispararia todas as rotas dinâmicas (consultas
+          ao banco) de uma vez ao abrir qualquer página, saturando o pool. */}
       <Link
         href={item.href as never}
+        prefetch={false}
         className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
           active
             ? 'bg-[#DFFFAE] text-[#1E3328] font-bold shadow-sm'
