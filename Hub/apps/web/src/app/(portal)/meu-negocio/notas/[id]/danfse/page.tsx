@@ -9,7 +9,7 @@ export default async function DanfsePage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const ctx = await getTenantContext();
   if (!ctx.companyId) {
-    redirect('/auth/login');
+    redirect('/auth/login' as any);
   }
 
   const [nota] = await withTenant(ctx.companyId, async (tx) => {

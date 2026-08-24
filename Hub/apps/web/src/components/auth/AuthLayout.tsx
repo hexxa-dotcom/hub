@@ -85,14 +85,14 @@ export function AuthLayout({
           {isContador ? (
             <p className="text-xs text-white/50">
               É cliente da sua empresa?{' '}
-              <Link href="/auth/login" className="font-bold text-[#DFFFAE] hover:underline">
+              <Link href={'/auth/login' as any} className="font-bold text-[#DFFFAE] hover:underline">
                 Acessar Portal do Cliente →
               </Link>
             </p>
           ) : (
             <p className="text-xs text-white/50">
               É contador parceiro da Hexx?{' '}
-              <Link href="/auth/login/contador" className="font-bold text-[#DFFFAE] hover:underline">
+              <Link href={'/auth/login/contador' as any} className="font-bold text-[#DFFFAE] hover:underline">
                 Acessar Área do Contador →
               </Link>
             </p>

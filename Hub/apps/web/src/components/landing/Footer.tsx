@@ -48,7 +48,7 @@ export function Footer() {
             <small>Diagnóstico interativo e ROI</small>
             <Link href="/planos">Planos e Preços</Link>
             <small>Tabela comparativa de recursos</small>
-            <Link href="/auth/login">Acesso ao Hub</Link>
+            <Link href={'/auth/login' as any}>Acesso ao Hub</Link>
             <small>Portal do Cliente e Contador</small>
           </div>
 
