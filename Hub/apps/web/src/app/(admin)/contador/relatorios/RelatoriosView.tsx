@@ -1,13 +1,13 @@
 'use client';
 
-import { ChartBar } from '@phosphor-icons/react';
+import { BarChart3 } from 'lucide-react';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export type MonthPoint = { mes: string; pago: number; total: number; novos: number };
 export type PlanoReceita = { nome: string; clientes: number; valor: number };
 
-const PLANO_COR: Record<string, string> = { 'Início': '#6366f1', 'Crescimento': '#8b5cf6', 'Escala': '#f59e0b' };
+const PLANO_COR: Record<string, string> = { 'Início': '#2F4A3C', 'Crescimento': '#1E3328', 'Escala': '#84cc16' };
 
 function monthLabel(iso: string) {
   const [y, m] = iso.split('-');
@@ -42,7 +42,7 @@ function FaturamentoChart({ data }: { data: MonthPoint[] }) {
         const w = barW - pad * 2;
         return (
           <g key={d.mes}>
-            <rect x={x} y={y} width={w} height={barH} rx={3} fill="#6366f1" fillOpacity={0.85} />
+            <rect x={x} y={y} width={w} height={barH} rx={4} fill="#1E3328" fillOpacity={0.85} />
             <text x={x + w / 2} y={H - PB + 14} textAnchor="middle" fontSize={8} fill="currentColor" fillOpacity={0.5}>
               {monthLabel(d.mes)}
             </text>
@@ -55,10 +55,10 @@ function FaturamentoChart({ data }: { data: MonthPoint[] }) {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1.5 text-2xl font-semibold ${color ?? 'text-slate-900 dark:text-white'}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+      <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">{label}</p>
+      <p className={`mt-1.5 font-serif font-bold text-2xl ${color ?? 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{sub}</p>}
     </div>
   );
 }
@@ -80,44 +80,44 @@ export function RelatoriosView({
   const totalNovosPeriodo = faturamento.reduce((s, d) => s + d.novos, 0);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Relatórios</h1>
-        <p className="text-sm text-slate-500">Situação atual das assinaturas e faturamento real de honorários</p>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Relatórios</h1>
+        <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Situação atual das assinaturas e faturamento real de honorários</p>
       </div>
 
-      {/* KPIs — os que dá pra calcular com dado real que temos hoje */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="MRR atual" value={BRL.format(mrrAtual)} sub="soma dos planos ativos agora" color="text-green-600 dark:text-green-400" />
+        <StatCard label="MRR atual" value={BRL.format(mrrAtual)} sub="soma dos planos ativos agora" color="text-emerald-700 dark:text-emerald-400" />
         <StatCard label="Clientes ativos" value={String(totalClientesAtivos)} sub="pagantes" />
         <StatCard label="LTV estimado (24m)" value={BRL.format(ltv)} sub="baseado no MRR atual" />
         <StatCard label="Ticket médio" value={BRL.format(ticketMedio)} sub="por cliente ativo" />
       </div>
 
       {/* Faturamento real por mês */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-slate-900 dark:text-white">Faturas de honorários — por mês</h2>
-          <span className="text-xs text-slate-400">Gerado pelo fechamento mensal</span>
+          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Faturas de honorários — por mês</h2>
+          <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerado pelo fechamento mensal</span>
         </div>
         {faturamento.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center text-slate-500">
-            <ChartBar className="h-10 w-10 opacity-20" />
-            <p className="text-sm">Ainda sem faturas geradas — aparece aqui após o primeiro fechamento mensal rodar.</p>
+          <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+            <BarChart3 className="h-10 w-10 opacity-20" />
+            <p className="text-xs sm:text-sm">Ainda sem faturas geradas — aparece aqui após o primeiro fechamento mensal rodar.</p>
           </div>
         ) : (
           <>
-            <div className="text-slate-600 dark:text-slate-300">
+            <div className="text-[#231F20] dark:text-[#FEFDF3]">
               <FaturamentoChart data={faturamento} />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-black/5 dark:border-white/10 pt-4">
               <div className="text-center">
-                <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">{BRL.format(totalPagoPeriodo)}</p>
-                <p className="text-xs text-slate-400">Total pago no período</p>
+                <p className="font-serif font-bold text-xl text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(totalPagoPeriodo)}</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Total pago no período</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-semibold text-slate-800 dark:text-slate-200">{totalNovosPeriodo}</p>
-                <p className="text-xs text-slate-400">Novas empresas cadastradas no período</p>
+                <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{totalNovosPeriodo}</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Novas empresas cadastradas no período</p>
               </div>
             </div>
           </>
@@ -125,28 +125,28 @@ export function RelatoriosView({
       </div>
 
       {/* Distribuição por plano */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-4 font-semibold text-slate-900 dark:text-white">Receita por plano</h2>
-        <div className="space-y-3">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+        <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Receita por plano</h2>
+        <div className="space-y-4">
           {planos.map((p) => {
             const receita = p.clientes * p.valor;
             const pct = mrrAtual > 0 ? (receita / mrrAtual) * 100 : 0;
             const cor = PLANO_COR[p.nome] ?? '#94a3b8';
             return (
               <div key={p.nome}>
-                <div className="flex items-center justify-between mb-1 text-sm">
+                <div className="flex items-center justify-between mb-1.5 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ background: cor }} />
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{p.nome}</span>
-                    <span className="text-slate-400">{p.clientes} cliente{p.clientes !== 1 ? 's' : ''}</span>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: cor }} />
+                    <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{p.nome}</span>
+                    <span className="text-[#6E6A61] dark:text-[#A8A49C]">({p.clientes} cliente{p.clientes !== 1 ? 's' : ''})</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-500">{pct.toFixed(0)}%</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{BRL.format(receita)}/mês</span>
+                    <span className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">{pct.toFixed(0)}%</span>
+                    <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(receita)}/mês</span>
                   </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
-                  <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: cor }} />
+                <div className="h-2.5 rounded-full bg-black/10 dark:bg-white/10 p-0.5 overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: cor }} />
                 </div>
               </div>
             );
@@ -156,3 +156,4 @@ export function RelatoriosView({
     </div>
   );
 }
+

@@ -26,9 +26,9 @@ export function Hero() {
           Emita notas em segundos, saiba seu lucro real e tenha um contador dedicado cuidando dos seus impostos direto pelo WhatsApp.
         </p>
         <div className="flex flex-wrap items-center gap-4 reveal in reveal-d2">
-          <a href="#planos" className="btn-landing btn-landing-lime">
-            Ver Planos (a partir de R$ 149) →
-          </a>
+          <Link href="/planos" className="btn-landing btn-landing-lime">
+            Experimentar o Hub →
+          </Link>
           <a href="#contato" className="btn-landing btn-landing-dark">
             Falar com a Hexx
           </a>

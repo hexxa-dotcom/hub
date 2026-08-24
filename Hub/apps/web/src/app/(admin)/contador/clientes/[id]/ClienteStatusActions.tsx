@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { ArrowsClockwise, CheckCircle } from '@phosphor-icons/react';
+import { RotateCw, CheckCircle2 } from 'lucide-react';
 import { changeSubscriptionStatusAction } from '../actions';
 
 export function ClienteStatusActions({ subscriptionId, status }: { subscriptionId: string; status: 'PAST_DUE' | 'TRIAL' }) {
@@ -20,16 +20,17 @@ export function ClienteStatusActions({ subscriptionId, status }: { subscriptionI
     <>
       {status === 'PAST_DUE' ? (
         <button onClick={ativar} disabled={pending}
-          className="flex w-full items-center gap-2 rounded-xl bg-green-50 px-3 py-2 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-60 dark:bg-green-900/20 dark:text-green-400 transition-colors">
-          <ArrowsClockwise className="h-4 w-4" /> {pending ? 'Regularizando…' : 'Regularizar conta'}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-400 transition-all shadow-xs">
+          <RotateCw className={`h-3.5 w-3.5 ${pending ? 'animate-spin' : ''}`} /> {pending ? 'Regularizando…' : 'Regularizar conta'}
         </button>
       ) : (
         <button onClick={ativar} disabled={pending}
-          className="flex w-full items-center gap-2 rounded-xl bg-brand-500/10 px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-500/20 disabled:opacity-60 dark:text-brand-400 transition-colors">
-          <CheckCircle className="h-4 w-4" /> {pending ? 'Ativando…' : 'Ativar conta'}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] disabled:opacity-60 transition-all shadow-xs">
+          <CheckCircle2 className="h-3.5 w-3.5" /> {pending ? 'Ativando…' : 'Ativar conta'}
         </button>
       )}
-      {error && <p className="px-1 text-[11px] text-red-600">{error}</p>}
+      {error && <p className="px-1 text-[11px] font-bold text-red-600 dark:text-red-400">{error}</p>}
     </>
   );
 }
+

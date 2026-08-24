@@ -6,31 +6,31 @@ import { ArrowRight, Check, Sparkles } from 'lucide-react';
 export function PricingTeaser() {
   const quickPlans = [
     {
-      name: 'Hub Gestão',
-      desc: 'Plataforma para quem já tem contabilidade e precisa de gestão financeira ágil.',
+      name: 'Hub Start',
+      desc: 'Para quem já possui contabilidade externa e busca controle financeiro ágil, NFSe e contratos.',
       price: 'R$ 149',
       period: '/mês',
       featured: false,
-      tag: 'Autonomia',
+      tag: 'Autogestão',
       highlight: 'Caixa realtime + NFSe 1-clique + Contratos',
     },
     {
-      name: 'Hub + Contabilidade',
-      desc: 'O pacote completo tudo-em-um com contador dedicado e impostos apurados.',
+      name: 'Hub Pro + Contabilidade',
+      desc: 'A experiência definitiva com contador dedicado no WhatsApp, guias DAS e declarações inclusas.',
       price: 'R$ 389',
       period: '/mês',
       featured: true,
       tag: 'Mais Escolhido',
-      highlight: 'Tudo do Hub + Contador dedicado + DAS no prazo',
+      highlight: 'Hub Completo + Contador Dedicado + DAS no Prazo',
     },
     {
-      name: 'Holding & Patrimonial',
-      desc: 'Gestão contábil e societária para famílias, imóveis e administradoras de bens.',
+      name: 'Holding & Private',
+      desc: 'Gestão patrimonial, societária e tributária para famílias, múltiplos imóveis e bens.',
       price: 'R$ 890',
       period: '/mês',
       featured: false,
-      tag: 'Patrimônio',
-      highlight: 'Múltiplos imóveis + Proteção societária',
+      tag: 'Patrimonial',
+      highlight: 'Múltiplos Imóveis + Proteção Societária',
     },
   ];
 
@@ -39,10 +39,10 @@ export function PricingTeaser() {
       <div className="landing-wrap">
         <div className="pricing-head reveal in" style={{ marginBottom: '40px' }}>
           <span className="hero-eyebrow">
-            <Sparkles className="h-3.5 w-3.5 inline mr-1 text-[#DFFFAE]" />
+            <Sparkles className="h-3.5 w-3.5 inline mr-1 text-[#2F4A3C] dark:text-[#DFFFAE]" />
             Investimento Transparente
           </span>
-          <h2 className="landing-serif" style={{ fontSize: '36px', marginTop: '10px' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.025em', marginTop: '10px' }}>
             Planos sob medida para o momento da sua empresa.
           </h2>
           <p style={{ maxWidth: '600px', margin: '12px auto 0' }}>
@@ -57,19 +57,19 @@ export function PricingTeaser() {
               key={i}
               className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                 plan.featured
-                  ? 'bg-[#1E3328] text-[#FEFDF3] shadow-xl border-2 border-[#DFFFAE] relative scale-[1.02]'
-                  : 'bg-[#F4EFE4] text-[#231F20] border border-black/10 hover:border-black/20 shadow-sm'
+                  ? 'bg-[#1C180D] text-[#FEFDF3] shadow-2xl border-2 border-[#DFFFAE] relative md:scale-[1.03]'
+                  : 'bg-[#F4EFE4] text-[#231F20] border border-black/10 hover:border-black/20 shadow-sm hover:-translate-y-1'
               }`}
             >
               {plan.featured && (
-                <span className="absolute -top-3.5 right-6 bg-[#DFFFAE] text-[#1E3328] font-bold text-[11px] uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                <span className="absolute -top-3.5 right-6 bg-[#DFFFAE] text-[#1E3328] font-bold text-[11px] uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md">
                   {plan.tag}
                 </span>
               )}
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-serif font-bold text-xl">{plan.name}</h3>
+                  <h3 className="font-bold text-xl tracking-tight">{plan.name}</h3>
                   {!plan.featured && (
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] bg-black/5 px-2.5 py-0.5 rounded-full">
                       {plan.tag}
@@ -78,7 +78,7 @@ export function PricingTeaser() {
                 </div>
 
                 <div className="my-4">
-                  <span className="font-serif text-3xl sm:text-4xl font-bold">{plan.price}</span>
+                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">{plan.price}</span>
                   <span className={`text-xs ml-1 font-semibold ${plan.featured ? 'text-[#FEFDF3]/70' : 'text-[#6E6A61]'}`}>
                     {plan.period}
                   </span>
@@ -89,7 +89,7 @@ export function PricingTeaser() {
                 </p>
 
                 <div className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2 mb-6 ${
-                  plan.featured ? 'bg-white/10 text-[#DFFFAE]' : 'bg-white/60 text-[#2F4A3C]'
+                  plan.featured ? 'bg-white/10 text-[#DFFFAE]' : 'bg-white/70 text-[#2F4A3C] border border-black/5'
                 }`}>
                   <Check className="h-4 w-4 shrink-0" />
                   <span>{plan.highlight}</span>
@@ -104,7 +104,7 @@ export function PricingTeaser() {
                     : 'bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C]'
                 }`}
               >
-                Ver Detalhes do Plano
+                Experimentar o Hub
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -125,3 +125,4 @@ export function PricingTeaser() {
     </section>
   );
 }
+

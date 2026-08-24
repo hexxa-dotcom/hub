@@ -3,72 +3,73 @@ export function BentoGrid() {
     <section className="bento-sec">
       <div className="landing-wrap">
         <div className="bento-head reveal in">
-          <h2 className="landing-serif">É o fim da bagunça na gestão. Mesmo.</h2>
+          <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.025em' }}>É o fim da bagunça na gestão. Mesmo.</h2>
           <p>
-            Contabilidade, finanças e burocracia resolvidas — e tempo de sobra pra você fazer o que só você faz.
+            Contabilidade consultiva, finanças em tempo real e automação fiscal — tudo integrado em um único lugar.
           </p>
         </div>
         <div className="bento reveal in">
           <div className="bcard bc-beige">
-            <svg className="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z" />
-              <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
-            </svg>
-            <h3 className="landing-serif">Dados &amp; Inteligência</h3>
-            <p>Entenda sua empresa sem interpretar linhas e colunas ou abrir várias abas.</p>
+            <div className="mini">
+              <span>Simples Nacional</span>
+              <div className="val" style={{ color: '#2F4A3C', fontWeight: 800 }}>6% (Anexo III)</div>
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Termômetro do Fator R</h3>
+            <p>Monitoramento contínuo da folha sobre faturamento para garantir a menor alíquota de impostos da sua empresa.</p>
           </div>
 
           <div className="bcard bc-blue">
             <div className="mini">
-              <span>Contrato #0348</span>
-              <div className="val landing-serif">Assinado ✓</div>
+              <span>Proposta #0348</span>
+              <div className="val">Assinado (DocuSeal) ✓</div>
             </div>
-            <h3 className="landing-serif">Contratos por finalidade</h3>
-            <p>Modelos para projeto fechado, mensalidade recorrente ou hora técnica. Escolha e envie.</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Proposta que vira Contrato</h3>
+            <p>Envie orçamentos profissionais com aceite e assinatura digital com validade jurídica ICP-Brasil em minutos.</p>
           </div>
 
           <div className="bcard bc-lime">
-            <svg className="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <rect x="4" y="3" width="16" height="18" rx="2" />
-              <path d="M8 7h8M8 11h5M8 15h6" />
-            </svg>
-            <h3 className="landing-serif">Impostos no automático</h3>
-            <p>O Hub calcula, gera a guia e avisa o vencimento. Você só confirma o pagamento.</p>
+            <div className="mini">
+              <span>Cobrança Asaas</span>
+              <div className="val" style={{ color: '#1E3328', fontWeight: 800 }}>Pix &amp; Boleto</div>
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Cobranças &amp; Baixa Automática</h3>
+            <p>Emita links de pagamento vinculados a notas fiscais. O cliente paga e o Hub concilia na hora.</p>
           </div>
 
           <div className="bcard bc-olive">
             <div className="mini">
-              <span>Nota fiscal</span>
-              <div className="val landing-serif">Emitida</div>
+              <span>Retirada de Sócios</span>
+              <div className="val">100% Isento de IR</div>
             </div>
-            <h3 className="landing-serif">Monitoramento em tempo real</h3>
-            <p>Acompanhe tudo pelo celular ou desktop. Como fizer mais sentido pra você.</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Distribuição de Lucros</h3>
+            <p>Controle exato de quanto transferir para a conta PF com recibos legais e total conformidade contábil.</p>
           </div>
 
           <div className="bcard bc-cream">
-            <svg className="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M3 17l5-6 4 4 6-8" />
-              <path d="M3 21h18" />
-            </svg>
-            <h3 className="landing-serif">Controle por cliente e projeto</h3>
-            <p>Saiba exatamente quanto cada cliente rende — e quanto custa — automaticamente.</p>
+            <div className="mini">
+              <span>Inteligência Artificial</span>
+              <div className="val" style={{ color: '#2F4A3C', fontWeight: 800 }}>Protocolo MCP</div>
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Hub Preparado para IA</h3>
+            <p>Conecte agentes de IA ao Hub via protocolo MCP para gerar análises financeiras e projeções com privacidade.</p>
           </div>
 
           <div className="bcard bc-green">
-            <svg className="spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" />
-              <path d="M9 12l2 2 4-4" />
-            </svg>
-            <h3 className="landing-serif">Contabilidade de verdade</h3>
-            <p>Por trás da tecnologia, o time da Hexx: contadores nichados em empresas de serviço.</p>
+            <div className="mini">
+              <span>Atendimento Direto</span>
+              <div className="val" style={{ color: '#DFFFAE', fontWeight: 800 }}>WhatsApp Dedicado</div>
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Contabilidade Consultiva</h3>
+            <p>Especialistas em empresas de tecnologia e serviços cuidando de todas as guias e declarações da sua empresa.</p>
           </div>
         </div>
         <div className="bento-cta reveal in">
-          <a href="#planos" className="btn-landing btn-landing-lime">
-            Quero o Hub na minha empresa
+          <a href="/planos" className="btn-landing btn-landing-lime">
+            Experimentar o Hub →
           </a>
         </div>
       </div>
     </section>
   );
 }
+

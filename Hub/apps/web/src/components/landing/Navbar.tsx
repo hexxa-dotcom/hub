@@ -45,20 +45,21 @@ export function Navbar() {
     <>
       <header className={`landing-header on-dark ${scrolled ? 'scrolled' : ''}`} id="nav">
         <div className="landing-wrap">
-          <Link className="landing-logo" href="/">
-            <span className="logo-flex">
-              <b className="logo-main">hexx</b>
-              <span className="logo-tag-hub">HUB</span>
-            </span>
-          </Link>
+          <div className="landing-nav-left">
+            <Link className="landing-logo" href="/">
+              <span className="logo-flex">
+                <b className="logo-main">hexx</b>
+                <span className="logo-tag-hub">HUB</span>
+              </span>
+            </Link>
 
-          <nav className="landing-nav-center">
-            <Link href="/recursos">O Hub</Link>
-            <Link href="/simulador">Simulador</Link>
-            <Link href="/planos">Planos</Link>
-            <a href="/#depoimentos">Depoimentos</a>
-            <a href="/#faq">FAQ</a>
-          </nav>
+            <nav className="landing-nav-links">
+              <Link href="/recursos">O Hub</Link>
+              <Link href="/simulador">Simulador</Link>
+              <a href="/#depoimentos">Depoimentos</a>
+              <a href="/#faq">FAQ</a>
+            </nav>
+          </div>
 
           <div className="landing-nav-right">
             <div className="entrar-dropdown" ref={entrarRef}>
@@ -85,9 +86,9 @@ export function Navbar() {
                 </Link>
               </div>
             </div>
-            <a className="btn-landing landing-nav-cta" href="/#contato">
-              Fale com a Hexx
-            </a>
+            <Link className="btn-landing landing-nav-cta" href="/planos">
+              Experimentar o Hub
+            </Link>
             <button
               className="mobile-menu-btn"
               onClick={() => setMobileOpen(true)}
@@ -128,9 +129,6 @@ export function Navbar() {
           <Link href="/simulador" onClick={closeMobile}>
             Simulador de Autonomia
           </Link>
-          <Link href="/planos" onClick={closeMobile}>
-            Planos &amp; Valores
-          </Link>
           <a href="/#depoimentos" onClick={closeMobile}>
             Depoimentos
           </a>
@@ -146,9 +144,9 @@ export function Navbar() {
           <Link href={LOGIN_CONTADOR_HREF as any} className="btn-landing btn-landing-white" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
             Entrar como Contador
           </Link>
-          <a href="/#contato" className="btn-landing btn-landing-lime" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
-            Falar com a Hexx
-          </a>
+          <Link href="/planos" className="btn-landing btn-landing-lime" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
+            Entrar para o Hub
+          </Link>
         </div>
       </div>
     </>

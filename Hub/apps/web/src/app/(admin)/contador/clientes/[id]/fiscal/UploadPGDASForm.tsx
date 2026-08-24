@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CloudArrowUp, File, X, CheckCircle, WarningCircle, Spinner } from '@phosphor-icons/react';
+import { UploadCloud, FileText, X, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { processPGDAS } from './actions';
 
 export function UploadPGDASForm({ companyId }: { companyId: string }) {
@@ -46,7 +46,7 @@ export function UploadPGDASForm({ companyId }: { companyId: string }) {
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col items-center justify-center cursor-pointer"
+          className="border-2 border-dashed border-black/15 dark:border-white/15 rounded-3xl p-8 text-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex flex-col items-center justify-center cursor-pointer"
           onClick={() => document.getElementById('pgdas-upload')?.click()}
         >
           <input
@@ -62,43 +62,43 @@ export function UploadPGDASForm({ companyId }: { companyId: string }) {
               }
             }}
           />
-          <div className="h-12 w-12 rounded-full bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center mb-3">
-            <CloudArrowUp className="h-6 w-6 text-brand-600 dark:text-brand-400" />
+          <div className="h-12 w-12 rounded-2xl bg-[#EFFFD6] dark:bg-[#2F4A3C]/40 flex items-center justify-center mb-3">
+            <UploadCloud className="h-6 w-6 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           </div>
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">
             Clique para selecionar ou arraste o PDF
           </p>
-          <p className="text-xs text-slate-400 mt-1">Somente arquivos .pdf do PGDAS</p>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Somente arquivos .pdf do PGDAS</p>
         </div>
       ) : (
-        <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-slate-50 dark:bg-slate-800/30">
+        <div className="border border-black/10 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between bg-[#FEFDF3] dark:bg-[#121614]">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded flex items-center justify-center">
-              <File className="h-5 w-5" />
+            <div className="h-10 w-10 bg-[#EFFFD6] dark:bg-[#2F4A3C]/40 text-[#2F4A3C] dark:text-[#DFFFAE] rounded-xl flex items-center justify-center">
+              <FileText className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] truncate max-w-[200px]">
                 {file.name}
               </p>
-              <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
+              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{(file.size / 1024).toFixed(1)} KB</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFile(null)}
               disabled={isUploading}
-              className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+              className="p-2 text-[#6E6A61] hover:text-red-500 rounded-full hover:bg-red-500/10 disabled:opacity-50 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
             <button
               onClick={handleUpload}
               disabled={isUploading}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2 disabled:opacity-70"
+              className="px-4 py-2 bg-[#1E3328] hover:bg-[#2F4A3C] text-[#DFFFAE] text-xs font-bold rounded-full transition-all flex items-center gap-2 disabled:opacity-70 shadow-xs"
             >
               {isUploading ? (
                 <>
-                  <Spinner className="h-4 w-4 animate-spin" /> Processando
+                  <Loader2 className="h-4 w-4 animate-spin" /> Processando
                 </>
               ) : (
                 'Processar Recibo'
@@ -109,18 +109,18 @@ export function UploadPGDASForm({ companyId }: { companyId: string }) {
       )}
 
       {error && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl text-sm">
-          <WarningCircle className="h-5 w-5 shrink-0" />
+        <div className="flex items-start gap-2 p-3.5 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-2xl text-xs font-bold">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <p>{error}</p>
         </div>
       )}
 
       {result && (
-        <div className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-sm">
-          <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-2xl text-xs">
+          <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600" />
           <div>
-            <p className="font-semibold">Recibo processado com sucesso!</p>
-            <p className="text-green-600/80 dark:text-green-400/80 text-xs mt-1">
+            <p className="font-bold text-sm">Recibo processado com sucesso!</p>
+            <p className="text-emerald-700/80 dark:text-emerald-400/80 text-xs mt-1">
               RBA12 e Alíquota do mês {result.referenceMonth} foram extraídos e atualizados.
             </p>
           </div>
@@ -129,3 +129,4 @@ export function UploadPGDASForm({ companyId }: { companyId: string }) {
     </div>
   );
 }
+

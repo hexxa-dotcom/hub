@@ -44,12 +44,14 @@
 }
 
 .landing-serif {
-  font-family: var(--font-serif), Georgia, serif;
-  font-weight: 500;
+  font-family: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .landing-sans {
-  font-family: var(--font-sans), -apple-system, sans-serif;
+  font-family: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.011em;
 }
 
 /* ══════════════════ BUTTONS & LINKS ══════════════════ */
@@ -231,27 +233,41 @@
   color: var(--ink);
 }
 
+.landing-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.landing-nav-links,
 .landing-nav-center {
   display: flex;
-  gap: 34px;
+  align-items: center;
+  gap: 28px;
 }
 
+.landing-nav-links a,
 .landing-nav-center a {
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   transition: opacity 0.2s, color 0.4s;
+  letter-spacing: -0.01em;
 }
 
+.landing-header.on-dark:not(.scrolled) .landing-nav-links a,
 .landing-header.on-dark:not(.scrolled) .landing-nav-center a {
   color: var(--cream);
 }
 
+.landing-header.scrolled .landing-nav-links a,
+.landing-header:not(.on-dark) .landing-nav-links a,
 .landing-header.scrolled .landing-nav-center a,
 .landing-header:not(.on-dark) .landing-nav-center a {
   color: var(--ink);
 }
 
+.landing-nav-links a:hover,
 .landing-nav-center a:hover {
   opacity: 0.65;
 }
@@ -259,7 +275,7 @@
 .landing-nav-right {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .entrar-dropdown {
@@ -1814,17 +1830,20 @@
 .pricing-card {
   background: var(--beige);
   border-radius: var(--r-lg);
-  padding: 44px 38px;
+  padding: 44px 36px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border: 1px solid rgba(35, 31, 32, 0.08);
-  transition: transform 0.35s var(--ease), box-shadow 0.35s;
+  border: 1px solid rgba(35, 31, 32, 0.1);
+  box-shadow: 0 8px 30px -10px rgba(35, 31, 32, 0.06);
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.3s;
+  position: relative;
 }
 
 .pricing-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 60px -25px rgba(35, 31, 32, 0.18);
+  box-shadow: 0 30px 60px -20px rgba(35, 31, 32, 0.15);
+  border-color: rgba(35, 31, 32, 0.2);
 }
 
 .pricing-card.featured {
@@ -1832,12 +1851,20 @@
   color: var(--cream);
   position: relative;
   border: 2px solid var(--lime);
+  box-shadow: 0 24px 60px -15px rgba(28, 24, 13, 0.45), 0 0 30px -8px rgba(223, 255, 174, 0.25);
+  transform: scale(1.02);
+  z-index: 2;
+}
+
+.pricing-card.featured:hover {
+  transform: scale(1.02) translateY(-6px);
+  box-shadow: 0 36px 70px -18px rgba(28, 24, 13, 0.55), 0 0 40px -6px rgba(223, 255, 174, 0.4);
 }
 
 .pricing-badge {
   position: absolute;
   top: -14px;
-  right: 32px;
+  right: 28px;
   background: var(--lime);
   color: var(--ink);
   font-size: 11px;
@@ -1846,33 +1873,40 @@
   text-transform: uppercase;
   border-radius: 100px;
   padding: 6px 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 
 .pricing-card h3 {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin-bottom: 8px;
 }
 
 .pricing-card .p-desc {
   font-size: 14px;
-  opacity: 0.75;
+  opacity: 0.8;
+  line-height: 1.5;
   margin-bottom: 24px;
+  min-height: 42px;
 }
 
 .pricing-card .price {
-  font-size: 42px;
-  font-weight: 700;
-  margin-bottom: 24px;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 26px;
   display: flex;
   align-items: baseline;
   gap: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .pricing-card .price span {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   opacity: 0.75;
+  letter-spacing: normal;
 }
 
 .pricing-features {
@@ -1889,6 +1923,7 @@
   gap: 12px;
   font-size: 14.5px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .pricing-features .ck {
@@ -1901,6 +1936,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .pricing-card .btn-landing {
@@ -2366,6 +2402,7 @@
   .landing-wrap {
     padding: 0 24px;
   }
+  .landing-nav-links,
   .landing-nav-center,
   .landing-nav-right .entrar {
     display: none;

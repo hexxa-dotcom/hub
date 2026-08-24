@@ -103,7 +103,7 @@ export function FeatureComparisonTable() {
                   Recursos &amp; Funcionalidades
                 </th>
                 <th style={{ textAlign: 'center', padding: '16px', width: '22%' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700 }}>Hub Gestão</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700 }}>Hub Start</div>
                   <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>R$ 149/mês</div>
                   <Link href={'/checkout?plan=gestao' as any} className="btn-landing btn-landing-white btn-landing-sm" style={{ marginTop: '10px' }}>
                     Escolher
@@ -111,14 +111,14 @@ export function FeatureComparisonTable() {
                 </th>
                 <th style={{ textAlign: 'center', padding: '16px', width: '26%', background: 'rgba(223, 255, 174, 0.06)', borderRadius: '12px 12px 0 0' }}>
                   <span className="mock-pill" style={{ display: 'inline-block', marginBottom: '4px' }}>Recomendado</span>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--lime)' }}>Hub + Contabilidade</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--lime)' }}>Hub Pro + Contabilidade</div>
                   <div style={{ fontSize: '13px', color: 'var(--cream)', marginTop: '2px' }}>R$ 389/mês</div>
                   <Link href={'/checkout?plan=completo' as any} className="btn-landing btn-landing-lime btn-landing-sm" style={{ marginTop: '10px' }}>
                     Escolher
                   </Link>
                 </th>
                 <th style={{ textAlign: 'center', padding: '16px', width: '22%' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700 }}>Holding</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700 }}>Holding &amp; Private</div>
                   <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>R$ 890/mês</div>
                   <Link href={'/checkout?plan=holding' as any} className="btn-landing btn-landing-white btn-landing-sm" style={{ marginTop: '10px' }}>
                     Escolher

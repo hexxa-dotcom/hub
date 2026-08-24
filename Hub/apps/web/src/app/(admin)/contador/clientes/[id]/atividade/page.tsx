@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Receipt, Question, ClipboardText, CloudArrowUp, Buildings, Pulse } from '@phosphor-icons/react/dist/ssr';
+import { ArrowLeft, Receipt, HelpCircle, ClipboardList, UploadCloud, Building2, Activity } from 'lucide-react';
 import { getDb, eq, desc } from '@hexxa/db';
 import { company, serviceInvoice, ticket, monthlyClosure, taxHistory } from '@hexxa/db/schema';
 
@@ -48,41 +48,41 @@ export default async function AdminAtividadePage({ params }: { params: Promise<{
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  const ICONS = { invoice: Receipt, ticket: Question, closure: ClipboardText, pgdas: CloudArrowUp, company: Buildings };
+  const ICONS = { invoice: Receipt, ticket: HelpCircle, closure: ClipboardList, pgdas: UploadCloud, company: Building2 };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
         <Link href={`/contador/clientes/${id}`}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 transition-colors shadow-sm">
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Atividade — {comp.legalName}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Linha do tempo real: notas emitidas, solicitações, fechamentos e PGDAS processados.</p>
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3]">Atividade — {comp.legalName}</h1>
+          <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Linha do tempo real: notas emitidas, solicitações, fechamentos e PGDAS processados.</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-2 sm:p-4 shadow-sm">
         {events.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center text-slate-500">
-            <Pulse className="h-10 w-10 opacity-20" />
-            <p className="text-sm">Nenhuma atividade registrada ainda para esta empresa.</p>
+          <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+            <Activity className="h-10 w-10 opacity-20" />
+            <p className="text-xs">Nenhuma atividade registrada ainda para esta empresa.</p>
           </div>
         ) : (
-          <ol className="divide-y divide-slate-100 dark:divide-slate-800">
+          <ol className="divide-y divide-black/5 dark:divide-white/10">
             {events.map((e, i) => {
               const Icon = ICONS[e.icon];
               return (
-                <li key={i} className="flex items-start gap-3 p-4">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-50 text-slate-400 dark:bg-slate-800">
+                <li key={i} className="flex items-start gap-3.5 p-4 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-colors">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{e.title}</p>
-                    {e.detail && <p className="text-xs text-slate-400 mt-0.5 truncate">{e.detail}</p>}
+                    <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{e.title}</p>
+                    {e.detail && <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5 truncate">{e.detail}</p>}
                   </div>
-                  <span className="shrink-0 text-xs text-slate-400 whitespace-nowrap">
+                  <span className="shrink-0 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] whitespace-nowrap bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded-full">
                     {e.date.toLocaleDateString('pt-BR')}
                   </span>
                 </li>
@@ -94,3 +94,4 @@ export default async function AdminAtividadePage({ params }: { params: Promise<{
     </div>
   );
 }
+

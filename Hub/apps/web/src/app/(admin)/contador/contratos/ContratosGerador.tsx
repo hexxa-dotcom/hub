@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DownloadSimple, Eye, CheckCircle, Clock } from '@phosphor-icons/react';
+import { Download, Eye, CheckCircle2, Clock } from 'lucide-react';
 import { salvarContratoGeradoAction } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -34,7 +34,7 @@ type Contrato = {
 
 export type ContratoGerado = Contrato;
 
-const fi = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C]';
 
 function gerarContratoHTML(dados: {
   cliente: ClienteOpcao; plano: string; valor: number;
@@ -197,20 +197,20 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Contratos</h1>
-        <p className="text-sm text-slate-500">Gere contratos de prestação de serviço em PDF</p>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Contratos</h1>
+        <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Gere contratos de prestação de serviço em PDF</p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-5">
+      <div className="grid gap-6 lg:grid-cols-5">
         {/* Form */}
-        <div className="lg:col-span-3 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="font-semibold text-slate-900 dark:text-white">Novo contrato</h2>
+        <div className="lg:col-span-3 space-y-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo contrato</h2>
 
           <div>
-            <label className="text-xs font-medium text-slate-500">Cliente *</label>
-            <select value={clienteId} onChange={e => setClienteId(e.target.value)} className={`mt-1 ${fi}`}>
+            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Cliente *</label>
+            <select value={clienteId} onChange={e => setClienteId(e.target.value)} className={`mt-1.5 ${fi}`}>
               <option value="">Selecionar cliente…</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.razao}</option>)}
             </select>
@@ -218,14 +218,14 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-500">Plano</label>
-              <select value={plano} onChange={e => setPlano(e.target.value)} className={`mt-1 ${fi}`}>
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Plano</label>
+              <select value={plano} onChange={e => setPlano(e.target.value)} className={`mt-1.5 ${fi}`}>
                 {planos.map(p => <option key={p.nome} value={p.nome}>{p.nome} — {BRL.format(p.valor)}/mês</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-500">Vigência</label>
-              <select value={vigencia} onChange={e => setVigencia(e.target.value)} className={`mt-1 ${fi}`}>
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Vigência</label>
+              <select value={vigencia} onChange={e => setVigencia(e.target.value)} className={`mt-1.5 ${fi}`}>
                 <option value="12">12 meses</option>
                 <option value="6">6 meses</option>
                 <option value="0">Indeterminado</option>
@@ -234,63 +234,63 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-500">Data de início</label>
-            <input type="date" value={inicio} onChange={e => setInicio(e.target.value)} className={`mt-1 ${fi}`} />
+            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Data de início</label>
+            <input type="date" value={inicio} onChange={e => setInicio(e.target.value)} className={`mt-1.5 ${fi}`} />
           </div>
 
           {/* Serviços */}
           <div>
-            <label className="text-xs font-medium text-slate-500 mb-2 block">Serviços incluídos *</label>
+            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-2 block">Serviços incluídos *</label>
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
               {SERVICOS_OPCOES.map(s => (
-                <label key={s} className="flex cursor-pointer items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <label key={s} className="flex cursor-pointer items-start gap-2.5 rounded-2xl p-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                   <input type="checkbox" checked={servicos.includes(s)} onChange={() => toggleServico(s)}
-                    className="mt-0.5 h-4 w-4 rounded accent-brand-500 shrink-0" />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{s}</span>
+                    className="mt-0.5 h-4 w-4 rounded accent-[#1E3328] shrink-0" />
+                  <span className="text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3]">{s}</span>
                 </label>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-500">Cláusula adicional (opcional)</label>
+            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Cláusula adicional (opcional)</label>
             <textarea value={obs} onChange={e => setObs(e.target.value)} rows={2}
               placeholder="Ex.: Os serviços de folha de pagamento serão cobrados separadamente…"
-              className={`mt-1 ${fi} resize-none`} />
+              className={`mt-1.5 ${fi} resize-none`} />
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-2">
             <button onClick={() => gerar('print')} disabled={!clienteId || servicos.length === 0 || salvando}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 transition-colors">
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-3 text-xs font-bold text-[#DFFFAE] disabled:opacity-50 transition-all shadow-xs">
               <Eye className="h-4 w-4" /> Visualizar / Imprimir
             </button>
             <button onClick={() => gerar('download')} disabled={!clienteId || servicos.length === 0 || salvando}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 transition-colors">
-              <DownloadSimple className="h-4 w-4" />
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-3 text-xs font-bold text-[#6E6A61] hover:bg-black/5 disabled:opacity-50 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors">
+              <Download className="h-4 w-4" />
             </button>
           </div>
         </div>
 
         {/* Histórico */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="mb-4 font-semibold text-slate-900 dark:text-white">Contratos gerados</h2>
+        <div className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+          <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Contratos gerados</h2>
           {contratos.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">Nenhum contrato gerado ainda.</p>
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] text-center py-8">Nenhum contrato gerado ainda.</p>
           ) : (
             <div className="space-y-3">
               {contratos.map(c => (
-                <div key={c.id} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+                <div key={c.id} className="rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{c.cliente}</p>
-                      <p className="text-xs text-slate-400">{c.plano} · {BRL.format(c.valor)}/mês</p>
-                      <p className="text-xs text-slate-400">Início: {c.inicio.split('-').reverse().join('/')}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{c.geradoEm}</p>
+                      <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] truncate">{c.cliente}</p>
+                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.plano} · {BRL.format(c.valor)}/mês</p>
+                      <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Início: {c.inicio.split('-').reverse().join('/')}</p>
+                      <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{c.geradoEm}</p>
                     </div>
-                    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      c.status === 'ativo' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-slate-100 text-slate-500'
+                    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      c.status === 'ativo' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]'
                     }`}>
-                      {c.status === 'ativo' ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      {c.status === 'ativo' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                       {c.status === 'ativo' ? 'Ativo' : 'Cancelado'}
                     </span>
                   </div>
@@ -303,3 +303,4 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
     </div>
   );
 }
+

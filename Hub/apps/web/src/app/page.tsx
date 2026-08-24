@@ -1,23 +1,21 @@
 import type { Metadata } from 'next';
-import { Source_Serif_4, Nunito_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './landing.css';
 
 import { Navbar } from '@/components/landing/Navbar';
 import { Hero } from '@/components/landing/Hero';
-import { CoreBenefits } from '@/components/landing/CoreBenefits';
-import { PricingTeaser } from '@/components/landing/PricingTeaser';
+import { SegmentsMarquee } from '@/components/landing/SegmentsMarquee';
+import { ProductShowcase } from '@/components/landing/ProductShowcase';
+import { BentoGrid } from '@/components/landing/BentoGrid';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
+import { PricingTeaser } from '@/components/landing/PricingTeaser';
+import { SupportSection } from '@/components/landing/SupportSection';
+import { FaqSection } from '@/components/landing/FaqSection';
 import { LeadFormSection } from '@/components/landing/LeadFormSection';
 import { Footer } from '@/components/landing/Footer';
 import { WhatsAppFab } from '@/components/landing/WhatsAppFab';
 
-const serifFont = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-const sansFont = Nunito_Sans({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -38,15 +36,20 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <main className={`landing-page ${serifFont.variable} ${sansFont.variable} landing-sans`}>
+    <main className={`landing-page ${inter.variable} font-sans`}>
       <Navbar />
       <Hero />
-      <CoreBenefits />
-      <PricingTeaser />
+      <SegmentsMarquee />
+      <ProductShowcase />
+      <BentoGrid />
       <TestimonialsSection />
+      <PricingTeaser />
+      <SupportSection />
+      <FaqSection />
       <LeadFormSection />
       <Footer />
       <WhatsAppFab />
     </main>
   );
 }
+

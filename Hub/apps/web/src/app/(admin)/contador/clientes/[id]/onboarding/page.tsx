@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Circle } from '@phosphor-icons/react/dist/ssr';
+import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
 import { getDb, eq, and, sql } from '@hexxa/db';
 import { company, membership, serviceInvoice, financialEntry, subscription } from '@hexxa/db/schema';
 
@@ -41,39 +41,39 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
   const pct = Math.round((doneCount / steps.length) * 100);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
         <Link href={`/contador/clientes/${id}`}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 transition-colors shadow-sm">
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Onboarding — {comp.legalName}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Progresso derivado do que já está preenchido no cadastro, não de um checklist manual.</p>
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3]">Onboarding — {comp.legalName}</h1>
+          <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Progresso derivado do que já está preenchido no cadastro, não de um checklist manual.</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{doneCount} de {steps.length} etapas concluídas</p>
-          <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">{pct}%</p>
+          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{doneCount} de {steps.length} etapas concluídas</p>
+          <p className="font-serif font-bold text-base text-[#2F4A3C] dark:text-[#DFFFAE]">{pct}%</p>
         </div>
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500" style={{ width: `${pct}%` }} />
+        <div className="h-3 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10 p-0.5">
+          <div className="h-full rounded-full bg-[#1E3328] dark:bg-[#DFFFAE] transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
         {steps.map((s) => (
-          <div key={s.label} className="flex items-start gap-3 p-4">
+          <div key={s.label} className="flex items-start gap-3.5 p-5">
             {s.done ? (
-              <CheckCircle className="h-5 w-5 shrink-0 text-green-500 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
             ) : (
-              <Circle className="h-5 w-5 shrink-0 text-slate-300 mt-0.5" />
+              <Circle className="h-5 w-5 shrink-0 text-[#6E6A61]/40 dark:text-[#A8A49C]/40 mt-0.5" />
             )}
             <div>
-              <p className={`text-sm font-medium ${s.done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500'}`}>{s.label}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{s.hint}</p>
+              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-[#231F20] dark:text-[#FEFDF3]' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{s.label}</p>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{s.hint}</p>
             </div>
           </div>
         ))}
@@ -81,3 +81,4 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
     </div>
   );
 }
+

@@ -1,23 +1,14 @@
 import type { Metadata } from 'next';
-import { Source_Serif_4, Nunito_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import '../landing.css';
 
 import { Navbar } from '@/components/landing/Navbar';
 import { PricingSection } from '@/components/landing/PricingSection';
-import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { LeadFormSection } from '@/components/landing/LeadFormSection';
 import { FaqSection } from '@/components/landing/FaqSection';
 import { Footer } from '@/components/landing/Footer';
 import { WhatsAppFab } from '@/components/landing/WhatsAppFab';
-import Link from 'next/link';
 
-const serifFont = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-const sansFont = Nunito_Sans({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -26,12 +17,12 @@ const sansFont = Nunito_Sans({
 export const metadata: Metadata = {
   title: 'Planos & Preços Transparentes | Hexx Hub',
   description:
-    'Conheça os planos do Hexx Hub: Gestão Financeira, Contabilidade Completa Consultiva ou Holding Patrimonial. Sem taxa de cancelamento e sem surpresas.',
+    'Conheça os planos do Hexx Hub: Hub Start, Hub Pro + Contabilidade ou Holding & Private. Sem taxa de cancelamento e sem surpresas.',
 };
 
 export default function PlanosPage() {
   return (
-    <main className={`landing-page ${serifFont.variable} ${sansFont.variable} landing-sans`}>
+    <main className={`landing-page ${inter.variable} font-sans`}>
       <Navbar />
 
       {/* Hero dos Planos */}
@@ -40,11 +31,11 @@ export default function PlanosPage() {
           <span className="hero-eyebrow reveal in">
             Transparência Absoluta
           </span>
-          <h1 className="landing-serif hero-title reveal in" style={{ fontSize: '42px', maxWidth: '780px' }}>
+          <h1 className="hero-title reveal in" style={{ fontSize: '42px', maxWidth: '780px', fontWeight: 800, letterSpacing: '-0.025em' }}>
             Planos sob medida para o tamanho do seu negócio.
           </h1>
           <p className="hero-sub reveal in reveal-d1" style={{ maxWidth: '640px' }}>
-            Seja apenas para organizar suas finanças ou para ter uma contabilidade consultiva cuidando de todas as suas guias e declarações. Sem fidelidade contratual.
+            Seja para organizar suas finanças com tecnologia de ponta ou para ter uma contabilidade consultiva cuidando de tudo. Sem fidelidade contratual.
           </p>
         </div>
       </section>
@@ -52,11 +43,7 @@ export default function PlanosPage() {
       {/* Seção de Preços com Tabela Comparativa */}
       <PricingSection />
 
-      {/* Depoimentos */}
-      <TestimonialsSection />
-
-      {/* Formulário & Dúvidas */}
-      <LeadFormSection />
+      {/* Perguntas Frequentes */}
       <FaqSection />
 
       <Footer />
@@ -64,3 +51,4 @@ export default function PlanosPage() {
     </main>
   );
 }
+

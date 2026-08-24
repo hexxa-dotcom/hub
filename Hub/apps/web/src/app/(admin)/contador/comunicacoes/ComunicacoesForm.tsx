@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PaperPlaneRight, CaretDown, Info } from '@phosphor-icons/react';
+import { Send, ChevronDown, Info } from 'lucide-react';
 
 export type ClienteContato = { id: string; nome: string; status: string; email: string };
 
@@ -22,7 +22,7 @@ const DEST_LABELS: Record<Destinatario, string> = {
   cliente: 'Cliente específico',
 };
 
-const fi = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C]';
 
 function destinatarios(clientes: ClienteContato[], dest: Destinatario, clienteId: string): ClienteContato[] {
   if (dest === 'todos') return clientes;
@@ -55,13 +55,13 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Comunicações</h1>
-        <p className="text-sm text-slate-500">Monta o e-mail com os destinatários reais e abre no seu cliente de e-mail para enviar.</p>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Comunicações</h1>
+        <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Monta o e-mail com os destinatários reais e abre no seu cliente de e-mail para enviar.</p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-brand-200 bg-brand-50 p-3 text-xs text-brand-800 dark:border-brand-800 dark:bg-brand-900/20 dark:text-brand-300">
+      <div className="flex items-start gap-3 rounded-3xl border border-[#2F4A3C]/20 bg-[#EFFFD6] dark:bg-[#2F4A3C]/30 p-4 text-xs text-[#2F4A3C] dark:text-[#DFFFAE]">
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
         <p>
           Isto abre o app de e-mail configurado no seu computador com os destinatários já em cópia oculta (BCC).
@@ -70,22 +70,22 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 space-y-4">
-        <h2 className="font-semibold text-slate-900 dark:text-white">Nova mensagem</h2>
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm space-y-4">
+        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nova mensagem</h2>
 
         {/* Templates */}
         <div className="relative">
           <button type="button" onClick={() => setTemplateOpen((o) => !o)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors">
-            Usar template <CaretDown className="h-3.5 w-3.5" />
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors">
+            Usar template <ChevronDown className="h-3.5 w-3.5" />
           </button>
           {templateOpen && (
-            <div className="absolute left-0 top-9 z-10 w-72 rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            <div className="absolute left-0 top-11 z-10 w-72 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
               {TEMPLATES.map((t) => (
                 <button key={t.id} type="button" onClick={() => aplicarTemplate(t)}
-                  className="flex w-full flex-col px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 last:border-0 dark:border-slate-800 transition-colors">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.nome}</p>
-                  <p className="text-xs text-slate-400 truncate">{t.assunto}</p>
+                  className="flex w-full flex-col px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 last:border-0 dark:border-white/10 transition-colors">
+                  <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{t.nome}</p>
+                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] truncate">{t.assunto}</p>
                 </button>
               ))}
             </div>
@@ -94,8 +94,8 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
 
         {/* Destinatário */}
         <div>
-          <label className="text-xs font-medium text-slate-500">Destinatários</label>
-          <select value={dest} onChange={(e) => setDest(e.target.value as Destinatario)} className={`mt-1 ${fi}`}>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Destinatários</label>
+          <select value={dest} onChange={(e) => setDest(e.target.value as Destinatario)} className={`mt-1.5 ${fi}`}>
             {(Object.keys(DEST_LABELS) as Destinatario[]).map((d) => (
               <option key={d} value={d}>{DEST_LABELS[d]}</option>
             ))}
@@ -106,30 +106,31 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
               {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           )}
-          <p className="mt-1 text-xs text-slate-400">
-            <span className="text-brand-600 font-semibold dark:text-brand-400">{alvo.length}</span> destinatário{alvo.length !== 1 ? 's' : ''} com e-mail cadastrado
+          <p className="mt-1.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <span className="text-[#2F4A3C] dark:text-[#DFFFAE] font-bold">{alvo.length}</span> destinatário{alvo.length !== 1 ? 's' : ''} com e-mail cadastrado
           </p>
         </div>
 
         {/* Assunto */}
         <div>
-          <label className="text-xs font-medium text-slate-500">Assunto</label>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Assunto</label>
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)}
-            placeholder="Ex.: Novidade no Hexx Hub Digital" className={`mt-1 ${fi}`} />
+            placeholder="Ex.: Novidade no Hexx Hub Digital" className={`mt-1.5 ${fi}`} />
         </div>
 
         {/* Corpo */}
         <div>
-          <label className="text-xs font-medium text-slate-500">Mensagem</label>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Mensagem</label>
           <textarea value={corpo} onChange={(e) => setCorpo(e.target.value)}
-            rows={8} placeholder="Digite sua mensagem aqui…" className={`mt-1 ${fi} resize-none font-mono text-xs`} />
+            rows={8} placeholder="Digite sua mensagem aqui…" className={`mt-1.5 ${fi} resize-none font-mono text-xs`} />
         </div>
 
         <button onClick={enviar} disabled={!assunto || !corpo || alvo.length === 0}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-50">
-          <PaperPlaneRight className="h-4 w-4" /> Abrir no e-mail
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-3 text-xs font-bold text-[#DFFFAE] transition-all shadow-xs disabled:opacity-50">
+          <Send className="h-4 w-4" /> Abrir no e-mail
         </button>
       </div>
     </div>
   );
 }
+

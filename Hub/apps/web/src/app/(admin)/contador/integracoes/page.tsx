@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FloppyDisk, Stack, CreditCard, Key, CheckCircle, Circle, ArrowSquareOut, Warning } from '@phosphor-icons/react';
+import { Save, CreditCard, Key, CheckCircle2, Circle, ExternalLink, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Section, Toggle, SecretInput, CopyField, lb, fi } from '@/components/contador/AdminUI';
 
 type SetupStep = {
@@ -62,19 +62,19 @@ function AsaasSetup() {
   return (
     <div className="space-y-4">
       {/* Progress */}
-      <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+      <div className="flex items-center gap-3 rounded-2xl bg-black/5 dark:bg-white/5 p-3.5">
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">
               {allDone ? '✅ Integração configurada' : `${completedCount} de ${steps.length} etapas concluídas`}
             </p>
-            <span className={`text-xs font-semibold ${allDone ? 'text-green-600' : 'text-slate-400'}`}>
+            <span className={`text-xs font-bold ${allDone ? 'text-emerald-600' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
               {Math.round((completedCount / steps.length) * 100)}%
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
+          <div className="h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
             <div
-              className={`h-1.5 rounded-full transition-all ${allDone ? 'bg-green-500' : 'bg-brand-500'}`}
+              className={`h-full rounded-full transition-all ${allDone ? 'bg-emerald-600' : 'bg-[#1E3328] dark:bg-[#DFFFAE]'}`}
               style={{ width: `${(completedCount / steps.length) * 100}%` }}
             />
           </div>
@@ -82,23 +82,23 @@ function AsaasSetup() {
       </div>
 
       {/* Steps */}
-      <ol className="space-y-2">
+      <ol className="space-y-2.5">
         {steps.map(s => (
-          <li key={s.id} className={`flex gap-3 rounded-xl p-3 ${s.done ? 'bg-green-50 dark:bg-green-900/10' : 'bg-slate-50 dark:bg-slate-800/40'}`}>
+          <li key={s.id} className={`flex gap-3 rounded-2xl p-3.5 border ${s.done ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614]'}`}>
             <span className="mt-0.5 shrink-0">
               {s.done
-                ? <CheckCircle className="h-4 w-4 text-green-500" />
-                : <Circle className="h-4 w-4 text-slate-300 dark:text-slate-600" />}
+                ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                : <Circle className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />}
             </span>
             <div className="min-w-0">
-              <p className={`text-sm font-medium ${s.done ? 'text-green-700 dark:text-green-400 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
+              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
                 {s.id}. {s.label}
               </p>
-              {!s.done && <p className="mt-0.5 text-xs text-slate-500">{s.detail}</p>}
+              {!s.done && <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{s.detail}</p>}
               {!s.done && s.link && (
                 <a href={s.link.href} target="_blank" rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400">
-                  {s.link.text} <ArrowSquareOut className="h-3 w-3" />
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">
+                  {s.link.text} <ExternalLink className="h-3 w-3" />
                 </a>
               )}
             </div>
@@ -109,16 +109,16 @@ function AsaasSetup() {
       {/* Ambiente */}
       <div>
         <label className={lb}>Ambiente</label>
-        <div className="mt-1 flex gap-2">
+        <div className="mt-1.5 flex gap-2">
           {(['sandbox', 'production'] as const).map(e => (
             <button key={e} type="button" onClick={() => setEnv(e)}
-              className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${env === e ? 'bg-brand-500 text-white' : 'border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400'}`}>
+              className={`flex-1 rounded-full py-2.5 text-xs font-bold transition-all ${env === e ? 'bg-[#1E3328] text-[#DFFFAE] shadow-xs' : 'border border-black/10 dark:border-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5'}`}>
               {e === 'sandbox' ? '🧪 Sandbox (testes)' : '🚀 Produção'}
             </button>
           ))}
         </div>
         {env === 'sandbox' && (
-          <p className="mt-1 text-[11px] text-yellow-600 dark:text-yellow-400">
+          <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
             ⚠ Sandbox — cobranças não são reais. Troque para Produção antes de ir ao ar.
           </p>
         )}
@@ -127,26 +127,20 @@ function AsaasSetup() {
       {/* API Key */}
       <div>
         <label className={lb}>Chave de API Asaas</label>
-        <div className="relative mt-1">
+        <div className="relative mt-1.5">
           <input
             type={show ? 'text' : 'password'}
             value={apiKey}
             onChange={e => setApiKey(e.target.value)}
             placeholder={env === 'sandbox' ? '$aact_YTU5YTE0M2M...' : '$aact_prod_...'}
-            className={`${fi} pr-9`}
+            className={`${fi} pr-10`}
           />
           <button type="button" onClick={() => setShow(s => !s)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {show ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              )}
-            </svg>
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3]">
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-slate-400">Cole aqui a chave gerada no Asaas. Ela fica somente no servidor (.env.local / Vercel secrets).</p>
+        <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Cole aqui a chave gerada no Asaas. Ela fica somente no servidor (.env.local / Vercel secrets).</p>
       </div>
 
       {/* Webhook URL */}
@@ -160,23 +154,22 @@ function AsaasSetup() {
           value={webhookToken}
           onChange={e => setWebhookToken(e.target.value)}
           placeholder="Ex: hexxa_wh_2026_alguma_string_segura"
-          className={`mt-1 ${fi}`}
+          className={`mt-1.5 ${fi}`}
         />
-        <p className="mt-1 text-[11px] text-slate-400">Configure o mesmo token aqui e no campo "Token" do webhook no Asaas para autenticar as notificações.</p>
+        <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Configure o mesmo token aqui e no campo "Token" do webhook no Asaas para autenticar as notificações.</p>
       </div>
 
       {!allDone && (
-        <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-900/10">
-          <Warning className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            Adicione <code className="font-mono">ASAAS_API_KEY</code>, <code className="font-mono">ASAAS_ENV</code> e <code className="font-mono">ASAAS_WEBHOOK_TOKEN</code> no <code className="font-mono">.env.local</code> (dev) ou nos <em>Environment Variables</em> do Vercel (produção) e reinicie o servidor.
+        <div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <p className="text-xs text-amber-800 dark:text-amber-300">
+            Adicione <code className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">ASAAS_API_KEY</code>, <code className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">ASAAS_ENV</code> e <code className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">ASAAS_WEBHOOK_TOKEN</code> no <code className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1 py-0.5 rounded">.env.local</code> (dev) ou nos <em>Environment Variables</em> do Vercel (produção) e reinicie o servidor.
           </p>
         </div>
       )}
     </div>
   );
 }
-
 
 export default function AdminIntegracoes() {
   const [saved, setSaved] = useState(false);
@@ -187,14 +180,13 @@ export default function AdminIntegracoes() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Integrações</h1>
-        <p className="text-sm text-slate-500">Configure os serviços externos conectados à plataforma</p>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Integrações</h1>
+        <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Configure os serviços externos conectados à plataforma</p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-
+      <div className="grid gap-6 lg:grid-cols-2">
         <Section
           icon={<CreditCard className="h-4 w-4" />}
           title="Asaas — cobrança recorrente"
@@ -205,22 +197,22 @@ export default function AdminIntegracoes() {
         </Section>
 
         <Section icon={<Key className="h-4 w-4" />} title="Outras integrações" fullWidth>
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <SecretInput label="Chave API Focus NFe" value="focusnfe_live_••••••••••" placeholder="focusnfe_live_..." />
             <SecretInput label="Token Autentique (contratos)" placeholder="token..." />
             <SecretInput label="API Key cnpja.com (busca de empresas)" placeholder="uuid-key..." />
           </div>
         </Section>
-
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <button onClick={salvar}
-          className={`inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-medium text-white transition-colors ${saved ? 'bg-green-500' : 'bg-brand-500 hover:bg-brand-600'}`}>
-          <FloppyDisk className="h-4 w-4" />
+          className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-xs font-bold text-white transition-all shadow-xs ${saved ? 'bg-emerald-600' : 'bg-[#1E3328] hover:bg-[#2F4A3C] text-[#DFFFAE]'}`}>
+          <Save className="h-4 w-4" />
           {saved ? 'Salvo!' : 'Salvar integrações'}
         </button>
       </div>
     </div>
   );
 }
+

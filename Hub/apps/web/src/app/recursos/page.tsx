@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Source_Serif_4, Nunito_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import '../landing.css';
 
 import { Navbar } from '@/components/landing/Navbar';
@@ -14,13 +14,7 @@ import { Footer } from '@/components/landing/Footer';
 import { WhatsAppFab } from '@/components/landing/WhatsAppFab';
 import Link from 'next/link';
 
-const serifFont = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-const sansFont = Nunito_Sans({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -34,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function RecursosPage() {
   return (
-    <main className={`landing-page ${serifFont.variable} ${sansFont.variable} landing-sans`}>
+    <main className={`landing-page ${inter.variable} font-sans`}>
       <Navbar />
 
       {/* Hero dos Recursos */}

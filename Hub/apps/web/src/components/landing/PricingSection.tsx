@@ -4,56 +4,62 @@ import { FeatureComparisonTable } from './FeatureComparisonTable';
 export function PricingSection() {
   const plans = [
     {
-      name: 'Hub Gestão',
-      desc: 'Para quem já tem contabilidade e precisa apenas da plataforma de controle.',
+      name: 'Hub Start',
+      tagline: 'Autogestão & Controle',
+      desc: 'Para quem já tem contabilidade externa e busca a melhor plataforma de gestão, notas fiscais e contratos.',
       price: 'R$ 149',
       period: '/mês',
       featured: false,
-      ctaText: 'Começar com Gestão',
+      ctaText: 'Começar com Hub Start',
       ctaHref: '/checkout?plan=gestao',
       ctaClass: 'btn-landing-dark',
       features: [
-        'Fluxo de caixa & conciliação',
-        'Contratos & assinaturas digitais',
-        'Emissão de notas fiscais (NFSe)',
-        'Cofre de documentos',
-        'Suporte por WhatsApp e e-mail',
+        'Emissão ilimitada de NFSe com 1 clique',
+        'Fluxo de caixa & conciliação bancária',
+        'Contratos digitais com assinatura jurídica',
+        'Cofre inteligente de certidões e arquivos',
+        'DRE e relatórios de lucro em tempo real',
+        'Suporte prioritário por WhatsApp e e-mail',
       ],
     },
     {
-      name: 'Hub + Contabilidade Completa',
-      badge: 'Mais Escolhido',
-      desc: 'O hub tudo-em-um com contabilidade consultiva e impostos inclusos.',
+      name: 'Hub Pro + Contabilidade',
+      badge: 'Mais Escolhido • Completo',
+      tagline: 'Autogestão + Contador Dedicado',
+      desc: 'A experiência definitiva: a plataforma do Hub integrada a uma assessoria contábil consultiva e estratégica.',
       price: 'R$ 389',
       period: '/mês',
       featured: true,
-      ctaText: 'Contratar com Contabilidade',
+      ctaText: 'Contratar Hub Pro',
       ctaHref: '/checkout?plan=completo',
       ctaClass: 'btn-landing-lime',
       features: [
-        'Tudo do Hub Gestão incluso',
-        'Contabilidade completa com contador dedicado',
+        'Tudo incluso do plano Hub Start',
+        'Contador dedicado no WhatsApp da sua empresa',
         'Cálculo e guias automáticas de impostos (DAS)',
         'Declarações obrigatórias (DEFIS, DCTF, etc.)',
         'Abertura de CNPJ ou migração grátis',
-        'Planejamento tributário consultivo',
+        'Planejamento tributário consultivo contínuo',
+        'Pró-labore e folha de sócios inclusos',
       ],
     },
     {
-      name: 'Holding & Patrimonial',
-      desc: 'Estruturação e gestão patrimonial para famílias e administradoras de bens.',
+      name: 'Holding & Private',
+      tagline: 'Gestão Patrimonial & Societária',
+      desc: 'Estruturação, blindagem patrimonial e contabilidade societária para famílias e administradoras de bens.',
       price: 'R$ 890',
       period: '/mês',
       featured: false,
-      ctaText: 'Contratar Holding',
+      ctaText: 'Contratar Holding & Private',
       ctaHref: '/checkout?plan=holding',
       ctaClass: 'btn-landing-dark',
       features: [
         'Gestão de múltiplos imóveis e aluguéis',
-        'Contabilidade societária especializada',
-        'Proteção patrimonial e sucessória',
-        'Relatórios consolidados de rendimentos',
-        'Atendimento prioritário com especialista',
+        'Contabilidade societária e fiscal especializada',
+        'Planejamento tributário e sucessório exclusivo',
+        'Demonstrativos consolidados de rendimentos',
+        'Atendimento prioritário com sócio especialista',
+        'Assessoria contábil para reorganização societária',
       ],
     },
   ];
@@ -74,7 +80,14 @@ export function PricingSection() {
             <div key={i} className={`pricing-card ${plan.featured ? 'featured' : ''}`}>
               {plan.badge && <span className="pricing-badge">{plan.badge}</span>}
               <div>
-                <h3 className="landing-serif">{plan.name}</h3>
+                {plan.tagline && (
+                  <div style={{ marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: plan.featured ? 'var(--lime)' : '#2F4A3C' }}>
+                      {plan.tagline}
+                    </span>
+                  </div>
+                )}
+                <h3 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '8px' }}>{plan.name}</h3>
                 <p className="p-desc">{plan.desc}</p>
                 <div className="price">
                   {plan.price} <span>{plan.period}</span>

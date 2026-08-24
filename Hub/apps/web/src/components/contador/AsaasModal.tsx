@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, CreditCard, Spinner, CheckCircle, Warning, ArrowSquareOut, ArrowsClockwise, Trash, Copy, QrCode } from '@phosphor-icons/react';
+import { X, CreditCard, Loader2, CheckCircle2, AlertTriangle, ExternalLink, RotateCw, Trash2, Copy, QrCode } from 'lucide-react';
 import type { AsaasSubscription, AsaasPayment, BillingType } from '@/lib/asaas';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -36,21 +36,21 @@ const BILLING_LABELS: Record<BillingType, string> = {
 };
 
 const STATUS_SUB: Record<string, { label: string; cls: string }> = {
-  ACTIVE: { label: 'Ativa', cls: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  INACTIVE: { label: 'Inativa', cls: 'bg-slate-100 text-slate-500 dark:bg-slate-800' },
-  EXPIRED: { label: 'Expirada', cls: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  ACTIVE: { label: 'Ativa', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' },
+  INACTIVE: { label: 'Inativa', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
+  EXPIRED: { label: 'Expirada', cls: 'bg-red-500/10 text-red-700 dark:text-red-400' },
 };
 
 const STATUS_PAY: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: 'Pendente', cls: 'text-yellow-600' },
-  RECEIVED: { label: 'Recebido', cls: 'text-green-600' },
-  CONFIRMED: { label: 'Confirmado', cls: 'text-green-600' },
-  OVERDUE: { label: 'Vencido', cls: 'text-red-600' },
-  REFUNDED: { label: 'Estornado', cls: 'text-slate-500' },
-  CANCELED: { label: 'Cancelado', cls: 'text-slate-400' },
+  PENDING: { label: 'Pendente', cls: 'text-amber-600 dark:text-amber-400' },
+  RECEIVED: { label: 'Recebido', cls: 'text-emerald-600 dark:text-emerald-400' },
+  CONFIRMED: { label: 'Confirmado', cls: 'text-emerald-600 dark:text-emerald-400' },
+  OVERDUE: { label: 'Vencido', cls: 'text-red-600 dark:text-red-400' },
+  REFUNDED: { label: 'Estornado', cls: 'text-[#6E6A61] dark:text-[#A8A49C]' },
+  CANCELED: { label: 'Cancelado', cls: 'text-[#6E6A61] dark:text-[#A8A49C]' },
 };
 
-const fi = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
 
 function fmtDate(iso: string) {
   return iso?.split('-').reverse().join('/') ?? '—';
@@ -73,39 +73,16 @@ function StepVincular({
     setLoading(true);
     setError(null);
     try {
-      // 1. Criar / buscar customer
-      const custRes = await fetch('/api/asaas/customers', {
+      const res = await fetch(`/api/asaas/customers/${cliente.id}/link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: cliente.razao,
-          cpfCnpj: cliente.cnpj,
-          email: cliente.email,
-          phone: cliente.telefone,
-          externalReference: cliente.id,
-        }),
+        body: JSON.stringify({ billingType }),
       });
-      const custData = await custRes.json();
-      if (!custRes.ok) throw new Error(custData.error ?? 'Erro ao criar customer');
-      const customerId: string = custData.customer.id;
-
-      // 2. Criar assinatura
-      const subRes = await fetch('/api/asaas/subscriptions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId,
-          plano: cliente.plano,
-          billingType,
-          clienteId: cliente.id,
-        }),
-      });
-      const subData = await subRes.json();
-      if (!subRes.ok) throw new Error(subData.error ?? 'Erro ao criar assinatura');
-
-      onLinked(customerId, subData.subscription.id);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onLinked(data.customerId, data.subscriptionId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro desconhecido');
+      setError(e instanceof Error ? e.message : 'Erro ao vincular cobrança');
     } finally {
       setLoading(false);
     }
@@ -113,37 +90,44 @@ function StepVincular({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50 space-y-2">
+      <div className="space-y-2 rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
         <Row label="Empresa" value={cliente.razao} />
         <Row label="CNPJ" value={cliente.cnpj} />
         <Row label="E-mail" value={cliente.email} />
         <Row label="Plano" value={cliente.plano} />
-        <Row label="Valor mensal" value={BRL.format({ 'Início': 149.9, 'Crescimento': 299.9, 'Escala': 499.9 }[cliente.plano] ?? 0)} />
       </div>
 
       <div>
-        <p className="text-xs font-medium text-slate-500 mb-2">Forma de pagamento preferida</p>
-        <div className="grid grid-cols-3 gap-2">
+        <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Forma de pagamento padrão</label>
+        <div className="mt-2 grid grid-cols-3 gap-2">
           {(['PIX', 'BOLETO', 'CREDIT_CARD'] as BillingType[]).map(bt => (
-            <button key={bt} type="button" onClick={() => setBillingType(bt)}
-              className={`rounded-xl py-2 text-xs font-medium transition-colors ${billingType === bt ? 'bg-brand-500 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'}`}>
+            <button
+              key={bt}
+              type="button"
+              onClick={() => setBillingType(bt)}
+              className={`rounded-full py-2 text-xs font-bold transition-all ${
+                billingType === bt
+                  ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+              }`}
+            >
               {bt === 'PIX' ? '⚡ PIX' : bt === 'BOLETO' ? '📄 Boleto' : '💳 Cartão'}
             </button>
           ))}
         </div>
-        <p className="mt-1.5 text-[11px] text-slate-400">O cliente pode alterar antes de pagar.</p>
+        <p className="mt-1.5 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">O cliente pode alterar antes de pagar.</p>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-900/20">
-          <Warning className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div className="flex items-start gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+          <p className="text-xs font-bold text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
 
       <button onClick={vincular} disabled={loading}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 transition-colors">
-        {loading ? <Spinner className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-3 text-xs font-bold text-[#DFFFAE] shadow-sm disabled:opacity-60 transition-all hover:scale-102">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
         {loading ? 'Criando assinatura…' : 'Vincular e criar assinatura'}
       </button>
     </div>
@@ -162,39 +146,39 @@ function StepAssinatura({
   onCanceled: () => void;
 }) {
   const [sub, setSub] = useState<AsaasSubscription | null>(null);
-  const [payments, setPayments] = useState<AsaasPayment[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [canceling, setCanceling] = useState(false);
+  const [payments, setPayments] = useState<AsaasPayment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [changingPlan, setChangingPlan] = useState(false);
   const [newPlano, setNewPlano] = useState(cliente.plano);
+  const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/asaas/subscriptions/${subscriptionId}?payments=true`);
+      const res = await fetch(`/api/asaas/subscriptions/${subscriptionId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao carregar');
+      if (!res.ok) throw new Error(data.error);
       setSub(data.subscription);
-      setPayments(data.payments);
+      setPayments(data.payments ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar');
+      setError(e instanceof Error ? e.message : 'Erro ao carregar assinatura');
     } finally {
       setLoading(false);
     }
   }
 
   async function cancelar() {
-    if (!confirm('Confirma o cancelamento da assinatura?')) return;
+    if (!confirm('Deseja realmente cancelar esta assinatura no Asaas? As próximas cobranças serão interrompidas.')) return;
     setCanceling(true);
     try {
-      await fetch(`/api/asaas/subscriptions/${subscriptionId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/asaas/subscriptions/${subscriptionId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       onCanceled();
-    } catch {
-      setError('Erro ao cancelar');
-    } finally {
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao cancelar assinatura');
       setCanceling(false);
     }
   }
@@ -215,20 +199,13 @@ function StepAssinatura({
     }
   }
 
-  function copy(text: string, key: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 1500);
-  }
-
-  // Auto-load ao montar
   useEffect(() => { load(); }, []);
 
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-3 py-10">
-        <Spinner className="h-6 w-6 animate-spin text-brand-500" />
-        <p className="text-sm text-slate-500">Carregando assinatura…</p>
+        <Loader2 className="h-6 w-6 animate-spin text-[#2F4A3C] dark:text-[#DFFFAE]" />
+        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Carregando assinatura…</p>
       </div>
     );
   }
@@ -236,11 +213,11 @@ function StepAssinatura({
   if (!sub && error) {
     return (
       <div className="space-y-3">
-        <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-900/20">
-          <Warning className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div className="flex items-start gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+          <p className="text-xs font-bold text-red-700 dark:text-red-400">{error}</p>
         </div>
-        <button onClick={load} className="text-sm text-brand-600 hover:underline">Tentar novamente</button>
+        <button onClick={load} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">Tentar novamente</button>
       </div>
     );
   }
@@ -248,10 +225,10 @@ function StepAssinatura({
   if (!sub) {
     return (
       <div className="flex flex-col items-center gap-3 py-8">
-        <p className="text-sm text-slate-500">ID da assinatura: <code className="font-mono text-xs bg-slate-100 px-1 rounded">{subscriptionId}</code></p>
+        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">ID da assinatura: <code className="font-mono text-xs bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-md">{subscriptionId}</code></p>
         <button onClick={load}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
-          <ArrowsClockwise className="h-4 w-4" /> Carregar dados
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE]">
+          <RotateCw className="h-4 w-4" /> Carregar dados
         </button>
       </div>
     );
@@ -262,20 +239,20 @@ function StepAssinatura({
   return (
     <div className="space-y-4">
       {/* Status da assinatura */}
-      <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/50">
+      <div className="flex items-center justify-between rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 px-4 py-3">
         <div>
-          <p className="text-xs text-slate-400">Assinatura Asaas</p>
-          <p className="font-mono text-xs text-slate-600 dark:text-slate-400">{sub.id}</p>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Assinatura Asaas</p>
+          <p className="font-mono text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{sub.id}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stSub.cls}`}>{stSub.label}</span>
-          <button onClick={load} title="Atualizar" className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
-            <ArrowsClockwise className="h-3.5 w-3.5" />
+          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${stSub.cls}`}>{stSub.label}</span>
+          <button onClick={load} title="Atualizar" className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+            <RotateCw className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="space-y-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+      <div className="space-y-2 rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
         <Row label="Plano" value={sub.description.replace('Hexx Hub Digital — ', '')} />
         <Row label="Valor" value={BRL.format(sub.value)} />
         <Row label="Forma de pag." value={BILLING_LABELS[sub.billingType]} />
@@ -285,29 +262,29 @@ function StepAssinatura({
       {/* Trocar plano */}
       {changingPlan ? (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-500">Selecionar novo plano</p>
+          <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Selecionar novo plano</p>
           <div className="grid grid-cols-3 gap-2">
             {['Início', 'Crescimento', 'Escala'].map(p => (
               <button key={p} type="button" onClick={() => setNewPlano(p)}
-                className={`rounded-xl py-2 text-xs font-medium transition-colors ${newPlano === p ? 'bg-brand-500 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400'}`}>
+                className={`rounded-full py-2 text-xs font-bold transition-all ${newPlano === p ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328]' : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'}`}>
                 {p}
               </button>
             ))}
           </div>
           <div className="flex gap-2">
             <button onClick={trocarPlano}
-              className="flex-1 rounded-xl bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 transition-colors">
+              className="flex-1 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] transition-all">
               Confirmar troca
             </button>
             <button onClick={() => setChangingPlan(false)}
-              className="flex-1 rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700">
+              className="flex-1 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
               Cancelar
             </button>
           </div>
         </div>
       ) : (
         <button onClick={() => setChangingPlan(true)}
-          className="w-full rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 transition-colors">
+          className="w-full rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 py-2.5 text-xs font-bold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] hover:bg-black/5 transition-all">
           Trocar plano
         </button>
       )}
@@ -315,23 +292,23 @@ function StepAssinatura({
       {/* Cobranças */}
       {payments && payments.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-medium text-slate-500">Últimas cobranças</p>
-          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900">
+          <p className="mb-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Últimas cobranças</p>
+          <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] overflow-hidden">
             {payments.slice(0, 6).map(pay => {
-              const stPay = STATUS_PAY[pay.status] ?? { label: pay.status, cls: 'text-slate-500' };
+              const stPay = STATUS_PAY[pay.status] ?? { label: pay.status, cls: 'text-[#6E6A61]' };
               const link = pay.invoiceUrl ?? pay.bankSlipUrl;
               return (
-                <div key={pay.id} className="flex items-center justify-between px-4 py-2.5">
+                <div key={pay.id} className="flex items-center justify-between px-4 py-3">
                   <div>
-                    <p className={`text-xs font-medium ${stPay.cls}`}>{stPay.label}</p>
-                    <p className="text-[11px] text-slate-400">Venc. {fmtDate(pay.dueDate)}</p>
+                    <p className={`text-xs font-bold ${stPay.cls}`}>{stPay.label}</p>
+                    <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Venc. {fmtDate(pay.dueDate)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{BRL.format(pay.netValue)}</p>
+                    <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(pay.netValue)}</p>
                     {link && (
                       <a href={link} target="_blank" rel="noopener noreferrer"
-                        className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-800 transition-colors">
-                        <ArrowSquareOut className="h-3.5 w-3.5" />
+                        className="rounded-full p-1.5 text-[#6E6A61] hover:text-[#2F4A3C] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
                   </div>
@@ -343,16 +320,16 @@ function StepAssinatura({
       )}
 
       {error && (
-        <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-900/20">
-          <Warning className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div className="flex items-start gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3.5">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+          <p className="text-xs font-bold text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
 
       {/* Cancelar */}
       <button onClick={cancelar} disabled={canceling}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900/40 dark:text-red-400 transition-colors">
-        {canceling ? <Spinner className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-red-500/30 py-2.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-60 dark:text-red-400 transition-colors">
+        {canceling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
         {canceling ? 'Cancelando…' : 'Cancelar assinatura'}
       </button>
     </div>
@@ -364,13 +341,13 @@ function StepAssinatura({
 function StepSucesso({ subscriptionId }: { subscriptionId: string }) {
   return (
     <div className="flex flex-col items-center gap-3 py-6 text-center">
-      <CheckCircle className="h-12 w-12 text-green-500" />
+      <CheckCircle2 className="h-12 w-12 text-emerald-600" />
       <div>
-        <p className="font-semibold text-slate-900 dark:text-white">Assinatura criada com sucesso!</p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Assinatura criada com sucesso!</p>
+        <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
           O cliente receberá o link de pagamento por e-mail.
         </p>
-        <p className="mt-2 font-mono text-xs text-slate-400">{subscriptionId}</p>
+        <p className="mt-2 font-mono text-xs text-[#6E6A61] dark:text-[#A8A49C] bg-black/5 dark:bg-white/10 px-2 py-1 rounded-full">{subscriptionId}</p>
       </div>
     </div>
   );
@@ -380,9 +357,9 @@ function StepSucesso({ subscriptionId }: { subscriptionId: string }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="font-medium text-slate-800 dark:text-slate-200">{value}</span>
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-[#6E6A61] dark:text-[#A8A49C]">{label}</span>
+      <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{value}</span>
     </div>
   );
 }
@@ -401,16 +378,18 @@ export function AsaasModal({ cliente, onClose, onLinked, onCanceled }: Props) {
   const title = jaVinculado ? 'Gerenciar cobrança' : 'Vincular cobrança Asaas';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-black/40 backdrop-blur-sm">
-      <div className="my-8 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-black/40 backdrop-blur-md">
+      <div className="my-8 w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-brand-500" />
-            <h2 className="font-semibold text-slate-900 dark:text-white">{title}</h2>
+        <div className="flex items-center justify-between mb-6 border-b border-black/5 dark:border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <CreditCard className="h-4 w-4" />
+            </span>
+            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{title}</h2>
           </div>
           <button onClick={onClose}
-            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors">
+            className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
