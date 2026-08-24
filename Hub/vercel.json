@@ -3,6 +3,7 @@
   "outputDirectory": "apps/web/.next",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "regions": ["gru1"],
   "crons": [
     { "path": "/api/cron/cobranca", "schedule": "0 6 * * *" },
     { "path": "/api/cron/despesas-fixas", "schedule": "0 6 * * *" },
