@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import type { Route } from 'next';
 import {
   Plus,
   Trash2,
@@ -17,15 +19,12 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
-  QrCode,
-  FileText,
   TrendingUp,
   ArrowDownRight,
   ArrowUpRight,
+  ArrowRight,
   Check,
   X,
-  Percent,
-  RotateCcw,
   FilePenLine,
   FileSignature,
   Folder,
@@ -35,15 +34,7 @@ import {
 import { DocusealBuilder } from '@docuseal/react';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { ContractWizard } from './ContractWizard';
-import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
-import {
-  type ContractRow,
-  createContractAction,
-  reajustarContratoAction,
-  renovarContratoAction,
-  cancelarContratoAction,
-  marcarNfseEmitidaAction,
-} from './actions';
+import { type ContractRow, createContractAction } from './actions';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,15 +73,7 @@ export function ContratosClient({
 
   // Modais
   const [showNewContractForm, setShowNewContractForm] = useState(false);
-  const [selectedPixModal, setSelectedPixModal] = useState<ContractRow | null>(null);
-  const [selectedNfseModal, setSelectedNfseModal] = useState<ContractRow | null>(null);
-  const [selectedReajusteModal, setSelectedReajusteModal] = useState<ContractRow | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-
-  // Reajuste % / NFSe manual
-  const [reajustePct, setReajustePct] = useState('5');
-  const [nfseNumeroInput, setNfseNumeroInput] = useState('');
-  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
 
   // Form de Assinatura
   const [name, setName] = useState('');
@@ -161,6 +144,7 @@ export function ContratosClient({
         dueDay,
         startDate: String(fd.get('startDate')),
         endDate: String(fd.get('endDate')),
+        signingDate: String(fd.get('signingDate') ?? ''),
         autoEmitNfse: fd.get('autoEmitNfse') === 'on',
       });
       flashMessage(result.message);
@@ -199,56 +183,6 @@ export function ContratosClient({
       setFormError('Falha na conexão. Tente novamente.');
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleReajustar(contractId: string) {
-    const pct = parseFloat(reajustePct) || 0;
-    if (pct <= 0) return;
-    setActionBusyId(contractId);
-    try {
-      const result = await reajustarContratoAction(contractId, pct);
-      flashMessage(result.message);
-      setSelectedReajusteModal(null);
-      router.refresh();
-    } finally {
-      setActionBusyId(null);
-    }
-  }
-
-  async function handleRenovar(contractId: string) {
-    setActionBusyId(contractId);
-    try {
-      const result = await renovarContratoAction(contractId);
-      flashMessage(result.message);
-      router.refresh();
-    } finally {
-      setActionBusyId(null);
-    }
-  }
-
-  async function handleCancelar(contractId: string) {
-    setActionBusyId(contractId);
-    try {
-      const result = await cancelarContratoAction(contractId);
-      flashMessage(result.message);
-      router.refresh();
-    } finally {
-      setActionBusyId(null);
-    }
-  }
-
-  async function handleMarcarNfseEmitida(c: ContractRow) {
-    if (!nfseNumeroInput.trim()) return;
-    setActionBusyId(c.id);
-    try {
-      const result = await marcarNfseEmitidaAction(c.id, nfseNumeroInput.trim());
-      flashMessage(result.message);
-      setSelectedNfseModal(null);
-      setNfseNumeroInput('');
-      router.refresh();
-    } finally {
-      setActionBusyId(null);
     }
   }
 
@@ -385,6 +319,12 @@ export function ContratosClient({
                   <input name="endDate" required type="date" defaultValue={new Date(Date.now() + 365*86400000).toISOString().split('T')[0]} className={`mt-1.5 ${field}`} />
                 </div>
 
+                <div>
+                  <label className={lbl}>Data de Assinatura (opcional)</label>
+                  <input name="signingDate" type="date" className={`mt-1.5 ${field}`} />
+                  <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Deixe em branco se ainda não foi assinado — dá pra registrar depois.</p>
+                </div>
+
                 {activeTab === 'entrada' && (
                   <div className="sm:col-span-2 flex items-center gap-2 pt-2">
                     <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded text-[#2F4A3C] focus:ring-[#DFFFAE]" />
@@ -407,112 +347,66 @@ export function ContratosClient({
             </form>
           )}
 
-          {/* Lista de Contratos */}
-          <div className="space-y-4">
+          {/* Lista de Contratos — visual, cada card leva pro detalhe do vínculo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {(activeTab === 'entrada' ? entradas : saidas).map(c => (
-              <div key={c.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-black/5 dark:border-white/10 pb-4">
-                  <div>
+              <Link
+                key={c.id}
+                href={`/meu-negocio/contratos/${c.id}` as Route}
+                className="group rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-[#1E3328]/30 transition-all"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{c.title}</h3>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      <h3 className="truncate font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{c.title}</h3>
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                         c.status === 'ATIVO' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
                       }`}>
                         {c.status}
                       </span>
-                      {c.linkedOnPlatform && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-                          <Link2 className="h-3 w-3" /> Sincronizado na Hexxa
-                        </span>
-                      )}
                     </div>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
-                      {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong>{c.partyName}</strong> · Vencimento todo dia {c.dueDay}
+                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1 truncate">
+                      {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong>{c.partyName}</strong>
                     </p>
                   </div>
-
-                  <div className="text-right">
-                    <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}/mês</p>
-                    <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Vigência: {c.startDate} a {c.endDate}</p>
-                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C] group-hover:translate-x-1 group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3] transition-all mt-1" />
                 </div>
 
-                {/* Status de Provisão / NFSe */}
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {c.lastNfseEmitted ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] px-3 py-1 text-xs font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-                        🟢 Faturado — NFSe Nº {c.nfseNumber}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
-                        🔵 Provisão de Caixa (Aguardando NFSe)
-                      </span>
-                    )}
-
-                    {c.autoEmitNfse && (
-                      <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold">
-                        ⚡ NFSe Automática Ativa
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Ações Rápidas no Contrato */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {activeTab === 'entrada' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedNfseModal(c)}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold"
-                        >
-                          <FileText className="h-3.5 w-3.5" /> Marcar NFSe
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPixModal(c)}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-3.5 py-1.5 text-xs font-bold"
-                        >
-                          <QrCode className="h-3.5 w-3.5" /> Cobrar Pix
-                        </button>
-                      </>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedReajusteModal(c)}
-                      className="inline-flex items-center gap-1 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
-                    >
-                      <Percent className="h-3.5 w-3.5" /> Reajustar %
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRenovar(c.id)}
-                      disabled={actionBusyId === c.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50"
-                    >
-                      {actionBusyId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Renovar (+12m)
-                    </button>
-
-                    {c.status === 'ATIVO' && (
-                      <button
-                        type="button"
-                        onClick={() => handleCancelar(c.id)}
-                        disabled={actionBusyId === c.id}
-                        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-end justify-between">
+                  <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}<span className="text-xs font-sans font-normal text-[#6E6A61] dark:text-[#A8A49C]">/mês</span></p>
+                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">vence dia {c.dueDay}</p>
                 </div>
-              </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-black/5 dark:border-white/10">
+                  {c.linkedOnPlatform && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] px-2.5 py-0.5 text-[10px] font-bold">
+                      <Link2 className="h-3 w-3" /> Sincronizado
+                    </span>
+                  )}
+                  {c.lastNfseEmitted ? (
+                    <span className="rounded-full bg-[#EFFFD6] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+                      Faturado — NFSe {c.nfseNumber}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                      Aguardando NFSe
+                    </span>
+                  )}
+                  {c.signingDate ? (
+                    <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                      Assinado {c.signingDate}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                      Não assinado
+                    </span>
+                  )}
+                </div>
+              </Link>
             ))}
 
             {(activeTab === 'entrada' ? entradas : saidas).length === 0 && (
-              <p className="text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : 'saída'} cadastrado ainda.</p>
+              <p className="sm:col-span-2 text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : 'saída'} cadastrado ainda.</p>
             )}
           </div>
         </div>
@@ -684,97 +578,6 @@ export function ContratosClient({
         </section>
       )}
 
-      {/* MODAIS DE AÇÃO */}
-      {selectedNfseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                Marcar Nota Fiscal (NFSe) como Emitida
-              </h3>
-              <button onClick={() => { setSelectedNfseModal(null); setNfseNumeroInput(''); }} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
-            </div>
-
-            <div className="space-y-2 text-sm bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
-              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Contrato:</span> <strong>{selectedNfseModal.title}</strong></p>
-              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Tomador (Cliente):</span> <strong>{selectedNfseModal.partyName}</strong></p>
-              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Valor da Nota:</span> <strong className="text-emerald-700 dark:text-emerald-400">{BRL.format(selectedNfseModal.value)}</strong></p>
-            </div>
-
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              A emissão real acontece em <strong>Meu Negócio → Fiscal / NFSe</strong>. Aqui você só informa o número da nota já emitida para vincular ao contrato.
-            </p>
-
-            <div>
-              <label className={lbl}>Número da NFSe emitida *</label>
-              <input
-                value={nfseNumeroInput}
-                onChange={e => setNfseNumeroInput(e.target.value)}
-                placeholder="Ex.: 000142"
-                className={`mt-1.5 ${field}`}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleMarcarNfseEmitida(selectedNfseModal)}
-              disabled={actionBusyId === selectedNfseModal.id || !nfseNumeroInput.trim()}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
-            >
-              {actionBusyId === selectedNfseModal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Confirmar Vínculo
-            </button>
-          </div>
-        </div>
-      )}
-
-      {selectedPixModal && (
-        <GeneratePixModal
-          isOpen={!!selectedPixModal}
-          onClose={() => setSelectedPixModal(null)}
-          initialDescription={`Contrato: ${selectedPixModal.title}`}
-        />
-      )}
-
-      {selectedReajusteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <Percent className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                Reajustar Valor do Contrato
-              </h3>
-              <button onClick={() => setSelectedReajusteModal(null)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
-            </div>
-
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              Aplica um reajuste percentual no valor mensal do contrato <strong>{selectedReajusteModal.title}</strong>
-              {selectedReajusteModal.linkedOnPlatform ? ' (e do lado espelhado com a contraparte)' : ''}.
-            </p>
-
-            <div>
-              <label className={lbl}>Percentual de Reajuste (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={reajustePct}
-                onChange={e => setReajustePct(e.target.value)}
-                className={`mt-1.5 ${field}`}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleReajustar(selectedReajusteModal.id)}
-              disabled={actionBusyId === selectedReajusteModal.id}
-              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
-            >
-              {actionBusyId === selectedReajusteModal.id ? 'Aplicando...' : 'Aplicar Reajuste'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

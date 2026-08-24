@@ -22,6 +22,14 @@ export const taxGuide = pgTable('tax_guide', {
   pixCode: text('pix_code'), // copia-e-cola do botão "Copiar Pix"
   fileUrl: text('file_url'),
   status: docStatus('status').notNull().default('OPEN'),
+  /**
+   * Parcelamento tributário: quando o contador cadastra um plano com N
+   * parcelas, cada parcela vira uma linha de tax_guide com o mesmo
+   * installmentGroupId. Null = guia avulsa (não faz parte de um plano).
+   */
+  installmentGroupId: uuid('installment_group_id'),
+  installmentNumber: integer('installment_number'),
+  installmentCount: integer('installment_count'),
 });
 
 /** Fatura de honorários contábeis. `value` = valor (NUNCA "investimento"). */

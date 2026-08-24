@@ -86,7 +86,7 @@ export default async function BalancoInstantaneoPage({
           <div className="flex items-center gap-2 mb-1">
             <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
               <FileText className="h-3.5 w-3.5" />
-              Relatórios Contábeis
+              Balanço e DRE
             </span>
           </div>
           <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight capitalize">

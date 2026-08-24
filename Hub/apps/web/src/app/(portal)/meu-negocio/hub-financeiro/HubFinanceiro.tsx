@@ -26,7 +26,6 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Percent,
-  PieChart,
   Landmark,
   QrCode,
   Sparkles,
@@ -94,7 +93,6 @@ function getStatus(l: Lancamento): Status {
 
 const CATEGORIAS_PAGAR = ['Aluguel', 'Salários', 'Fornecedores', 'Impostos', 'Infraestrutura', 'Tecnologia', 'Serviços', 'Outros'];
 const CATEGORIAS_RECEBER = ['Serviços', 'Projetos', 'Mensalidade', 'Consultoria', 'Produtos', 'Aluguéis', 'Outros'];
-const FISCAL_CATS = ['Impostos', 'DAS', 'ISS', 'DARF', 'FGTS', 'Parcelamento'];
 
 /**
  * Nome do "grupo" pra agregação por categoria. A maioria dos lançamentos
@@ -113,7 +111,7 @@ function grupoDe(l: Lancamento): string {
     case 'NFSE':
       return l.tipo === 'PAGAR' ? 'Impostos' : 'Notas Fiscais';
     case 'VENDA':
-      return 'Vendas Avulsas';
+      return 'Faturamento Avulso';
     case 'RECURRING':
       return 'Despesas Fixas';
     case 'API':
@@ -965,7 +963,59 @@ function LancamentosTab({
 
 // ── Visão Geral ───────────────────────────────────────────────────────────────
 
-function VisaoGeral({ data }: { data: Lancamento[] }) {
+const COMPOSICAO_COLORS = ['#2F4A3C', '#A2C1CD', '#5F6E46', '#8FA85B'];
+const COMPOSICAO_OUTROS = '#C5BBAA';
+
+/** Agrupa os lançamentos do mês por origem (grupoDe) — mesma lógica do dashboard do cliente. */
+function buildComposicao(itens: Lancamento[]) {
+  const byGrupo = new Map<string, number>();
+  for (const l of itens) byGrupo.set(grupoDe(l), (byGrupo.get(grupoDe(l)) ?? 0) + l.valor);
+  const total = [...byGrupo.values()].reduce((s, v) => s + v, 0);
+  if (total <= 0) return [];
+  const sorted = [...byGrupo.entries()].sort(([, a], [, b]) => b - a);
+  const top = sorted.slice(0, COMPOSICAO_COLORS.length);
+  const tail = sorted.slice(COMPOSICAO_COLORS.length);
+  const items = top.map(([label, value], i) => ({ label, value, pct: (value / total) * 100, color: COMPOSICAO_COLORS[i]! }));
+  const tailSum = tail.reduce((s, [, v]) => s + v, 0);
+  if (tailSum > 0) items.push({ label: 'Outros', value: tailSum, pct: (tailSum / total) * 100, color: COMPOSICAO_OUTROS });
+  return items;
+}
+
+/** Mini-composição por origem (receitas ou despesas) — barra empilhada + lista. */
+function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: ReturnType<typeof buildComposicao>; emptyLabel: string }) {
+  return (
+    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 sm:p-6 shadow-sm">
+      <p className="mb-4 font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{title}</p>
+      {items.length === 0 ? (
+        <p className="py-6 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">{emptyLabel}</p>
+      ) : (
+        <div className="space-y-3.5">
+          <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+            {items.map((c) => (
+              <div
+                key={c.label}
+                title={`${c.label}: ${c.pct.toFixed(0)}%`}
+                className="h-full min-w-[6px] first:rounded-l-full last:rounded-r-full transition-[flex-grow] duration-500"
+                style={{ flexGrow: c.pct, flexBasis: 0, background: c.color }}
+              />
+            ))}
+          </div>
+          <ul className="space-y-2 text-xs">
+            {items.map((c) => (
+              <li key={c.label} className="flex items-center gap-2.5">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                <span className="flex-1 truncate text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</span>
+                <span className="tabular font-bold text-[#231F20] dark:text-[#FEFDF3]">{fmt(c.value)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab: 'pagar' | 'receber') => void }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in7 = new Date(today);
@@ -975,6 +1025,17 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
   const totalReceber = data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).reduce((s, l) => s + l.valor, 0);
   const vencidos = data.filter((l) => getStatus(l) === 'vencido');
   const saldo = totalReceber - totalPagar;
+
+  const [fixas, setFixas] = useState<RecurringExpenseRow[] | null>(null);
+  useEffect(() => {
+    listRecurringExpenses().then(setFixas).catch(() => setFixas([]));
+  }, []);
+  const totalFixas = (fixas ?? []).filter((f) => f.active).reduce((s, f) => s + f.amount, 0);
+
+  const receberMes = data.filter((l) => l.tipo === 'RECEBER' && isCurrentMonth(l.vencimento));
+  const pagarMes = data.filter((l) => l.tipo === 'PAGAR' && isCurrentMonth(l.vencimento));
+  const composicaoReceitas = buildComposicao(receberMes);
+  const composicaoDespesas = buildComposicao(pagarMes);
 
   const proximos = data
     .filter((l) => {
@@ -1014,21 +1075,29 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
     <div className="space-y-6">
       {/* 4 Cards de Resumo */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
+        <button
+          type="button"
+          onClick={() => onNavigate('pagar')}
+          className="text-left rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm hover:border-black/10 dark:hover:border-white/20 hover:-translate-y-0.5 transition-all"
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Pagar (Aberto)</p>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </div>
           <p className="mt-2 font-serif text-2xl font-bold text-red-700 dark:text-red-400 tabular">{fmt(totalPagar)}</p>
-        </div>
+        </button>
 
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
+        <button
+          type="button"
+          onClick={() => onNavigate('receber')}
+          className="text-left rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm hover:border-black/10 dark:hover:border-white/20 hover:-translate-y-0.5 transition-all"
+        >
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Receber (Aberto)</p>
             <TrendingUp className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           </div>
           <p className="mt-2 font-serif text-2xl font-bold text-[#2F4A3C] dark:text-[#DFFFAE] tabular">{fmt(totalReceber)}</p>
-        </div>
+        </button>
 
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] text-[#FEFDF3] p-5 shadow-sm">
           <div className="flex items-center justify-between">
@@ -1048,6 +1117,26 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
           <p className={`mt-2 font-serif text-2xl font-bold ${vencidos.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
             {vencidos.length}
           </p>
+        </div>
+      </div>
+
+      {/* Composição do mês + Despesas Fixas */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição do Mês</h3>
+          <button
+            type="button"
+            onClick={() => onNavigate('pagar')}
+            className="flex items-center gap-2 rounded-2xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          >
+            <Repeat className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+            Despesas Fixas
+            <span className="font-serif font-bold tabular text-[#231F20] dark:text-[#FEFDF3]">{fmt(totalFixas)}</span>
+          </button>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ComposicaoCard title="Receitas por origem" items={composicaoReceitas} emptyLabel="Sem recebíveis lançados neste mês." />
+          <ComposicaoCard title="Despesas por origem" items={composicaoDespesas} emptyLabel="Sem despesas lançadas neste mês." />
         </div>
       </div>
 
@@ -1117,120 +1206,14 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
   );
 }
 
-// ── DRE Tab ───────────────────────────────────────────────────────────────────
-
-function DRETab({ data }: { data: Lancamento[] }) {
-  const now = new Date();
-  const [ano, setAno] = useState(now.getFullYear());
-  const [mes, setMes] = useState(now.getMonth() + 1);
-
-  const period = `${ano}-${String(mes).padStart(2, '0')}`;
-
-  const receitas = data.filter((l) => l.tipo === 'RECEBER' && l.pago_em?.startsWith(period));
-  const despesasPagas = data.filter((l) => l.tipo === 'PAGAR' && l.pago_em?.startsWith(period));
-
-  const isImpost = (l: Lancamento) => FISCAL_CATS.some((c) => l.categoria === c);
-  const isSalario = (l: Lancamento) =>
-    l.categoria === 'Salários' ||
-    l.descricao.toLowerCase().includes('pró-labore') ||
-    l.descricao.toLowerCase().includes('folha');
-
-  const impArray = despesasPagas.filter((l) => isImpost(l));
-  const salArray = despesasPagas.filter((l) => !isImpost(l) && isSalario(l));
-  const opArray = despesasPagas.filter((l) => !isImpost(l) && !isSalario(l));
-
-  const totalRec = receitas.reduce((s, l) => s + l.valor, 0);
-  const totalImp = impArray.reduce((s, l) => s + l.valor, 0);
-  const totalSal = salArray.reduce((s, l) => s + l.valor, 0);
-  const totalOp = opArray.reduce((s, l) => s + l.valor, 0);
-  const resultado = totalRec - totalImp - totalSal - totalOp;
-
-  const mesLabel = new Date(ano, mes - 1, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-
-  const MESES = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-  ];
-
-  type DRESection = { title: string; items: Lancamento[]; total: number; sign: string };
-  const sections: DRESection[] = [
-    { title: 'Receita Bruta Operacional', items: receitas, total: totalRec, sign: '' },
-    { title: '(−) Impostos e Tributos', items: impArray, total: totalImp, sign: '−' },
-    { title: '(−) Salários, Pró-Labore e Encargos', items: salArray, total: totalSal, sign: '−' },
-    { title: '(−) Despesas Operacionais e Administrativas', items: opArray, total: totalOp, sign: '−' },
-  ];
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <select
-            value={mes}
-            onChange={(e) => setMes(Number(e.target.value))}
-            className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none"
-          >
-            {MESES.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
-          </select>
-          <select
-            value={ano}
-            onChange={(e) => setAno(Number(e.target.value))}
-            className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none"
-          >
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
-        <div className="border-b border-black/5 dark:border-white/10 p-5 sm:p-6 bg-white/40 dark:bg-black/20">
-          <p className="font-serif font-bold text-lg capitalize text-[#231F20] dark:text-[#FEFDF3]">Demonstração de Resultados — {mesLabel}</p>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Baseado em lançamentos quitados no período</p>
-        </div>
-
-        <div className="divide-y divide-black/5 dark:divide-white/5">
-          {sections.map((sec) => (
-            <div key={sec.title}>
-              <div className={`flex items-center justify-between px-6 py-3.5 ${sec.sign === '' ? 'bg-[#EFFFD6]/60 dark:bg-[#1E3328]/30' : 'bg-white/20 dark:bg-black/10'}`}>
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{sec.title}</p>
-                <p className={`font-serif font-bold text-base tabular ${sec.sign === '' ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-700 dark:text-red-400'}`}>
-                  {sec.sign} {fmt(sec.total)}
-                </p>
-              </div>
-              {sec.items.map((l) => (
-                <div key={l.id} className="flex items-center justify-between px-8 py-2.5 text-xs sm:text-sm">
-                  <p className="text-[#6E6A61] dark:text-[#A8A49C]">{l.descricao}</p>
-                  <p className={`tabular font-medium ${sec.sign === '' ? 'text-[#2F4A3C]' : 'text-red-600'}`}>{sec.sign} {fmt(l.valor)}</p>
-                </div>
-              ))}
-              {sec.items.length === 0 && (
-                <p className="px-8 py-2 text-xs italic text-[#6E6A61] dark:text-[#A8A49C]">Nenhum lançamento no período</p>
-              )}
-            </div>
-          ))}
-
-          <div className={`flex items-center justify-between p-6 ${resultado >= 0 ? 'bg-[#1E3328] text-[#DFFFAE]' : 'bg-red-950 text-red-200'}`}>
-            <p className="font-serif font-bold text-base sm:text-lg">= Resultado Líquido do Período</p>
-            <p className="font-serif font-bold text-2xl sm:text-3xl tabular">{fmt(resultado)}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Hub Financeiro Component ───────────────────────────────────────────
 
-type TabKey = 'geral' | 'pagar' | 'receber' | 'dre';
+type TabKey = 'geral' | 'pagar' | 'receber';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'geral', label: 'Visão Geral', icon: LayoutGrid },
   { key: 'pagar', label: 'Contas a Pagar', icon: ArrowDownCircle },
   { key: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
-  { key: 'dre', label: 'DRE Interativo', icon: PieChart },
 ];
 
 export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
@@ -1283,7 +1266,6 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
               ) : undefined,
             },
             { id: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
-            { id: 'dre', label: 'DRE Interativo', icon: PieChart },
           ]}
           activeTab={tab}
           onChange={setTab}
@@ -1319,10 +1301,9 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
       {/* Panels */}
       {!loading && (
         <>
-          {tab === 'geral' && <VisaoGeral data={data} />}
+          {tab === 'geral' && <VisaoGeral data={data} onNavigate={setTab} />}
           {tab === 'pagar' && <LancamentosTab tipo="PAGAR" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
           {tab === 'receber' && <LancamentosTab tipo="RECEBER" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
-          {tab === 'dre' && <DRETab data={data} />}
         </>
       )}
     </div>

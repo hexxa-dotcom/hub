@@ -34,13 +34,13 @@ import {
   Sparkles,
   Search,
   Sun,
-  ShoppingCart,
+  HandCoins,
   Calendar,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
+import { OrganizationSwitcher, UserButton, useUser } from '@clerk/nextjs';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
 
@@ -48,7 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   '/cliente': LayoutDashboard,
   '/cliente/resumo-mes': Calendar,
   '/meu-negocio/notas': Receipt,
-  '/meu-negocio/vendas': ShoppingCart,
+  '/meu-negocio/vendas': HandCoins,
   '/meu-negocio/contas-a-pagar': TrendingDown,
   '/meu-negocio/contas-a-receber': TrendingUp,
   '/meu-negocio/conciliacao': Scale,
@@ -191,11 +191,15 @@ function AppShellInner({
 
   const activeSectionData = sections.find((s) => s.title === activeGroup) || sections[0];
 
+  const { user } = useUser();
+
   const hour = new Date().getHours();
-  let greeting = 'Olá';
-  if (hour >= 5 && hour < 12) greeting = 'Bom dia';
-  else if (hour >= 12 && hour < 18) greeting = 'Boa tarde';
-  else greeting = 'Boa noite';
+  let saudacao = 'Olá';
+  if (hour >= 5 && hour < 12) saudacao = 'Bom dia';
+  else if (hour >= 12 && hour < 18) saudacao = 'Boa tarde';
+  else saudacao = 'Boa noite';
+  const primeiroNome = user?.firstName;
+  const greeting = primeiroNome ? `${saudacao}, ${primeiroNome}` : saudacao;
 
   return (
     <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
@@ -325,45 +329,40 @@ function AppShellInner({
       {/* Coluna de conteúdo principal */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar desktop */}
-        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-8 py-3.5 backdrop-blur-xl lg:flex">
-          {/* User Greeting */}
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-serif font-semibold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
+        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-8 py-3.5 backdrop-blur-xl lg:flex gap-4">
+          {/* Lado Esquerdo: Saudação do Usuário */}
+          <div className="flex items-center gap-3 shrink-0">
+            <h2 className="text-base font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
               {greeting}
             </h2>
-            <span className="inline-flex items-center rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
-              Conta Ativa
-            </span>
           </div>
 
-          {/* Center / Right Actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* Quick Action Button */}
-            <QuickActionsMenu />
-
-            {/* Spotlight Search Trigger */}
+          {/* Centro: Barra de Busca Centralizada com Espaço */}
+          <div className="flex-1 flex justify-center max-w-md mx-auto px-4">
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] shadow-sm hover:border-[#2F4A3C] dark:hover:border-[#DFFFAE] transition-all w-60 justify-between group"
+              className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs text-[#6E6A61] dark:text-[#A8A49C] shadow-sm hover:border-[#2F4A3C] dark:hover:border-[#DFFFAE] transition-all w-full justify-between group"
             >
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3]" />
-                <span>Buscar comandos...</span>
+              <div className="flex items-center gap-2 truncate">
+                <Search className="h-3.5 w-3.5 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3] shrink-0" />
+                <span className="truncate">Buscar comandos, clientes ou páginas...</span>
               </div>
-              <kbd className="hidden sm:inline-flex items-center rounded-md bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6A61] dark:text-[#A8A49C]">
+              <kbd className="hidden sm:inline-flex items-center rounded-md bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] shrink-0">
                 ⌘K
               </kbd>
             </button>
+          </div>
 
-            <OrganizationSwitcher
-              hidePersonal
-              afterSelectOrganizationUrl="/cliente"
-              afterCreateOrganizationUrl="/cliente"
-            />
+          {/* Lado Direito: Itens ordenados (da direita para a esquerda) */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* 5º (da dir p/ esq): Botão de Nova Ação */}
+            <QuickActionsMenu />
+
+            {/* 4º (da dir p/ esq): Alternar Modo Escuro / Claro */}
             <ThemeToggle collapsed />
-            <UserButton />
-            
+
+            {/* 3º (da dir p/ esq): Notificações */}
             <div className="relative group">
               <button
                 aria-label="Notificações"
@@ -382,6 +381,34 @@ function AppShellInner({
                   Nenhuma notificação nova no momento.
                 </div>
               </div>
+            </div>
+
+            {/* 2º (da dir p/ esq): Nome da Empresa acessada */}
+            <div className="flex items-center pl-1 border-l border-black/10 dark:border-white/10">
+              <OrganizationSwitcher
+                hidePersonal
+                afterSelectOrganizationUrl="/cliente"
+                afterCreateOrganizationUrl="/cliente"
+                appearance={{
+                  elements: {
+                    rootBox: "flex items-center",
+                    organizationSwitcherTrigger: "rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:bg-black/5 dark:hover:bg-white/5 transition-all max-w-[170px] truncate",
+                  }
+                }}
+              />
+            </div>
+
+            {/* 1º (da dir p/ esq): Nome do Usuário + Foto de Perfil */}
+            <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
+              <div className="hidden xl:flex flex-col items-end text-right">
+                <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
+                  {user?.fullName || user?.firstName || 'Minha Conta'}
+                </span>
+                <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
+                  {user?.primaryEmailAddress?.emailAddress || 'Ativo'}
+                </span>
+              </div>
+              <UserButton />
             </div>
           </div>
         </header>

@@ -22,8 +22,8 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
+import Link from 'next/link';
 import { emitNfseAction, cancelNfseAction, type EmitState } from '../nfse/actions';
-import { FiscalForm } from '../fiscal/FiscalForm';
 import type { NfseConfig } from '@/lib/server/fiscal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -112,13 +112,10 @@ function Dashboard({
   mode,
   certOk,
   fiscalOk,
-  config,
   onEmitir,
-  onConfig,
   onCancel,
 }: Props & {
   onEmitir: (name?: string, doc?: string) => void;
-  onConfig: () => void;
   onCancel: (id: string, protocol: string) => void;
 }) {
   const ready = certOk && fiscalOk;
@@ -145,13 +142,12 @@ function Dashboard({
               <strong>Modo de teste:</strong> As notas não são enviadas ao governo. Configure o cadastro fiscal e certificado digital.
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onConfig}
+          <Link
+            href="/configuracoes/fiscal"
             className="rounded-full bg-amber-200/70 hover:bg-amber-300 dark:bg-amber-900/50 dark:hover:bg-amber-900 px-4 py-1.5 text-xs font-bold text-amber-900 dark:text-amber-200 transition-colors"
           >
             Configurar agora →
-          </button>
+          </Link>
         </div>
       )}
 
@@ -626,12 +622,11 @@ function EmitirNota({
 
 // ── Main Hub Notas ──────────────────────────────────────────────────────────
 
-type TabKey = 'dashboard' | 'emitir' | 'config';
+type TabKey = 'dashboard' | 'emitir';
 
 const TABS: { id: TabKey; label: string }[] = [
   { id: 'dashboard', label: 'Visão Geral' },
   { id: 'emitir', label: 'Nova Emissão' },
-  { id: 'config', label: 'Cadastro Fiscal' },
 ];
 
 export function HubNotas(props: Props) {
@@ -681,7 +676,7 @@ export function HubNotas(props: Props) {
       {/* Panels */}
       <div>
         {tab === 'dashboard' && (
-          <Dashboard {...props} onEmitir={goEmitir} onConfig={() => setTab('config')} onCancel={handleCancel} />
+          <Dashboard {...props} onEmitir={goEmitir} onCancel={handleCancel} />
         )}
         {tab === 'emitir' && (
           <EmitirNota
@@ -694,9 +689,6 @@ export function HubNotas(props: Props) {
             profiles={props.profiles}
             taxRatePercent={props.taxRatePercent}
           />
-        )}
-        {tab === 'config' && (
-          <FiscalForm config={props.config} temCert={props.certOk} profiles={props.profiles} />
         )}
       </div>
     </div>

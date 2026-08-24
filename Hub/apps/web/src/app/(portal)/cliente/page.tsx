@@ -323,14 +323,15 @@ export default async function DashboardPage() {
         <h2 className="mb-3 font-serif text-lg font-bold text-[#231F20] dark:text-[#FEFDF3]">Compromissos</h2>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <GlassCard action href="/meu-negocio/contas-a-pagar" title="Pagamentos da Semana" value={BRL.format(pagamentosSemana)} hint="segunda a domingo" />
+          <GlassCard action href="/meu-negocio/contas-a-pagar" title={LABELS.monthlyExpenses} value={BRL.format(despesasMes)} hint="saídas do mês" />
           <GlassCard
             action
+            highlight
             href="/minha-contabilidade/termometro-tributario"
             title="Imposto Acumulado do Mês"
             value={BRL.format(provisao)}
             hint={`pagamento em ${nextMonthLabel} (Anexo ${simples.anexo})`}
           />
-          <GlassCard action href="/meu-negocio/contas-a-pagar" title={LABELS.monthlyExpenses} value={BRL.format(despesasMes)} hint="saídas do mês" />
         </div>
       </section>
 
@@ -381,21 +382,76 @@ export default async function DashboardPage() {
         </GlassCard>
       </div>
 
-      {/* Linha do Tempo de Vencimentos & Saúde Fiscal */}
+      {/* Linha do Tempo de Vencimentos & Caixa Postal */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <DueDatesTimeline items={timelineItems} />
         </div>
         <div className="lg:col-span-2">
-          <HealthScoreCard
-            tudoEmDia={tudoEmDia}
-            fatorR={simples.fatorR}
-            anexo={simples.anexo}
-          />
+          <GlassCard
+            title="Caixa Postal &amp; Avisos"
+            action
+            highlight
+            href="/suporte"
+            className="h-full"
+          >
+            <div className="mt-3 space-y-2.5 text-xs">
+              {openDasGuide && (
+                <div className="rounded-2xl border border-[#DFFFAE]/30 bg-[#DFFFAE]/10 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between font-bold text-[#DFFFAE]">
+                    <span className="flex items-center gap-1.5 font-serif text-sm">
+                      <FileText className="h-4 w-4" /> Guia DAS Simples
+                    </span>
+                    <span className="rounded-full bg-[#DFFFAE] text-[#1E3328] px-2 py-0.5 text-[10px] font-bold">Pendente</span>
+                  </div>
+                  <p className="text-[#FEFDF3]/80 text-xs">
+                    Guia do DAS no valor de <strong>{BRL.format(openDasGuide.amount)}</strong> disponível para pagamento.
+                  </p>
+                  <div className="pt-2 flex items-center justify-between border-t border-white/10">
+                    <span className="text-[11px] text-[#FEFDF3]/60">
+                      Vencimento: {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
+                    </span>
+                    <Link href="/minha-contabilidade/guias" className="font-bold text-[#DFFFAE] hover:underline flex items-center gap-1">
+                      Ver Guia <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {avisos.map((a) => (
+                <div
+                  key={a.text}
+                  className={
+                    a.tone === 'critical'
+                      ? 'flex items-center gap-2.5 rounded-2xl bg-red-500/15 border border-red-400/25 p-3 text-red-200'
+                      : a.tone === 'warn'
+                        ? 'flex items-center gap-2.5 rounded-2xl bg-amber-400/15 border border-amber-300/25 p-3 text-amber-200'
+                        : 'flex items-center gap-2.5 rounded-2xl bg-white/10 border border-white/10 p-3 text-[#FEFDF3]/80'
+                  }
+                >
+                  {a.tone === 'critical' ? (
+                    <AlertCircle className="h-4 w-4 shrink-0 text-red-300" />
+                  ) : a.tone === 'warn' ? (
+                    <Clock className="h-4 w-4 shrink-0 text-amber-300" />
+                  ) : (
+                    <FileText className="h-4 w-4 shrink-0 text-[#DFFFAE]" />
+                  )}
+                  <span className="flex-1 font-medium">{a.text}</span>
+                </div>
+              ))}
+
+              {!openDasGuide && avisos.length === 0 && (
+                <div className="flex items-center gap-2.5 rounded-2xl bg-white/10 border border-white/10 p-3 text-[#FEFDF3]/80">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#DFFFAE]" />
+                  <span className="flex-1 font-medium">Nenhum aviso — caixa postal em dia.</span>
+                </div>
+              )}
+            </div>
+          </GlassCard>
         </div>
       </div>
 
-      {/* Margem + Bússola Tributária + Caixa Postal */}
+      {/* Margem + Bússola Tributária + Saúde Fiscal */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <GlassCard
           title="Margem Operacional Real"
@@ -446,57 +502,12 @@ export default async function DashboardPage() {
           </div>
         </GlassCard>
 
-        <GlassCard
-          title="Caixa Postal &amp; Avisos"
-          action
-          href="/suporte"
-        >
-          <div className="mt-3 space-y-2.5 text-xs">
-            {openDasGuide && (
-              <div className="rounded-2xl border border-[#DFFFAE] bg-[#EFFFD6] dark:bg-[#1E3328] dark:border-[#2F4A3C] p-3.5 space-y-1.5 shadow-sm">
-                <div className="flex items-center justify-between font-bold text-[#1E3328] dark:text-[#DFFFAE]">
-                  <span className="flex items-center gap-1.5 font-serif text-sm">
-                    <FileText className="h-4 w-4" /> Guia DAS Simples
-                  </span>
-                  <span className="rounded-full bg-[#1E3328] text-[#DFFFAE] px-2 py-0.5 text-[10px] font-bold">Pendente</span>
-                </div>
-                <p className="text-[#2F4A3C] dark:text-[#A8A49C] text-xs">
-                  Guia do DAS no valor de <strong>{BRL.format(openDasGuide.amount)}</strong> disponível para pagamento.
-                </p>
-                <div className="pt-2 flex items-center justify-between border-t border-black/5 dark:border-white/10">
-                  <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
-                    Vencimento: {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
-                  </span>
-                  <Link href="/minha-contabilidade/guias" className="font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline flex items-center gap-1">
-                    Ver Guia <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {avisos.map((a) => (
-              <div
-                key={a.text}
-                className={
-                  a.tone === 'critical'
-                    ? 'flex items-center gap-2.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 p-3 text-red-700 dark:text-red-300'
-                    : a.tone === 'warn'
-                      ? 'flex items-center gap-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 p-3 text-amber-800 dark:text-amber-300'
-                      : 'flex items-center gap-2.5 rounded-2xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 p-3 text-[#6E6A61] dark:text-[#A8A49C]'
-                }
-              >
-                {a.tone === 'critical' ? (
-                  <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-                ) : a.tone === 'warn' ? (
-                  <Clock className="h-4 w-4 shrink-0 text-amber-600" />
-                ) : (
-                  <FileText className="h-4 w-4 shrink-0 text-[#2F4A3C]" />
-                )}
-                <span className="flex-1 font-medium">{a.text}</span>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
+        <HealthScoreCard
+          compact
+          tudoEmDia={tudoEmDia}
+          fatorR={simples.fatorR}
+          anexo={simples.anexo}
+        />
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useClerk, UserButton } from '@clerk/nextjs';
+import { useClerk, UserButton, useUser } from '@clerk/nextjs';
 import {
   LayoutDashboard,
   Users,
@@ -105,6 +105,7 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
+  const { user } = useUser();
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
@@ -205,7 +206,7 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
             <ContadorSearch />
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 shrink-0">
             <ThemeToggle collapsed />
             
             <Link
@@ -221,7 +222,15 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
               )}
             </Link>
 
-            <div className="flex items-center gap-2 pl-1 border-l border-black/10 dark:border-white/10">
+            <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
+              <div className="hidden xl:flex flex-col items-end text-right">
+                <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
+                  {user?.fullName || user?.firstName || 'Contador'}
+                </span>
+                <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
+                  {user?.primaryEmailAddress?.emailAddress || 'Área Contábil'}
+                </span>
+              </div>
               <UserButton />
             </div>
           </div>

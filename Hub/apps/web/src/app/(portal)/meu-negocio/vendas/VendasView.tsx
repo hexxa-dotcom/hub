@@ -7,7 +7,7 @@ import {
   Loader2,
   X,
   AlertTriangle,
-  ShoppingBag,
+  HandCoins,
   QrCode,
   CreditCard,
   Barcode,
@@ -99,8 +99,8 @@ function SaleForm({ onSaved, onClose }: { onSaved: () => void; onClose: () => vo
     <form onSubmit={handleSubmit} className="rounded-3xl border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 p-5 space-y-4 shadow-sm animate-fade-up">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-[#1E3328] dark:text-[#DFFFAE] flex items-center gap-1.5 font-serif">
-          <ShoppingBag className="h-4 w-4" />
-          Nova Venda (sem nota fiscal)
+          <HandCoins className="h-4 w-4" />
+          Novo Faturamento Avulso (sem nota fiscal)
         </p>
         <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
@@ -113,7 +113,7 @@ function SaleForm({ onSaved, onClose }: { onSaved: () => void; onClose: () => vo
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ex.: Venda de produto no balcão, Serviço avulso…"
+            placeholder="Ex.: Serviço avulso, adiantamento, venda de produto…"
             className={`mt-1 ${field}`}
           />
         </div>
@@ -130,7 +130,7 @@ function SaleForm({ onSaved, onClose }: { onSaved: () => void; onClose: () => vo
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Data da venda *</label>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Data *</label>
           <input
             type="date"
             value={saleDate}
@@ -187,7 +187,7 @@ function SaleForm({ onSaved, onClose }: { onSaved: () => void; onClose: () => vo
           className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105 disabled:opacity-50"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Registrar Venda
+          Registrar
         </button>
         <button
           type="button"
@@ -243,14 +243,14 @@ export function VendasView() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] text-[#FEFDF3] p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]/80">Vendas Registradas Este Mês</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]/80">Faturado Este Mês (Avulso)</p>
           <p className="mt-2 font-serif text-2xl font-bold text-[#DFFFAE] tabular">{fmt(totalMes)}</p>
         </div>
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">O que é isso</p>
           <p className="mt-2 text-sm text-[#231F20] dark:text-[#FEFDF3]">
-            Vendas sem nota fiscal (produto, serviço avulso, venda de balcão). Cada venda vira automaticamente um
-            lançamento em <strong>Financeiro → Receber</strong> — é a segunda fonte de faturamento do sistema, ao lado da Nota Fiscal.
+            Recebimentos sem nota fiscal (serviço avulso, adiantamento, venda de produto). Cada lançamento vira automaticamente um
+            registro em <strong>Financeiro → Receber</strong> — é a segunda fonte de faturamento do sistema, ao lado da Nota Fiscal.
           </p>
         </div>
       </div>
@@ -262,7 +262,7 @@ export function VendasView() {
           className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105"
         >
           <Plus className="h-4 w-4" />
-          Nova venda
+          Novo lançamento
         </button>
         <button
           type="button"
@@ -280,12 +280,12 @@ export function VendasView() {
       {loading ? (
         <div className="flex items-center justify-center gap-2.5 py-16 text-[#6E6A61]">
           <Loader2 className="h-5 w-5 animate-spin text-[#2F4A3C]" />
-          <span className="text-sm font-bold">Carregando vendas…</span>
+          <span className="text-sm font-bold">Carregando…</span>
         </div>
       ) : data.length === 0 ? (
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-12 text-center text-[#6E6A61] dark:text-[#A8A49C]">
-          <ShoppingBag className="h-8 w-8 mx-auto opacity-30 mb-2" />
-          <p className="text-sm font-semibold">Nenhuma venda registrada ainda.</p>
+          <HandCoins className="h-8 w-8 mx-auto opacity-30 mb-2" />
+          <p className="text-sm font-semibold">Nenhum lançamento avulso registrado ainda.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">

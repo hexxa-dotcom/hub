@@ -15,12 +15,30 @@ export type ContractRow = {
   dueDay: number;
   startDate: string;
   endDate: string;
+  signingDate: string | null;
   status: 'ATIVO' | 'CANCELADO';
   autoEmitNfse: boolean;
   lastNfseEmitted: boolean;
   nfseNumber: string | null;
   linkedOnPlatform: boolean;
   createdAt: string;
+};
+
+export type ContractPaymentRow = {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: string;
+  referenceMonth: string;
+  status: string;
+  paidAt: string | null;
+  hasReceipt: boolean;
+};
+
+export type ContractDetail = {
+  contract: ContractRow;
+  mirrorPartyName: string | null;
+  payments: ContractPaymentRow[];
 };
 
 function onlyDigits(v: string) {
@@ -38,6 +56,7 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
     dueDay: r.dueDay,
     startDate: r.startDate,
     endDate: r.endDate,
+    signingDate: r.signingDate,
     status: r.status as 'ATIVO' | 'CANCELADO',
     autoEmitNfse: r.autoEmitNfse,
     lastNfseEmitted: r.lastNfseEmitted,
@@ -114,6 +133,7 @@ export async function createContractAction(input: {
   dueDay: number;
   startDate: string;
   endDate: string;
+  signingDate?: string;
   autoEmitNfse: boolean;
 }): Promise<CreateContractState> {
   const ctx = await getTenantContext();
@@ -150,6 +170,7 @@ export async function createContractAction(input: {
         dueDay: input.dueDay,
         startDate: input.startDate,
         endDate: input.endDate,
+        signingDate: input.signingDate || null,
         autoEmitNfse: input.autoEmitNfse,
       })
       .returning();
@@ -187,6 +208,7 @@ export async function createContractAction(input: {
           dueDay: input.dueDay,
           startDate: input.startDate,
           endDate: input.endDate,
+          signingDate: input.signingDate || null,
         })
         .returning();
     });
@@ -247,6 +269,69 @@ async function getOwnAndMirror(contractId: string, ctx: { companyId: string }) {
   });
 
   return { self, mirror: mirror ?? null };
+}
+
+export async function getContractDetailAction(contractId: string): Promise<ContractDetail | null> {
+  const ctx = await getTenantContext();
+  const { self, mirror } = await getOwnAndMirror(contractId, ctx);
+  if (!self) return null;
+
+  let mirrorPartyName: string | null = null;
+  if (mirror) {
+    const [counterparty] = await getDb()
+      .select({ legalName: company.legalName })
+      .from(company)
+      .where(eq(company.id, mirror.companyId));
+    mirrorPartyName = counterparty?.legalName ?? null;
+  }
+
+  const paymentRows = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select()
+      .from(financialEntry)
+      .where(and(eq(financialEntry.source, 'CONTRACT'), eq(financialEntry.sourceId, self.id)))
+      .orderBy(desc(financialEntry.dueDate));
+  });
+
+  return {
+    contract: toRow(self),
+    mirrorPartyName,
+    payments: paymentRows.map((p) => ({
+      id: p.id,
+      description: p.description,
+      amount: Number(p.amount),
+      dueDate: p.dueDate,
+      referenceMonth: p.referenceMonth,
+      status: p.status,
+      paidAt: p.paidAt,
+      hasReceipt: !!p.receiptBase64,
+    })),
+  };
+}
+
+export async function atualizarAssinaturaAction(contractId: string, signingDate: string): Promise<{ ok: boolean; message: string }> {
+  const ctx = await getTenantContext();
+  const { self, mirror } = await getOwnAndMirror(contractId, ctx);
+  if (!self) return { ok: false, message: 'Contrato não encontrado.' };
+
+  await withTenant(ctx.companyId, async (tx) => {
+    await tx
+      .update(businessContract)
+      .set({ signingDate: signingDate || null, updatedAt: new Date() })
+      .where(eq(businessContract.id, self.id));
+  });
+
+  if (mirror) {
+    await withTenant(mirror.companyId, async (tx) => {
+      await tx
+        .update(businessContract)
+        .set({ signingDate: signingDate || null, updatedAt: new Date() })
+        .where(eq(businessContract.id, mirror.id));
+    });
+  }
+
+  revalidatePath(`/meu-negocio/contratos/${contractId}`);
+  return { ok: true, message: 'Data de assinatura atualizada.' };
 }
 
 export async function reajustarContratoAction(contractId: string, percentual: number): Promise<{ ok: boolean; message: string }> {

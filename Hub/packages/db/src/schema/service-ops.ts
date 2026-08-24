@@ -117,6 +117,8 @@ export const businessContract = pgTable('business_contract', {
   dueDay: integer('due_day').notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date').notNull(),
+  /** Data em que o contrato foi de fato assinado (pode ficar em aberto até a assinatura acontecer). */
+  signingDate: date('signing_date'),
   status: text('status').notNull().default('ATIVO'), // ATIVO | CANCELADO
   autoEmitNfse: boolean('auto_emit_nfse').notNull().default(false),
   lastNfseEmitted: boolean('last_nfse_emitted').notNull().default(false),

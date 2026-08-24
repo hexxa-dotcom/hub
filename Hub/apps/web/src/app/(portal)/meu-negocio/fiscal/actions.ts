@@ -49,6 +49,7 @@ export async function saveFiscalAction(_prev: FiscalState, formData: FormData): 
     });
 
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     return { ok: true, message: 'Cadastro fiscal salvo com sucesso.' };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao salvar.' };
@@ -67,6 +68,7 @@ export async function saveTecnicaAction(_prev: FiscalState, formData: FormData):
     });
 
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     return { ok: true, message: 'Configuração técnica salva com sucesso.' };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao salvar.' };
@@ -97,6 +99,7 @@ export async function uploadCertAction(_prev: FiscalState, formData: FormData): 
     await saveNfseConfig(ctx, { certPfxB64: b64, certPassword: senha });
 
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     return { ok: true, message: 'Certificado A1 salvo e validado com sucesso.' };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao processar o certificado.' };
@@ -108,6 +111,7 @@ export async function removeCertAction(): Promise<FiscalState> {
     const ctx = await getTenantContext();
     await saveNfseConfig(ctx, { certPfxB64: null, certPassword: null });
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     return { ok: true, message: 'Certificado removido.' };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao remover.' };
@@ -155,6 +159,7 @@ export async function createProfileAction(_prev: FiscalState, formData: FormData
     }
     
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     revalidatePath('/meu-negocio/fiscal');
     return { ok: true, message: id ? 'Perfil Fiscal atualizado com sucesso.' : 'Perfil Fiscal criado com sucesso.' };
   } catch (err) {
@@ -167,6 +172,7 @@ export async function deleteProfileAction(id: string): Promise<FiscalState> {
     const ctx = await getTenantContext();
     await deleteServiceProfile(ctx, id);
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/configuracoes/fiscal');
     revalidatePath('/meu-negocio/fiscal');
     return { ok: true, message: 'Perfil removido.' };
   } catch (err) {

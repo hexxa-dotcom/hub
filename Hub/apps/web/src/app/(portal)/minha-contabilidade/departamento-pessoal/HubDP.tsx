@@ -436,8 +436,8 @@ function ColaboradoresTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
                       {c.vinculo === 'PJ' && c.vencimentoDia && <div><p className={lbl}>Vencimento</p><p className="font-medium">Todo dia {c.vencimentoDia}</p></div>}
                       {c.vinculo === 'PJ' && c.businessContractId && (
                         <div className="sm:col-span-3">
-                          <a href="/meu-negocio/contratos" className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">
-                            Ver contrato de pagamento →
+                          <a href={`/meu-negocio/contratos/${c.businessContractId}`} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">
+                            Ver vínculo de pagamento →
                           </a>
                         </div>
                       )}

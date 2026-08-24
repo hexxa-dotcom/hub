@@ -1,15 +1,16 @@
 import { Landmark } from 'lucide-react';
-import { getProperties, getResumoFinanceiroAction } from './actions';
+import { getProperties, getResumoFinanceiroAction, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
 import { PatrimonioApp } from './PatrimonioApp';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const [properties, partners, resumo] = await Promise.all([
+  const [properties, partners, resumo, leases] = await Promise.all([
     getProperties(),
     listPartnersAction(),
     getResumoFinanceiroAction(),
+    listLeasesAction(),
   ]);
 
   return (
@@ -31,7 +32,7 @@ export default async function Page() {
         </div>
       </header>
 
-      <PatrimonioApp initialProperties={properties} partners={partners} resumo={resumo} />
+      <PatrimonioApp initialProperties={properties} partners={partners} resumo={resumo} initialLeases={leases} />
     </div>
   );
 }

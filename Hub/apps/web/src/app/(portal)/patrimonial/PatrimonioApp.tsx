@@ -3,10 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { PieChart, Calculator, Package, Trash2, Loader2, Plus, Sparkles } from 'lucide-react';
-import type { PropertyRow } from './actions';
+import { PieChart, Calculator, Package, KeyRound, Trash2, Loader2, Plus, Sparkles } from 'lucide-react';
+import type { PropertyRow, LeaseRow } from './actions';
 import type { PartnerRow } from '../minha-contabilidade/socios/actions';
 import { createProperty, deleteProperty } from './actions';
+import { AlugueisTab } from './AlugueisTab';
+import { TAXAS, valorContabilLiquido, depreciacaoAcumulada, impostoAluguel } from './lib';
 
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -14,32 +16,24 @@ const YEAR = new Date().getFullYear();
 
 const TABS = [
   { id: 'patrimonio', label: 'Patrimônio Líquido', icon: PieChart },
+  { id: 'alugueis', label: 'Contratos de Aluguel', icon: KeyRound },
   { id: 'dividendos', label: 'Simulador de Dividendos', icon: Calculator },
   { id: 'ativos', label: 'Gestão de Ativos & Depreciação', icon: Package },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
-const TAXAS: Record<string, { rate: number; vida: number }> = {
-  'Imóvel': { rate: 4, vida: 25 },
-  'Máquina ou Equipamento': { rate: 10, vida: 10 },
-  'Móveis e Utensílios': { rate: 10, vida: 10 },
-  'Veículo': { rate: 20, vida: 5 },
-  'Equipamento de Informática': { rate: 20, vida: 5 },
-  'Outro': { rate: 10, vida: 10 },
-};
-
 function valorContabil(a: PropertyRow) {
   const anos = Math.max(0, YEAR - a.year);
-  const deprAcum = Math.min(a.acq, (a.acq * a.rate * anos) / 100);
-  return a.acq - deprAcum;
+  return valorContabilLiquido(a.acq, a.rate, anos);
 }
 
 export function PatrimonioApp({
-  initialProperties, partners, resumo,
+  initialProperties, partners, resumo, initialLeases,
 }: {
   initialProperties: PropertyRow[];
   partners: PartnerRow[];
   resumo: { lucroExercicio: number; lucroAcumuladoNaoDistribuido: number };
+  initialLeases: LeaseRow[];
 }) {
   const [tab, setTab] = useState<Tab>('patrimonio');
 
@@ -55,6 +49,7 @@ export function PatrimonioApp({
       </div>
 
       {tab === 'patrimonio' && <Patrimonio properties={initialProperties} partners={partners} />}
+      {tab === 'alugueis' && <AlugueisTab properties={initialProperties} leases={initialLeases} />}
       {tab === 'dividendos' && <Dividendos partners={partners} resumo={resumo} />}
       {tab === 'ativos' && <Ativos properties={initialProperties} partners={partners} />}
     </div>
@@ -270,11 +265,10 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
 
   const rows = properties.map((a) => {
     const anos = Math.max(0, YEAR - a.year);
-    const deprAcum = Math.min(a.acq, (a.acq * a.rate * anos) / 100);
+    const deprAcum = depreciacaoAcumulada(a.acq, a.rate, anos);
     const contabil = a.acq - deprAcum;
     const rentAnual = a.rent * 12;
-    // Lucro Presumido: base presumida 32% sobre aluguel; IRPJ 15% + CSLL 9% = 24%.
-    const imposto = rentAnual > 0 ? rentAnual * 0.32 * 0.24 : 0;
+    const imposto = impostoAluguel(rentAnual);
     return { ...a, anos, deprAcum, contabil, rentAnual, imposto };
   });
   const tot = rows.reduce(

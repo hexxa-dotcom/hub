@@ -20,7 +20,7 @@ import {
   Loader2,
   ExternalLink,
   SlidersHorizontal,
-  ShieldCheck,
+  Layers,
 } from 'lucide-react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
@@ -248,7 +248,6 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
             <option value="DAS">DAS — Simples Nacional</option>
             <option value="DARF">DARF — Federal</option>
             <option value="ISS">ISS — Municipal</option>
-            <option value="PARCELAMENTO">Parcelamento</option>
             <option value="FGTS">FGTS</option>
             <option value="DIVERSA">Guia Diversa</option>
           </select>
@@ -310,15 +309,18 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
   const [showCnpjConfig, setShowCnpjConfig] = useState(false);
   const [cnpjInput, setCnpjInput] = useState('');
 
-  const filtered = guias.filter(
+  // Guias com plano de parcelamento têm aba própria — não duplicam aqui.
+  const guiasAvulsas = guias.filter((g) => !g.installmentGroupId);
+
+  const filtered = guiasAvulsas.filter(
     (g) =>
       (catFilter === 'todas' || categoriaDe(g.taxName) === catFilter) &&
       (statusFilter === 'todas' || g.status === statusFilter),
   );
 
-  const pendentes = guias.filter((g) => g.status === 'OPEN');
-  const vencidas = guias.filter((g) => g.status === 'OVERDUE');
-  const pagas = guias.filter((g) => g.status === 'PAID');
+  const pendentes = guiasAvulsas.filter((g) => g.status === 'OPEN');
+  const vencidas = guiasAvulsas.filter((g) => g.status === 'OVERDUE');
+  const pagas = guiasAvulsas.filter((g) => g.status === 'PAID');
 
   const totalAberto = [...pendentes, ...vencidas].reduce((s, g) => s + g.amount, 0);
   const totalVencido = vencidas.reduce((s, g) => s + g.amount, 0);
@@ -339,7 +341,6 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
     { key: 'DAS', label: 'DAS' },
     { key: 'DARF', label: 'DARF' },
     { key: 'ISS', label: 'ISS' },
-    { key: 'PARCELAMENTO', label: 'Parcelamentos' },
     { key: 'FGTS', label: 'FGTS' },
     { key: 'DIVERSA', label: 'Diversas' },
   ];
@@ -351,7 +352,15 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
     { key: 'PAID', label: 'Pagas' },
   ];
 
-  const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'certidoes'>('guias');
+  const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'parcelamentos'>('guias');
+
+  const planos = new Map<string, Guia[]>();
+  for (const g of guias) {
+    if (!g.installmentGroupId) continue;
+    const arr = planos.get(g.installmentGroupId) ?? [];
+    arr.push(g);
+    planos.set(g.installmentGroupId, arr);
+  }
 
   return (
     <div className="space-y-6">
@@ -381,14 +390,14 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
         </button>
         <button
           type="button"
-          onClick={() => setMainTab('certidoes')}
+          onClick={() => setMainTab('parcelamentos')}
           className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
-            mainTab === 'certidoes'
+            mainTab === 'parcelamentos'
               ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
               : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
           }`}
         >
-          <ShieldCheck className="h-3.5 w-3.5" /> Certidões Negativas (CNDs)
+          <Layers className="h-3.5 w-3.5" /> Parcelamentos {planos.size > 0 ? `(${planos.size})` : ''}
         </button>
       </div>
 
@@ -456,47 +465,99 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
         </div>
       )}
 
-      {mainTab === 'certidoes' && (
+      {mainTab === 'parcelamentos' && (
         <div className="space-y-4 animate-in fade-in">
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Certidões Negativas de Débito (CNDs)</h2>
-                <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
-                  Consulte e emita diretamente nos portais oficiais dos órgãos emissores.
-                </p>
-              </div>
-              <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-3 py-1 text-xs font-bold">
-                Consulta nos Órgãos
-              </span>
+          {planos.size === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+              <Layers className="h-10 w-10 opacity-30" />
+              <p className="text-sm">Nenhum parcelamento cadastrado pela contabilidade no momento.</p>
             </div>
+          ) : (
+            [...planos.entries()].map(([groupId, parcelas]) => {
+              const ordered = [...parcelas].sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
+              const pagas = ordered.filter((p) => p.status === 'PAID').length;
+              const total = ordered[0]?.installmentCount ?? ordered.length;
+              const totalValor = ordered.reduce((s, p) => s + p.amount, 0);
+              const restante = ordered.filter((p) => p.status !== 'PAID').reduce((s, p) => s + p.amount, 0);
+              const desc = ordered[0]?.taxName.replace(/\s*\(\d+\/\d+\)$/, '') ?? 'Parcelamento';
+              const proxima = ordered.find((p) => p.status !== 'PAID');
+              return (
+                <div key={groupId} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md overflow-hidden shadow-sm">
+                  <div className="p-6 sm:p-8 border-b border-black/5 dark:border-white/10 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">{desc}</h2>
+                        <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
+                          {pagas} de {total} parcelas pagas · restam {BRL.format(restante)}
+                        </p>
+                      </div>
+                      {proxima && (
+                        <div className="text-right">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Próxima parcela</p>
+                          <p className={`text-sm font-bold ${vencClass(proxima.dueDate, proxima.status)}`}>{fmtDate(proxima.dueDate)} · {BRL.format(proxima.amount)}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+                      <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: `${(pagas / total) * 100}%` }} />
+                    </div>
+                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Valor total do plano: <strong className="text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(totalValor)}</strong></p>
+                  </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 pt-2">
-              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Federal / Receita</span>
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CND Receita Federal & PGFN</p>
-                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-                  Emissão conjunta pelo e-CAC ou portal Regularize (PGFN), utilizando o CNPJ da empresa.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Municipal / ISS</span>
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CND Tributos Municipais</p>
-                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-                  Emitida no portal da prefeitura do município onde a empresa está sediada.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Trabalhista / Caixa</span>
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CRF / CND do FGTS</p>
-                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-                  Emitida pelo Conectividade Social da Caixa Econômica com o CNPJ da empresa.
-                </p>
-              </div>
-            </div>
-          </div>
+                  <div className="divide-y divide-black/5 dark:divide-white/10">
+                    {ordered.map((p) => {
+                      const st = STATUS_CONFIG[p.status];
+                      const StatusIcon = st.icon;
+                      const isExp = expanded === p.id;
+                      return (
+                        <div key={p.id}>
+                          <button
+                            type="button"
+                            onClick={() => setExpanded(isExp ? null : p.id)}
+                            className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <span className="w-14 shrink-0 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">{p.installmentNumber}/{p.installmentCount}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-xs sm:text-sm font-bold ${vencClass(p.dueDate, p.status)}`}>{p.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(p.dueDate)}`}</p>
+                            </div>
+                            <span className="shrink-0 text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(p.amount)}</span>
+                            <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
+                              <StatusIcon className="h-3 w-3" /> {st.label}
+                            </span>
+                            {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />}
+                          </button>
+                          {isExp && (
+                            <div className="mx-5 mb-4 flex flex-wrap gap-2 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-4">
+                              {p.pixCode && <CopyBtn text={p.pixCode} />}
+                              {p.fileUrl && (
+                                <a
+                                  href={p.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+                                >
+                                  <Download className="h-3.5 w-3.5" /> Baixar Guia
+                                </a>
+                              )}
+                              {p.status !== 'PAID' && (
+                                <button
+                                  type="button"
+                                  onClick={() => markPaid(p.id)}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 transition-colors"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
@@ -550,7 +611,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
               <SegmentedTabs
                 tabs={cats.map((c) => ({
                   id: c.key,
-                  label: `${c.label} ${c.key !== 'todas' ? `(${guias.filter((g) => categoriaDe(g.taxName) === c.key).length})` : `(${guias.length})`}`,
+                  label: `${c.label} ${c.key !== 'todas' ? `(${guiasAvulsas.filter((g) => categoriaDe(g.taxName) === c.key).length})` : `(${guiasAvulsas.length})`}`,
                 }))}
                 activeTab={catFilter}
                 onChange={setCatFilter}
