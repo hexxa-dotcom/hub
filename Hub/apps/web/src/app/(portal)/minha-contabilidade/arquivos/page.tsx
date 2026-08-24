@@ -1,4 +1,4 @@
-import { FolderArchive, Sparkles } from 'lucide-react';
+import { FolderArchive } from 'lucide-react';
 import { listDocumentsAction } from './actions';
 import { ArquivosClient } from './ArquivosClient';
 
@@ -18,10 +18,10 @@ export default async function Page() {
             </span>
           </div>
           <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            Arquivos Permanentes
+            Documentos da Empresa
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-            Repositório centralizado de atos constitutivos, alvarás, contratos sociais e certidões negativas (CNDs).
+            Repositório centralizado do cartão CNPJ, contrato social, alvarás, documentos dos sócios e certidões negativas (CNDs).
           </p>
         </div>
       </header>

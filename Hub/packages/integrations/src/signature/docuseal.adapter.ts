@@ -6,12 +6,10 @@ const BASE_URL = 'https://api.docuseal.com';
  * Adapter de assinatura eletrônica usando a API do DocuSeal (plano Pro, chave
  * única da conta — os signatários finais não precisam de conta/chave própria).
  *
- * IMPORTANTE: o posicionamento do campo de assinatura (`areas` abaixo) é uma
- * posição padrão no rodapé da 1ª página, feita sem confirmação contra a API
- * real do DocuSeal (sem acesso de teste neste ambiente). Antes de usar em
- * contratos reais, valide um envio de teste e, se necessário, ajuste a
- * posição no Construtor DocuSeal (aba "Construtor" do sistema) — o template
- * criado aqui pode ser editado visualmente lá antes do primeiro envio real.
+ * Posicionamento do campo de assinatura (`areas` abaixo) validado em teste
+ * real contra a API (POST /templates/pdf + POST /submissions, 2026-08-24):
+ * `fields` precisa ir dentro de cada item de `documents[]` (não como chave
+ * irmã de `documents`) e `page` é 1-indexed.
  */
 export class DocusealAdapter implements SignaturePort {
   constructor(private readonly apiKey: string) {}
@@ -30,7 +28,7 @@ export class DocusealAdapter implements SignaturePort {
       type: 'signature',
       role: s.role ?? `Parte ${i + 1}`,
       required: true,
-      areas: [{ x: 0.58, y: Math.min(0.9, 0.7 + i * 0.08), w: 0.32, h: 0.06, page: 0 }],
+      areas: [{ x: 0.58, y: Math.min(0.9, 0.7 + i * 0.08), w: 0.32, h: 0.06, page: 1 }],
     }));
 
     const templateRes = await fetch(`${BASE_URL}/templates/pdf`, {
@@ -38,8 +36,7 @@ export class DocusealAdapter implements SignaturePort {
       headers: this.headers(),
       body: JSON.stringify({
         name: input.title,
-        documents: [{ name: input.documentBuffer.filename, file: input.documentBuffer.base64 }],
-        fields,
+        documents: [{ name: input.documentBuffer.filename, file: input.documentBuffer.base64, fields }],
       }),
     });
     if (!templateRes.ok) {

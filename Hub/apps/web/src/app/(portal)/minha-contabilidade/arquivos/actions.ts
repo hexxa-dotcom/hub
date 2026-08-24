@@ -7,7 +7,7 @@ import { companyDocument } from '@hexxa/db/schema';
 
 export type DocRow = {
   id: string;
-  category: 'ALVARA' | 'CONTRATO' | 'CND' | 'OUTRO';
+  category: 'ALVARA' | 'CONTRATO' | 'CND' | 'CNPJ' | 'SOCIOS' | 'OUTRO';
   name: string;
   issuedAt: string | null;
   expiresAt: string | null;

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 const LOGIN_CLIENTE_HREF = '/auth/login';
-const LOGIN_CONTADOR_HREF = '/auth/login?redirect_url=%2Fcontador';
+const LOGIN_CONTADOR_HREF = '/auth/login/contador';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);

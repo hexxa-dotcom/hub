@@ -22,20 +22,26 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const eventType = body.event_type ?? body.event;
+    const eventType: string = body.event_type ?? body.event;
     const data = body.data ?? body;
-    const submissionId = data.submission_id ?? data.id;
+    // Eventos 'form.*' trazem o submitter em `data`: o id da submissão vem
+    // em `data.submission.id` (ou `data.submission_id`) — `data.id` ali é o
+    // id do submitter, não da submissão. Eventos 'submission.*' trazem a
+    // submissão em `data`: `data.id` é o id da submissão diretamente.
+    const submissionId = eventType?.startsWith('submission.')
+      ? data.id
+      : (data.submission?.id ?? data.submission_id);
 
     if (!submissionId) {
       return NextResponse.json({ error: 'Payload sem submission id' }, { status: 400 });
     }
 
     const status =
-      eventType === 'form.completed' || data.status === 'completed'
+      eventType === 'form.completed' || eventType === 'submission.completed'
         ? 'SIGNED'
-        : eventType === 'form.declined' || data.status === 'declined'
+        : eventType === 'form.declined'
           ? 'REFUSED'
-          : eventType === 'form.expired' || data.status === 'expired'
+          : eventType === 'submission.expired'
             ? 'EXPIRED'
             : null;
 

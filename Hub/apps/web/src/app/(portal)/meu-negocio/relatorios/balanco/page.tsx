@@ -2,7 +2,8 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { withTenant, sql } from '@hexxa/db';
 import { TaxThermometerService } from '@hexxa/core';
-import { FileText, Printer, Info, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { FileText, Info, TrendingDown, Scale, Receipt } from 'lucide-react';
+import { PrintButton } from './PrintButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,23 @@ const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits:
 
 type Entry = { amount: number; type: string; status: string; reference_month: string; description: string | null; category_name: string | null };
 
+type MonthSummary = {
+  month: string;
+  receita: number;
+  despesasOperacionais: number;
+  prolabore: number;
+  impostoEstimado: number;
+  lucroLiquido: number;
+};
+
 function monthLabel(iso: string) {
   const [y, m] = iso.split('-');
   return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+}
+
+function monthLabelShort(iso: string) {
+  const [y, m] = iso.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
 function lastNMonths(n: number) {
@@ -26,6 +41,19 @@ function lastNMonths(n: number) {
   return out;
 }
 
+function summarize(entries: Entry[], effectiveRate: number) {
+  const receita = entries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const prolabore = entries
+    .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const despesasOperacionais = entries
+    .filter((e) => e.type === 'PAYABLE' && !String(e.description || '').startsWith('Pró-labore'))
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const impostoEstimado = receita * (effectiveRate / 100);
+  const lucroLiquido = receita - despesasOperacionais - prolabore - impostoEstimado;
+  return { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido };
+}
+
 export default async function BalancoInstantaneoPage({
   searchParams,
 }: {
@@ -35,6 +63,7 @@ export default async function BalancoInstantaneoPage({
   const params = await searchParams;
   const options = lastNMonths(12);
   const curMonth = options[0]!;
+  const oldestMonth = options[options.length - 1]!;
   const de = params.de && options.includes(params.de) ? params.de : curMonth;
   const ate = params.ate && options.includes(params.ate) ? params.ate : curMonth;
   const [deOrdered, ateOrdered] = de <= ate ? [de, ate] : [ate, de];
@@ -42,7 +71,9 @@ export default async function BalancoInstantaneoPage({
   const { rbt12, folha12 } = await getSimplesInputs(ctx);
   const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
 
-  const entries = await withTenant(ctx.companyId, async (tx) => {
+  // Lançamentos dos últimos 12 meses (usado tanto no período filtrado quanto
+  // no histórico mensal de cada seção — uma query só, filtrada em memória).
+  const allEntries = await withTenant(ctx.companyId, async (tx) => {
     const rows = await tx.execute(sql`
       SELECT fe.amount, fe.type, fe.status, fe.reference_month, fe.description,
              c.name AS category_name
@@ -50,21 +81,15 @@ export default async function BalancoInstantaneoPage({
       LEFT JOIN category c ON c.id = fe.category_id
       WHERE fe.company_id = ${ctx.companyId}
         AND fe.status != 'CANCELED'
-        AND fe.reference_month >= ${deOrdered}
-        AND fe.reference_month <= ${ateOrdered}
+        AND fe.reference_month >= ${oldestMonth}
+        AND fe.reference_month <= ${curMonth}
     `);
     return rows as unknown as Entry[];
   });
 
-  const receita = entries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
-  const prolabore = entries
-    .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
-    .reduce((s, e) => s + Number(e.amount), 0);
-  const despesasOperacionais = entries
-    .filter((e) => e.type === 'PAYABLE' && !String(e.description || '').startsWith('Pró-labore'))
-    .reduce((s, e) => s + Number(e.amount), 0);
-  const impostoEstimado = receita * (simples.effectiveRate / 100);
-  const lucroLiquido = receita - despesasOperacionais - prolabore - impostoEstimado;
+  const entries = allEntries.filter((e) => e.reference_month >= deOrdered && e.reference_month <= ateOrdered);
+  const { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarize(entries, simples.effectiveRate);
+  const despesasTotais = despesasOperacionais + prolabore + impostoEstimado;
   const margem = receita > 0 ? (lucroLiquido / receita) * 100 : 0;
 
   // despesas por categoria (excluindo pró-labore, que já tem linha própria)
@@ -77,11 +102,22 @@ export default async function BalancoInstantaneoPage({
   }
   const categorias = [...byCat.entries()].sort(([, a], [, b]) => b - a);
 
+  const monthly: MonthSummary[] = [...options]
+    .reverse()
+    .map((m) => ({ month: m, ...summarize(allEntries.filter((e) => e.reference_month === m), simples.effectiveRate) }));
+
   const periodoLabel = deOrdered === ateOrdered ? monthLabel(deOrdered) : `${monthLabel(deOrdered)} a ${monthLabel(ateOrdered)}`;
   const hasData = entries.length > 0;
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
+      <style>{`
+        @media print {
+          .print-scope-balanco #secao-dre { display: none !important; }
+          .print-scope-dre #secao-balanco { display: none !important; }
+        }
+      `}</style>
+
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -91,7 +127,7 @@ export default async function BalancoInstantaneoPage({
             </span>
           </div>
           <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight capitalize">
-            Balanço Instantâneo — {periodoLabel}
+            {periodoLabel}
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
             Gerado em tempo real com base nos lançamentos conciliados no sistema.
@@ -116,24 +152,93 @@ export default async function BalancoInstantaneoPage({
         </form>
       </header>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-xl overflow-hidden print:shadow-none print:border-none print:bg-transparent">
+      {/* ===================== Seção: Balanço ===================== */}
+      <section id="secao-balanco" className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-xl overflow-hidden print:shadow-none print:border-none print:bg-transparent">
         <div className="bg-[#1E3328] px-8 py-6 text-[#FEFDF3] flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
           <div>
-            <h2 className="font-serif font-bold text-xl text-[#DFFFAE]">Demonstrativo de Resultado do Exercício (DRE)</h2>
-            <p className="text-xs text-[#DFFFAE]/80 mt-1 print:text-slate-600">Calculado ao vivo a partir dos lançamentos do período</p>
+            <h2 className="flex items-center gap-2 font-serif font-bold text-xl text-[#DFFFAE]">
+              <Scale className="h-5 w-5" /> Balanço
+            </h2>
+            <p className="text-xs text-[#DFFFAE]/80 mt-1 print:text-slate-600">Resumo executivo do resultado do período</p>
           </div>
-          <button
-            type="button"
-            className="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-[#DFFFAE] border border-white/20 px-4 py-2 rounded-full backdrop-blur-sm print:hidden text-xs font-bold transition-all"
-          >
-            <Printer className="h-4 w-4" /> Imprimir
-          </button>
+          <PrintButton scope="balanco" label="Imprimir Balanço" />
         </div>
 
         <div className="p-6 sm:p-8 space-y-8">
           {!hasData ? (
             <p className="text-center text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12">
-              Nenhum lançamento encontrado para {periodoLabel}. Emita notas ou lance despesas para o balanço aparecer aqui.
+              Nenhum lançamento encontrado para {periodoLabel}.
+            </p>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-3">
+              <div className="space-y-1 border-l-2 border-[#1E3328] dark:border-[#DFFFAE] pl-4">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Receita Bruta</p>
+                <p className="font-serif text-2xl font-bold text-emerald-700 dark:text-emerald-400">{BRL.format(receita)}</p>
+              </div>
+              <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Despesas Totais</p>
+                <p className="font-serif text-2xl font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(despesasTotais)}</p>
+              </div>
+              <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Resultado ({pct(margem)})</p>
+                <p className={`font-serif text-2xl font-bold ${lucroLiquido >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                  {BRL.format(lucroLiquido)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="h-px w-full bg-black/5 dark:bg-white/10" />
+
+          <section className="space-y-3">
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Histórico Mensal</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide border-b border-black/5 dark:border-white/10">
+                    <th className="py-2 pr-4">Mês</th>
+                    <th className="py-2 px-4 text-right">Receita</th>
+                    <th className="py-2 px-4 text-right">Despesas</th>
+                    <th className="py-2 pl-4 text-right">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthly.map((m) => {
+                    const despesasM = m.despesasOperacionais + m.prolabore + m.impostoEstimado;
+                    return (
+                      <tr key={m.month} className="border-b border-black/5 dark:border-white/10 last:border-0">
+                        <td className="py-2.5 pr-4 capitalize text-[#231F20] dark:text-[#FEFDF3]">{monthLabelShort(m.month)}</td>
+                        <td className="py-2.5 px-4 text-right text-emerald-700 dark:text-emerald-400">{BRL.format(m.receita)}</td>
+                        <td className="py-2.5 px-4 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(despesasM)}</td>
+                        <td className={`py-2.5 pl-4 text-right font-bold ${m.lucroLiquido >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                          {BRL.format(m.lucroLiquido)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      {/* ===================== Seção: DRE ===================== */}
+      <section id="secao-dre" className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-xl overflow-hidden print:shadow-none print:border-none print:bg-transparent">
+        <div className="bg-[#1E3328] px-8 py-6 text-[#FEFDF3] flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
+          <div>
+            <h2 className="flex items-center gap-2 font-serif font-bold text-xl text-[#DFFFAE]">
+              <Receipt className="h-5 w-5" /> DRE
+            </h2>
+            <p className="text-xs text-[#DFFFAE]/80 mt-1 print:text-slate-600">Demonstrativo de Resultado do Exercício, detalhado por linha</p>
+          </div>
+          <PrintButton scope="dre" label="Imprimir DRE" />
+        </div>
+
+        <div className="p-6 sm:p-8 space-y-8">
+          {!hasData ? (
+            <p className="text-center text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12">
+              Nenhum lançamento encontrado para {periodoLabel}. Emita notas ou lance despesas para o DRE aparecer aqui.
             </p>
           ) : (
             <>
@@ -213,12 +318,45 @@ export default async function BalancoInstantaneoPage({
             </>
           )}
 
-          <div className="mt-4 text-center pt-6 border-t border-black/5 dark:border-white/10 text-xs text-[#6E6A61] dark:text-[#A8A49C] print:pt-4">
-            <p>Hexxa Hub — Balanço gerado automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
-          </div>
+          <div className="h-px w-full bg-black/5 dark:bg-white/10" />
+
+          <section className="space-y-3">
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Histórico Mensal do DRE</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide border-b border-black/5 dark:border-white/10">
+                    <th className="py-2 pr-4">Mês</th>
+                    <th className="py-2 px-4 text-right">Receita</th>
+                    <th className="py-2 px-4 text-right">Despesas Op.</th>
+                    <th className="py-2 px-4 text-right">Pró-labore</th>
+                    <th className="py-2 px-4 text-right">Imposto</th>
+                    <th className="py-2 pl-4 text-right">Lucro Líquido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthly.map((m) => (
+                    <tr key={m.month} className="border-b border-black/5 dark:border-white/10 last:border-0">
+                      <td className="py-2.5 pr-4 capitalize text-[#231F20] dark:text-[#FEFDF3]">{monthLabelShort(m.month)}</td>
+                      <td className="py-2.5 px-4 text-right text-emerald-700 dark:text-emerald-400">{BRL.format(m.receita)}</td>
+                      <td className="py-2.5 px-4 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(m.despesasOperacionais)}</td>
+                      <td className="py-2.5 px-4 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(m.prolabore)}</td>
+                      <td className="py-2.5 px-4 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(m.impostoEstimado)}</td>
+                      <td className={`py-2.5 pl-4 text-right font-bold ${m.lucroLiquido >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                        {BRL.format(m.lucroLiquido)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
+      </section>
+
+      <div className="text-center text-xs text-[#6E6A61] dark:text-[#A8A49C] print:pt-4">
+        <p>Hexxa Hub — relatórios gerados automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
       </div>
     </div>
   );
 }
-

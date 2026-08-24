@@ -9,15 +9,17 @@ export default function LoginPage() {
   return (
     <Suspense>
       <AuthLayout
-        title="Bem-vindo de volta"
-        subtitle="Entre com suas credenciais para gerenciar sua empresa"
+        type="cliente"
+        title="Acesso à Minha Empresa"
+        subtitle="Entre com suas credenciais para gerenciar sua empresa em tempo real"
       >
         <SignIn
-          routing="hash"
           appearance={hexxaClerkAppearance}
           signUpUrl="/auth/cadastro"
+          fallbackRedirectUrl="/cliente"
         />
       </AuthLayout>
     </Suspense>
   );
 }
+

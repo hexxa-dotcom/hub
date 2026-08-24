@@ -1,25 +1,24 @@
 import { Suspense } from 'react';
-import { SignUp } from '@clerk/nextjs';
+import { SignIn } from '@clerk/nextjs';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { hexxaClerkAppearance } from '@/lib/clerkTheme';
 
 export const dynamic = 'force-dynamic';
 
-export default function CadastroPage() {
+export default function ContadorLoginPage() {
   return (
     <Suspense>
       <AuthLayout
-        type="cliente"
-        title="Criar sua Conta"
-        subtitle="Inicie a transformação financeira e contábil da sua empresa"
+        type="contador"
+        title="Área do Contador"
+        subtitle="Acesso restrito para contadores e equipe contábil parceira"
       >
-        <SignUp
+        <SignIn
           appearance={hexxaClerkAppearance}
-          signInUrl="/auth/login"
-          fallbackRedirectUrl="/onboarding"
+          signUpUrl="/auth/cadastro"
+          fallbackRedirectUrl="/contador"
         />
       </AuthLayout>
     </Suspense>
   );
 }
-

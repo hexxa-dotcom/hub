@@ -7,14 +7,14 @@ import {
   FileSignature,
   ShieldCheck,
   File,
-  Download,
+  IdCard,
+  Users,
   Plus,
   X,
   Trash2,
   Loader2,
   AlertTriangle,
   ExternalLink,
-  Sparkles,
 } from 'lucide-react';
 import type { DocRow } from './actions';
 import { createDocumentAction, deleteDocumentAction } from './actions';
@@ -22,13 +22,15 @@ import { createDocumentAction, deleteDocumentAction } from './actions';
 type Category = DocRow['category'];
 
 const CATS: Record<Category, { label: string; icon: React.FC<{ className?: string }>; badge: string }> = {
-  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
+  CNPJ: { label: 'CNPJ', icon: IdCard, badge: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300' },
   CONTRATO: { label: 'Contratos', icon: FileSignature, badge: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' },
+  SOCIOS: { label: 'Sócios', icon: Users, badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
+  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
   CND: { label: 'CNDs', icon: ShieldCheck, badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
   OUTRO: { label: 'Outros', icon: File, badge: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
 };
 
-const FILTERS: ('TODOS' | Category)[] = ['TODOS', 'ALVARA', 'CONTRATO', 'CND', 'OUTRO'];
+const FILTERS: ('TODOS' | Category)[] = ['TODOS', 'CNPJ', 'CONTRATO', 'SOCIOS', 'ALVARA', 'CND', 'OUTRO'];
 const field =
   'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
 const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';

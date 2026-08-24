@@ -8,11 +8,11 @@ export type NavSection = { title: string; items: NavItem[] };
  * não Pessoas).
  * 1. Início (resumo de tudo — seção de 1 item só)
  * 2. Contabilidade (guias/impostos, parcelamentos, bússola tributária/Fator
- *    R, balanço/DRE, serviços adicionais)
+ *    R, balanço/DRE, documentos da empresa, serviços adicionais)
  * 3. Financeiro (resumo/DRE, contas a pagar/receber, notas, conciliação)
  * 4. Relacionamento (CRM, propostas, contratos)
  * 5. Gestão de Pessoas (sócios, colaboradores)
- * 6. Gestão do Patrimônio (imóveis, arquivos)
+ * 6. Gestão do Patrimônio (imóveis)
  * 7. Suporte (atendimento, plano, ajustes)
  */
 export const NAV: NavSection[] = [
@@ -29,6 +29,7 @@ export const NAV: NavSection[] = [
       { label: 'Guias e Impostos', href: '/minha-contabilidade/guias' },
       { label: 'Bússola', href: '/minha-contabilidade/termometro-tributario' },
       { label: 'Balanço e DRE', href: '/meu-negocio/relatorios/balanco' },
+      { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
     ],
   },
@@ -62,7 +63,6 @@ export const NAV: NavSection[] = [
     title: 'Gestão do Patrimônio',
     items: [
       { label: 'Imóveis', href: '/patrimonial' },
-      { label: 'Arquivos', href: '/minha-contabilidade/arquivos' },
     ],
   },
   {
