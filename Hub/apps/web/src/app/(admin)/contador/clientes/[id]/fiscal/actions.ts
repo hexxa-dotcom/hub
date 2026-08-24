@@ -3,7 +3,6 @@
 import { taxHistory, getDb, eq, and } from '@hexxa/db';
 import { integrationCredential } from '@hexxa/db/schema';
 import { revalidatePath } from 'next/cache';
-const pdfParse = require('pdf-parse');
 
 /**
  * Token do Oneflow é POR EMPRESA CLIENTE (a doc deles não expõe CNPJ nas
@@ -60,7 +59,13 @@ export async function processPGDAS(companyId: string, formData: FormData) {
   try {
     const file = formData.get('file') as File;
     if (!file) throw new Error('Nenhum arquivo enviado.');
-    
+
+    // require() só aqui dentro (nunca no topo do módulo): o pdf-parse
+    // referencia DOMMatrix (global de browser) em algum ponto da cadeia de
+    // import dele, e o build do Next avalia o módulo inteiro na hora de
+    // "collect page data" — um require de topo derruba o build inteiro.
+    const pdfParse = require('pdf-parse');
+
     // Ler o arquivo PDF
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
