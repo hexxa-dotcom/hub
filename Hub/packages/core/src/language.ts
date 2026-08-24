@@ -31,7 +31,7 @@ export const LABELS = {
   monthlyRevenue: 'Faturamento do Mês',
   estimatedTax: 'Imposto no Mês Que Vem',
   monthlyExpenses: 'Despesas do Mês',
-  taxThermometer: 'Quanto Pago de Imposto',
+  taxThermometer: 'Bússola Tributária',
   netProfit: 'O Que Sobra no Bolso',
   urgentNotices: 'Caixa Postal & Recados',
   copyPix: 'Copiar Pix',

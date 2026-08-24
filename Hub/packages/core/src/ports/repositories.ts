@@ -26,6 +26,10 @@ export interface NewServiceInvoice {
   /** mês de referência YYYY-MM (o MÊS, nunca "competência"). */
   referenceMonth: string;
   status: InvoiceStatus;
+  /** Imposto estimado desta nota (R$), pra exibir pro cliente na emissão/lista. */
+  taxAmount?: number;
+  /** Alíquota efetiva usada no cálculo acima (%). */
+  taxRate?: number;
 }
 
 export interface ServiceInvoicePatch {
@@ -46,6 +50,8 @@ export interface ServiceInvoiceRecord {
   nfseNumber: string | null;
   providerProtocol: string | null;
   providerMode: string | null;
+  taxAmount: number | null;
+  taxRate: number | null;
 }
 
 export interface ServiceInvoiceRepository {

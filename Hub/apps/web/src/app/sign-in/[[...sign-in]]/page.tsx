@@ -1,9 +1,17 @@
-import { SignIn } from "@clerk/nextjs";
+import { Suspense } from 'react';
+import { SignIn } from '@clerk/nextjs';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { hexxaClerkAppearance } from '@/lib/clerkTheme';
 
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <SignIn />
-    </div>
+    <Suspense>
+      <AuthLayout
+        title="Acesse sua conta"
+        subtitle="Entre com suas credenciais para continuar"
+      >
+        <SignIn appearance={hexxaClerkAppearance} signUpUrl="/sign-up" />
+      </AuthLayout>
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 'use server';
 
 import { withTenant, eq, and } from '@hexxa/db';
-import { integrationCredential } from '@hexxa/db/schema';
+import { integrationCredential, financialEntry } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 interface PixChargeData {
@@ -10,6 +10,13 @@ interface PixChargeData {
   value: number;
   dueDate: string;
   description: string;
+  /**
+   * Lançamento (financial_entry) que esta cobrança deve baixar quando paga.
+   * Gravamos o id da cobrança do Asaas nesse lançamento na hora da criação —
+   * o webhook (/api/webhooks/asaas) usa esse vínculo pra confirmar o
+   * recebimento automaticamente, sem depender de externalReference.
+   */
+  financialEntryId?: string;
 }
 
 export async function generatePixCharge(data: PixChargeData) {
@@ -82,8 +89,20 @@ export async function generatePixCharge(data: PixChargeData) {
       value: data.value,
       dueDate: data.dueDate,
       description: data.description,
+      ...(data.financialEntryId ? { externalReference: data.financialEntryId } : {}),
     }),
   });
+
+  // 3b. Vincula a cobrança ao lançamento — o webhook confirma o recebimento
+  // automaticamente por esse id quando o Pix cair.
+  if (data.financialEntryId) {
+    await withTenant(ctx.companyId, async (tx) => {
+      await tx
+        .update(financialEntry)
+        .set({ externalId: String(chargeRes.id) })
+        .where(and(eq(financialEntry.id, data.financialEntryId!), eq(financialEntry.companyId, ctx.companyId)));
+    });
+  }
 
   // 4. Obter o QR Code do PIX gerado
   const qrCodeRes = await asaasFetch(`/payments/${chargeRes.id}/pixQrCode`, { method: 'GET' });

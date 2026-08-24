@@ -3,11 +3,35 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Trash, UploadSimple, Spinner, CheckCircle, WarningCircle, UserPlus,
-  ArrowSquareOut, ArrowsClockwise, Clock, XCircle, EnvelopeSimple, CaretDown, CaretUp,
-  QrCode, FileText, TrendUp, ArrowDownRight, ArrowUpRight, Check, X, Percent, ArrowClockwise,
-  PencilSimpleLine, Signature, FolderSimple, LinkSimple
-} from '@phosphor-icons/react';
+  Plus,
+  Trash2,
+  Upload,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  UserPlus,
+  ExternalLink,
+  RotateCw,
+  Clock,
+  XCircle,
+  Mail,
+  ChevronDown,
+  ChevronUp,
+  QrCode,
+  FileText,
+  TrendingUp,
+  ArrowDownRight,
+  ArrowUpRight,
+  Check,
+  X,
+  Percent,
+  RotateCcw,
+  FilePenLine,
+  FileSignature,
+  Folder,
+  Link2,
+  Sparkles,
+} from 'lucide-react';
 import { DocusealBuilder } from '@docuseal/react';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { ContractWizard } from './ContractWizard';
@@ -24,16 +48,16 @@ import {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const field =
-  'w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
-const lbl = 'text-xs font-medium text-ink-soft';
+  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const TABS = [
   { key: 'entrada', label: 'Contratos de Entrada (Clientes)', icon: ArrowUpRight },
   { key: 'saida', label: 'Contratos de Saída (Fornecedores)', icon: ArrowDownRight },
-  { key: 'criar', label: 'Criar & Assinar Contrato (PDF/Wizard)', icon: PencilSimpleLine },
-  { key: 'docuseal', label: 'Construtor DocuSeal', icon: Signature },
+  { key: 'criar', label: 'Criar & Assinar Contrato (PDF/Wizard)', icon: FilePenLine },
+  { key: 'docuseal', label: 'Construtor DocuSeal', icon: FileSignature },
 ];
 
 export function ContratosClient({
@@ -230,28 +254,28 @@ export function ContratosClient({
 
   return (
     <div className="space-y-6">
-      {/* 🟢 BARRA FLUTUANTE PADRÃO DO SISTEMA (Sub-menu estilo CRM/Financeiro) */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-card p-1 dark:bg-white/3">
+      {/* 🟢 BARRA DE ABAS PADRÃO */}
+      <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/10 pb-4">
         {TABS.map(t => (
           <button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
               activeTab === t.key
-                ? 'bg-surface-card text-brand-600 shadow-sm dark:bg-white/10 dark:text-brand-400 font-semibold'
-                : 'text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5'
+                ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+                : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
             }`}
           >
-            <t.icon className="h-4 w-4" />
+            <t.icon className="h-3.5 w-3.5" />
             {t.label}
           </button>
         ))}
       </div>
 
       {actionMessage && (
-        <div className="flex items-center gap-3 rounded-2xl bg-ok/10 border border-ok/30 p-4 text-sm text-ok font-medium animate-in fade-in">
-          <CheckCircle className="h-5 w-5 shrink-0" />
+        <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs font-bold text-emerald-800 dark:text-emerald-300 animate-in fade-in">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
           {actionMessage}
         </div>
       )}
@@ -261,50 +285,50 @@ export function ContratosClient({
         <div className="space-y-6 animate-in fade-in">
           {/* Cards KPI */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="card-flat rounded-card p-5">
-              <p className="text-xs font-medium text-ink-soft">
-                {activeTab === 'entrada' ? 'Total Recebido em Contratos' : 'Total Pago a Fornecedores'}
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+                {activeTab === 'entrada' ? 'Receita Contratual Prevista' : 'Total Pago a Fornecedores'}
               </p>
-              <p className={`mt-2 text-2xl font-bold ${activeTab === 'entrada' ? 'text-ok' : 'text-critical'}`}>
+              <p className={`mt-2 font-serif font-bold text-2xl sm:text-3xl ${activeTab === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                 {BRL.format(activeTab === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês
               </p>
-              <p className="mt-0.5 text-xs text-ink-soft">
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
                 {activeTab === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)
               </p>
             </div>
 
-            <div className="card-flat rounded-card p-5">
-              <p className="text-xs font-medium text-ink-soft">Contratos Ativos</p>
-              <p className="mt-2 text-2xl font-bold text-ink">
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Contratos Ativos</p>
+              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
                 {(activeTab === 'entrada' ? entradas : saidas).filter(c => c.status === 'ATIVO').length}
               </p>
-              <p className="mt-0.5 text-xs text-ink-soft">Gerando lançamentos recorrentes</p>
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerando lançamentos recorrentes</p>
             </div>
 
-            <div className="card-flat rounded-card p-5">
-              <p className="text-xs font-medium text-ink-soft">
-                {activeTab === 'entrada' ? 'Faturamento Com Nota Emitida' : 'Provisão de Saída Comprometida'}
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+                {activeTab === 'entrada' ? 'Faturamento com Nota Emitida' : 'Provisão de Saída Comprometida'}
               </p>
-              <p className="mt-2 text-2xl font-bold text-brand-500">
+              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#2F4A3C] dark:text-[#DFFFAE]">
                 {BRL.format(
                   (activeTab === 'entrada' ? entradas : saidas)
                     .filter(c => c.lastNfseEmitted)
                     .reduce((sum, c) => sum + c.value, 0)
                 )}
               </p>
-              <p className="mt-0.5 text-xs text-ink-soft">Status fiscal atualizado</p>
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Status fiscal atualizado</p>
             </div>
           </div>
 
           {/* Botão de Adicionar Contrato */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-ink">
+            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
               {activeTab === 'entrada' ? 'Contratos de Serviços Prestados (Clientes)' : 'Contratos de Serviços Contratados (Fornecedores)'}
             </h2>
             <button
               type="button"
               onClick={() => setShowNewContractForm(v => !v)}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 shadow-sm"
+              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
             >
               <Plus className="h-4 w-4" /> Novo Contrato de {activeTab === 'entrada' ? 'Entrada' : 'Saída'}
             </button>
@@ -312,12 +336,12 @@ export function ContratosClient({
 
           {/* Formulário de Inclusão de Contrato */}
           {showNewContractForm && (
-            <form onSubmit={handleCreateContract} className="rounded-2xl border border-brand-400/30 bg-brand-500/5 p-6 space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-line pb-3">
-                <h3 className="text-sm font-bold text-brand-500">
-                  + Cadastrar Contrato de {activeTab === 'entrada' ? 'Entrada (Serviço Prestado)' : 'Saída (Prestador/Fornecedor)'}
+            <form onSubmit={handleCreateContract} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+                <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+                  Novo Contrato de {activeTab === 'entrada' ? 'Entrada (Serviço Prestado)' : 'Saída (Prestador/Fornecedor)'}
                 </h3>
-                <button type="button" onClick={() => setShowNewContractForm(false)} className="text-ink-soft hover:text-ink">
+                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -325,46 +349,46 @@ export function ContratosClient({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={lbl}>Título / Descrição do Contrato *</label>
-                  <input name="title" required placeholder="Ex.: Prestação de Serviços de TI, Contrato Social..." className={`mt-1 ${field}`} />
+                  <input name="title" required placeholder="Ex.: Prestação de Serviços de TI, Contrato de Consultoria..." className={`mt-1.5 ${field}`} />
                 </div>
 
                 <div>
                   <label className={lbl}>{activeTab === 'entrada' ? 'Nome do Cliente *' : 'Nome do Fornecedor / Terceirizado *'}</label>
-                  <input name="partyName" required placeholder="Razão social ou Nome completo" className={`mt-1 ${field}`} />
+                  <input name="partyName" required placeholder="Razão social ou Nome completo" className={`mt-1.5 ${field}`} />
                 </div>
 
                 <div>
-                  <label className={lbl}>CNPJ da contraparte (opcional)</label>
-                  <input name="partyCnpj" placeholder="00.000.000/0000-00" className={`mt-1 ${field}`} />
-                  <p className="mt-1 text-[11px] text-ink-soft">
-                    Se a contraparte também for cliente Hexxa, o contrato e os lançamentos são sincronizados dos dois lados automaticamente.
+                  <label className={lbl}>CNPJ da Contraparte (opcional)</label>
+                  <input name="partyCnpj" placeholder="00.000.000/0000-00" className={`mt-1.5 ${field}`} />
+                  <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                    Se a contraparte também for cliente Hexxa, os lançamentos sincronizam automaticamente.
                   </p>
                 </div>
 
                 <div>
                   <label className={lbl}>Valor Mensal (R$) *</label>
-                  <input name="value" required type="number" step="0.01" min="1" placeholder="0,00" className={`mt-1 ${field}`} />
+                  <input name="value" required type="number" step="0.01" min="1" placeholder="0,00" className={`mt-1.5 ${field}`} />
                 </div>
 
                 <div>
                   <label className={lbl}>Dia de Vencimento no Mês *</label>
-                  <input name="dueDay" required type="number" min="1" max="31" defaultValue="10" className={`mt-1 ${field}`} />
+                  <input name="dueDay" required type="number" min="1" max="31" defaultValue="10" className={`mt-1.5 ${field}`} />
                 </div>
 
                 <div>
                   <label className={lbl}>Data de Início *</label>
-                  <input name="startDate" required type="date" defaultValue={new Date().toISOString().split('T')[0]} className={`mt-1 ${field}`} />
+                  <input name="startDate" required type="date" defaultValue={new Date().toISOString().split('T')[0]} className={`mt-1.5 ${field}`} />
                 </div>
 
                 <div>
                   <label className={lbl}>Data de Vencimento/Renovação *</label>
-                  <input name="endDate" required type="date" defaultValue={new Date(Date.now() + 365*86400000).toISOString().split('T')[0]} className={`mt-1 ${field}`} />
+                  <input name="endDate" required type="date" defaultValue={new Date(Date.now() + 365*86400000).toISOString().split('T')[0]} className={`mt-1.5 ${field}`} />
                 </div>
 
                 {activeTab === 'entrada' && (
                   <div className="sm:col-span-2 flex items-center gap-2 pt-2">
-                    <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500" />
-                    <label htmlFor="autoEmitNfse" className="text-xs font-medium text-ink cursor-pointer">
+                    <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded text-[#2F4A3C] focus:ring-[#DFFFAE]" />
+                    <label htmlFor="autoEmitNfse" className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] cursor-pointer">
                       Emitir Nota Fiscal (NFSe) automaticamente no dia do vencimento
                     </label>
                   </div>
@@ -372,11 +396,11 @@ export function ContratosClient({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={savingContract} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
-                  {savingContract ? <Spinner className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                <button type="submit" disabled={savingContract} className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60">
+                  {savingContract ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   {savingContract ? 'Salvando...' : 'Salvar Contrato e Gerar Lançamentos'}
                 </button>
-                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-black/5">
+                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
                   Cancelar
                 </button>
               </div>
@@ -386,48 +410,48 @@ export function ContratosClient({
           {/* Lista de Contratos */}
           <div className="space-y-4">
             {(activeTab === 'entrada' ? entradas : saidas).map(c => (
-              <div key={c.id} className="rounded-2xl border border-line bg-surface-card p-5 space-y-4 hover:border-brand-400/40 transition-colors">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
+              <div key={c.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-4 shadow-sm hover:shadow-md transition-all">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-black/5 dark:border-white/10 pb-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-ink">{c.title}</h3>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        c.status === 'ATIVO' ? 'bg-ok/10 text-ok' : 'bg-critical/10 text-critical'
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{c.title}</h3>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        c.status === 'ATIVO' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
                       }`}>
                         {c.status}
                       </span>
                       {c.linkedOnPlatform && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-bold text-brand-600 dark:text-brand-400">
-                          <LinkSimple className="h-3 w-3" /> Sincronizado (também é cliente Hexxa)
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+                          <Link2 className="h-3 w-3" /> Sincronizado na Hexxa
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-ink-soft mt-0.5">
+                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
                       {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong>{c.partyName}</strong> · Vencimento todo dia {c.dueDay}
                     </p>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-xl font-extrabold text-ink">{BRL.format(c.value)}/mês</p>
-                    <p className="text-[11px] text-ink-soft">Vigência: {c.startDate} a {c.endDate}</p>
+                    <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}/mês</p>
+                    <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Vigência: {c.startDate} a {c.endDate}</p>
                   </div>
                 </div>
 
                 {/* Status de Provisão / NFSe */}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {c.lastNfseEmitted ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] px-3 py-1 text-xs font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
                         🟢 Faturado — NFSe Nº {c.nfseNumber}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-3 py-1 text-xs font-semibold text-warn">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
                         🔵 Provisão de Caixa (Aguardando NFSe)
                       </span>
                     )}
 
                     {c.autoEmitNfse && (
-                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                      <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold">
                         ⚡ NFSe Automática Ativa
                       </span>
                     )}
@@ -440,15 +464,15 @@ export function ContratosClient({
                         <button
                           type="button"
                           onClick={() => setSelectedNfseModal(c)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-500/20 dark:text-brand-400"
+                          className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold"
                         >
-                          <FileText className="h-3.5 w-3.5" /> Marcar NFSe Emitida
+                          <FileText className="h-3.5 w-3.5" /> Marcar NFSe
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setSelectedPixModal(c)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/20"
+                          className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-3.5 py-1.5 text-xs font-bold"
                         >
                           <QrCode className="h-3.5 w-3.5" /> Cobrar Pix
                         </button>
@@ -458,7 +482,7 @@ export function ContratosClient({
                     <button
                       type="button"
                       onClick={() => setSelectedReajusteModal(c)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink hover:bg-black/5"
+                      className="inline-flex items-center gap-1 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
                     >
                       <Percent className="h-3.5 w-3.5" /> Reajustar %
                     </button>
@@ -467,9 +491,9 @@ export function ContratosClient({
                       type="button"
                       onClick={() => handleRenovar(c.id)}
                       disabled={actionBusyId === c.id}
-                      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface-card px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink hover:bg-black/5 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50"
                     >
-                      {actionBusyId === c.id ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <ArrowClockwise className="h-3.5 w-3.5" />} Renovar (+12m)
+                      {actionBusyId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Renovar (+12m)
                     </button>
 
                     {c.status === 'ATIVO' && (
@@ -477,7 +501,7 @@ export function ContratosClient({
                         type="button"
                         onClick={() => handleCancelar(c.id)}
                         disabled={actionBusyId === c.id}
-                        className="inline-flex items-center gap-1 rounded-xl bg-critical/10 px-2.5 py-1.5 text-xs font-medium text-critical hover:bg-critical/20 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50"
                       >
                         Cancelar
                       </button>
@@ -488,7 +512,7 @@ export function ContratosClient({
             ))}
 
             {(activeTab === 'entrada' ? entradas : saidas).length === 0 && (
-              <p className="text-sm text-ink-soft py-8 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : 'saída'} cadastrado ainda.</p>
+              <p className="text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : 'saída'} cadastrado ainda.</p>
             )}
           </div>
         </div>
@@ -507,15 +531,15 @@ export function ContratosClient({
               }}
             />
           ) : (
-            <form onSubmit={handleUploadSignature} className="card-flat rounded-card p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-line pb-4">
-                <h2 className="text-lg font-semibold text-ink">Enviar Contrato para Assinatura Eletrônica</h2>
+            <form onSubmit={handleUploadSignature} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+                <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Enviar Contrato para Assinatura Eletrônica</h2>
                 <button
                   type="button"
                   onClick={() => setWizardMode('generate')}
-                  className="text-xs font-bold text-brand-600 hover:text-brand-700 underline"
+                  className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
                 >
-                  Usar Gerador de Modelos Padrão +
+                  Usar Gerador de Modelos Padrão →
                 </button>
               </div>
 
@@ -526,7 +550,7 @@ export function ContratosClient({
                   onChange={e => setName(e.target.value)}
                   required
                   placeholder="Ex.: Contrato de Prestação de Serviços — Cliente X"
-                  className={`mt-1 ${field}`}
+                  className={`mt-1.5 ${field}`}
                 />
               </div>
 
@@ -536,13 +560,13 @@ export function ContratosClient({
                   type="file"
                   accept="application/pdf"
                   onChange={e => setFile(e.target.files?.[0] ?? null)}
-                  className={`mt-1 ${field}`}
+                  className={`mt-1.5 ${field}`}
                 />
               </div>
 
               <div>
                 <label className={lbl}>Signatários do Contrato</label>
-                <div className="mt-1 space-y-2">
+                <div className="mt-1.5 space-y-2">
                   {signers.map((s, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <input
@@ -560,8 +584,8 @@ export function ContratosClient({
                         className={`flex-1 ${field}`}
                       />
                       {signers.length > 1 && (
-                        <button type="button" onClick={() => setSigners(sg => sg.filter((_, idx) => idx !== i))} className="text-ink-soft hover:text-critical">
-                          <Trash className="h-4 w-4" />
+                        <button type="button" onClick={() => setSigners(sg => sg.filter((_, idx) => idx !== i))} className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600">
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                     </div>
@@ -570,29 +594,29 @@ export function ContratosClient({
                 <button
                   type="button"
                   onClick={() => setSigners(sg => [...sg, { name: '', email: '', role: '' }])}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 hover:text-brand-600"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
                 >
                   <UserPlus className="h-3.5 w-3.5" /> Adicionar Signatário
                 </button>
               </div>
 
               {formError && (
-                <p className="flex items-center gap-2 rounded-xl bg-critical/10 px-3 py-2 text-sm text-critical">
-                  <WarningCircle className="h-4 w-4 shrink-0" /> {formError}
+                <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
+                  <AlertTriangle className="h-4 w-4 shrink-0" /> {formError}
                 </p>
               )}
               {formSuccess && (
-                <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">
-                  <CheckCircle className="h-4 w-4 shrink-0" /> Contrato enviado via DocuSeal! Os signatários receberão o link por e-mail.
+                <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" /> Contrato enviado via DocuSeal! Os signatários receberão o link por e-mail.
                 </p>
               )}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
               >
-                {submitting ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {submitting ? 'Enviando...' : 'Enviar para Assinatura Eletrônica'}
               </button>
             </form>
@@ -600,20 +624,20 @@ export function ContratosClient({
 
           {/* Lista de assinaturas enviadas (status via DocuSeal) */}
           {docs.length > 0 && (
-            <div className="card-flat rounded-card p-5 space-y-3">
-              <h3 className="text-sm font-bold text-ink">Documentos Enviados para Assinatura</h3>
-              <div className="space-y-2">
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
+              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Documentos Enviados para Assinatura</h3>
+              <div className="divide-y divide-black/5 dark:divide-white/10">
                 {docs.map(d => (
-                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-4 py-3">
+                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-3.5">
                     <div>
-                      <p className="text-sm font-medium text-ink">{d.title ?? 'Documento sem título'}</p>
-                      <p className="text-xs text-ink-soft">{d.signerName ?? d.signerEmail}</p>
+                      <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{d.title ?? 'Documento sem título'}</p>
+                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{d.signerName ?? d.signerEmail}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        d.status === 'SIGNED' ? 'bg-ok/10 text-ok'
-                        : d.status === 'REFUSED' || d.status === 'EXPIRED' ? 'bg-critical/10 text-critical'
-                        : 'bg-warn/10 text-warn'
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        d.status === 'SIGNED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : d.status === 'REFUSED' || d.status === 'EXPIRED' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                       }`}>
                         {d.status}
                       </span>
@@ -621,10 +645,10 @@ export function ContratosClient({
                         type="button"
                         onClick={() => handleRefreshStatus(d.id)}
                         disabled={refreshingId === d.id}
-                        className="text-ink-soft hover:text-ink disabled:opacity-50"
+                        className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 disabled:opacity-50"
                         title="Atualizar status"
                       >
-                        <ArrowsClockwise className={`h-4 w-4 ${refreshingId === d.id ? 'animate-spin' : ''}`} />
+                        <RotateCw className={`h-4 w-4 ${refreshingId === d.id ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
                   </div>
@@ -637,10 +661,12 @@ export function ContratosClient({
 
       {/* ✒️ ABA CONSTRUTOR DOCUSEAL */}
       {activeTab === 'docuseal' && (
-        <section className="card-flat rounded-card p-5 animate-in fade-in space-y-4">
-          <div className="flex items-center justify-between border-b border-line pb-3">
-            <h2 className="text-lg font-semibold text-ink">Construtor Interativo DocuSeal</h2>
-            <p className="text-xs text-ink-soft">Monte modelos de contratos customizados com campos arrastáveis</p>
+        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 animate-in fade-in space-y-4 shadow-sm">
+          <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+            <div>
+              <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Construtor Interativo DocuSeal</h2>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Monte modelos de contratos customizados com campos arrastáveis</p>
+            </div>
           </div>
 
           {docusealToken ? (
@@ -651,7 +677,7 @@ export function ContratosClient({
               }}
             />
           ) : (
-            <div className="text-sm text-ink-soft py-12 text-center animate-pulse">
+            <div className="text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center animate-pulse">
               Carregando construtor seguro DocuSeal...
             </div>
           )}
@@ -661,23 +687,23 @@ export function ContratosClient({
       {/* MODAIS DE AÇÃO */}
       {selectedNfseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-surface-card border border-line p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                <FileText className="h-5 w-5 text-brand-500" />
+              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                 Marcar Nota Fiscal (NFSe) como Emitida
               </h3>
-              <button onClick={() => { setSelectedNfseModal(null); setNfseNumeroInput(''); }} className="text-ink-soft hover:text-ink"><X className="h-5 w-5" /></button>
+              <button onClick={() => { setSelectedNfseModal(null); setNfseNumeroInput(''); }} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="space-y-2 text-sm bg-black/5 dark:bg-white/5 p-4 rounded-xl">
-              <p><span className="text-ink-soft">Contrato:</span> <strong>{selectedNfseModal.title}</strong></p>
-              <p><span className="text-ink-soft">Tomador (Cliente):</span> <strong>{selectedNfseModal.partyName}</strong></p>
-              <p><span className="text-ink-soft">Valor da Nota:</span> <strong className="text-ok">{BRL.format(selectedNfseModal.value)}</strong></p>
+            <div className="space-y-2 text-sm bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
+              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Contrato:</span> <strong>{selectedNfseModal.title}</strong></p>
+              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Tomador (Cliente):</span> <strong>{selectedNfseModal.partyName}</strong></p>
+              <p><span className="text-[#6E6A61] dark:text-[#A8A49C]">Valor da Nota:</span> <strong className="text-emerald-700 dark:text-emerald-400">{BRL.format(selectedNfseModal.value)}</strong></p>
             </div>
 
-            <p className="text-xs text-ink-soft">
-              A emissão real acontece em <strong>Meu Negócio → Notas</strong>. Aqui você só informa o número da nota já emitida, pra vincular ao contrato.
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+              A emissão real acontece em <strong>Meu Negócio → Fiscal / NFSe</strong>. Aqui você só informa o número da nota já emitida para vincular ao contrato.
             </p>
 
             <div>
@@ -686,7 +712,7 @@ export function ContratosClient({
                 value={nfseNumeroInput}
                 onChange={e => setNfseNumeroInput(e.target.value)}
                 placeholder="Ex.: 000142"
-                className={`mt-1 ${field}`}
+                className={`mt-1.5 ${field}`}
               />
             </div>
 
@@ -694,10 +720,10 @@ export function ContratosClient({
               type="button"
               onClick={() => handleMarcarNfseEmitida(selectedNfseModal)}
               disabled={actionBusyId === selectedNfseModal.id || !nfseNumeroInput.trim()}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
             >
-              {actionBusyId === selectedNfseModal.id ? <Spinner className="h-4 w-4 animate-spin" /> : null}
-              Confirmar
+              {actionBusyId === selectedNfseModal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Confirmar Vínculo
             </button>
           </div>
         </div>
@@ -713,16 +739,16 @@ export function ContratosClient({
 
       {selectedReajusteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-surface-card border border-line p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                <Percent className="h-5 w-5 text-brand-500" />
+              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+                <Percent className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                 Reajustar Valor do Contrato
               </h3>
-              <button onClick={() => setSelectedReajusteModal(null)} className="text-ink-soft hover:text-ink"><X className="h-5 w-5" /></button>
+              <button onClick={() => setSelectedReajusteModal(null)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
             </div>
 
-            <p className="text-xs text-ink-soft">
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
               Aplica um reajuste percentual no valor mensal do contrato <strong>{selectedReajusteModal.title}</strong>
               {selectedReajusteModal.linkedOnPlatform ? ' (e do lado espelhado com a contraparte)' : ''}.
             </p>
@@ -734,7 +760,7 @@ export function ContratosClient({
                 step="0.1"
                 value={reajustePct}
                 onChange={e => setReajustePct(e.target.value)}
-                className={`mt-1 ${field}`}
+                className={`mt-1.5 ${field}`}
               />
             </div>
 
@@ -742,7 +768,7 @@ export function ContratosClient({
               type="button"
               onClick={() => handleReajustar(selectedReajusteModal.id)}
               disabled={actionBusyId === selectedReajusteModal.id}
-              className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
             >
               {actionBusyId === selectedReajusteModal.id ? 'Aplicando...' : 'Aplicar Reajuste'}
             </button>
@@ -752,3 +778,4 @@ export function ContratosClient({
     </div>
   );
 }
+

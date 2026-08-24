@@ -1,4 +1,4 @@
-import { Bank } from '@phosphor-icons/react/dist/ssr';
+import { Landmark } from 'lucide-react';
 import { getProperties, getResumoFinanceiroAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
 import { PatrimonioApp } from './PatrimonioApp';
@@ -14,13 +14,20 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <header className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-          <Bank className="h-5 w-5" />
-        </span>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Gestão de Patrimônio</h1>
-          <p className="text-sm text-ink-soft">Patrimônio da empresa (PJ) e dos sócios (PF), com dados reais — não em achismos.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <Landmark className="h-3.5 w-3.5" />
+              Gestão Patrimonial
+            </span>
+          </div>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
+            Gestão de Patrimônio & Ativos
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+            Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos.
+          </p>
         </div>
       </header>
 
@@ -28,3 +35,4 @@ export default async function Page() {
     </div>
   );
 }
+

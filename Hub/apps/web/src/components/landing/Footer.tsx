@@ -41,32 +41,31 @@ export function Footer() {
           </div>
 
           <div className="foot-col">
-            <h4 className="landing-serif">O Hub</h4>
-            <a href="#recursos">Gestão financeira</a>
-            <small>Fluxo de caixa e cobranças</small>
-            <a href="#recursos">Contratos</a>
-            <small>Modelos prontos e envio rápido</small>
-            <a href="#recursos">Assinatura digital</a>
-            <small>Validade jurídica, sem papel</small>
-            <a href="#recursos">Impostos automáticos</a>
-            <small>Guias prontas, sem susto</small>
+            <h4 className="landing-serif">Navegação</h4>
+            <Link href="/recursos">O Hub por Dentro</Link>
+            <small>Módulos, emissão de NFSe e DRE</small>
+            <Link href="/simulador">Simulador de Economia</Link>
+            <small>Diagnóstico interativo e ROI</small>
+            <Link href="/planos">Planos e Preços</Link>
+            <small>Tabela comparativa de recursos</small>
+            <Link href="/auth/login">Acesso ao Hub</Link>
+            <small>Portal do Cliente e Contador</small>
           </div>
 
           <div className="foot-col">
             <h4 className="landing-serif">Hexx Digital</h4>
-            <a href="#contabilidade">Contabilidade Especializada</a>
-            <a href="#planos">Planos e Contratação</a>
-            <a href="#faq">Perguntas frequentes</a>
-            <a href="#contato">Fale com a gente</a>
+            <a href="/#depoimentos">Depoimentos de Clientes</a>
+            <a href="/#faq">Perguntas frequentes</a>
+            <a href="/#contato">Fale com a gente</a>
             <a href="mailto:contato@hexxdigital.com.br">contato@hexxdigital.com.br</a>
           </div>
         </div>
 
         <div className="foot-legal">
-          Hexx Digital — Contabilidade e tecnologia para empresas de serviço e holdings.
+          Hexx Digital — Contabilidade consultiva e tecnologia para empresas de serviço e holdings.
           <br />
-          Segurança em primeiro lugar. Feito com muita dedicação e empenho especialmente para a sua empresa.
-          <div className="foot-tag">© 2026 Hexx Digital. Todos os direitos reservados. Pra cima!</div>
+          Segurança em primeiro lugar. Criptografia de ponta a ponta e integração com o Sefin Nacional.
+          <div className="foot-tag">© 2026 Hexx Digital. Todos os direitos reservados.</div>
         </div>
       </div>
     </footer>

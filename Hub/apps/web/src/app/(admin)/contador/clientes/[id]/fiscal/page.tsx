@@ -1,21 +1,25 @@
 export const dynamic = 'force-dynamic';
 import { taxHistory, getDb, eq, desc } from '@hexxa/db';
 import Link from 'next/link';
-import {  ArrowLeft, CloudArrowUp, ChartBar, Calendar  } from '@phosphor-icons/react/dist/ssr';
+import {  ArrowLeft, CloudArrowUp, ChartBar, Calendar, ArrowsClockwise  } from '@phosphor-icons/react/dist/ssr';
 import { UploadPGDASForm } from './UploadPGDASForm';
+import { OneflowSetupForm } from './OneflowSetupForm';
+import { getOneflowCredential } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default async function AdminFiscalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
-  
+
   // Buscar histórico de PGDAS
   const history = await db.select()
     .from(taxHistory)
     .where(eq(taxHistory.companyId, id))
     .orderBy(desc(taxHistory.referenceMonth))
     .limit(12);
+
+  const oneflow = await getOneflowCredential(id);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -29,7 +33,7 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
             Gestão Fiscal (Simples Nacional)
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Faça upload dos recibos mensais do PGDAS para alimentar o Termômetro Tributário do cliente.
+            Faça upload dos recibos mensais do PGDAS para alimentar a Bússola Tributária do cliente.
           </p>
         </div>
       </div>
@@ -83,6 +87,19 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
             </div>
           )}
         </div>
+      </div>
+
+      {/* Integração Oneflow — só o contador vê/mexe, o cliente não tem acesso */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+          <ArrowsClockwise className="h-5 w-5 text-brand-500" />
+          Integração Oneflow
+        </h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Token do Oneflow específico deste cliente — usado pra sincronizar NFS-e e lançamentos contábeis. Configuração
+          interna, o cliente não vê isso no portal dele.
+        </p>
+        <OneflowSetupForm companyId={id} connected={oneflow.active} />
       </div>
 
       {/* Histórico Tabela */}

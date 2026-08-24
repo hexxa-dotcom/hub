@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useActionState, useState, useTransition, useRef } from 'react';
-import { FloppyDisk, UploadSimple, Trash, CheckCircle, WarningCircle, Info, Key, Buildings, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText } from '@phosphor-icons/react';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { Save, Upload, Trash2, CheckCircle2, AlertTriangle, Info, Key, Building2, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText } from 'lucide-react';
 import { saveFiscalAction, uploadCertAction, removeCertAction, createProfileAction, deleteProfileAction, saveTecnicaAction, type FiscalState } from './actions';
 import type { NfseConfig, NfseServiceProfile } from '@/lib/server/fiscal';
 
@@ -836,7 +837,7 @@ function CnaeSugestoes({
                           : 'border-slate-200 bg-white text-slate-700 hover:border-brand-400 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand-500'
                       }`}
                     >
-                      {selected && <CheckCircle className="h-3 w-3 shrink-0" />}
+                      {selected && <CheckCircle2 className="h-3 w-3 shrink-0" />}
                       <span className="font-mono">{lc}</span>
                       <span className="text-slate-400 dark:text-slate-500">·</span>
                       <span className="max-w-[22ch] truncate">{getLabelLC(lc).replace(/^\d+\.\d+ — /, '')}</span>
@@ -909,8 +910,8 @@ function Feedback({ state }: { state: FiscalState }) {
         : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
     }`}>
       {state.ok
-        ? <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-        : <WarningCircle className="mt-0.5 h-4 w-4 shrink-0" />
+        ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+        : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       }
       {state.message}
     </div>
@@ -1022,7 +1023,7 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
 
       {/* ── Identificação ── */}
       <div className="space-y-4">
-        <SectionTitle icon={Buildings}>Identificação da empresa</SectionTitle>
+        <SectionTitle icon={Building2}>Identificação da empresa</SectionTitle>
 
         {/* CNPJ — primeiro campo, dispara lookup automático */}
         <div>
@@ -1046,8 +1047,8 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
               )}
-              {cnpjStatus === 'ok' && <CheckCircle className="h-4 w-4 text-green-500" />}
-              {cnpjStatus === 'error' && <WarningCircle className="h-4 w-4 text-red-500" />}
+              {cnpjStatus === 'ok' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+              {cnpjStatus === 'error' && <AlertTriangle className="h-4 w-4 text-red-500" />}
             </span>
           </div>
           {cnpjMsg && (
@@ -1221,7 +1222,7 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          <FloppyDisk className="h-4 w-4" />
+          <Save className="h-4 w-4" />
           {pending ? 'Salvando…' : 'Salvar cadastro fiscal'}
         </button>
       </div>
@@ -1249,18 +1250,18 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
   return (
     <div className="space-y-4">
       {/* Status atual */}
-      <div className={`flex items-center justify-between rounded-xl p-4 ${
+      <div className={`flex items-center justify-between rounded-2xl p-4 ${
         hasCert
-          ? 'bg-green-50 dark:bg-green-900/10'
-          : 'bg-amber-50 dark:bg-amber-900/10'
+          ? 'bg-emerald-500/10 border border-emerald-500/20'
+          : 'bg-amber-500/10 border border-amber-500/20'
       }`}>
         <div className="flex items-center gap-3">
-          <Key className={`h-5 w-5 ${hasCert ? 'text-green-600' : 'text-amber-600'}`} />
+          <Key className={`h-5 w-5 ${hasCert ? 'text-emerald-600' : 'text-amber-600'}`} />
           <div>
-            <p className={`text-sm font-semibold ${hasCert ? 'text-green-800 dark:text-green-300' : 'text-amber-800 dark:text-amber-300'}`}>
+            <p className={`text-xs font-bold ${hasCert ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
               {hasCert ? 'Certificado A1 configurado' : 'Nenhum certificado configurado'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
               {hasCert
                 ? 'Certificado validado e armazenado. Notas serão enviadas ao Emissor Nacional.'
                 : 'Sem certificado a emissão fica em modo teste (mock).'}
@@ -1269,41 +1270,30 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
         </div>
         {hasCert && (
           <button
+            type="button"
             onClick={handleRemove}
             disabled={isPending}
-            className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <Trash className="h-3.5 w-3.5" /> Remover
+            <Trash2 className="h-3.5 w-3.5" /> Remover
           </button>
         )}
       </div>
 
-      {/* Instruções */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400 space-y-2">
-        <p className="font-medium text-slate-700 dark:text-slate-300">O que é o certificado A1?</p>
-        <ul className="list-inside list-disc space-y-1 text-xs">
-          <li>Arquivo <strong>.pfx</strong> ou <strong>.p12</strong> emitido por AC credenciada pela <strong>ICP-Brasil</strong> (Serasa, Certisign, Valid, Soluti, etc.)</li>
-          <li>Validade de <strong>1 ano</strong> — precisa ser renovado anualmente</li>
-          <li>É o mesmo certificado usado para assinar contratos, DCTFs e outros documentos fiscais</li>
-          <li>Tamanho típico: 3 KB a 20 KB</li>
-          <li>O arquivo e a senha ficam armazenados com segurança no banco de dados</li>
-        </ul>
-      </div>
-
-      {/* UploadSimple */}
+      {/* Formulário de upload */}
       <form action={action} className="space-y-4">
         <div>
-          <label className={labelCls}>Arquivo do certificado (.pfx ou .p12)</label>
+          <label className="block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Arquivo do certificado (.pfx ou .p12)</label>
           <div
-            className="mt-1 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:bg-brand-900/10"
+            className="mt-1 flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 p-6 text-center transition hover:border-[#2F4A3C] bg-white/40 dark:bg-black/20"
             onClick={() => fileRef.current?.click()}
           >
-            <UploadSimple className="h-8 w-8 text-slate-300" />
+            <Upload className="h-8 w-8 text-slate-400" />
             {fileName
-              ? <p className="text-sm font-medium text-brand-600">{fileName}</p>
-              : <p className="text-sm text-slate-400">Clique para selecionar ou arraste o arquivo aqui</p>
+              ? <p className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{fileName}</p>
+              : <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Clique para selecionar ou arraste o arquivo aqui</p>
             }
-            <p className="text-xs text-slate-400">Formatos aceitos: .pfx, .p12 — Máx. 1 MB</p>
+            <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Formatos aceitos: .pfx, .p12 — Máx. 1 MB</p>
             <input
               ref={fileRef}
               type="file"
@@ -1316,15 +1306,15 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
         </div>
 
         <div>
-          <label className={labelCls}>Senha do certificado</label>
+          <label className="block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Senha do certificado</label>
           <input
             type="password"
             name="certSenha"
             autoComplete="off"
             placeholder="Senha definida ao gerar o certificado"
-            className={`mt-1 ${inputCls}`}
+            className="mt-1 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
           />
-          <p className={hintCls}>A senha é validada localmente antes de ser salva</p>
+          <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">A senha é validada localmente antes de ser salva</p>
         </div>
 
         <Feedback state={state} />
@@ -1333,9 +1323,9 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
           <button
             type="submit"
             disabled={pending || !fileName}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
           >
-            <UploadSimple className="h-4 w-4" />
+            <Upload className="h-4 w-4" />
             {pending ? 'Validando e salvando…' : 'Enviar certificado'}
           </button>
         </div>
@@ -1391,27 +1381,27 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400">
-        <Buildings className="h-5 w-5" />
-        <h3 className="text-lg font-medium">Perfis Fiscais de Serviço</h3>
+      <div className="flex items-center gap-2 text-[#2F4A3C] dark:text-[#DFFFAE]">
+        <Building2 className="h-5 w-5" />
+        <h3 className="font-serif font-bold text-base">Perfis Fiscais de Serviço</h3>
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
         Cadastre diferentes tipos de serviço para escolher rapidamente na hora de emitir a nota.
       </p>
 
       {profiles.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {profiles.map(p => (
-            <div key={p.id} className="rounded-xl border border-slate-200 p-4 relative dark:border-slate-700">
-              <h4 className="font-semibold text-slate-900 dark:text-white">{p.nome}</h4>
-              <p className="text-sm text-slate-500 mt-1">Item: {p.itemListaServico}</p>
-              <p className="text-sm text-slate-500">CNAE: {p.cnae || '-'}</p>
-              <p className="text-sm text-slate-500">Tributação: {p.codigoTributacaoMunicipio || '-'}</p>
+            <div key={p.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 relative shadow-sm">
+              <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{p.nome}</h4>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Item: {p.itemListaServico}</p>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">CNAE: {p.cnae || '-'}</p>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Tributação: {p.codigoTributacaoMunicipio || '-'}</p>
               <div className="absolute top-4 right-4 flex gap-2">
                 <button
                   type="button"
                   onClick={() => handleEdit(p)}
-                  className="text-slate-400 hover:text-brand-600"
+                  className="rounded-full p-1 text-[#6E6A61] hover:text-[#2F4A3C]"
                   title="Editar Perfil"
                 >
                   ✎
@@ -1419,10 +1409,10 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
                 <button
                   type="button"
                   onClick={() => handleDelete(p.id)}
-                  className="text-slate-400 hover:text-red-500"
+                  className="rounded-full p-1 text-[#6E6A61] hover:text-red-600"
                   title="Excluir Perfil"
                 >
-                  X
+                  ✕
                 </button>
               </div>
             </div>
@@ -1432,63 +1422,63 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 
       {/* ── Configuração técnica global ── */}
       <form action={techAction} className="mt-8 space-y-4">
-        <h4 className="font-semibold text-slate-900 dark:text-white">Emissão e Numeração</h4>
-        <div className="grid gap-4 sm:grid-cols-2 rounded-xl border border-slate-200 p-5 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
+        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Emissão e Numeração</h4>
+        <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#FEFDF3] dark:bg-[#121614]">
           <div>
-            <label className="mb-1 block text-sm font-medium">Série da NF</label>
-            <input name="serie" defaultValue={config?.serieDps ?? '00001'} placeholder="00001" className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Série da NF</label>
+            <input name="serie" defaultValue={config?.serieDps ?? '00001'} placeholder="00001" className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Próxima Numeração</label>
-            <input name="proxNumeroDps" type="number" defaultValue={config?.proxNumeroDps ?? 1} placeholder="1" className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Próxima Numeração</label>
+            <input name="proxNumeroDps" type="number" defaultValue={config?.proxNumeroDps ?? 1} placeholder="1" className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div className="sm:col-span-2">
-             <button type="submit" disabled={techPending} className="rounded-xl bg-brand-600 px-4 py-2 text-white font-medium hover:bg-brand-700">
+             <button type="submit" disabled={techPending} className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
                {techPending ? 'Salvando...' : 'Salvar Numeração'}
              </button>
              {techState.message && (
-               <p className={`mt-2 text-sm ${techState.ok ? 'text-green-600' : 'text-red-500'}`}>{techState.message}</p>
+               <p className={`mt-2 text-xs font-bold ${techState.ok ? 'text-emerald-600' : 'text-red-500'}`}>{techState.message}</p>
              )}
           </div>
         </div>
       </form>
 
-      <form id="perfil-form" onSubmit={handleSave} className="mt-8 rounded-xl border border-slate-200 p-5 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 space-y-4">
-        <h4 className="font-medium text-slate-900 dark:text-white">
+      <form id="perfil-form" onSubmit={handleSave} className="mt-8 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#FEFDF3] dark:bg-[#121614] space-y-4">
+        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">
           {editingProfile ? 'Editar Perfil' : 'Novo Perfil'}
         </h4>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium">Nome do Perfil</label>
-            <input name="nome" required placeholder="Ex: Consultoria" defaultValue={editingProfile?.nome || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Nome do Perfil</label>
+            <input name="nome" required placeholder="Ex: Consultoria" defaultValue={editingProfile?.nome || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Item LC 116 (Ex: 17.19)</label>
-            <input name="item" required placeholder="17.19" defaultValue={editingProfile?.itemListaServico || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Item LC 116 (Ex: 17.19)</label>
+            <input name="item" required placeholder="17.19" defaultValue={editingProfile?.itemListaServico || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">CNAE (opcional)</label>
-            <input name="cnae" placeholder="6204000" defaultValue={editingProfile?.cnae || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">CNAE (opcional)</label>
+            <input name="cnae" placeholder="6204000" defaultValue={editingProfile?.cnae || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Cód. Tributação Município</label>
-            <input name="ctrib" placeholder="Ex: 01234" defaultValue={editingProfile?.codigoTributacaoMunicipio || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Cód. Tributação Município</label>
+            <input name="ctrib" placeholder="Ex: 01234" defaultValue={editingProfile?.codigoTributacaoMunicipio || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Alíquota ISS (%) (opcional)</label>
-            <input name="aliquota" placeholder="3.5" defaultValue={editingProfile?.aliquotaIss || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Alíquota ISS (%) (opcional)</label>
+            <input name="aliquota" placeholder="3.5" defaultValue={editingProfile?.aliquotaIss || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm font-medium">Descrição Padrão do Serviço (opcional)</label>
-            <textarea name="defaultDescription" placeholder="Texto preenchido automaticamente ao selecionar este perfil" defaultValue={editingProfile?.defaultDescription || ''} className="w-full rounded-xl border border-slate-200 px-3 py-2" rows={2} />
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Descrição Padrão do Serviço (opcional)</label>
+            <textarea name="defaultDescription" placeholder="Texto preenchido automaticamente ao selecionar este perfil" defaultValue={editingProfile?.defaultDescription || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" rows={2} />
           </div>
         </div>
         <div className="flex gap-3">
-          <button type="submit" disabled={pending} className="rounded-xl bg-brand-600 px-4 py-2 text-white font-medium hover:bg-brand-700">
+          <button type="submit" disabled={pending} className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
             {pending ? 'Salvando...' : (editingProfile ? 'Salvar Alterações' : 'Adicionar Perfil')}
           </button>
           {editingProfile && (
-            <button type="button" onClick={handleCancelEdit} className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700 font-medium hover:bg-slate-100">
+            <button type="button" onClick={handleCancelEdit} className="rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
               Cancelar
             </button>
           )}
@@ -1503,7 +1493,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 type Tab = 'empresa' | 'certificado' | 'perfil';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'empresa',      label: 'Dados da empresa',  icon: Buildings },
+  { id: 'empresa',      label: 'Dados da empresa',  icon: Building2 },
   { id: 'perfil',       label: 'Perfis Fiscais',     icon: FileText },
   { id: 'certificado',  label: 'Certificado A1',     icon: Key },
 ];
@@ -1512,33 +1502,28 @@ export function FiscalForm({ config, temCert, profiles }: { config: NfseConfig |
   const [tab, setTab] = useState<Tab>('empresa');
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface-card shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      {/* Abas */}
-      <div className="flex border-b border-slate-200 dark:border-slate-700">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-3.5 text-sm font-medium transition ${
-                tab === t.id
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {t.label}
-              {t.id === 'certificado' && (
-                <span className={`ml-1 inline-block h-2 w-2 rounded-full ${temCert ? 'bg-green-500' : 'bg-amber-400'}`} />
-              )}
-            </button>
-          );
-        })}
+    <div className="space-y-6">
+      {/* Abas em Pílula com Moldura e Transição Suave */}
+      <div className="flex">
+        <SegmentedTabs
+          tabs={[
+            { id: 'empresa', label: 'Dados da empresa', icon: Building2 },
+            { id: 'perfil', label: 'Perfis Fiscais', icon: FileText },
+            {
+              id: 'certificado',
+              label: 'Certificado A1',
+              icon: Key,
+              badge: <span className={`inline-block h-2 w-2 rounded-full ${temCert ? 'bg-emerald-500' : 'bg-amber-400'}`} />,
+            },
+          ]}
+          activeTab={tab}
+          onChange={setTab}
+          layoutId="fiscalTabsIndicator"
+        />
       </div>
 
       {/* Conteúdo */}
-      <div className="p-6">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
         {tab === 'empresa' && <DadosEmpresa config={config} />}
         {tab === 'perfil' && <PerfisFiscais profiles={profiles ?? []} config={config} />}
         {tab === 'certificado' && <CertificadoA1 temCert={temCert} />}

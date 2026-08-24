@@ -1,7 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Copy, Check, CheckCircle, Clock, Warning, CaretDown, CaretUp, Plus, X, DownloadSimple, CalendarBlank, CurrencyDollar, Funnel, Spinner, ArrowSquareOut, Faders } from '@phosphor-icons/react';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import {
+  Receipt,
+  Copy,
+  Check,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  X,
+  Download,
+  Calendar,
+  DollarSign,
+  Filter,
+  Loader2,
+  ExternalLink,
+  SlidersHorizontal,
+  ShieldCheck,
+} from 'lucide-react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
 import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
@@ -14,18 +34,18 @@ type Guia = TaxGuideRecord;
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CAT_CONFIG: Record<GuiaCategoria, { label: string; cls: string }> = {
-  DAS:          { label: 'DAS',          cls: 'bg-brand-500/10 text-brand-600 dark:text-brand-400' },
-  DARF:         { label: 'DARF',         cls: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-  ISS:          { label: 'ISS',          cls: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' },
-  PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-  FGTS:         { label: 'FGTS',         cls: 'bg-green-500/10 text-green-600 dark:text-green-400' },
-  DIVERSA:      { label: 'Diversa',      cls: 'bg-ink/10 text-ink-soft' },
+  DAS:          { label: 'DAS',          cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
+  DARF:         { label: 'DARF',         cls: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' },
+  ISS:          { label: 'ISS',          cls: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300' },
+  PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300' },
+  FGTS:         { label: 'FGTS',         cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+  DIVERSA:      { label: 'Diversa',      cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
 };
 
 const STATUS_CONFIG: Record<GuiaStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  OPEN:     { label: 'Pendente',  cls: 'bg-warn/10 text-warn',          icon: Clock },
-  PAID:     { label: 'Paga',      cls: 'bg-ok/10 text-ok',              icon: CheckCircle },
-  OVERDUE:  { label: 'Em atraso', cls: 'bg-critical/10 text-critical', icon: Warning },
+  OPEN:     { label: 'Pendente',  cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300', icon: Clock },
+  PAID:     { label: 'Paga',      cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300', icon: CheckCircle2 },
+  OVERDUE:  { label: 'Em atraso', cls: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300', icon: AlertTriangle },
 };
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -41,11 +61,11 @@ function fmtCompetencia(iso: string) {
 }
 
 function vencClass(iso: string, status: GuiaStatus) {
-  if (status === 'PAID') return 'text-ink-soft';
+  if (status === 'PAID') return 'text-[#6E6A61] dark:text-[#A8A49C]';
   const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
-  if (days < 0) return 'text-critical font-medium';
-  if (days <= 5) return 'text-warn font-medium';
-  return 'text-ink-soft';
+  if (days < 0) return 'text-red-600 dark:text-red-400 font-bold';
+  if (days <= 5) return 'text-amber-600 dark:text-amber-400 font-bold';
+  return 'text-[#6E6A61] dark:text-[#A8A49C]';
 }
 
 // ── CopyBtn ───────────────────────────────────────────────────────────────────
@@ -56,9 +76,9 @@ function CopyBtn({ text, label = 'Copiar Pix' }: { text: string; label?: string 
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-500/20 dark:text-brand-400"
+      className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] px-3.5 py-1.5 text-xs font-bold text-[#2F4A3C] hover:bg-[#DFFFAE] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] transition-all"
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-ok" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? 'Copiado!' : label}
     </button>
   );
@@ -101,19 +121,26 @@ function EmitirDasBtn({ competencia, cnpj }: { competencia: string; cnpj: string
 
   if (state.status === 'ok') {
     return (
-      <div className="flex flex-col gap-2 rounded-xl border border-ok/20 bg-ok/5 p-3">
-        <p className="text-xs font-semibold text-ok">DAS emitido — linha digitável</p>
-        <p className="break-all font-mono text-xs text-ink">{state.linhaDigitavel}</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => copy(state.linhaDigitavel)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-500/20 dark:text-brand-400">
-            {copied ? <Check className="h-3.5 w-3.5 text-ok" /> : <Copy className="h-3.5 w-3.5" />}
+      <div className="flex flex-col gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">DAS emitido — linha digitável</p>
+        <p className="break-all font-mono text-xs text-[#231F20] dark:text-[#FEFDF3] bg-white/60 dark:bg-black/40 p-2.5 rounded-xl">{state.linhaDigitavel}</p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => copy(state.linhaDigitavel)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C] transition-colors"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? 'Copiado!' : 'Copiar linha'}
           </button>
           {state.pgmeiUrl && (
-            <a href={state.pgmeiUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-ink/5 px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-ink/10">
-              <ArrowSquareOut className="h-3.5 w-3.5" /> Abrir no PGMEI
+            <a
+              href={state.pgmeiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Abrir no PGMEI
             </a>
           )}
         </div>
@@ -123,17 +150,24 @@ function EmitirDasBtn({ competencia, cnpj }: { competencia: string; cnpj: string
 
   if (state.status === 'error') {
     return (
-      <div className="flex flex-col gap-2 rounded-xl border border-critical/20 bg-critical/5 p-3">
-        <p className="text-xs text-critical">{state.msg}</p>
+      <div className="flex flex-col gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+        <p className="text-xs text-red-700 dark:text-red-400">{state.msg}</p>
         <div className="flex flex-wrap gap-2">
           {state.pgmeiUrl && (
-            <a href={state.pgmeiUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-ink/5 px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-ink/10">
-              <ArrowSquareOut className="h-3.5 w-3.5" /> Emitir no portal do governo
+            <a
+              href={state.pgmeiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Emitir no portal do governo
             </a>
           )}
-          <button type="button" onClick={() => setState({ status: 'idle' })}
-            className="text-xs text-ink-soft underline">
+          <button
+            type="button"
+            onClick={() => setState({ status: 'idle' })}
+            className="text-xs text-[#6E6A61] dark:text-[#A8A49C] underline hover:text-[#231F20]"
+          >
             Tentar novamente
           </button>
         </div>
@@ -142,19 +176,30 @@ function EmitirDasBtn({ competencia, cnpj }: { competencia: string; cnpj: string
   }
 
   return (
-    <button type="button" onClick={emitir} disabled={!cnpj || state.status === 'loading'}
-      className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-500/20 dark:text-brand-400 disabled:opacity-50">
-      {state.status === 'loading'
-        ? <><Spinner className="h-3.5 w-3.5 animate-spin" /> Emitindo…</>
-        : <><DownloadSimple className="h-3.5 w-3.5" /> Emitir DAS</>}
+    <button
+      type="button"
+      onClick={emitir}
+      disabled={!cnpj || state.status === 'loading'}
+      className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C] transition-all disabled:opacity-50"
+    >
+      {state.status === 'loading' ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Emitindo…
+        </>
+      ) : (
+        <>
+          <Download className="h-3.5 w-3.5" /> Emitir DAS
+        </>
+      )}
     </button>
   );
 }
 
 // ── Nova Guia Form ────────────────────────────────────────────────────────────
 
-const field = 'w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
-const lbl = 'text-xs font-medium text-ink-soft';
+const field =
+  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';
 
 function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [submitting, setSubmitting] = useState(false);
@@ -180,21 +225,26 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
       pixCode: String(fd.get('pix') ?? '').trim() || null,
     });
     setSubmitting(false);
-    if ('error' in res) { setError(res.error!); return; }
+    if ('error' in res) {
+      setError(res.error!);
+      return;
+    }
     onAdded();
     onClose();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-brand-400/30 bg-brand-500/5 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">Registrar guia</p>
-        <button type="button" onClick={onClose} className="rounded p-1 text-ink-soft hover:text-ink"><X className="h-4 w-4" /></button>
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
+      <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Registrar Nova Guia</p>
+        <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+          <X className="h-4 w-4" />
+        </button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={lbl}>Tipo</label>
-          <select name="categoria" className={`mt-1 ${field}`}>
+          <label className={lbl}>Tipo de Guia</label>
+          <select name="categoria" className={`mt-1.5 ${field}`}>
             <option value="DAS">DAS — Simples Nacional</option>
             <option value="DARF">DARF — Federal</option>
             <option value="ISS">ISS — Municipal</option>
@@ -205,31 +255,41 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         </div>
         <div>
           <label className={lbl}>Competência</label>
-          <input name="competencia" required placeholder="MM/AAAA" pattern="\d{2}/\d{4}" className={`mt-1 ${field}`} />
+          <input name="competencia" required placeholder="MM/AAAA" pattern="\d{2}/\d{4}" className={`mt-1.5 ${field}`} />
         </div>
         <div className="sm:col-span-2">
           <label className={lbl}>Descrição</label>
-          <input name="descricao" required placeholder="Ex.: Simples Nacional — junho/2026" className={`mt-1 ${field}`} />
+          <input name="descricao" required placeholder="Ex.: Simples Nacional — Junho/2026" className={`mt-1.5 ${field}`} />
         </div>
         <div>
           <label className={lbl}>Vencimento</label>
-          <input name="vencimento" type="date" required className={`mt-1 ${field}`} />
+          <input name="vencimento" type="date" required className={`mt-1.5 ${field}`} />
         </div>
         <div>
           <label className={lbl}>Valor (R$)</label>
-          <input name="valor" inputMode="decimal" required placeholder="0,00" className={`mt-1 ${field}`} />
+          <input name="valor" inputMode="decimal" required placeholder="0,00" className={`mt-1.5 ${field}`} />
         </div>
         <div className="sm:col-span-2">
           <label className={lbl}>Código Pix (opcional)</label>
-          <input name="pix" placeholder="Cole aqui o código Pix real obtido no portal/guia (não geramos código automaticamente)" className={`mt-1 ${field}`} />
+          <input name="pix" placeholder="Cole aqui o código Pix copia e cola da guia" className={`mt-1.5 ${field}`} />
         </div>
       </div>
-      {error && <p className="text-xs text-critical">{error}</p>}
-      <div className="flex gap-2 pt-1">
-        <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-          {submitting ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Registrar
+      {error && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
+      <div className="flex gap-2 pt-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] transition-all hover:scale-105 disabled:opacity-60"
+        >
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Registrar Guia
         </button>
-        <button type="button" onClick={onClose} className="rounded-xl border border-line px-4 py-2 text-sm text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">Cancelar</button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+        >
+          Cancelar
+        </button>
       </div>
     </form>
   );
@@ -250,18 +310,19 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
   const [showCnpjConfig, setShowCnpjConfig] = useState(false);
   const [cnpjInput, setCnpjInput] = useState('');
 
-  const filtered = guias.filter(g =>
-    (catFilter === 'todas' || categoriaDe(g.taxName) === catFilter) &&
-    (statusFilter === 'todas' || g.status === statusFilter),
+  const filtered = guias.filter(
+    (g) =>
+      (catFilter === 'todas' || categoriaDe(g.taxName) === catFilter) &&
+      (statusFilter === 'todas' || g.status === statusFilter),
   );
 
-  const pendentes = guias.filter(g => g.status === 'OPEN');
-  const vencidas  = guias.filter(g => g.status === 'OVERDUE');
-  const pagas     = guias.filter(g => g.status === 'PAID');
+  const pendentes = guias.filter((g) => g.status === 'OPEN');
+  const vencidas = guias.filter((g) => g.status === 'OVERDUE');
+  const pagas = guias.filter((g) => g.status === 'PAID');
 
-  const totalAberto  = [...pendentes, ...vencidas].reduce((s, g) => s + g.amount, 0);
+  const totalAberto = [...pendentes, ...vencidas].reduce((s, g) => s + g.amount, 0);
   const totalVencido = vencidas.reduce((s, g) => s + g.amount, 0);
-  const totalPago    = pagas.reduce((s, g) => s + g.amount, 0);
+  const totalPago = pagas.reduce((s, g) => s + g.amount, 0);
 
   async function refetch() {
     const res = await fetch('/api/guias');
@@ -269,7 +330,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
   }
 
   async function markPaid(id: string) {
-    setGuias(prev => prev.map(g => g.id === id ? { ...g, status: 'PAID' as GuiaStatus } : g));
+    setGuias((prev) => prev.map((g) => (g.id === id ? { ...g, status: 'PAID' as GuiaStatus } : g)));
     await marcarGuiaPagaAction(id);
   }
 
@@ -293,83 +354,101 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
   const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'certidoes'>('guias');
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Selector de Abas Principais */}
-      <div className="flex gap-2 border-b border-line pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/10 pb-4">
         <button
           type="button"
           onClick={() => setMainTab('guias')}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
-            mainTab === 'guias' ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:text-ink'
+          className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
+            mainTab === 'guias'
+              ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+              : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
           }`}
         >
-          📄 Guias & Impostos
+          <Receipt className="h-3.5 w-3.5" /> Guias & Impostos
         </button>
         <button
           type="button"
           onClick={() => setMainTab('timeline')}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
-            mainTab === 'timeline' ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:text-ink'
+          className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
+            mainTab === 'timeline'
+              ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+              : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
           }`}
         >
-          📅 Linha do Tempo & Alertas
+          <Calendar className="h-3.5 w-3.5" /> Linha do Tempo & Alertas
         </button>
         <button
           type="button"
           onClick={() => setMainTab('certidoes')}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
-            mainTab === 'certidoes' ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:text-ink'
+          className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
+            mainTab === 'certidoes'
+              ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+              : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
           }`}
         >
-          🛡️ Certidões Negativas (CNDs)
+          <ShieldCheck className="h-3.5 w-3.5" /> Certidões Negativas (CNDs)
         </button>
       </div>
 
       {mainTab === 'timeline' && (
         <div className="space-y-4 animate-in fade-in">
-          <div className="rounded-2xl border border-line bg-surface-card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-ink flex items-center gap-2">
-              <CalendarBlank className="h-5 w-5 text-brand-500" />
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-5 shadow-sm">
+            <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
               Linha do Tempo das Obrigações do Mês
             </h2>
-            <p className="text-xs text-ink-soft">
-              Acompanhe o cronograma exato de vencimentos e obrigações fiscais para evitar multas de mora.
+            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+              Acompanhe o cronograma exato de vencimentos e obrigações fiscais para evitar multas e juros.
             </p>
 
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-line">
+            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-black/10 dark:before:bg-white/10">
               <div className="relative">
                 <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                <div className="rounded-xl border border-line bg-black/5 dark:bg-white/5 p-4 space-y-1">
+                <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Dia 07 do Mês</span>
-                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-500">Concluído</span>
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Dia 07 do Mês</span>
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold">
+                      Concluído
+                    </span>
                   </div>
-                  <p className="text-sm font-semibold text-ink">Pagamento de FGTS & Pro-labore</p>
-                  <p className="text-xs text-ink-soft">Recolhimento do FGTS dos funcionários e retenção do pro-labore dos sócios.</p>
+                  <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Pagamento de FGTS & Pró-labore</p>
+                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                    Recolhimento do FGTS dos funcionários e retenção do pró-labore dos sócios.
+                  </p>
                 </div>
               </div>
 
               <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-warn ring-4 ring-warn/20" />
-                <div className="rounded-xl border border-line bg-black/5 dark:bg-white/5 p-4 space-y-1">
+                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-amber-500 ring-4 ring-amber-500/20" />
+                <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-warn">Dia 20 do Mês (Próximo Vencimento)</span>
-                    <span className="rounded-full bg-warn/10 px-2.5 py-0.5 text-[10px] font-bold text-warn">Aguardando Pagamento</span>
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Dia 20 do Mês (Próximo Vencimento)</span>
+                    <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold">
+                      Aguardando Pagamento
+                    </span>
                   </div>
-                  <p className="text-sm font-semibold text-ink">Guia Unificada do Simples Nacional (DAS)</p>
-                  <p className="text-xs text-ink-soft">Imposto mensal sobre o faturamento do mês anterior. Confira a alíquota efetiva no Termômetro Tributário.</p>
+                  <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Guia Unificada do Simples Nacional (DAS)</p>
+                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                    Imposto mensal apurado sobre o faturamento do mês anterior. Confira a alíquota na Bússola Tributária.
+                  </p>
                 </div>
               </div>
 
               <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-brand-500 ring-4 ring-brand-500/20" />
-                <div className="rounded-xl border border-line bg-black/5 dark:bg-white/5 p-4 space-y-1">
+                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-[#2F4A3C] ring-4 ring-[#2F4A3C]/20" />
+                <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-brand-500">Dia 30 do Mês</span>
-                    <span className="rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-500">Agendado</span>
+                    <span className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Dia 30 do Mês</span>
+                    <span className="rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-2.5 py-0.5 text-[10px] font-bold">
+                      Agendado
+                    </span>
                   </div>
-                  <p className="text-sm font-semibold text-ink">Fechamento Contábil & Envio de Extratos</p>
-                  <p className="text-xs text-ink-soft">Consolidação automática das notas fiscais emitidas e despesas para a contabilidade.</p>
+                  <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Fechamento Contábil & Envio de Extratos</p>
+                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                    Consolidação automática das notas fiscais emitidas e despesas para apuração contábil.
+                  </p>
                 </div>
               </div>
             </div>
@@ -379,36 +458,42 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
 
       {mainTab === 'certidoes' && (
         <div className="space-y-4 animate-in fade-in">
-          <div className="rounded-2xl border border-line bg-surface-card p-6 space-y-4">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-ink">Certidões Negativas de Débito (CNDs)</h2>
-                <p className="text-xs text-ink-soft mt-0.5">
-                  A consulta automática de CNDs ainda não está integrada ao sistema. Emita direto nos portais oficiais abaixo.
+                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Certidões Negativas de Débito (CNDs)</h2>
+                <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
+                  Consulte e emita diretamente nos portais oficiais dos órgãos emissores.
                 </p>
               </div>
-              <span className="rounded-full bg-warn/10 px-3 py-1 text-xs font-semibold text-warn">
-                ⚠️ Consulta manual
+              <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-3 py-1 text-xs font-bold">
+                Consulta nos Órgãos
               </span>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3 pt-2">
-              <div className="rounded-xl border border-line p-4 space-y-2 bg-black/5 dark:bg-white/5">
-                <span className="text-xs font-semibold text-ink-soft">Federal / Receita</span>
-                <p className="text-sm font-bold text-ink">CND Receita Federal & PGFN</p>
-                <p className="text-xs text-ink-soft">Emissão conjunta pelo e-CAC ou portal Regularize (PGFN), com o CNPJ da empresa.</p>
+              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Federal / Receita</span>
+                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CND Receita Federal & PGFN</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                  Emissão conjunta pelo e-CAC ou portal Regularize (PGFN), utilizando o CNPJ da empresa.
+                </p>
               </div>
 
-              <div className="rounded-xl border border-line p-4 space-y-2 bg-black/5 dark:bg-white/5">
-                <span className="text-xs font-semibold text-ink-soft">Municipal / ISS</span>
-                <p className="text-sm font-bold text-ink">CND Tributos Municipais</p>
-                <p className="text-xs text-ink-soft">Emitida no portal da prefeitura do município onde a empresa está registrada — varia por cidade.</p>
+              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Municipal / ISS</span>
+                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CND Tributos Municipais</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                  Emitida no portal da prefeitura do município onde a empresa está sediada.
+                </p>
               </div>
 
-              <div className="rounded-xl border border-line p-4 space-y-2 bg-black/5 dark:bg-white/5">
-                <span className="text-xs font-semibold text-ink-soft">Trabalhista / Caixa</span>
-                <p className="text-sm font-bold text-ink">CRF / CND do FGTS</p>
-                <p className="text-xs text-ink-soft">Emitida pelo Conectividade Social da Caixa, com o CNPJ da empresa.</p>
+              <div className="rounded-2xl border border-black/5 dark:border-white/10 p-5 space-y-2 bg-[#FEFDF3] dark:bg-[#121614]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Trabalhista / Caixa</span>
+                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">CRF / CND do FGTS</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                  Emitida pelo Conectividade Social da Caixa Econômica com o CNPJ da empresa.
+                </p>
               </div>
             </div>
           </div>
@@ -417,166 +502,236 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
 
       {mainTab === 'guias' && (
         <>
-      {/* Summary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="card-flat rounded-card p-5">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium text-ink-soft">Total em aberto</p>
-            <CurrencyDollar className="h-4 w-4 text-warn" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-warn">{BRL.format(totalAberto)}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">{pendentes.length + vencidas.length} guia(s)</p>
-        </div>
-        <div className={`rounded-card p-5 ${vencidas.length > 0 ? 'card-flat border border-critical/30' : 'card-flat'}`}>
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium text-ink-soft">Em atraso</p>
-            <Warning className={`h-4 w-4 ${vencidas.length > 0 ? 'text-critical' : 'text-ink-soft'}`} />
-          </div>
-          <p className={`mt-2 text-2xl font-semibold ${vencidas.length > 0 ? 'text-critical' : ''}`}>{BRL.format(totalVencido)}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">{vencidas.length} guia(s) vencida(s)</p>
-        </div>
-        <div className="card-flat rounded-card p-5">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-medium text-ink-soft">Total pago</p>
-            <CheckCircle className="h-4 w-4 text-ok" />
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-ok">{BRL.format(totalPago)}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">{pagas.length} guia(s)</p>
-        </div>
-      </div>
-
-      {/* Filters + action */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-1">
-          {cats.map(c => (
-            <button key={c.key} type="button" onClick={() => setCatFilter(c.key)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${catFilter === c.key ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
-              {c.label} {c.key !== 'todas' ? `(${guias.filter(g => categoriaDe(g.taxName) === c.key).length})` : `(${guias.length})`}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Funnel className="h-3.5 w-3.5 text-ink-soft" />
-            {statuses.map(s => (
-              <button key={s.key} type="button" onClick={() => setStatusFilter(s.key)}
-                className={`rounded-xl px-2.5 py-1 text-xs font-medium transition-colors ${statusFilter === s.key ? 'bg-surface-card text-ink shadow-sm dark:bg-white dark:text-ink' : 'text-ink-soft hover:text-ink'}`}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" onClick={() => setShowForm(v => !v)} className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
-            <Plus className="h-4 w-4" /> Registrar guia
-          </button>
-        </div>
-      </div>
-
-      {showForm && <NovaGuiaForm onClose={() => setShowForm(false)} onAdded={refetch} />}
-
-      {/* CNPJ MEI para emissão de DAS */}
-      {!showCnpjConfig ? (
-        <button type="button" onClick={() => { setShowCnpjConfig(true); setCnpjInput(cnpjMei); }}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-soft hover:text-ink transition-colors">
-          <Faders className="h-3.5 w-3.5" />
-          {cnpjMei ? `CNPJ MEI: ${cnpjMei}` : 'Configurar CNPJ MEI para emissão de DAS'}
-        </button>
-      ) : (
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-surface-hover p-3">
-          <Faders className="h-4 w-4 shrink-0 text-ink-soft" />
-          <input
-            value={cnpjInput}
-            onChange={e => setCnpjInput(e.target.value.replace(/\D/g, '').slice(0, 14))}
-            placeholder="CNPJ (14 dígitos, sem pontuação)"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-soft"
-          />
-          <button type="button"
-            onClick={() => { setCnpjMei(cnpjInput.replace(/\D/g, '')); setShowCnpjConfig(false); }}
-            className="rounded-xl bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600">
-            Salvar
-          </button>
-          <button type="button" onClick={() => setShowCnpjConfig(false)}
-            className="rounded-xl p-1 text-ink-soft hover:text-ink">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Guide list */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
-          <Receipt className="h-10 w-10 opacity-20" />
-          <p className="text-sm">Nenhuma guia encontrada com este filtro.</p>
-        </div>
-      ) : (
-        <div className="card-flat rounded-card divide-y divide-line">
-          {filtered.map(g => {
-            const categoria = categoriaDe(g.taxName);
-            const cat = CAT_CONFIG[categoria];
-            const st = STATUS_CONFIG[g.status];
-            const StatusIcon = st.icon;
-            const isExp = expanded === g.id;
-            const competencia = fmtCompetencia(g.referenceMonth);
-            return (
-              <div key={g.id}>
-                <button type="button" onClick={() => setExpanded(isExp ? null : g.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-card border border-line dark:hover:bg-white/5">
-                  <span className={`shrink-0 rounded-xl px-2 py-0.5 text-[10px] font-bold ${cat.cls}`}>{cat.label}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{g.taxName}</p>
-                    <p className="text-xs text-ink-soft">Competência: {competencia}</p>
-                  </div>
-                  <div className="hidden shrink-0 text-right sm:block">
-                    <p className="text-sm font-semibold">{BRL.format(g.amount)}</p>
-                    <p className={`text-xs ${vencClass(g.dueDate, g.status)}`}>
-                      <CalendarBlank className="mr-0.5 inline h-3 w-3" />
-                      {g.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(g.dueDate)}`}
-                    </p>
-                  </div>
-                  <span className={`hidden shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold sm:inline-flex ${st.cls}`}>
-                    <StatusIcon className="h-3 w-3" />{st.label}
-                  </span>
-                  {isExp ? <CaretUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <CaretDown className="h-4 w-4 shrink-0 text-ink-soft" />}
-                </button>
-
-                {isExp && (
-                  <div className="mx-4 mb-3 space-y-3 rounded-xl bg-surface-card border border-line p-4 dark:bg-white/5">
-                    <div className="grid gap-3 sm:grid-cols-3 text-sm">
-                      <div><p className={lbl}>Valor</p><p className="font-semibold">{BRL.format(g.amount)}</p></div>
-                      <div><p className={lbl}>Vencimento</p><p className={`font-medium ${vencClass(g.dueDate, g.status)}`}>{fmtDate(g.dueDate)}</p></div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        {g.pixCode && <CopyBtn text={g.pixCode} />}
-                        {g.fileUrl && (
-                          <a href={g.fileUrl} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-ink/5 px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-ink/10">
-                            <DownloadSimple className="h-3.5 w-3.5" /> Baixar guia
-                          </a>
-                        )}
-                        {g.status !== 'PAID' && (
-                          <button type="button" onClick={() => markPaid(g.id)}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-ok/10 px-3 py-1.5 text-xs font-medium text-ok hover:bg-ok/20">
-                            <CheckCircle className="h-3.5 w-3.5" /> Marcar como paga
-                          </button>
-                        )}
-                      </div>
-                      {categoria === 'DAS' && (
-                        cnpjMei
-                          ? <EmitirDasBtn competencia={competencia} cnpj={cnpjMei} />
-                          : <p className="text-xs text-ink-soft">
-                              Configure o CNPJ MEI acima para emitir o DAS direto aqui.
-                            </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+          {/* Summary KPIs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+              <div className="flex items-start justify-between">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Total em Aberto</p>
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <DollarSign className="h-4 w-4" />
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-      </>
+              <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-amber-600 dark:text-amber-400">{BRL.format(totalAberto)}</p>
+              <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{pendentes.length + vencidas.length} guia(s) a pagar</p>
+            </div>
+
+            <div className={`rounded-3xl border p-6 shadow-sm ${
+              vencidas.length > 0
+                ? 'border-red-500/30 bg-red-500/5'
+                : 'border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md'
+            }`}>
+              <div className="flex items-start justify-between">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Em Atraso</p>
+                <div className={`p-2 rounded-xl ${vencidas.length > 0 ? 'bg-red-500/10 text-red-600' : 'bg-black/5 text-[#6E6A61]'}`}>
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+              </div>
+              <p className={`mt-3 font-serif font-bold text-2xl sm:text-3xl ${vencidas.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+                {BRL.format(totalVencido)}
+              </p>
+              <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{vencidas.length} guia(s) vencida(s)</p>
+            </div>
+
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+              <div className="flex items-start justify-between">
+                <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Total Pago</p>
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400">{BRL.format(totalPago)}</p>
+              <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{pagas.length} guia(s) quitada(s)</p>
+            </div>
+          </div>
+
+          {/* Filters + action */}
+          <div className="space-y-3">
+            <div className="flex">
+              <SegmentedTabs
+                tabs={cats.map((c) => ({
+                  id: c.key,
+                  label: `${c.label} ${c.key !== 'todas' ? `(${guias.filter((g) => categoriaDe(g.taxName) === c.key).length})` : `(${guias.length})`}`,
+                }))}
+                activeTab={catFilter}
+                onChange={setCatFilter}
+                layoutId="guiasCatIndicator"
+                size="sm"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md">
+                <span className="pl-2 pr-1">
+                  <Filter className="h-3.5 w-3.5 text-[#6E6A61] dark:text-[#A8A49C]" />
+                </span>
+                {statuses.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setStatusFilter(s.key)}
+                    className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                      statusFilter === s.key
+                        ? 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]'
+                        : 'text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20]'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowForm((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+              >
+                <Plus className="h-4 w-4" /> Registrar Guia
+              </button>
+            </div>
+          </div>
+
+          {showForm && <NovaGuiaForm onClose={() => setShowForm(false)} onAdded={refetch} />}
+
+          {/* CNPJ MEI para emissão de DAS */}
+          {!showCnpjConfig ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowCnpjConfig(true);
+                setCnpjInput(cnpjMei);
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] transition-colors"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {cnpjMei ? `CNPJ Configurado: ${cnpjMei}` : 'Configurar CNPJ para emissão rápida de DAS'}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 p-3">
+              <SlidersHorizontal className="h-4 w-4 shrink-0 text-[#6E6A61]" />
+              <input
+                value={cnpjInput}
+                onChange={(e) => setCnpjInput(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                placeholder="CNPJ (14 dígitos, sem pontuação)"
+                className="min-w-0 flex-1 bg-transparent text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none placeholder:text-[#6E6A61]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCnpjMei(cnpjInput.replace(/\D/g, ''));
+                  setShowCnpjConfig(false);
+                }}
+                className="rounded-full bg-[#1E3328] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C]"
+              >
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCnpjConfig(false)}
+                className="rounded-full p-1 text-[#6E6A61] hover:text-[#231F20]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Guide list */}
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+              <Receipt className="h-10 w-10 opacity-30" />
+              <p className="text-sm">Nenhuma guia encontrada com este filtro.</p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+              {filtered.map((g) => {
+                const categoria = categoriaDe(g.taxName);
+                const cat = CAT_CONFIG[categoria];
+                const st = STATUS_CONFIG[g.status];
+                const StatusIcon = st.icon;
+                const isExp = expanded === g.id;
+                const competencia = fmtCompetencia(g.referenceMonth);
+                return (
+                  <div key={g.id}>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(isExp ? null : g.id)}
+                      className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cat.cls}`}>{cat.label}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{g.taxName}</p>
+                        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Competência: {competencia}</p>
+                      </div>
+                      <div className="hidden shrink-0 text-right sm:block">
+                        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(g.amount)}</p>
+                        <p className={`text-xs ${vencClass(g.dueDate, g.status)}`}>
+                          <Calendar className="mr-1 inline h-3 w-3" />
+                          {g.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(g.dueDate)}`}
+                        </p>
+                      </div>
+                      <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
+                        <StatusIcon className="h-3 w-3" />
+                        {st.label}
+                      </span>
+                      {isExp ? (
+                        <ChevronUp className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
+                      )}
+                    </button>
+
+                    {isExp && (
+                      <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-5">
+                        <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                          <div>
+                            <p className={lbl}>Valor da Guia</p>
+                            <p className="font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(g.amount)}</p>
+                          </div>
+                          <div>
+                            <p className={lbl}>Vencimento</p>
+                            <p className={`font-bold ${vencClass(g.dueDate, g.status)}`}>{fmtDate(g.dueDate)}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {g.pixCode && <CopyBtn text={g.pixCode} />}
+                            {g.fileUrl && (
+                              <a
+                                href={g.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Baixar Guia
+                              </a>
+                            )}
+                            {g.status !== 'PAID' && (
+                              <button
+                                type="button"
+                                onClick={() => markPaid(g.id)}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 px-3.5 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 transition-colors"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
+                              </button>
+                            )}
+                          </div>
+                          {categoria === 'DAS' &&
+                            (cnpjMei ? (
+                              <EmitirDasBtn competencia={competencia} cnpj={cnpjMei} />
+                            ) : (
+                              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                                Configure o CNPJ acima para emitir o DAS diretamente por aqui.
+                              </p>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
+

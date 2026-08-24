@@ -1,10 +1,23 @@
+import { Suspense } from 'react';
 import { SignIn } from '@clerk/nextjs';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { hexxaClerkAppearance } from '@/lib/clerkTheme';
 
-/** Login via Clerk (hash routing → sem catch-all). Esqueci a senha é tratado dentro do componente. */
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center hero-blue p-4">
-      <SignIn routing="hash" />
-    </div>
+    <Suspense>
+      <AuthLayout
+        title="Bem-vindo de volta"
+        subtitle="Entre com suas credenciais para gerenciar sua empresa"
+      >
+        <SignIn
+          routing="hash"
+          appearance={hexxaClerkAppearance}
+          signUpUrl="/auth/cadastro"
+        />
+      </AuthLayout>
+    </Suspense>
   );
 }

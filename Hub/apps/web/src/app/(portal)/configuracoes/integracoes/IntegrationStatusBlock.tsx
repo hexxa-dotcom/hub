@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Spinner } from '@phosphor-icons/react';
+import { ShieldCheck, Loader2 } from 'lucide-react';
 
 export function IntegrationStatusBlock({ providerId }: { providerId: string }) {
   const router = useRouter();
@@ -19,20 +19,23 @@ export function IntegrationStatusBlock({ providerId }: { providerId: string }) {
   }
 
   return (
-    <div className="rounded-xl bg-surface-card border border-line dark:bg-white/5 p-3.5 mt-auto space-y-2.5">
-      <div className="flex items-center gap-1.5 text-xs text-ink-soft">
-        <ShieldCheck className="h-3.5 w-3.5 text-ok" />
-        Credenciais salvas com segurança. Importação automática de dados ainda não está disponível.
+    <div className="rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-3.5 mt-auto space-y-2">
+      <div className="flex items-center gap-2 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+        <span>Credenciais salvas e autenticadas.</span>
       </div>
-      <button
-        type="button"
-        onClick={disconnect}
-        disabled={loading}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-critical hover:underline disabled:opacity-50"
-      >
-        {loading && <Spinner className="h-3 w-3 animate-spin" />}
-        Desconectar
-      </button>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={disconnect}
+          disabled={loading}
+          className="inline-flex items-center gap-1 text-xs font-bold text-red-700 dark:text-red-400 hover:underline disabled:opacity-50"
+        >
+          {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+          Desconectar
+        </button>
+      </div>
     </div>
   );
 }
+

@@ -125,6 +125,28 @@ export const businessContract = pgTable('business_contract', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Venda avulsa sem nota fiscal (produto físico, serviço abaixo do limite do
+ * MEI, venda de balcão etc). Fonte de faturamento irmã da NFSe — sempre gera
+ * um financial_entry (source='VENDA', sourceId=sale.id) na hora do registro.
+ */
+export const sale = pgTable('sale', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  customerId: uuid('customer_id').references(() => customer.id),
+  description: text('description').notNull(),
+  amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+  paymentMethod: text('payment_method').notNull().default('OUTRO'), // PIX | CARTAO | BOLETO | DINHEIRO | OUTRO
+  saleDate: date('sale_date').notNull(),
+  /** mês de referência (NUNCA "competência"). */
+  referenceMonth: date('reference_month').notNull(),
+  received: boolean('received').notNull().default(true),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** NFSe emitida via API. */
 export const serviceInvoice = pgTable('service_invoice', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -147,6 +169,10 @@ export const serviceInvoice = pgTable('service_invoice', {
    */
   providerMode: text('provider_mode'),
   pdfUrl: text('pdf_url'),
+  /** Imposto estimado desta nota (R$), calculado na emissão — ver TaxThermometerService. */
+  taxAmount: numeric('tax_amount', { precision: 14, scale: 2 }),
+  /** Alíquota efetiva usada no cálculo acima (%), pra exibir junto do valor. */
+  taxRate: numeric('tax_rate', { precision: 6, scale: 3 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

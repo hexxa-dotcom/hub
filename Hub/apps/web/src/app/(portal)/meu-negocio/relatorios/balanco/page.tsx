@@ -2,7 +2,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { withTenant, sql } from '@hexxa/db';
 import { TaxThermometerService } from '@hexxa/core';
-import { FileText, Printer, Info, TrendUp, TrendDown } from '@phosphor-icons/react/dist/ssr';
+import { FileText, Printer, Info, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,119 +84,125 @@ export default async function BalancoInstantaneoPage({
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <FileText className="h-5 w-5 text-brand-500" />
-            <span className="text-sm font-semibold text-brand-600 uppercase tracking-wider">Balanço Instantâneo</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <FileText className="h-3.5 w-3.5" />
+              Relatórios Contábeis
+            </span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink capitalize">{periodoLabel}</h1>
-          <p className="mt-0.5 text-xs text-ink-soft">Gerado agora, com o que já está lançado no sistema — não precisa esperar o fechamento do contador.</p>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight capitalize">
+            Balanço Instantâneo — {periodoLabel}
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+            Gerado em tempo real com base nos lançamentos conciliados no sistema.
+          </p>
         </div>
 
         <form method="get" className="flex flex-wrap items-center gap-2">
-          <select name="de" defaultValue={deOrdered} className="appearance-none bg-surface-card border border-line rounded-xl px-3 py-2 text-sm font-medium outline-none focus:border-brand-500">
+          <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
             {options.map((m) => (
               <option key={m} value={m}>{monthLabel(m)}</option>
             ))}
           </select>
-          <span className="text-xs text-ink-soft">até</span>
-          <select name="ate" defaultValue={ateOrdered} className="appearance-none bg-surface-card border border-line rounded-xl px-3 py-2 text-sm font-medium outline-none focus:border-brand-500">
+          <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">até</span>
+          <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
             {options.map((m) => (
               <option key={m} value={m}>{monthLabel(m)}</option>
             ))}
           </select>
-          <button type="submit" className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
-            Gerar
+          <button type="submit" className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] transition-all shadow-sm">
+            Filtrar
           </button>
         </form>
       </header>
 
-      <div className="bg-surface-card rounded-3xl border border-line shadow-xl overflow-hidden print:shadow-none print:border-none print:bg-transparent">
-        <div className="bg-brand-600 px-8 py-6 text-white flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-xl overflow-hidden print:shadow-none print:border-none print:bg-transparent">
+        <div className="bg-[#1E3328] px-8 py-6 text-[#FEFDF3] flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
           <div>
-            <h2 className="text-xl font-bold">Demonstrativo de Resultado (DRE)</h2>
-            <p className="text-brand-100 text-sm mt-1 print:text-slate-600">Calculado ao vivo a partir dos lançamentos do período</p>
+            <h2 className="font-serif font-bold text-xl text-[#DFFFAE]">Demonstrativo de Resultado do Exercício (DRE)</h2>
+            <p className="text-xs text-[#DFFFAE]/80 mt-1 print:text-slate-600">Calculado ao vivo a partir dos lançamentos do período</p>
           </div>
           <button
             type="button"
-            className="hidden sm:flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full backdrop-blur-sm print:hidden text-sm font-bold"
+            className="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-[#DFFFAE] border border-white/20 px-4 py-2 rounded-full backdrop-blur-sm print:hidden text-xs font-bold transition-all"
           >
             <Printer className="h-4 w-4" /> Imprimir
           </button>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="p-6 sm:p-8 space-y-8">
           {!hasData ? (
-            <p className="text-center text-sm text-ink-soft py-10">
+            <p className="text-center text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12">
               Nenhum lançamento encontrado para {periodoLabel}. Emita notas ou lance despesas para o balanço aparecer aqui.
             </p>
           ) : (
             <>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <table className="w-full text-sm">
                   <tbody>
-                    <tr className="border-b border-line">
-                      <td className="py-3 font-medium text-ink">Receita Bruta</td>
-                      <td className="py-3 text-right font-semibold text-ok">{BRL.format(receita)}</td>
+                    <tr className="border-b border-black/5 dark:border-white/10">
+                      <td className="py-3.5 font-bold text-[#231F20] dark:text-[#FEFDF3]">Receita Bruta</td>
+                      <td className="py-3.5 text-right font-bold text-emerald-700 dark:text-emerald-400">{BRL.format(receita)}</td>
                     </tr>
-                    <tr className="border-b border-line">
-                      <td className="py-3 text-ink-soft">(−) Despesas operacionais</td>
-                      <td className="py-3 text-right text-ink">− {BRL.format(despesasOperacionais)}</td>
+                    <tr className="border-b border-black/5 dark:border-white/10">
+                      <td className="py-3 text-xs text-[#6E6A61] dark:text-[#A8A49C]">(−) Despesas operacionais</td>
+                      <td className="py-3 text-right text-xs font-semibold text-[#231F20] dark:text-[#FEFDF3]">− {BRL.format(despesasOperacionais)}</td>
                     </tr>
-                    <tr className="border-b border-line">
-                      <td className="py-3 text-ink-soft">(−) Pró-labore dos sócios</td>
-                      <td className="py-3 text-right text-ink">− {BRL.format(prolabore)}</td>
+                    <tr className="border-b border-black/5 dark:border-white/10">
+                      <td className="py-3 text-xs text-[#6E6A61] dark:text-[#A8A49C]">(−) Pró-labore dos sócios</td>
+                      <td className="py-3 text-right text-xs font-semibold text-[#231F20] dark:text-[#FEFDF3]">− {BRL.format(prolabore)}</td>
                     </tr>
-                    <tr className="border-b border-line">
-                      <td className="py-3 text-ink-soft">
+                    <tr className="border-b border-black/5 dark:border-white/10">
+                      <td className="py-3 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
                         (−) Imposto estimado (Simples, {pct(simples.effectiveRate)} efetiva · Anexo {simples.anexo})
                       </td>
-                      <td className="py-3 text-right text-ink">− {BRL.format(impostoEstimado)}</td>
+                      <td className="py-3 text-right text-xs font-semibold text-[#231F20] dark:text-[#FEFDF3]">− {BRL.format(impostoEstimado)}</td>
                     </tr>
                     <tr>
-                      <td className="py-4 text-base font-bold text-ink">= Lucro Líquido do Período</td>
-                      <td className={`py-4 text-right text-xl font-extrabold ${lucroLiquido >= 0 ? 'text-ok' : 'text-critical'}`}>
+                      <td className="py-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">= Lucro Líquido do Período</td>
+                      <td className={`py-4 text-right font-serif text-2xl font-bold ${lucroLiquido >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
                         {BRL.format(lucroLiquido)}
                       </td>
                     </tr>
                   </tbody>
                 </table>
-                <p className="flex items-start gap-1.5 text-[11px] text-ink-soft pt-1">
+                <p className="flex items-start gap-1.5 text-[11px] text-[#6E6A61] dark:text-[#A8A49C] pt-2">
                   <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Imposto é uma estimativa pela alíquota efetiva atual do Simples Nacional — o valor exato da guia (DAS) é apurado pelo PGDAS oficial.
+                  Imposto é uma estimativa pela alíquota efetiva atual do Simples Nacional — o valor exato da guia (DAS) é apurado pelo PGDAS oficial da Receita.
                 </p>
               </div>
 
-              <div className="h-px w-full bg-line" />
+              <div className="h-px w-full bg-black/5 dark:bg-white/10" />
 
               <div className="grid gap-6 sm:grid-cols-3">
-                <div className="space-y-1 border-l-2 border-brand-500 pl-4">
-                  <p className="text-sm text-ink-soft font-medium">Margem líquida</p>
-                  <p className={`text-2xl font-bold ${margem >= 0 ? 'text-ok' : 'text-critical'}`}>{pct(margem)}</p>
+                <div className="space-y-1 border-l-2 border-[#1E3328] dark:border-[#DFFFAE] pl-4">
+                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Margem Líquida</p>
+                  <p className={`font-serif text-2xl font-bold ${margem >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{pct(margem)}</p>
                 </div>
-                <div className="space-y-1 border-l-2 border-line pl-4">
-                  <p className="text-sm text-ink-soft font-medium">Fator R atual</p>
-                  <p className="text-2xl font-bold text-ink">{pct(simples.fatorR * 100)}</p>
-                  <p className={`text-xs font-medium ${simples.fatorRFavorable ? 'text-ok' : 'text-warn'}`}>
+                <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
+                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Fator R Atual</p>
+                  <p className="font-serif text-2xl font-bold text-[#231F20] dark:text-[#FEFDF3]">{pct(simples.fatorR * 100)}</p>
+                  <p className={`text-[11px] font-bold ${simples.fatorRFavorable ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
                     {simples.fatorRFavorable ? 'Anexo III (favorável)' : 'Anexo V'}
                   </p>
                 </div>
-                <div className="space-y-1 border-l-2 border-line pl-4">
-                  <p className="text-sm text-ink-soft font-medium">RBT12 (12 meses)</p>
-                  <p className="text-2xl font-bold text-ink">{BRL.format(rbt12)}</p>
+                <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
+                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">RBT12 (12 meses)</p>
+                  <p className="font-serif text-2xl font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(rbt12)}</p>
                 </div>
               </div>
 
               {categorias.length > 0 && (
                 <>
-                  <div className="h-px w-full bg-line" />
+                  <div className="h-px w-full bg-black/5 dark:bg-white/10" />
                   <section className="space-y-3">
-                    <h3 className="flex items-center gap-2 font-bold text-sm text-ink">
-                      <TrendDown className="h-4 w-4 text-critical" /> Despesas por categoria
+                    <h3 className="flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+                      <TrendingDown className="h-4 w-4 text-red-600" /> Despesas por Categoria
                     </h3>
                     <ul className="space-y-2">
                       {categorias.map(([label, value]) => (
-                        <li key={label} className="flex items-center justify-between text-sm">
-                          <span className="text-ink-soft">{label}</span>
-                          <span className="font-medium text-ink">{BRL.format(value)}</span>
+                        <li key={label} className="flex items-center justify-between text-sm py-1 border-b border-black/5 dark:border-white/10 last:border-0">
+                          <span className="text-[#6E6A61] dark:text-[#A8A49C]">{label}</span>
+                          <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(value)}</span>
                         </li>
                       ))}
                     </ul>
@@ -206,7 +212,7 @@ export default async function BalancoInstantaneoPage({
             </>
           )}
 
-          <div className="mt-4 text-center pt-6 border-t border-line text-xs text-ink-soft print:pt-4">
+          <div className="mt-4 text-center pt-6 border-t border-black/5 dark:border-white/10 text-xs text-[#6E6A61] dark:text-[#A8A49C] print:pt-4">
             <p>Hexxa Hub — Balanço gerado automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
           </div>
         </div>
@@ -214,3 +220,4 @@ export default async function BalancoInstantaneoPage({
     </div>
   );
 }
+

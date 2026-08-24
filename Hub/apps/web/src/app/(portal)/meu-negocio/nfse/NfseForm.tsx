@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
-import { Spinner, CheckCircle, Clock, WarningCircle, FileText, X } from '@phosphor-icons/react';
+import { Loader2, CheckCircle2, Clock, AlertTriangle, FileText, X } from 'lucide-react';
 import { emitNfseAction, cancelNfseAction, refreshNfseStatusAction, type EmitState } from './actions';
 import type { ServiceInvoiceRecord } from '@hexxa/core/ports';
 
@@ -206,8 +206,8 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
               {state.ok
                 ? state.status === 'ISSUING'
                   ? <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                  : <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                : <WarningCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               }
               <div className="flex-1">
                 <p>{state.message}</p>
@@ -227,10 +227,10 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
             <button
               type="submit"
               disabled={pending}
-              className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
             >
-              {pending && <Spinner className="h-4 w-4 animate-spin" />}
-              {pending ? 'Emitindo…' : 'Emitir NFSe'}
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {pending ? 'Emitindo…' : 'Emitir NFS-e'}
             </button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, date, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, date, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { entryType, entryStatus, categoryKind, reconciliationStatus } from './_enums';
 
@@ -49,6 +49,34 @@ export const financialEntry = pgTable('financial_entry', {
   externalId: text('external_id'),
   paidAt: date('paid_at'),
   notes: text('notes'),
+  /** Comprovante anexado (recibo/nota/print do Pix) — guardado em base64, sem storage externo. */
+  receiptBase64: text('receipt_base64'),
+  receiptFilename: text('receipt_filename'),
+  receiptMimeType: text('receipt_mime_type'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Despesa fixa mensal (aluguel, softwares, mensalidades). O cron
+ * `api/cron/despesas-fixas` gera um financial_entry PAYABLE (source='RECURRING')
+ * por mês de referência, uma vez, controlado por `last_generated_month`.
+ */
+export const recurringExpense = pgTable('recurring_expense', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+  categoryName: text('category_name'),
+  /** Dia do vencimento no mês (1-28, pra funcionar em qualquer mês). */
+  dueDay: integer('due_day').notNull(),
+  active: boolean('active').notNull().default(true),
+  /** Primeiro mês de referência em que deve gerar (primeiro dia do mês). */
+  startMonth: date('start_month').notNull(),
+  /** Último mês de referência em que deve gerar, ou null = indefinido. */
+  endMonth: date('end_month'),
+  lastGeneratedMonth: date('last_generated_month'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

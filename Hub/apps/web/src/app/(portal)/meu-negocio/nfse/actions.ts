@@ -3,13 +3,18 @@
 import { revalidatePath } from 'next/cache';
 import { makeServiceInvoiceService, serviceInvoiceRepository, resolveNfsePort } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getNfseConfig, getSimplesInputs, listServiceProfiles } from '@/lib/server/fiscal';
+import { getNfseConfig, estimateInvoiceTaxRate, listServiceProfiles } from '@/lib/server/fiscal';
 
 export type EmitState = {
   ok: boolean;
   message: string;
   status?: 'ISSUED' | 'ISSUING' | 'ERROR';
   nfseNumber?: string;
+  taxAmount?: number;
+  taxRate?: number;
+  netAmount?: number;
+  invoiceId?: string;
+  providerProtocol?: string;
 };
 
 export async function emitNfseAction(_prev: EmitState, formData: FormData): Promise<EmitState> {
@@ -69,20 +74,11 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
     };
 
     // --- CÁLCULO DE IMPOSTO (Integração Financeira) ---
-    let estimatedTaxAmount = 0;
-    if (cfg.optanteSimples) {
-      // Simples Nacional: RBT12 (últimos 12 meses) e Folha12
-      const { rbt12, folha12 } = await getSimplesInputs(ctx);
-      const { TaxThermometerService } = await import('@hexxa/core');
-      const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
-      estimatedTaxAmount = (input.amount * simples.nominalRate) / 100;
-    } else {
-      // Lucro Presumido / Normal: usa alíquota do perfil ou global
-      const aliquota = profile.aliquotaIss ?? cfg.aliquotaIss ?? 0;
-      estimatedTaxAmount = (input.amount * aliquota) / 100;
-    }
-    
+    const taxRate = await estimateInvoiceTaxRate(ctx, cfg, profile.aliquotaIss);
+    const estimatedTaxAmount = (input.amount * taxRate) / 100;
+
     (input as any).estimatedTaxAmount = estimatedTaxAmount;
+    (input as any).estimatedTaxRate = taxRate;
 
     if (!input.customer.name) return { ok: false, message: 'Informe o nome do tomador.' };
     if (input.customer.document.length < 11) return { ok: false, message: 'CPF ou CNPJ inválido.' };
@@ -93,6 +89,7 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
     const result = await service.emit(ctx, input);
 
     revalidatePath('/meu-negocio/notas');
+    revalidatePath('/cliente');
 
     if (result.status === 'ERROR') {
       return { ok: false, message: 'Erro na emissão junto ao Emissor Nacional. Verifique o cadastro fiscal.' };
@@ -103,6 +100,11 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
         ok: true,
         status: 'ISSUING',
         message: 'Nota enviada ao Emissor Nacional e aguardando processamento. Acompanhe o status na lista abaixo.',
+        taxAmount: estimatedTaxAmount,
+        taxRate,
+        netAmount: input.amount - estimatedTaxAmount,
+        invoiceId: result.invoiceId,
+        providerProtocol: result.providerProtocol,
       };
     }
 
@@ -110,6 +112,11 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       ok: true,
       status: 'ISSUED',
       nfseNumber: result.nfseNumber,
+      taxAmount: estimatedTaxAmount,
+      taxRate,
+      netAmount: input.amount - estimatedTaxAmount,
+      invoiceId: result.invoiceId,
+      providerProtocol: result.providerProtocol,
       message: result.isMock
         ? `[MODO TESTE] NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} salva, mas NÃO foi enviada ao governo — configure o certificado A1 para emissão real.`
         : `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!`,

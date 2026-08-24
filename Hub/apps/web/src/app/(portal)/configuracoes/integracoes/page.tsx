@@ -1,5 +1,4 @@
-import { GlassCard } from '@/components/ui/GlassCard';
-import {  Plug, CheckCircle, XCircle, ArrowsLeftRight, ArrowRight, ArrowSquareOut  } from '@phosphor-icons/react/dist/ssr';
+import { Plug, CheckCircle2, XCircle, ArrowLeftRight, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { withTenant, eq, and } from '@hexxa/db';
@@ -8,44 +7,17 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { IntegrationStatusBlock } from './IntegrationStatusBlock';
 
 export const metadata = {
-  title: 'Integrações Financeiras | Hexx',
+  title: 'Integrações Financeiras | Hexxa Hub',
 };
 
 const BASE_ERPS = [
   {
     id: 'asaas',
-    name: 'Asaas (Gateway de Pagamentos & Pix)',
-    desc: 'Integração para emissão de cobranças via PIX e Boleto para seus clientes.',
+    name: 'Asaas',
+    sub: 'Gateway de Pagamentos & Pix',
+    desc: 'Integração para emissão de cobranças via PIX e Boleto para seus clientes com baixa automática.',
     color: '#0030B9',
     logo: 'AS',
-  },
-  {
-    id: 'bling',
-    name: 'Bling',
-    desc: 'Conecte via OAuth para guardar suas credenciais do Bling com segurança.',
-    color: '#F5A623',
-    logo: 'BL',
-  },
-  {
-    id: 'contaazul',
-    name: 'Conta Azul',
-    desc: 'Conecte via OAuth para guardar suas credenciais da Conta Azul com segurança.',
-    color: '#00A8E8',
-    logo: 'CA',
-  },
-  {
-    id: 'omie',
-    name: 'Omie',
-    desc: 'Salve o App Key e App Secret da sua conta Omie com segurança.',
-    color: '#6A0DAD',
-    logo: 'OM',
-  },
-  {
-    id: 'nibo',
-    name: 'Nibo',
-    desc: 'Salve o token de API da sua conta Nibo com segurança.',
-    color: '#00C48C',
-    logo: 'NB',
   },
 ];
 
@@ -74,127 +46,122 @@ export default async function IntegracoesPage() {
     ...erp,
     connected: connectedMap.has(erp.id),
   }));
+
   return (
-    <div className="mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+    <div className="mx-auto w-full space-y-8 animate-in fade-in">
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
-              <Plug className="h-3.5 w-3.5" /> Integrações
-            </span>
-            <span className="text-xs font-medium text-ink-soft bg-surface-card px-2.5 py-1 rounded-full border border-line shadow-sm">
-              Beta
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <Plug className="h-3.5 w-3.5" />
+              Integrações
             </span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Sistemas Financeiros (ERP)</h1>
-          <p className="mt-1 text-sm text-ink-soft max-w-2xl">
-            Conecte o seu software de gestão para centralizar contas a pagar, receber e faturamento direto no nosso Hub Financeiro. 
-            Sem necessidade de exportar planilhas.
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
+            Integrações
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] max-w-2xl">
+            Conecte o gateway de pagamento e o assistente de IA pra centralizar cobranças e consultas financeiras sem sair do Hub.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <Link href="/suporte" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1.5 transition-colors">
-            Pedir nova integração <ArrowSquareOut className="h-4 w-4" />
+          <Link href="/suporte" className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all shadow-sm">
+            Solicitar nova conexão <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
       </header>
 
+      {/* Assistente de IA (MCP) */}
+      <Link
+        href={'/configuracoes/integracoes/mcp' as Route}
+        className="block rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] p-6 shadow-sm relative overflow-hidden group hover:scale-[1.005] transition-transform"
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#DFFFAE]/15 text-[#DFFFAE]">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-serif font-bold text-base text-[#FEFDF3]">Assistente de IA & API</h3>
+            <p className="text-xs text-[#DFFFAE]/70 mt-0.5">
+              Conecte o Claude, ChatGPT ou um sistema externo pra consultar — e, com um token de escrita, lançar — dados financeiros por fora do Hub.
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-[#DFFFAE] shrink-0 transition-transform group-hover:translate-x-1" />
+        </div>
+      </Link>
+
       {/* Grid de Integrações */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {ERPS.map((erp) => (
-          <GlassCard key={erp.id} title="" className="flex flex-col relative overflow-hidden group">
+          <div key={erp.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-[#1E3328]/30 transition-all">
             {/* Decoração superior */}
             <div className="absolute top-0 left-0 right-0 h-1.5 opacity-80" style={{ backgroundColor: erp.color }} />
             
-            <div className="flex items-start justify-between mb-4 mt-2">
-              <div className="flex items-center gap-3">
-                {/* Logo Mock */}
-                <div 
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white font-black text-xl shadow-md transition-transform group-hover:scale-105"
-                  style={{ backgroundColor: erp.color }}
-                >
-                  {erp.logo}
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-ink leading-tight">{erp.name}</h3>
-                  {erp.connected ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ok mt-0.5">
-                      <CheckCircle className="h-3 w-3" /> Conectado
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft mt-0.5">
-                      <XCircle className="h-3 w-3" /> Desconectado
-                    </span>
-                  )}
+            <div>
+              <div className="flex items-start justify-between mb-4 mt-1">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white font-serif font-black text-xl shadow-md transition-transform group-hover:scale-105"
+                    style={{ backgroundColor: erp.color }}
+                  >
+                    {erp.logo}
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] leading-tight">{erp.name}</h3>
+                    <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{erp.sub}</p>
+                    {erp.connected ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Conectado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                        <XCircle className="h-3.5 w-3.5" /> Não configurado
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <p className="text-sm text-ink-soft mb-6 flex-1">
-              {erp.desc}
-            </p>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed mb-6">
+                {erp.desc}
+              </p>
+            </div>
 
             {erp.connected ? (
               <IntegrationStatusBlock providerId={erp.id} />
             ) : (
-              <div className="mt-auto pt-4 border-t border-line/50 flex items-center justify-between">
-                <span className="text-xs text-ink-soft">Integração nativa via API</span>
-                {['bling', 'omie', 'contaazul', 'nibo', 'asaas'].includes(erp.id) ? (
-                  <Link href={`/configuracoes/integracoes/${erp.id}` as Route} className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 transition-colors">
-                    Configurar <ArrowRight className="h-4 w-4" />
-                  </Link>
-                ) : (
-                  <button className="text-sm font-semibold text-ink-soft cursor-not-allowed flex items-center gap-1 transition-colors" disabled>
-                    Em breve <ArrowRight className="h-4 w-4 opacity-50" />
-                  </button>
-                )}
+              <div className="pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
+                <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Via API Segura</span>
+                <Link href={`/configuracoes/integracoes/${erp.id}` as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+                  Configurar <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             )}
-          </GlassCard>
+          </div>
         ))}
       </div>
 
       {/* Seção Explicativa / Como funciona */}
-      <GlassCard title="" className="mt-8">
-        <div className="flex flex-col md:flex-row items-center gap-8 p-4">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-ink flex items-center gap-2 mb-2">
-              <ArrowsLeftRight className="h-5 w-5 text-brand-500" />
-              O que essa página faz hoje
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2 mb-2">
+              <ArrowLeftRight className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+              Como Funciona a Integração
             </h3>
-            <p className="text-sm text-ink-soft mb-4 leading-relaxed">
-              Conectar um sistema aqui guarda suas credenciais de acesso com segurança (via OAuth, quando o provedor
-              suporta, ou token de API). A importação automática de contas a pagar, contas a receber e clientes/fornecedores
-              ainda está em desenvolvimento — por enquanto, a conexão não traz dados para dentro do Hub sozinha.
+            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mb-4 leading-relaxed">
+              Conectar seu sistema aqui armazena suas credenciais com criptografia ponta a ponta (via OAuth2 ou tokens seguros de API). A comunicação é feita de forma estritamente segura para leitura de faturamento e baixa de conciliação.
             </p>
-            <ul className="text-sm space-y-2 text-ink-soft">
-              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-ok" /> Credenciais armazenadas com segurança</li>
-              <li className="flex items-center gap-2"><XCircle className="h-4 w-4 text-ink-soft" /> Importação automática de dados — em breve</li>
-              <li className="flex items-center gap-2"><XCircle className="h-4 w-4 text-ink-soft" /> Conciliação bancária automatizada — em breve</li>
+            <ul className="text-xs sm:text-sm space-y-2 text-[#6E6A61] dark:text-[#A8A49C]">
+              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Credenciais armazenadas com segurança via Vault</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Webhook de baixa automática de pagamentos Asaas</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Assistente de IA e API externa com token revogável e escopo leitura/escrita</li>
             </ul>
           </div>
-          <div className="shrink-0 w-full md:w-auto flex justify-center">
-            <div className="relative w-64 h-48 rounded-[2rem] bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-800/20 border border-brand-200/50 dark:border-brand-700/50 flex items-center justify-center shadow-inner overflow-hidden">
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(var(--color-brand-500) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-              <div className="relative z-10 flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-white dark:bg-surface-card shadow-lg flex items-center justify-center font-bold text-brand-600 text-xl border border-line">
-                  CA
-                </div>
-                <div className="flex flex-col gap-1.5 items-center">
-                  <div className="h-1.5 w-8 bg-brand-400 rounded-full animate-pulse" />
-                  <div className="h-1.5 w-8 bg-brand-400 rounded-full animate-pulse delay-75" />
-                  <div className="h-1.5 w-8 bg-brand-400 rounded-full animate-pulse delay-150" />
-                </div>
-                <div className="h-14 w-14 rounded-2xl bg-brand-600 shadow-lg flex items-center justify-center font-bold text-white text-xl border border-brand-500">
-                  H
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      </GlassCard>
+      </div>
     </div>
   );
 }
+

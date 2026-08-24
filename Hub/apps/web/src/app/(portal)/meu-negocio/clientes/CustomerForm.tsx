@@ -1,14 +1,14 @@
 'use client';
 
 import { useActionState, useRef, useState, useCallback } from 'react';
-import { Plus, MagnifyingGlass, Spinner, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import { Plus, Search, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { addCustomerAction, type CustomerState } from './actions';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
 
 const initial: CustomerState = { ok: false, message: '' };
 const field =
-  'mt-1 w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
-const lbl = 'text-xs font-medium text-ink-soft';
+  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
 
 type LookupStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'error';
 
@@ -82,13 +82,13 @@ export function CustomerForm() {
   }
 
   return (
-    <form action={action} className="card-flat rounded-card p-5">
-      <h2 className="text-lg font-semibold">Adicionar novo cliente</h2>
+    <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
+      <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Adicionar Novo Cliente</h2>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Tipo */}
         <div>
-          <label className={lbl}>Tipo de pessoa</label>
+          <label className={lbl}>Tipo de Pessoa</label>
           <select name="tipo" defaultValue="PJ" className={field}>
             <option value="PJ">Pessoa Jurídica (CNPJ)</option>
             <option value="PF">Pessoa Física (CPF)</option>
@@ -98,43 +98,43 @@ export function CustomerForm() {
         {/* CNPJ com lookup */}
         <div>
           <label className={lbl}>CNPJ / CPF</label>
-          <div className="relative mt-1">
+          <div className="relative mt-1.5">
             <input
               ref={cnpjInputRef}
               name="documento"
               required
               placeholder="00.000.000/0001-00"
               onInput={handleCnpjInput}
-              className={`${field} mt-0 pr-9`}
+              className={`${field} mt-0 pr-10`}
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
               {lookupStatus === 'loading' && (
-                <Spinner className="h-4 w-4 animate-spin text-ink-soft" />
+                <Loader2 className="h-4 w-4 animate-spin text-[#6E6A61]" />
               )}
               {lookupStatus === 'found' && (
-                <CheckCircle className="h-4 w-4 text-ok" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               )}
               {(lookupStatus === 'not_found' || lookupStatus === 'error') && (
-                <WarningCircle className="h-4 w-4 text-warn" />
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
               )}
               {lookupStatus === 'idle' && (
-                <MagnifyingGlass className="h-4 w-4 text-ink-soft/40" />
+                <Search className="h-4 w-4 text-[#6E6A61]/40" />
               )}
             </span>
           </div>
           {lookupStatus === 'found' && cnpjData && (
-            <p className="mt-1 text-[11px] text-ok">
-              ✓ Dados preenchidos automaticamente
+            <p className="mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+              ✓ Dados preenchidos automaticamente via Receita Federal
             </p>
           )}
           {lookupStatus === 'not_found' && (
-            <p className="mt-1 text-[11px] text-warn">CNPJ não encontrado na Receita Federal</p>
+            <p className="mt-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">CNPJ não encontrado na Receita Federal</p>
           )}
         </div>
 
         {/* Nome */}
         <div className="md:col-span-2">
-          <label className={lbl}>Razão Social / Nome</label>
+          <label className={lbl}>Razão Social / Nome Completo</label>
           <input
             ref={nomeRef}
             name="nome"
@@ -151,14 +151,14 @@ export function CustomerForm() {
             ref={emailRef}
             name="email"
             type="email"
-            placeholder="email@empresa.com"
+            placeholder="contato@empresa.com"
             className={field}
           />
         </div>
 
         {/* Telefone */}
         <div>
-          <label className={lbl}>Telefone</label>
+          <label className={lbl}>Telefone / WhatsApp</label>
           <input
             ref={telefoneRef}
             name="telefone"
@@ -169,11 +169,11 @@ export function CustomerForm() {
 
         {/* Endereço */}
         <div className="md:col-span-2">
-          <label className={lbl}>Endereço</label>
+          <label className={lbl}>Endereço Completo</label>
           <input
             ref={enderecoRef}
             name="endereco"
-            placeholder="Rua, número, bairro"
+            placeholder="Rua, número, complemento, bairro"
             className={field}
           />
         </div>
@@ -200,9 +200,9 @@ export function CustomerForm() {
           </div>
         </div>
 
-        <div className="md:col-span-2 pt-2 pb-1">
-          <h3 className="text-sm font-semibold text-ink">Cobrança e Contrato (Opcional)</h3>
-          <p className="text-xs text-ink-soft">Preencha se desejar criar uma assinatura recorrente no Asaas automaticamente.</p>
+        <div className="md:col-span-2 pt-3 border-t border-black/5 dark:border-white/10">
+          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Cobrança e Contrato (Opcional)</h3>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Preencha se desejar criar uma assinatura recorrente no Asaas automaticamente.</p>
         </div>
 
         {/* Valor Mensalidade */}
@@ -234,19 +234,19 @@ export function CustomerForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
+        className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
       >
         {pending ? (
-          <Spinner className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Plus className="h-4 w-4" />
         )}
-        {pending ? 'Cadastrando…' : 'Cadastrar cliente'}
+        {pending ? 'Cadastrando…' : 'Cadastrar Cliente'}
       </button>
 
       {state.message && (
         <p
-          className={`mt-3 rounded-xl px-3 py-2 text-sm ${state.ok ? 'bg-ok/10 text-ok' : 'bg-critical/10 text-critical'}`}
+          className={`mt-3 rounded-2xl p-3 text-xs font-bold ${state.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300' : 'bg-red-500/10 border border-red-500/20 text-red-800 dark:text-red-300'}`}
         >
           {state.message}
         </p>
@@ -254,3 +254,4 @@ export function CustomerForm() {
     </form>
   );
 }
+

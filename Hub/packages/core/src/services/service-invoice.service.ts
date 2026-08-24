@@ -25,6 +25,8 @@ export interface EmitNfseInput {
   retainIss?: boolean;
   /** Imposto estimado a pagar por esta nota. Se informado, gera um PAYABLE automático. */
   estimatedTaxAmount?: number;
+  /** Alíquota efetiva usada no cálculo acima (%), só pra exibição. */
+  estimatedTaxRate?: number;
   serviceOverride?: {
     itemListaServico: string;
     codigoTributacaoMunicipio?: string;
@@ -37,6 +39,7 @@ export interface EmitNfseResult {
   invoiceId: string;
   status: 'ISSUING' | 'ISSUED' | 'ERROR';
   nfseNumber?: string;
+  providerProtocol?: string;
   financialEntryId?: string;
   isMock?: boolean;
 }
@@ -75,6 +78,8 @@ export class ServiceInvoiceService {
       serviceDescription: input.serviceDescription,
       referenceMonth: input.referenceMonth,
       status: 'ISSUING',
+      taxAmount: input.estimatedTaxAmount,
+      taxRate: input.estimatedTaxRate,
     });
 
     // 4. Emite no provedor (port -> adapter de packages/integrations).
@@ -130,6 +135,7 @@ export class ServiceInvoiceService {
       invoiceId: invoice.id,
       status: issued.status,
       nfseNumber: issued.nfseNumber,
+      providerProtocol: issued.providerProtocol,
       financialEntryId,
       isMock: issued.isMock,
     };

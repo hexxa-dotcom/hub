@@ -16,7 +16,6 @@ import {
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { withTenant, sql } from '@hexxa/db';
-import { DashboardActions } from './DashboardActions';
 import { RevenueChart } from './RevenueChart';
 import { DueDatesTimeline } from './DueDatesTimeline';
 import { HealthScoreCard } from './HealthScoreCard';
@@ -36,6 +35,7 @@ type Entry = {
   due_date: string | null;
   description?: string;
   category_name?: string | null;
+  created_at: string | Date;
 };
 
 const CAT_COLORS = ['#2F4A3C', '#A2C1CD', '#5F6E46', '#8FA85B'];
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
     const data = await withTenant(ctx.companyId, async (tx) => {
       const fe = await tx.execute(sql`
         SELECT fe.id, fe.amount, fe.type, fe.status, fe.reference_month, fe.due_date, fe.description,
-               c.name AS category_name
+               fe.created_at, c.name AS category_name
         FROM financial_entry fe
         LEFT JOIN category c ON c.id = fe.category_id
         WHERE fe.company_id = ${ctx.companyId}
@@ -160,6 +160,30 @@ export default async function DashboardPage() {
   const provisao = entries
     .filter((e) => e.type === 'PAYABLE' && e.reference_month === curMonth && String(e.description || '').includes('Provisão de Imposto'))
     .reduce((s, e) => s + Number(e.amount), 0);
+
+  // Tempo real: hoje, semana (segunda a domingo) e mês — pra acompanhar o pulso
+  // do negócio no dia a dia, não só o fechamento mensal.
+  const todayIsoRT = now.toISOString().slice(0, 10);
+  const dayOfWeek = (now.getDay() + 6) % 7; // 0 = segunda
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+  const weekStartIso = weekStart.toISOString().slice(0, 10);
+  const weekEndIso = weekEnd.toISOString().slice(0, 10);
+  const createdIso = (e: Entry) => new Date(e.created_at).toISOString().slice(0, 10);
+
+  const faturamentoHoje = receivables
+    .filter((e) => createdIso(e) === todayIsoRT)
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const faturamentoSemana = receivables
+    .filter((e) => createdIso(e) >= weekStartIso && createdIso(e) <= weekEndIso)
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const pagamentosSemana = entries
+    .filter((e) => e.type === 'PAYABLE' && e.due_date && e.due_date >= weekStartIso && e.due_date <= weekEndIso)
+    .reduce((s, e) => s + Number(e.amount), 0);
+
+  // O DAS do Simples Nacional deste mês só vence no mês seguinte (dia 20) —
+  // deixa isso explícito no card, senão parece que o imposto já venceu agora.
+  const nextMonthLabel = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
 
   const recebiveisMes = receivables.filter((e) => e.reference_month === curMonth);
   const categorias = buildCategorias(recebiveisMes.length ? recebiveisMes : receivables);
@@ -235,18 +259,14 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Bottom Row: Title & Actions */}
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] mb-1">
-                Resumo Operacional &amp; Financeiro
-              </h1>
-              <p className="text-[#6E6A61] dark:text-[#A8A49C] text-sm max-w-xl">
-                Acompanhe o faturamento em tempo real, provisão de impostos e fluxo de caixa da sua empresa.
-              </p>
-            </div>
-
-            <DashboardActions />
+          {/* Bottom Row: Title */}
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] mb-1">
+              Resumo Operacional &amp; Financeiro
+            </h1>
+            <p className="text-[#6E6A61] dark:text-[#A8A49C] text-sm max-w-xl">
+              Acompanhe o faturamento em tempo real, provisão de impostos e fluxo de caixa da sua empresa.
+            </p>
           </div>
         </div>
       </header>
@@ -280,39 +300,39 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* KPIs — com rollup de números suaves */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <GlassCard
-          action
-          highlight
-          href="/meu-negocio/notas"
-          title={LABELS.monthlyRevenue}
-          value={BRL.format(faturamentoMes)}
-          trend={fatTrend ? { label: pct(Math.abs(fatTrend)), positive: fatTrend >= 0 } : undefined}
-          hint="vs. mês anterior"
-        />
-        <GlassCard
-          action
-          href="/meu-negocio/fiscal"
-          title={LABELS.estimatedTax}
-          value={BRL.format(provisao)}
-          hint={`estimado (Anexo ${simples.anexo})`}
-        />
-        <GlassCard
-          action
-          href="/meu-negocio/contas-a-pagar"
-          title={LABELS.monthlyExpenses}
-          value={BRL.format(despesasMes)}
-          hint="saídas do mês"
-        />
-        <GlassCard
-          action
-          href="/meu-negocio/hub-financeiro"
-          title={LABELS.netProfit}
-          value={BRL.format(lucro)}
-          hint="faturamento − despesas"
-        />
-      </div>
+      {/* Tempo real — faturamento do dia/semana/mês */}
+      <section>
+        <h2 className="mb-3 font-serif text-lg font-bold text-[#231F20] dark:text-[#FEFDF3]">Faturamento em Tempo Real</h2>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <GlassCard action href="/meu-negocio/notas" title="Hoje" value={BRL.format(faturamentoHoje)} hint={dateFormatted} />
+          <GlassCard action href="/meu-negocio/notas" title="Esta Semana" value={BRL.format(faturamentoSemana)} hint="segunda a domingo" />
+          <GlassCard
+            action
+            highlight
+            href="/meu-negocio/notas"
+            title={LABELS.monthlyRevenue}
+            value={BRL.format(faturamentoMes)}
+            trend={fatTrend ? { label: pct(Math.abs(fatTrend)), positive: fatTrend >= 0 } : undefined}
+            hint="vs. mês anterior"
+          />
+        </div>
+      </section>
+
+      {/* Compromissos — o que já está comprometido este mês/semana */}
+      <section>
+        <h2 className="mb-3 font-serif text-lg font-bold text-[#231F20] dark:text-[#FEFDF3]">Compromissos</h2>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <GlassCard action href="/meu-negocio/contas-a-pagar" title="Pagamentos da Semana" value={BRL.format(pagamentosSemana)} hint="segunda a domingo" />
+          <GlassCard
+            action
+            href="/minha-contabilidade/termometro-tributario"
+            title="Imposto Acumulado do Mês"
+            value={BRL.format(provisao)}
+            hint={`pagamento em ${nextMonthLabel} (Anexo ${simples.anexo})`}
+          />
+          <GlassCard action href="/meu-negocio/contas-a-pagar" title={LABELS.monthlyExpenses} value={BRL.format(despesasMes)} hint="saídas do mês" />
+        </div>
+      </section>
 
       {/* Gráfico Recharts Shadcn + composição por categoria */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -375,7 +395,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Margem + Termômetro Tributário + Caixa Postal */}
+      {/* Margem + Bússola Tributária + Caixa Postal */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <GlassCard
           title="Margem Operacional Real"
@@ -401,7 +421,7 @@ export default async function DashboardPage() {
         <GlassCard
           title={LABELS.taxThermometer}
           action
-          href="/meu-negocio/fiscal"
+          href="/minha-contabilidade/termometro-tributario"
         >
           <p className="mt-2 text-xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Anexo {simples.anexo} · Faixa {simples.faixa}</p>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Alíquota nominal {rate(simples.nominalRate)}</p>

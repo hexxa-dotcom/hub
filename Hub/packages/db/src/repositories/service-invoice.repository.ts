@@ -25,6 +25,8 @@ export class DrizzleServiceInvoiceRepository implements ServiceInvoiceRepository
           serviceDescription: data.serviceDescription,
           referenceMonth: toDate(data.referenceMonth),
           status: data.status,
+          taxAmount: data.taxAmount != null ? String(data.taxAmount) : undefined,
+          taxRate: data.taxRate != null ? String(data.taxRate) : undefined,
         })
         .returning({ id: serviceInvoice.id });
       return { id: inserted[0]!.id };
@@ -64,6 +66,8 @@ export class DrizzleServiceInvoiceRepository implements ServiceInvoiceRepository
         nfseNumber: r.nfseNumber,
         providerProtocol: r.providerProtocol,
         providerMode: r.providerMode,
+        taxAmount: r.taxAmount != null ? Number(r.taxAmount) : null,
+        taxRate: r.taxRate != null ? Number(r.taxRate) : null,
       }));
     });
   }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Envelope, ArrowCounterClockwise, ArrowElbowDownLeft } from '@phosphor-icons/react';
+import { Mail, RotateCw, CornerDownLeft, Loader2 } from 'lucide-react';
 
 type EmailMessage = {
   id: string;
@@ -41,52 +41,52 @@ export default function EmailViewer({ customerId, companyId, onReply }: { custom
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-          <Envelope weight="duotone" className="text-brand-500" />
+        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+          <Mail className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           Histórico de E-mails
         </h3>
         <button 
           onClick={fetchEmails} 
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-surface-card border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-black/5 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 transition-all"
         >
-          <ArrowCounterClockwise className={loading ? 'animate-spin' : ''} />
+          <RotateCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           Sincronizar
         </button>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-critical/10 p-3 text-xs text-critical">
+        <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
 
       {emails.length === 0 && !loading && !error && (
-        <div className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-ink-soft">
+        <div className="rounded-2xl border border-dashed border-black/10 dark:border-white/10 p-8 text-center text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
           Nenhum e-mail sincronizado para este cliente.
         </div>
       )}
 
       <div className="space-y-3">
         {emails.map(email => (
-          <div key={email.id} className="rounded-xl bg-surface-card border border-line p-4 shadow-sm relative group">
+          <div key={email.id} className="rounded-2xl bg-white/80 dark:bg-[#121614] border border-black/5 dark:border-white/10 p-4 shadow-sm relative group">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="font-medium text-sm text-ink">{email.subject}</p>
-                <p className="text-xs text-ink-soft">De: {email.fromAddress} • Para: {email.toAddress}</p>
+                <p className="font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{email.subject}</p>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">De: {email.fromAddress} • Para: {email.toAddress}</p>
               </div>
-              <span className="text-xs text-ink-soft">{new Date(email.sentAt).toLocaleDateString()}</span>
+              <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{new Date(email.sentAt).toLocaleDateString()}</span>
             </div>
-            <div className="text-sm text-ink-soft whitespace-pre-wrap mt-2 bg-black/[0.03] p-3 rounded-xl max-h-40 overflow-y-auto">
+            <div className="text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] whitespace-pre-wrap mt-2 bg-black/[0.03] dark:bg-white/5 p-3 rounded-xl max-h-40 overflow-y-auto">
               {email.bodyText}
             </div>
             
             <button 
               onClick={() => onReply(email)}
-              className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/[0.07] p-1.5 rounded-lg text-ink hover:bg-black/10"
+              className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/[0.07] dark:bg-white/10 p-1.5 rounded-lg text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/15"
               title="Responder"
             >
-              <ArrowElbowDownLeft weight="bold" />
+              <CornerDownLeft className="h-4 w-4" />
             </button>
           </div>
         ))}
@@ -94,3 +94,4 @@ export default function EmailViewer({ customerId, companyId, onReply }: { custom
     </div>
   );
 }
+

@@ -1,9 +1,54 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Trash, CheckCircle, WarningCircle, Clock, TrendUp, TrendDown, Wallet, Warning, CaretDown, CaretUp, Spinner, X, Calendar, Tag, FileText, ArrowUpRight, ArrowDownRight, ArrowsClockwise, CurrencyDollar, SquaresFour, ArrowCircleDown, ArrowCircleUp, Percent, ChartPie, Bank, QrCode, Copy, PaperPlaneRight } from '@phosphor-icons/react';
-
-import { getLancamentos, createLancamento, updateLancamentoStatus, deleteLancamento } from './actions';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  X,
+  Calendar,
+  Tag,
+  FileText,
+  ArrowUpRight,
+  ArrowDownRight,
+  RefreshCw,
+  DollarSign,
+  LayoutGrid,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Percent,
+  PieChart,
+  Landmark,
+  QrCode,
+  Sparkles,
+  Paperclip,
+  Repeat,
+  PauseCircle,
+  PlayCircle,
+  Users,
+} from 'lucide-react';
+import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
+import {
+  getLancamentos,
+  createLancamento,
+  updateLancamentoStatus,
+  deleteLancamento,
+  getComprovante,
+  listRecurringExpenses,
+  createRecurringExpense,
+  setRecurringExpenseActive,
+  deleteRecurringExpense,
+  type RecurringExpenseRow,
+} from './actions';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +63,10 @@ type Lancamento = {
   observacao: string | null;
   created_at: string;
   statusDb?: string;
+  temComprovante?: boolean;
+  comprovanteNome?: string | null;
+  isFixa?: boolean;
+  source?: string | null;
 };
 
 type Status = 'pago' | 'vencido' | 'aberto';
@@ -27,44 +76,85 @@ type Status = 'pago' | 'vencido' | 'aberto';
 const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const fmtDate = (d: string) =>
-  new Date(d + 'T12:00:00').toLocaleDateString('pt-BR');
+const field =
+  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] px-3.5 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+
+const fmtDate = (d: string) => {
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+};
 
 function getStatus(l: Lancamento): Status {
   if (l.pago_em) return 'pago';
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const venc = new Date(l.vencimento + 'T12:00:00');
   return venc < today ? 'vencido' : 'aberto';
 }
 
-const CATEGORIAS_PAGAR = ['Aluguel','Salários','Fornecedores','Impostos','Infraestrutura','Tecnologia','Serviços','Outros'];
-const CATEGORIAS_RECEBER = ['Serviços','Projetos','Mensalidade','Consultoria','Produtos','Aluguéis','Outros'];
+const CATEGORIAS_PAGAR = ['Aluguel', 'Salários', 'Fornecedores', 'Impostos', 'Infraestrutura', 'Tecnologia', 'Serviços', 'Outros'];
+const CATEGORIAS_RECEBER = ['Serviços', 'Projetos', 'Mensalidade', 'Consultoria', 'Produtos', 'Aluguéis', 'Outros'];
+const FISCAL_CATS = ['Impostos', 'DAS', 'ISS', 'DARF', 'FGTS', 'Parcelamento'];
+
+/**
+ * Nome do "grupo" pra agregação por categoria. A maioria dos lançamentos
+ * automáticos (folha, contrato PJ, provisão de NFSe, despesa fixa) nunca
+ * passou pelo formulário manual, então não tem `categoria` real — sem esse
+ * fallback por `source`, tudo isso cairia em "Outros" e o resumo por
+ * categoria ficaria inútil.
+ */
+function grupoDe(l: Lancamento): string {
+  if (l.categoria && l.categoria !== 'Outros') return l.categoria;
+  switch (l.source) {
+    case 'PAYROLL':
+      return 'Colaboradores (CLT)';
+    case 'CONTRACT':
+      return l.tipo === 'PAGAR' ? 'Colaboradores (PJ)' : 'Contratos';
+    case 'NFSE':
+      return l.tipo === 'PAGAR' ? 'Impostos' : 'Notas Fiscais';
+    case 'VENDA':
+      return 'Vendas Avulsas';
+    case 'RECURRING':
+      return 'Despesas Fixas';
+    case 'API':
+      return 'Integração Externa';
+    default:
+      return 'Outros';
+  }
+}
+
+const isCurrentMonth = (vencimento: string) => vencimento.slice(0, 7) === new Date().toISOString().slice(0, 7);
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ l }: { l: Lancamento }) {
   const s = getStatus(l);
   const isPagar = l.tipo === 'PAGAR';
-  if (s === 'pago') return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-ok/10 px-2 py-0.5 text-xs font-medium text-ok">
-      <CheckCircle className="h-3 w-3" />{isPagar ? 'Pago' : 'Recebido'}
-    </span>
-  );
-  if (s === 'vencido') return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-critical/10 px-2 py-0.5 text-xs font-medium text-critical">
-      <WarningCircle className="h-3 w-3" />Vencido
-    </span>
-  );
+  if (s === 'pago') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-2.5 py-0.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]">
+        <CheckCircle2 className="h-3 w-3" />
+        {isPagar ? 'Pago' : 'Recebido'}
+      </span>
+    );
+  }
+  if (s === 'vencido') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950/60 px-2.5 py-0.5 text-xs font-bold text-red-700 dark:text-red-300 border border-red-200">
+        <AlertTriangle className="h-3 w-3" />
+        Vencido
+      </span>
+    );
+  }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-xs font-medium text-warn">
-      <Clock className="h-3 w-3" />Em aberto
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:text-amber-300 border border-amber-200">
+      <Clock className="h-3 w-3" />
+      Em aberto
     </span>
   );
 }
 
 // ── Form inline ───────────────────────────────────────────────────────────────
-
-const FISCAL_CATS = ['Impostos', 'DAS', 'ISS', 'DARF', 'FGTS', 'Parcelamento'];
 
 function LancamentoForm({
   tipo,
@@ -81,8 +171,10 @@ function LancamentoForm({
   const [valor, setValor] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [categoria, setCategoria] = useState(defaultCategoria ?? '');
+  const [categoriaOutros, setCategoriaOutros] = useState('');
   const [observacao, setObservacao] = useState('');
   const [parcelas, setParcelas] = useState(1);
+  const [comprovante, setComprovante] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -94,87 +186,143 @@ function LancamentoForm({
       setErr('Preencha descrição, valor e vencimento.');
       return;
     }
-    setSaving(true); setErr(null);
+    setSaving(true);
+    setErr(null);
     try {
+      const categoriaFinal = categoria === 'Outros' && categoriaOutros.trim() ? categoriaOutros.trim() : categoria;
       await createLancamento({
         tipo,
         descricao,
         valor: parseFloat(valor.replace(',', '.')),
         vencimento,
-        parcelas
+        parcelas,
+        categoria: categoriaFinal || undefined,
+        comprovante,
       });
-      // Cast vazio apenas para não quebrar a tipagem do callback original (que será atualizado)
       onAdd({} as Lancamento);
       onClose();
-    } catch {
-      setErr('Falha ao salvar no banco de dados.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao salvar no banco de dados.');
     } finally {
       setSaving(false);
     }
   }
 
-  const field = 'w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
-
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-brand-400/30 bg-brand-500/5 p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 p-5 space-y-4 shadow-sm animate-fade-up">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
-          {tipo === 'PAGAR' ? '+ Nova conta a pagar' : '+ Nova conta a receber'}
+        <p className="text-sm font-bold text-[#1E3328] dark:text-[#DFFFAE] flex items-center gap-1.5 font-serif">
+          <Sparkles className="h-4 w-4" />
+          {tipo === 'PAGAR' ? 'Novo Lançamento de Conta a Pagar' : 'Novo Lançamento de Conta a Receber'}
         </p>
-        <button type="button" onClick={onClose} className="rounded p-1 text-ink-soft hover:text-ink">
+        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
         </button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-ink-soft">Descrição *</label>
-          <input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex.: Aluguel maio, NF 001…" className={`mt-1 ${field}`} />
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Descrição *</label>
+          <input
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            placeholder="Ex.: Aluguel escritório, Licença Software, NF 001…"
+            className={`mt-1 ${field}`}
+          />
         </div>
         <div>
-          <label className="text-xs font-medium text-ink-soft">Valor (R$) *</label>
-          <input type="number" step="0.01" min="0.01" value={valor} onChange={e => setValor(e.target.value)} placeholder="0,00" className={`mt-1 ${field}`} />
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Valor (R$) *</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder="0,00"
+            className={`mt-1 ${field}`}
+          />
         </div>
         <div>
-          <label className="text-xs font-medium text-ink-soft">Vencimento *</label>
-          <input type="date" value={vencimento} onChange={e => setVencimento(e.target.value)} className={`mt-1 ${field}`} />
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Vencimento *</label>
+          <input
+            type="date"
+            value={vencimento}
+            onChange={(e) => setVencimento(e.target.value)}
+            className={`mt-1 ${field}`}
+          />
         </div>
         <div>
-          <label className="text-xs font-medium text-ink-soft">Categoria</label>
-          <select value={categoria} onChange={e => setCategoria(e.target.value)} className={`mt-1 ${field}`}>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria</label>
+          <select
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+            className={`mt-1 ${field}`}
+          >
             <option value="">Sem categoria</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
+            {cats.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
         </div>
+        {categoria === 'Outros' && (
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Qual despesa? *</label>
+            <input
+              value={categoriaOutros}
+              onChange={(e) => setCategoriaOutros(e.target.value)}
+              placeholder="Ex.: Manutenção de equipamento, Correios…"
+              className={`mt-1 ${field}`}
+            />
+            <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Vira uma categoria nova, pra facilitar o DRE nos próximos lançamentos parecidos.</p>
+          </div>
+        )}
         <div>
-          <label className="text-xs font-medium text-ink-soft">Observação</label>
-          <input value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Opcional…" className={`mt-1 ${field}`} />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-ink-soft">Repetição / Recorrência</label>
-          <select value={parcelas} onChange={e => setParcelas(Number(e.target.value))} className={`mt-1 ${field}`}>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Recorrência</label>
+          <select
+            value={parcelas}
+            onChange={(e) => setParcelas(Number(e.target.value))}
+            className={`mt-1 ${field}`}
+          >
             <option value={1}>Lançamento Único (1x)</option>
             <option value={2}>Recorrente 2 meses (2x)</option>
             <option value={3}>Recorrente 3 meses (3x)</option>
             <option value={6}>Recorrente 6 meses (6x)</option>
             <option value={12}>Recorrente 12 meses (1 ano)</option>
-            <option value={24}>Recorrente 24 meses (2 anos)</option>
           </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Comprovante (opcional)</label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={(e) => setComprovante(e.target.files?.[0] ?? null)}
+            className={`mt-1 ${field} file:mr-3 file:rounded-full file:border-0 file:bg-[#1E3328] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#DFFFAE] cursor-pointer`}
+          />
+          <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Foto do recibo, nota ou print do Pix. Máx. 4MB.</p>
         </div>
       </div>
 
       {err && (
-        <p className="flex items-center gap-2 rounded-xl bg-critical/10 px-3 py-2 text-xs text-critical">
-          <WarningCircle className="h-3.5 w-3.5 shrink-0" />{err}
+        <p className="flex items-center gap-2 rounded-2xl bg-red-100 dark:bg-red-950/60 p-3 text-xs font-bold text-red-700 dark:text-red-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {err}
         </p>
       )}
 
-      <div className="flex gap-2 pt-1">
-        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60">
-          {saving ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Salvar
+      <div className="flex gap-2.5 pt-1">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105 disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Salvar Lançamento
         </button>
-        <button type="button" onClick={onClose} className="rounded-xl border border-line px-4 py-2 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+        >
           Cancelar
         </button>
       </div>
@@ -182,9 +330,317 @@ function LancamentoForm({
   );
 }
 
-// ── Tabela de lançamentos ─────────────────────────────────────────────────────
+// ── Resumo por categoria (mês corrente) ─────────────────────────────────────
 
-type FilterTab = 'todos' | 'aberto' | 'vencido' | 'pago';
+/** Card compacto de um agregado do mês (Impostos, Colaboradores…), mesmo estilo do card de Despesas Fixas. */
+function MesStatCard({
+  icon: Icon,
+  label,
+  hint = 'Neste mês',
+  value,
+  tone = 'default',
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  hint?: string;
+  value: number;
+  tone?: 'default' | 'warn';
+}) {
+  return (
+    <div className="w-full flex items-center justify-between gap-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${tone === 'warn' ? 'bg-amber-100 dark:bg-amber-950/60' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
+          <Icon className={`h-5 w-5 ${tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{label}</p>
+          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{hint}</p>
+        </div>
+      </div>
+      <p className="font-serif text-2xl font-bold tabular shrink-0 text-[#231F20] dark:text-[#FEFDF3]">{fmt(value)}</p>
+    </div>
+  );
+}
+
+/** Barra de chips com o total do mês agregado por categoria — inclui os grupos automáticos (folha, PJ, NFSe…). */
+function CategoriaBreakdownRow({ items }: { items: { label: string; total: number }[] }) {
+  return (
+    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-4 shadow-sm">
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+        Por categoria — neste mês
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((g) => (
+          <span
+            key={g.label}
+            className="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 px-3.5 py-2 text-xs"
+          >
+            <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{g.label}</span>
+            <span className="font-serif font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{fmt(g.total)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Despesas Fixas (recorrentes) ────────────────────────────────────────────
+
+/** Card-resumo do comprometimento mensal com despesas fixas — clica e filtra a lista abaixo. */
+function DespesasFixasCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+  const [items, setItems] = useState<RecurringExpenseRow[] | null>(null);
+
+  useEffect(() => {
+    listRecurringExpenses().then(setItems).catch(() => setItems([]));
+  }, []);
+
+  const ativos = items?.filter((i) => i.active) ?? [];
+  const total = ativos.reduce((s, i) => s + i.amount, 0);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center justify-between gap-4 rounded-3xl border p-5 text-left shadow-sm transition-all ${
+        active
+          ? 'bg-[#1E3328] border-[#1E3328] text-[#FEFDF3]'
+          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'
+      }`}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${active ? 'bg-[#DFFFAE]/20' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
+          <Repeat className={`h-5 w-5 ${active ? 'text-[#DFFFAE]' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
+        </div>
+        <div className="min-w-0">
+          <p className={`truncate text-xs font-bold uppercase tracking-wider ${active ? 'text-[#DFFFAE]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
+            Despesas Fixas
+          </p>
+          <p className={`truncate text-[11px] ${active ? 'text-[#DFFFAE]/70' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
+            {items === null ? 'Carregando…' : `${ativos.length} ativa${ativos.length === 1 ? '' : 's'} · todo mês`}
+          </p>
+        </div>
+      </div>
+      <p className={`font-serif text-2xl font-bold tabular shrink-0 ${active ? 'text-[#DFFFAE]' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+        {items === null ? '—' : fmt(total)}
+      </p>
+    </button>
+  );
+}
+
+function DespesasFixasPanel({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+  const [items, setItems] = useState<RecurringExpenseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [descricao, setDescricao] = useState('');
+  const [valor, setValor] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [categoriaOutros, setCategoriaOutros] = useState('');
+  const [dueDay, setDueDay] = useState('5');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setItems(await listRecurringExpenses());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!descricao.trim() || !valor) {
+      setErr('Preencha descrição e valor.');
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    try {
+      const categoriaFinal = categoria === 'Outros' && categoriaOutros.trim() ? categoriaOutros.trim() : categoria;
+      await createRecurringExpense({
+        description: descricao,
+        amount: parseFloat(valor.replace(',', '.')),
+        categoryName: categoriaFinal || null,
+        dueDay: Number(dueDay),
+      });
+      setDescricao('');
+      setValor('');
+      setCategoria('');
+      setCategoriaOutros('');
+      setShowForm(false);
+      await load();
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao salvar.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleActive(item: RecurringExpenseRow) {
+    setBusyId(item.id);
+    try {
+      await setRecurringExpenseActive(item.id, !item.active);
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setBusyId(id);
+    try {
+      await deleteRecurringExpense(id);
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 space-y-4 shadow-sm animate-fade-up">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-1.5 font-serif">
+          <Repeat className="h-4 w-4" />
+          Despesas Fixas Mensais
+        </p>
+        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        Aluguel, softwares, mensalidades — cadastre uma vez e o sistema lança automaticamente todo mês, sem precisar recriar.
+      </p>
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-[#6E6A61]">
+          <Loader2 className="h-4 w-4 animate-spin" /> <span className="text-xs font-bold">Carregando…</span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.length === 0 && !showForm && (
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] italic py-2">Nenhuma despesa fixa cadastrada ainda.</p>
+          )}
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 p-3 ${!item.active ? 'opacity-50' : ''}`}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{item.description}</p>
+                <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                  {fmt(item.amount)} · todo dia {item.dueDay}
+                  {item.categoryName ? ` · ${item.categoryName}` : ''}
+                  {!item.active ? ' · Pausada' : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  title={item.active ? 'Pausar' : 'Reativar'}
+                  onClick={() => toggleActive(item)}
+                  disabled={busyId === item.id}
+                  className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] transition-colors disabled:opacity-40"
+                >
+                  {item.active ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
+                  title="Excluir"
+                  onClick={() => handleDelete(item.id)}
+                  disabled={busyId === item.id}
+                  className="rounded-full p-2 text-[#6E6A61] hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm ? (
+        <form onSubmit={handleCreate} className="rounded-2xl border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 p-4 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Descrição *</label>
+              <input
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Ex.: Aluguel do escritório"
+                className={`mt-1 ${field}`}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Valor (R$) *</label>
+              <input type="number" step="0.01" min="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className={`mt-1 ${field}`} />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Dia do vencimento *</label>
+              <select value={dueDay} onChange={(e) => setDueDay(e.target.value)} className={`mt-1 ${field}`}>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria</label>
+              <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={`mt-1 ${field}`}>
+                <option value="">Sem categoria</option>
+                {CATEGORIAS_PAGAR.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            {categoria === 'Outros' && (
+              <div className="sm:col-span-2">
+                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Qual despesa? *</label>
+                <input
+                  value={categoriaOutros}
+                  onChange={(e) => setCategoriaOutros(e.target.value)}
+                  placeholder="Ex.: Contabilidade, Sistema de gestão…"
+                  className={`mt-1 ${field}`}
+                />
+              </div>
+            )}
+          </div>
+          {err && <p className="text-xs font-bold text-red-700">{err}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Cadastrar
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61]">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 px-4 py-2 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]"
+        >
+          <Plus className="h-4 w-4" /> Nova despesa fixa
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Tabela de Lançamentos ─────────────────────────────────────────────────────
+
+type FilterTab = 'todos' | 'aberto' | 'vencido' | 'pago' | 'fixas';
 
 function LancamentosTab({
   tipo,
@@ -201,42 +657,67 @@ function LancamentosTab({
 }) {
   const [filter, setFilter] = useState<FilterTab>('todos');
   const [showForm, setShowForm] = useState(false);
+  const [showFixas, setShowFixas] = useState(false);
   const [marking, setMarking] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedPixLancamento, setSelectedPixLancamento] = useState<Lancamento | null>(null);
 
   const list = useMemo(() => {
-    const base = data.filter(l => l.tipo === tipo);
+    const base = data.filter((l) => l.tipo === tipo);
     if (filter === 'todos') return base;
-    return base.filter(l => getStatus(l) === filter);
+    if (filter === 'fixas') return base.filter((l) => l.isFixa);
+    return base.filter((l) => getStatus(l) === filter);
   }, [data, tipo, filter]);
 
   const counts = useMemo(() => {
-    const base = data.filter(l => l.tipo === tipo);
+    const base = data.filter((l) => l.tipo === tipo);
     return {
       todos: base.length,
-      aberto: base.filter(l => getStatus(l) === 'aberto').length,
-      vencido: base.filter(l => getStatus(l) === 'vencido').length,
-      pago: base.filter(l => getStatus(l) === 'pago').length,
+      aberto: base.filter((l) => getStatus(l) === 'aberto').length,
+      vencido: base.filter((l) => getStatus(l) === 'vencido').length,
+      pago: base.filter((l) => getStatus(l) === 'pago').length,
+      fixas: base.filter((l) => l.isFixa).length,
     };
   }, [data, tipo]);
+
+  // Agregados do mês corrente por categoria — inclui pago e em aberto, é "o
+  // que esse mês representa", não só o que ainda falta pagar/receber.
+  const categoriaBreakdown = useMemo(() => {
+    const base = data.filter((l) => l.tipo === tipo && isCurrentMonth(l.vencimento));
+    const groups = new Map<string, number>();
+    for (const l of base) {
+      groups.set(grupoDe(l), (groups.get(grupoDe(l)) ?? 0) + l.valor);
+    }
+    return Array.from(groups.entries())
+      .map(([label, total]) => ({ label, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [data, tipo]);
+
+  const impostosMes = categoriaBreakdown.find((g) => g.label === 'Impostos')?.total ?? 0;
+  const colaboradoresMes = categoriaBreakdown
+    .filter((g) => g.label === 'Colaboradores (CLT)' || g.label === 'Colaboradores (PJ)')
+    .reduce((s, g) => s + g.total, 0);
 
   async function togglePago(l: Lancamento) {
     setMarking(l.id);
     const newStatus = l.statusDb === 'PAID' ? 'PENDING' : 'PAID';
     try {
       await updateLancamentoStatus(l.id, newStatus as any);
-      onUpdate({} as Lancamento); // trigger refresh
-    } finally { setMarking(null); }
+      onUpdate({} as Lancamento);
+    } finally {
+      setMarking(null);
+    }
   }
 
   async function handleDelete(id: string) {
     setDeleting(id);
     try {
       await deleteLancamento(id);
-      onDelete(id); // trigger refresh
-    } finally { setDeleting(null); }
+      onDelete(id);
+    } finally {
+      setDeleting(null);
+    }
   }
 
   const isPagar = tipo === 'PAGAR';
@@ -247,154 +728,236 @@ function LancamentosTab({
     { key: 'aberto', label: `Em aberto (${counts.aberto})` },
     { key: 'vencido', label: `Vencidos (${counts.vencido})` },
     { key: 'pago', label: isPagar ? `Pagos (${counts.pago})` : `Recebidos (${counts.pago})` },
+    ...(isPagar ? [{ key: 'fixas' as const, label: `Despesas Fixas (${counts.fixas})` }] : []),
   ];
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {isPagar && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <DespesasFixasCard
+            active={filter === 'fixas'}
+            onClick={() => setFilter(filter === 'fixas' ? 'todos' : 'fixas')}
+          />
+          <MesStatCard icon={Percent} label="Impostos" value={impostosMes} tone="warn" />
+          <MesStatCard icon={Users} label="Colaboradores" hint="PJ + CLT · neste mês" value={colaboradoresMes} tone="default" />
+        </div>
+      )}
+
+      {categoriaBreakdown.length > 0 && (
+        <CategoriaBreakdownRow items={categoriaBreakdown} />
+      )}
+
+      {/* Header com Filtros & Botão */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1">
-          {filterBtns.map(f => (
+        <div className="flex flex-wrap gap-1.5">
+          {filterBtns.map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => setFilter(f.key)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                 filter === f.key
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'
+                  ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
+                  : 'border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
-        >
-          <Plus className="h-4 w-4" />
-          Nova conta a {label}
-        </button>
+        <div className="flex items-center gap-2">
+          {isPagar && (
+            <button
+              type="button"
+              onClick={() => setShowFixas((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-colors"
+            >
+              <Repeat className="h-4 w-4" />
+              Despesas Fixas
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105"
+          >
+            <Plus className="h-4 w-4" />
+            Nova conta a {label}
+          </button>
+        </div>
       </div>
+
+      {isPagar && showFixas && (
+        <DespesasFixasPanel onClose={() => setShowFixas(false)} onChanged={() => onUpdate({} as Lancamento)} />
+      )}
 
       {showForm && (
         <LancamentoForm
           tipo={tipo}
-          onAdd={l => { onAdd(l); setFilter('todos'); }}
+          onAdd={(l) => {
+            onAdd(l);
+            setFilter('todos');
+          }}
           onClose={() => setShowForm(false)}
         />
       )}
 
-      {/* Table */}
+      {/* Tabela de Lançamentos */}
       {list.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-          <CurrencyDollar className="h-8 w-8 opacity-30" />
-          <p className="text-sm">Nenhum lançamento encontrado.</p>
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-12 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+          <DollarSign className="h-8 w-8 mx-auto opacity-30 mb-2" />
+          <p className="text-sm font-semibold">Nenhum lançamento encontrado neste filtro.</p>
         </div>
       ) : (
-        <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
-          {/* Desktop header */}
-          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
+        <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
+          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] sm:grid">
             <span>Descrição</span>
             <span className="w-28 text-right">Vencimento</span>
             <span className="w-32 text-right">Valor</span>
-            <span className="w-24 text-center">Status</span>
-            <span className="w-20 text-center">Ações</span>
+            <span className="w-28 text-center">Status</span>
+            <span className="w-24 text-center">Ações</span>
           </div>
 
-          {list.map(l => {
-            const s = getStatus(l);
-            const isExp = expanded === l.id;
-            return (
-              <div key={l.id}>
-                {/* Row */}
-                <div
-                  className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-card border border-line dark:hover:bg-white/3 sm:grid-cols-[1fr_auto_auto_auto_auto] ${
-                    s === 'vencido' ? 'border-l-2 border-l-critical' : s === 'pago' ? 'opacity-60' : ''
-                  }`}
-                  onClick={() => setExpanded(isExp ? null : l.id)}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{l.descricao}</p>
-                    {l.categoria && (
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-ink-soft">
-                        <Tag className="h-3 w-3" />{l.categoria}
-                      </span>
-                    )}
-                    {/* Mobile: show date + value inline */}
-                    <p className="mt-0.5 text-xs text-ink-soft sm:hidden">
-                      {fmtDate(l.vencimento)} · <strong>{fmt(l.valor)}</strong>
-                    </p>
-                  </div>
+          <div className="divide-y divide-black/5 dark:divide-white/5">
+            {list.map((l) => {
+              const s = getStatus(l);
+              const isExp = expanded === l.id;
+              return (
+                <div key={l.id}>
+                  <div
+                    className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-3 p-4 sm:px-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:grid-cols-[1fr_auto_auto_auto_auto] ${
+                      s === 'vencido' ? 'border-l-4 border-l-red-500' : s === 'pago' ? 'opacity-65' : ''
+                    }`}
+                    onClick={() => setExpanded(isExp ? null : l.id)}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
+                      {(l.categoria || l.temComprovante || l.isFixa) && (
+                        <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                          {l.isFixa && (
+                            <span className="inline-flex items-center gap-1 font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+                              <Repeat className="h-3 w-3" />
+                              Fixa
+                            </span>
+                          )}
+                          {l.categoria && (
+                            <span className="inline-flex items-center gap-1">
+                              <Tag className="h-3 w-3" />
+                              {l.categoria}
+                            </span>
+                          )}
+                          {l.temComprovante && (
+                            <span className="inline-flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              Comprovante
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C] sm:hidden">
+                        {fmtDate(l.vencimento)} · <strong>{fmt(l.valor)}</strong>
+                      </p>
+                    </div>
 
-                  <span className="hidden w-28 text-right text-sm text-ink-soft sm:block">{fmtDate(l.vencimento)}</span>
-                  <span className={`hidden w-32 text-right text-sm font-semibold sm:block ${isPagar ? 'text-critical' : 'text-ok'}`}>
-                    {fmt(l.valor)}
-                  </span>
-                  <span className="hidden w-24 text-center sm:block"><StatusBadge l={l} /></span>
+                    <span className="hidden w-28 text-right text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] sm:block">
+                      {fmtDate(l.vencimento)}
+                    </span>
+                    <span
+                      className={`hidden w-32 text-right font-serif text-sm sm:text-base font-bold tabular sm:block ${
+                        isPagar ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'
+                      }`}
+                    >
+                      {fmt(l.valor)}
+                    </span>
+                    <span className="hidden w-28 text-center sm:block">
+                      <StatusBadge l={l} />
+                    </span>
 
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    {!isPagar && !l.pago_em && (
+                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {!isPagar && !l.pago_em && (
+                        <button
+                          type="button"
+                          title="Gerar Cobrança Pix"
+                          onClick={() => setSelectedPixLancamento(l)}
+                          className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-2.5 py-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
+                        >
+                          <QrCode className="h-3 w-3" /> Pix
+                        </button>
+                      )}
                       <button
                         type="button"
-                        title="Gerar Cobrança Pix"
-                        onClick={() => setSelectedPixLancamento(l)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-brand-500/10 px-2 py-1 text-xs font-semibold text-brand-500 hover:bg-brand-500/20"
+                        title={l.pago_em ? 'Desfazer' : isPagar ? 'Marcar como pago' : 'Marcar como recebido'}
+                        onClick={() => togglePago(l)}
+                        disabled={marking === l.id}
+                        className={`rounded-full p-2 transition-colors ${
+                          l.pago_em
+                            ? 'bg-[#EFFFD6] text-[#2F4A3C]'
+                            : 'text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20]'
+                        } disabled:opacity-40`}
                       >
-                        <QrCode className="h-3.5 w-3.5" /> Pix
+                        {marking === l.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
                       </button>
-                    )}
-                    {/* Mark paid/received */}
-                    <button
-                      type="button"
-                      title={l.pago_em ? 'Desfazer' : (isPagar ? 'Marcar como pago' : 'Marcar como recebido')}
-                      onClick={() => togglePago(l)}
-                      disabled={marking === l.id}
-                      className={`rounded-xl p-1.5 transition-colors ${
-                        l.pago_em
-                          ? 'text-ok hover:bg-ok/10'
-                          : 'text-ink-soft hover:bg-ok/10 hover:text-ok'
-                      } disabled:opacity-40`}
-                    >
-                      {marking === l.id
-                        ? <Spinner className="h-4 w-4 animate-spin" />
-                        : <CheckCircle className="h-4 w-4" />
-                      }
-                    </button>
-                    <button
-                      type="button"
-                      title="Excluir"
-                      onClick={() => handleDelete(l.id)}
-                      disabled={deleting === l.id}
-                      className="rounded-xl p-1.5 text-ink-soft transition-colors hover:bg-critical/10 hover:text-critical disabled:opacity-40"
-                    >
-                      {deleting === l.id
-                        ? <Spinner className="h-4 w-4 animate-spin" />
-                        : <Trash className="h-4 w-4" />
-                      }
-                    </button>
-                    {isExp ? <CaretUp className="h-4 w-4 text-ink-soft" /> : <CaretDown className="h-4 w-4 text-ink-soft" />}
-                  </div>
-                </div>
-
-                {/* Expanded row */}
-                {isExp && (
-                  <div className="border-t border-line bg-surface-card border border-line px-4 py-3 text-xs dark:bg-white/3">
-                    <div className="flex flex-wrap gap-4">
-                      <div><span className="text-ink-soft">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
-                      <div><span className="text-ink-soft">Criado em:</span> <strong>{fmtDate(l.created_at.split('T')[0]!)}</strong></div>
-                      {l.pago_em && <div><span className="text-ink-soft">{isPagar ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
-                      {l.observacao && <div className="w-full"><span className="text-ink-soft">Obs.:</span> {l.observacao}</div>}
-                      <div className="sm:hidden"><StatusBadge l={l} /></div>
+                      <button
+                        type="button"
+                        title="Excluir"
+                        onClick={() => handleDelete(l.id)}
+                        disabled={deleting === l.id}
+                        className="rounded-full p-2 text-[#6E6A61] hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-40"
+                      >
+                        {deleting === l.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                      {isExp ? <ChevronUp className="h-4 w-4 text-[#6E6A61]" /> : <ChevronDown className="h-4 w-4 text-[#6E6A61]" />}
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {isExp && (
+                    <div className="border-t border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 p-4 text-xs space-y-2">
+                      <div className="flex flex-wrap gap-4">
+                        <div><span className="text-[#6E6A61]">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
+                        <div><span className="text-[#6E6A61]">Criado em:</span> <strong>{fmtDate(l.created_at.split('T')[0]!)}</strong></div>
+                        {l.pago_em && <div><span className="text-[#6E6A61]">{isPagar ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
+                        {l.observacao && <div className="w-full"><span className="text-[#6E6A61]">Observações:</span> {l.observacao}</div>}
+                        {l.temComprovante && (
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const c = await getComprovante(l.id);
+                              if (c) window.open(c.dataUrl, '_blank');
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-3 py-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
+                          >
+                            <Paperclip className="h-3 w-3" /> Ver comprovante{l.comprovanteNome ? `: ${l.comprovanteNome}` : ''}
+                          </button>
+                        )}
+                        <div className="sm:hidden"><StatusBadge l={l} /></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
+      )}
+
+      {selectedPixLancamento && (
+        <GeneratePixModal
+          isOpen={true}
+          onClose={() => setSelectedPixLancamento(null)}
+          initialValue={selectedPixLancamento.valor}
+          initialDescription={selectedPixLancamento.descricao}
+          financialEntryId={selectedPixLancamento.id}
+        />
       )}
     </div>
   );
@@ -403,96 +966,112 @@ function LancamentosTab({
 // ── Visão Geral ───────────────────────────────────────────────────────────────
 
 function VisaoGeral({ data }: { data: Lancamento[] }) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in7 = new Date(today);
+  in7.setDate(in7.getDate() + 7);
 
-  const totalPagar = data.filter(l => l.tipo === 'PAGAR' && !l.pago_em).reduce((s, l) => s + l.valor, 0);
-  const totalReceber = data.filter(l => l.tipo === 'RECEBER' && !l.pago_em).reduce((s, l) => s + l.valor, 0);
-  const vencidos = data.filter(l => getStatus(l) === 'vencido');
+  const totalPagar = data.filter((l) => l.tipo === 'PAGAR' && !l.pago_em).reduce((s, l) => s + l.valor, 0);
+  const totalReceber = data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).reduce((s, l) => s + l.valor, 0);
+  const vencidos = data.filter((l) => getStatus(l) === 'vencido');
   const saldo = totalReceber - totalPagar;
 
   const proximos = data
-    .filter(l => {
+    .filter((l) => {
       if (l.pago_em) return false;
       const v = new Date(l.vencimento + 'T12:00:00');
       return v >= today && v <= in7;
     })
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
 
-  // Fluxo: próximos 30 dias agrupados por semana
+  // Fluxo: 4 semanas
   const weeks: { label: string; pagar: number; receber: number }[] = [];
   for (let w = 0; w < 4; w++) {
-    const start = new Date(today); start.setDate(start.getDate() + w * 7);
-    const end = new Date(start); end.setDate(end.getDate() + 6);
-    const label = `Sem ${w + 1}`;
-    const pagar = data.filter(l => {
-      if (l.tipo !== 'PAGAR' || l.pago_em) return false;
-      const v = new Date(l.vencimento + 'T12:00:00');
-      return v >= start && v <= end;
-    }).reduce((s, l) => s + l.valor, 0);
-    const receber = data.filter(l => {
-      if (l.tipo !== 'RECEBER' || l.pago_em) return false;
-      const v = new Date(l.vencimento + 'T12:00:00');
-      return v >= start && v <= end;
-    }).reduce((s, l) => s + l.valor, 0);
+    const start = new Date(today);
+    start.setDate(start.getDate() + w * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const label = `Semana ${w + 1}`;
+    const pagar = data
+      .filter((l) => {
+        if (l.tipo !== 'PAGAR' || l.pago_em) return false;
+        const v = new Date(l.vencimento + 'T12:00:00');
+        return v >= start && v <= end;
+      })
+      .reduce((s, l) => s + l.valor, 0);
+    const receber = data
+      .filter((l) => {
+        if (l.tipo !== 'RECEBER' || l.pago_em) return false;
+        const v = new Date(l.vencimento + 'T12:00:00');
+        return v >= start && v <= end;
+      })
+      .reduce((s, l) => s + l.valor, 0);
     weeks.push({ label, pagar, receber });
   }
-  const maxWeek = Math.max(...weeks.flatMap(w => [w.pagar, w.receber]), 1);
+  const maxWeek = Math.max(...weeks.flatMap((w) => [w.pagar, w.receber]), 1);
 
   return (
     <div className="space-y-6">
-      {/* Cards */}
+      {/* 4 Cards de Resumo */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="card-flat rounded-card p-4">
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-soft">A Pagar (em aberto)</p>
-            <TrendDown className="h-4 w-4 text-critical" />
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Pagar (Aberto)</p>
+            <TrendingDown className="h-4 w-4 text-red-600" />
           </div>
-          <p className="mt-2 text-xl font-semibold text-critical">{fmt(totalPagar)}</p>
+          <p className="mt-2 font-serif text-2xl font-bold text-red-700 dark:text-red-400 tabular">{fmt(totalPagar)}</p>
         </div>
-        <div className="card-flat rounded-card p-4">
+
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-soft">A Receber (em aberto)</p>
-            <TrendUp className="h-4 w-4 text-ok" />
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Receber (Aberto)</p>
+            <TrendingUp className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           </div>
-          <p className="mt-2 text-xl font-semibold text-ok">{fmt(totalReceber)}</p>
+          <p className="mt-2 font-serif text-2xl font-bold text-[#2F4A3C] dark:text-[#DFFFAE] tabular">{fmt(totalReceber)}</p>
         </div>
-        <div className="card-flat rounded-card p-4">
+
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] text-[#FEFDF3] p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-soft">Saldo projetado</p>
-            <Wallet className={`h-4 w-4 ${saldo >= 0 ? 'text-ok' : 'text-critical'}`} />
+            <p className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]/80">Saldo Projetado</p>
+            <Wallet className="h-4 w-4 text-[#DFFFAE]" />
           </div>
-          <p className={`mt-2 text-xl font-semibold ${saldo >= 0 ? 'text-ok' : 'text-critical'}`}>{fmt(saldo)}</p>
+          <p className={`mt-2 font-serif text-2xl font-bold tabular ${saldo >= 0 ? 'text-[#DFFFAE]' : 'text-red-300'}`}>
+            {fmt(saldo)}
+          </p>
         </div>
-        <div className="card-flat rounded-card p-4">
+
+        <div className={`rounded-3xl border p-5 shadow-sm ${vencidos.length > 0 ? 'border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900/40' : 'border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C]'}`}>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-soft">Vencidos</p>
-            <Warning className={`h-4 w-4 ${vencidos.length > 0 ? 'text-critical' : 'text-ink-soft'}`} />
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Vencidos</p>
+            <AlertTriangle className={`h-4 w-4 ${vencidos.length > 0 ? 'text-red-600' : 'text-[#6E6A61]'}`} />
           </div>
-          <p className={`mt-2 text-xl font-semibold ${vencidos.length > 0 ? 'text-critical' : 'text-ink-soft'}`}>{vencidos.length}</p>
+          <p className={`mt-2 font-serif text-2xl font-bold ${vencidos.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+            {vencidos.length}
+          </p>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Próximos 7 dias */}
-        <div className="card-flat rounded-card p-4">
-          <p className="mb-3 text-sm font-semibold">Próximos 7 dias</p>
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 shadow-sm">
+          <p className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Vencimentos nos Próximos 7 Dias</p>
           {proximos.length === 0 ? (
-            <p className="py-4 text-center text-sm text-ink-soft">Nenhum vencimento próximo.</p>
+            <p className="py-8 text-center text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Nenhum vencimento pendente nos próximos 7 dias. Tudo em dia!</p>
           ) : (
-            <div className="space-y-2">
-              {proximos.map(l => (
-                <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl bg-surface-card border border-line px-3 py-2 dark:bg-white/5">
+            <div className="space-y-2.5">
+              {proximos.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{l.descricao}</p>
-                    <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)}</p>
+                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
+                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{fmtDate(l.vencimento)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {l.tipo === 'PAGAR'
-                      ? <ArrowDownRight className="h-4 w-4 text-critical" />
-                      : <ArrowUpRight className="h-4 w-4 text-ok" />
-                    }
-                    <span className={`text-sm font-semibold ${l.tipo === 'PAGAR' ? 'text-critical' : 'text-ok'}`}>
+                    {l.tipo === 'PAGAR' ? (
+                      <ArrowDownRight className="h-4 w-4 text-red-600" />
+                    ) : (
+                      <ArrowUpRight className="h-4 w-4 text-[#2F4A3C]" />
+                    )}
+                    <span className={`text-sm font-bold tabular ${l.tipo === 'PAGAR' ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`}>
                       {fmt(l.valor)}
                     </span>
                   </div>
@@ -502,336 +1081,43 @@ function VisaoGeral({ data }: { data: Lancamento[] }) {
           )}
         </div>
 
-        {/* Fluxo de caixa 4 semanas */}
-        <div className="card-flat rounded-card p-4">
-          <p className="mb-3 text-sm font-semibold">Fluxo previsto — próximas 4 semanas</p>
-          <div className="flex items-end gap-3 h-32">
-            {weeks.map(w => (
-              <div key={w.label} className="flex flex-1 flex-col items-center gap-1">
-                <div className="flex w-full items-end gap-1 h-24">
+        {/* Fluxo previsto 4 semanas */}
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 shadow-sm">
+          <p className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Fluxo Previsto (Próximas 4 Semanas)</p>
+          <div className="flex items-end gap-3 h-36 pt-4">
+            {weeks.map((w) => (
+              <div key={w.label} className="flex flex-1 flex-col items-center gap-1.5">
+                <div className="flex w-full items-end gap-1.5 h-24">
                   <div
                     title={`A pagar: ${fmt(w.pagar)}`}
-                    className="flex-1 rounded-t-md bg-critical/60 transition-all"
+                    className="flex-1 rounded-t-xl bg-red-400/80 transition-all"
                     style={{ height: `${w.pagar ? (w.pagar / maxWeek) * 100 : 0}%` }}
                   />
                   <div
                     title={`A receber: ${fmt(w.receber)}`}
-                    className="flex-1 rounded-t-md bg-ok/60 transition-all"
+                    className="flex-1 rounded-t-xl bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-all"
                     style={{ height: `${w.receber ? (w.receber / maxWeek) * 100 : 0}%` }}
                   />
                 </div>
-                <p className="text-xs text-ink-soft">{w.label}</p>
+                <p className="text-[11px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">{w.label}</p>
               </div>
             ))}
           </div>
-          <div className="mt-2 flex gap-4 text-xs text-ink-soft">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-xl bg-critical/60 inline-block" />A pagar</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-xl bg-ok/60 inline-block" />A receber</span>
+          <div className="mt-4 flex justify-center gap-6 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-400 inline-block" /> A pagar
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] inline-block" /> A receber
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Vencidos */}
-      {vencidos.length > 0 && (
-        <div className="rounded-xl border border-critical/30 bg-critical/5 p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-critical">
-            <Warning className="h-4 w-4" />
-            {vencidos.length} lançamento{vencidos.length !== 1 ? 's' : ''} vencido{vencidos.length !== 1 ? 's' : ''}
-          </p>
-          <div className="space-y-1">
-            {vencidos.map(l => (
-              <div key={l.id} className="flex items-center justify-between text-sm">
-                <span className="text-ink">{l.descricao}</span>
-                <span className="font-medium text-critical">{fmt(l.valor)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Conciliação ───────────────────────────────────────────────────────────────
-
-function Conciliacao({ data }: { data: Lancamento[] }) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-  const mes = (l: Lancamento) => {
-    const v = new Date(l.vencimento + 'T12:00:00');
-    return v >= startOfMonth && v <= endOfMonth;
-  };
-
-  const pagarMes = data.filter(l => l.tipo === 'PAGAR' && mes(l));
-  const receberMes = data.filter(l => l.tipo === 'RECEBER' && mes(l));
-
-  const totalPagarMes = pagarMes.reduce((s, l) => s + l.valor, 0);
-  const totalReceberMes = receberMes.reduce((s, l) => s + l.valor, 0);
-  const pagoMes = pagarMes.filter(l => l.pago_em).reduce((s, l) => s + l.valor, 0);
-  const recebidoMes = receberMes.filter(l => l.pago_em).reduce((s, l) => s + l.valor, 0);
-
-  const pPago = totalPagarMes ? (pagoMes / totalPagarMes) * 100 : 0;
-  const pRecebido = totalReceberMes ? (recebidoMes / totalReceberMes) * 100 : 0;
-
-  const monthName = today.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-
-  const pendentesNaoVencidos = data.filter(l => {
-    const v = new Date(l.vencimento + 'T12:00:00');
-    return !l.pago_em && v >= today;
-  }).sort((a,b) => a.vencimento.localeCompare(b.vencimento)).slice(0, 10);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold capitalize">{monthName} — resumo</p>
-        <p className="text-xs text-ink-soft">Realizado vs. previsto para o mês atual</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* A pagar */}
-        <div className="card-flat rounded-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Contas a pagar</p>
-            <TrendDown className="h-4 w-4 text-critical" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-ink-soft">
-              <span>Pago</span>
-              <span>{fmt(pagoMes)} de {fmt(totalPagarMes)}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-              <div className="h-full rounded-full bg-ok transition-all" style={{ width: `${pPago}%` }} />
-            </div>
-            <p className="text-right text-xs font-semibold text-ok">{pPago.toFixed(0)}% quitado</p>
-          </div>
-          <div className="border-t border-line pt-2 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-ink-soft">Pendente</span><span className="text-critical font-medium">{fmt(totalPagarMes - pagoMes)}</span></div>
-            <div className="flex justify-between"><span className="text-ink-soft">Total do mês</span><span>{fmt(totalPagarMes)}</span></div>
-          </div>
-        </div>
-
-        {/* A receber */}
-        <div className="card-flat rounded-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Contas a receber</p>
-            <TrendUp className="h-4 w-4 text-ok" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-ink-soft">
-              <span>Recebido</span>
-              <span>{fmt(recebidoMes)} de {fmt(totalReceberMes)}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-              <div className="h-full rounded-full bg-ok transition-all" style={{ width: `${pRecebido}%` }} />
-            </div>
-            <p className="text-right text-xs font-semibold text-ok">{pRecebido.toFixed(0)}% recebido</p>
-          </div>
-          <div className="border-t border-line pt-2 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-ink-soft">Pendente</span><span className="text-warn font-medium">{fmt(totalReceberMes - recebidoMes)}</span></div>
-            <div className="flex justify-between"><span className="text-ink-soft">Total do mês</span><span>{fmt(totalReceberMes)}</span></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Agenda de vencimentos */}
-      <div className="card-flat rounded-card p-4">
-        <p className="mb-3 text-sm font-semibold">Agenda de vencimentos — próximos 30 dias</p>
-        {pendentesNaoVencidos.length === 0 ? (
-          <p className="py-4 text-center text-sm text-ok">Nenhum vencimento pendente nos próximos 30 dias.</p>
-        ) : (
-          <div className="divide-y divide-line">
-            {pendentesNaoVencidos.map(l => {
-              const days = Math.ceil((new Date(l.vencimento + 'T12:00:00').getTime() - today.getTime()) / 86400000);
-              return (
-                <div key={l.id} className="flex items-center justify-between gap-2 py-2.5">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {l.tipo === 'PAGAR'
-                      ? <ArrowDownRight className="h-4 w-4 shrink-0 text-critical" />
-                      : <ArrowUpRight className="h-4 w-4 shrink-0 text-ok" />
-                    }
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{l.descricao}</p>
-                      <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)} · {l.categoria ?? '—'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${days <= 3 ? 'bg-warn/10 text-warn' : 'bg-surface-card border border-line text-ink-soft dark:bg-white/5'}`}>
-                      {days === 0 ? 'Hoje' : `${days}d`}
-                    </span>
-                    <span className={`text-sm font-semibold ${l.tipo === 'PAGAR' ? 'text-critical' : 'text-ok'}`}>
-                      {fmt(l.valor)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// ── ImpostosTab ───────────────────────────────────────────────────────────────
-
-function ImpostosTab({ data, onAdd, onUpdate, onDelete }: {
-  data: Lancamento[];
-  onAdd: (l: Lancamento) => void;
-  onUpdate: (l: Lancamento) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [filter, setFilter] = useState<FilterTab>('todos');
-  const [showForm, setShowForm] = useState(false);
-  const [marking, setMarking] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  const impostos = useMemo(() =>
-    data.filter(l => l.tipo === 'PAGAR' && FISCAL_CATS.some(c => l.categoria === c)),
-    [data],
-  );
-
-  const filtered = useMemo(() => {
-    if (filter === 'todos') return impostos;
-    return impostos.filter(l => getStatus(l) === filter);
-  }, [impostos, filter]);
-
-  const totalAberto = impostos.filter(l => !l.pago_em).reduce((s, l) => s + l.valor, 0);
-  const totalPago   = impostos.filter(l =>  l.pago_em).reduce((s, l) => s + l.valor, 0);
-  const qtdVencidos = impostos.filter(l => getStatus(l) === 'vencido').length;
-
-  async function togglePago(l: Lancamento) {
-    setMarking(l.id);
-    try {
-      await updateLancamentoStatus(l.id, l.pago_em ? 'PENDING' : 'PAID');
-      onUpdate(l);
-    } finally { setMarking(null); }
-  }
-
-  async function handleDelete(id: string) {
-    setDeleting(id);
-    try {
-      await deleteLancamento(id);
-      onDelete(id);
-    } finally { setDeleting(null); }
-  }
-
-  const catCls: Record<string, string> = {
-    DAS: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
-    DARF: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    ISS: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-    FGTS: 'bg-green-500/10 text-green-600 dark:text-green-400',
-    Parcelamento: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-    Impostos: 'bg-warn/10 text-warn',
-  };
-
-  const filterBtns: { key: FilterTab; label: string }[] = [
-    { key: 'todos', label: `Todos (${impostos.length})` },
-    { key: 'aberto', label: `Em aberto (${impostos.filter(l => getStatus(l) === 'aberto').length})` },
-    { key: 'vencido', label: `Vencidos (${qtdVencidos})` },
-    { key: 'pago', label: `Pagos (${impostos.filter(l => !!l.pago_em).length})` },
-  ];
-
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card-flat rounded-card p-4">
-          <p className="text-xs text-ink-soft">A pagar</p>
-          <p className="mt-1.5 text-xl font-semibold text-critical">{fmt(totalAberto)}</p>
-        </div>
-        <div className={`rounded-card p-4 ${qtdVencidos > 0 ? 'card-flat border border-critical/30' : 'card-flat'}`}>
-          <p className="text-xs text-ink-soft">Vencidos</p>
-          <p className={`mt-1.5 text-xl font-semibold ${qtdVencidos > 0 ? 'text-critical' : 'text-ink-soft'}`}>{qtdVencidos}</p>
-        </div>
-        <div className="card-flat rounded-card p-4">
-          <p className="text-xs text-ink-soft">Pago no mês</p>
-          <p className="mt-1.5 text-xl font-semibold text-ok">{fmt(totalPago)}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1">
-          {filterBtns.map(f => (
-            <button key={f.key} type="button" onClick={() => setFilter(f.key)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === f.key ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <button type="button" onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600">
-          <Plus className="h-4 w-4" /> Lançar imposto
-        </button>
-      </div>
-
-      {showForm && (
-        <LancamentoForm tipo="PAGAR" defaultCategoria="Impostos"
-          onAdd={l => { onAdd(l); setShowForm(false); }} onClose={() => setShowForm(false)} />
-      )}
-
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-          <CurrencyDollar className="h-8 w-8 opacity-30" />
-          <p className="text-sm">Nenhum imposto com este filtro.</p>
-          <p className="text-xs">Adicione em "A Pagar" com categoria: DAS, ISS, DARF, FGTS, Parcelamento ou Impostos.</p>
-        </div>
-      ) : (
-        <div className="divide-y divide-line overflow-hidden rounded-xl border border-line">
-          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
-            <span className="w-20">Tipo</span><span>Descrição</span>
-            <span className="w-28 text-right">Vencimento</span><span className="w-32 text-right">Valor</span>
-            <span className="w-24 text-center">Status</span><span className="w-20 text-center">Ações</span>
-          </div>
-          {filtered.map(l => {
-            const s = getStatus(l);
-            const isExp = expanded === l.id;
-            return (
-              <div key={l.id}>
-                <div className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-card border border-line dark:hover:bg-white/3 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] ${s === 'vencido' ? 'border-l-2 border-l-critical' : s === 'pago' ? 'opacity-60' : ''}`}
-                  onClick={() => setExpanded(isExp ? null : l.id)}>
-                  <span className={`hidden w-20 shrink-0 rounded-xl px-2 py-0.5 text-[10px] font-bold sm:block ${catCls[l.categoria ?? ''] ?? 'bg-ink/5 text-ink-soft'}`}>
-                    {l.categoria ?? 'Imposto'}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{l.descricao}</p>
-                    <p className="mt-0.5 text-xs text-ink-soft sm:hidden">{fmtDate(l.vencimento)} · {fmt(l.valor)}</p>
-                  </div>
-                  <span className="hidden w-28 text-right text-sm text-ink-soft sm:block">{fmtDate(l.vencimento)}</span>
-                  <span className="hidden w-32 text-right text-sm font-semibold text-critical sm:block">{fmt(l.valor)}</span>
-                  <span className="hidden w-24 text-center sm:block"><StatusBadge l={l} /></span>
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                    <button type="button" title={l.pago_em ? 'Desfazer' : 'Marcar como pago'} onClick={() => togglePago(l)} disabled={marking === l.id}
-                      className={`rounded-xl p-1.5 transition-colors ${l.pago_em ? 'text-ok hover:bg-ok/10' : 'text-ink-soft hover:bg-ok/10 hover:text-ok'} disabled:opacity-40`}>
-                      {marking === l.id ? <Spinner className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                    </button>
-                    <button type="button" title="Excluir" onClick={() => handleDelete(l.id)} disabled={deleting === l.id}
-                      className="rounded-xl p-1.5 text-ink-soft transition-colors hover:bg-critical/10 hover:text-critical disabled:opacity-40">
-                      {deleting === l.id ? <Spinner className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
-                    </button>
-                    {isExp ? <CaretUp className="h-4 w-4 text-ink-soft" /> : <CaretDown className="h-4 w-4 text-ink-soft" />}
-                  </div>
-                </div>
-                {isExp && (
-                  <div className="border-t border-line bg-surface-card border border-line px-4 py-3 text-xs dark:bg-white/3">
-                    <div className="flex flex-wrap gap-4">
-                      <div><span className="text-ink-soft">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
-                      {l.pago_em && <div><span className="text-ink-soft">Pago em:</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
-                      {l.observacao && <div className="w-full"><span className="text-ink-soft">Obs.:</span> {l.observacao}</div>}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── DRETab ────────────────────────────────────────────────────────────────────
+// ── DRE Tab ───────────────────────────────────────────────────────────────────
 
 function DRETab({ data }: { data: Lancamento[] }) {
   const now = new Date();
@@ -840,246 +1126,111 @@ function DRETab({ data }: { data: Lancamento[] }) {
 
   const period = `${ano}-${String(mes).padStart(2, '0')}`;
 
-  const receitas  = data.filter(l => l.tipo === 'RECEBER' && l.pago_em?.startsWith(period));
-  const despesasPagas = data.filter(l => l.tipo === 'PAGAR' && l.pago_em?.startsWith(period));
+  const receitas = data.filter((l) => l.tipo === 'RECEBER' && l.pago_em?.startsWith(period));
+  const despesasPagas = data.filter((l) => l.tipo === 'PAGAR' && l.pago_em?.startsWith(period));
 
-  const isImpost  = (l: Lancamento) => FISCAL_CATS.some(c => l.categoria === c);
-  const isSalario = (l: Lancamento) => l.categoria === 'Salários' || l.descricao.toLowerCase().includes('pró-labore') || l.descricao.toLowerCase().includes('folha');
+  const isImpost = (l: Lancamento) => FISCAL_CATS.some((c) => l.categoria === c);
+  const isSalario = (l: Lancamento) =>
+    l.categoria === 'Salários' ||
+    l.descricao.toLowerCase().includes('pró-labore') ||
+    l.descricao.toLowerCase().includes('folha');
 
-  const impArray  = despesasPagas.filter(l => isImpost(l));
-  const salArray  = despesasPagas.filter(l => !isImpost(l) && isSalario(l));
-  const opArray   = despesasPagas.filter(l => !isImpost(l) && !isSalario(l));
+  const impArray = despesasPagas.filter((l) => isImpost(l));
+  const salArray = despesasPagas.filter((l) => !isImpost(l) && isSalario(l));
+  const opArray = despesasPagas.filter((l) => !isImpost(l) && !isSalario(l));
 
-  const totalRec  = receitas.reduce((s, l) => s + l.valor, 0);
-  const totalImp  = impArray.reduce((s, l) => s + l.valor, 0);
-  const totalSal  = salArray.reduce((s, l) => s + l.valor, 0);
-  const totalOp   = opArray.reduce((s, l) => s + l.valor, 0);
+  const totalRec = receitas.reduce((s, l) => s + l.valor, 0);
+  const totalImp = impArray.reduce((s, l) => s + l.valor, 0);
+  const totalSal = salArray.reduce((s, l) => s + l.valor, 0);
+  const totalOp = opArray.reduce((s, l) => s + l.valor, 0);
   const resultado = totalRec - totalImp - totalSal - totalOp;
 
   const mesLabel = new Date(ano, mes - 1, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
-  function exportPDF() {
-    const rows = (title: string, items: Lancamento[], total: number, colorCls: string) => `
-      <tr style="background:#f9fafb;font-weight:700">
-        <td style="padding:10px 8px">${title}</td>
-        <td style="padding:10px 8px;text-align:right;color:${colorCls}">${fmt(total)}</td>
-      </tr>
-      ${items.map(l => `<tr style="border-bottom:1px solid #e5e7eb"><td style="padding:7px 8px 7px 24px;color:#6b7280;font-size:13px">${l.descricao}</td><td style="padding:7px 8px;text-align:right;font-size:13px">${fmt(l.valor)}</td></tr>`).join('')}
-      ${items.length === 0 ? '<tr><td colspan="2" style="padding:6px 24px;color:#9ca3af;font-size:12px;font-style:italic">Nenhum lançamento</td></tr>' : ''}`;
-
-    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>DRE — ${mesLabel}</title>
-    <style>body{font-family:Arial,sans-serif;margin:40px;color:#111}h1{font-size:22px;margin-bottom:4px}.sub{color:#6b7280;font-size:13px;margin-bottom:24px}table{width:100%;border-collapse:collapse;font-size:14px}.resultado{font-size:16px;font-weight:800;border-top:3px solid #111}.footer{margin-top:32px;font-size:11px;color:#9ca3af}</style>
-    </head><body>
-    <h1>DRE Simplificado</h1><p class="sub">Competência: ${mesLabel} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
-    <table>
-      ${rows('RECEITAS', receitas, totalRec, '#16a34a')}
-      ${rows('(−) IMPOSTOS', impArray, totalImp, '#dc2626')}
-      ${rows('(−) SALÁRIOS E PRÓ-LABORE', salArray, totalSal, '#dc2626')}
-      ${rows('(−) DESPESAS OPERACIONAIS', opArray, totalOp, '#dc2626')}
-      <tr class="resultado"><td style="padding:12px 8px">= RESULTADO DO PERÍODO</td>
-        <td style="padding:12px 8px;text-align:right;color:${resultado >= 0 ? '#16a34a' : '#dc2626'}">${fmt(resultado)}</td></tr>
-    </table>
-    <p class="footer">DRE gerado pelo Hexx Hub Digital · Baseado em lançamentos pagos/recebidos no período.</p>
-    </body></html>`;
-
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    win?.addEventListener('load', () => setTimeout(() => win.print(), 300));
-  }
-
-  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const MESES = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
 
   type DRESection = { title: string; items: Lancamento[]; total: number; sign: string };
   const sections: DRESection[] = [
-    { title: 'Receita bruta', items: receitas, total: totalRec, sign: '' },
-    { title: '(−) Impostos', items: impArray, total: totalImp, sign: '−' },
-    { title: '(−) Salários e pró-labore', items: salArray, total: totalSal, sign: '−' },
-    { title: '(−) Despesas operacionais', items: opArray, total: totalOp, sign: '−' },
+    { title: 'Receita Bruta Operacional', items: receitas, total: totalRec, sign: '' },
+    { title: '(−) Impostos e Tributos', items: impArray, total: totalImp, sign: '−' },
+    { title: '(−) Salários, Pró-Labore e Encargos', items: salArray, total: totalSal, sign: '−' },
+    { title: '(−) Despesas Operacionais e Administrativas', items: opArray, total: totalOp, sign: '−' },
   ];
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <select value={mes} onChange={e => setMes(Number(e.target.value))}
-            className="rounded-xl border border-line bg-surface-card px-3 py-1.5 text-sm outline-none focus:border-brand-400">
-            {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          <select
+            value={mes}
+            onChange={(e) => setMes(Number(e.target.value))}
+            className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none"
+          >
+            {MESES.map((m, i) => (
+              <option key={i} value={i + 1}>{m}</option>
+            ))}
           </select>
-          <select value={ano} onChange={e => setAno(Number(e.target.value))}
-            className="rounded-xl border border-line bg-surface-card px-3 py-1.5 text-sm outline-none focus:border-brand-400">
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(a => <option key={a} value={a}>{a}</option>)}
+          <select
+            value={ano}
+            onChange={(e) => setAno(Number(e.target.value))}
+            className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none"
+          >
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
           </select>
         </div>
-        <button type="button" onClick={exportPDF}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600">
-          <FileText className="h-4 w-4" /> Exportar PDF
-        </button>
       </div>
 
-      <div className="card-flat rounded-card overflow-hidden">
-        <div className="border-b border-line px-5 py-4">
-          <p className="font-semibold capitalize">{mesLabel}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Baseado em lançamentos marcados como pagos/recebidos no período</p>
+      <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
+        <div className="border-b border-black/5 dark:border-white/10 p-5 sm:p-6 bg-white/40 dark:bg-black/20">
+          <p className="font-serif font-bold text-lg capitalize text-[#231F20] dark:text-[#FEFDF3]">Demonstração de Resultados — {mesLabel}</p>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Baseado em lançamentos quitados no período</p>
         </div>
-        <div className="divide-y divide-line">
-          {sections.map(sec => (
+
+        <div className="divide-y divide-black/5 dark:divide-white/5">
+          {sections.map((sec) => (
             <div key={sec.title}>
-              <div className={`flex items-center justify-between px-5 py-3 ${sec.sign === '' ? 'bg-ok/5' : 'bg-surface-card border border-line dark:bg-white/3'}`}>
-                <p className="text-sm font-semibold">{sec.title}</p>
-                <p className={`font-semibold ${sec.sign === '' ? 'text-ok' : 'text-critical'}`}>
+              <div className={`flex items-center justify-between px-6 py-3.5 ${sec.sign === '' ? 'bg-[#EFFFD6]/60 dark:bg-[#1E3328]/30' : 'bg-white/20 dark:bg-black/10'}`}>
+                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{sec.title}</p>
+                <p className={`font-serif font-bold text-base tabular ${sec.sign === '' ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-700 dark:text-red-400'}`}>
                   {sec.sign} {fmt(sec.total)}
                 </p>
               </div>
-              {sec.items.map(l => (
-                <div key={l.id} className="flex items-center justify-between px-9 py-2 text-sm">
-                  <p className="text-ink-soft">{l.descricao}</p>
-                  <p className={sec.sign === '' ? 'text-ok' : 'text-critical'}>{sec.sign} {fmt(l.valor)}</p>
+              {sec.items.map((l) => (
+                <div key={l.id} className="flex items-center justify-between px-8 py-2.5 text-xs sm:text-sm">
+                  <p className="text-[#6E6A61] dark:text-[#A8A49C]">{l.descricao}</p>
+                  <p className={`tabular font-medium ${sec.sign === '' ? 'text-[#2F4A3C]' : 'text-red-600'}`}>{sec.sign} {fmt(l.valor)}</p>
                 </div>
               ))}
               {sec.items.length === 0 && (
-                <p className="px-9 py-1.5 text-xs italic text-ink-soft">Nenhum lançamento</p>
+                <p className="px-8 py-2 text-xs italic text-[#6E6A61] dark:text-[#A8A49C]">Nenhum lançamento no período</p>
               )}
             </div>
           ))}
-          <div className={`flex items-center justify-between px-5 py-4 ${resultado >= 0 ? 'bg-ok/10' : 'bg-critical/10'}`}>
-            <p className="font-bold">= Resultado do período</p>
-            <p className={`text-xl font-bold ${resultado >= 0 ? 'text-ok' : 'text-critical'}`}>{fmt(resultado)}</p>
+
+          <div className={`flex items-center justify-between p-6 ${resultado >= 0 ? 'bg-[#1E3328] text-[#DFFFAE]' : 'bg-red-950 text-red-200'}`}>
+            <p className="font-serif font-bold text-base sm:text-lg">= Resultado Líquido do Período</p>
+            <p className="font-serif font-bold text-2xl sm:text-3xl tabular">{fmt(resultado)}</p>
           </div>
         </div>
       </div>
-
-      {receitas.length === 0 && despesasPagas.length === 0 && (
-        <p className="text-center text-sm text-ink-soft">
-          Nenhum lançamento pago/recebido neste período. Marque os lançamentos como pagos para que apareçam aqui.
-        </p>
-      )}
     </div>
   );
 }
 
-// ── FluxoTab ──────────────────────────────────────────────────────────────────
+// ── Main Hub Financeiro Component ───────────────────────────────────────────
 
-function FluxoTab({ data }: { data: Lancamento[] }) {
-  const [saldoInput, setSaldoInput] = useState('');
-  const [dias, setDias] = useState(30);
+type TabKey = 'geral' | 'pagar' | 'receber' | 'dre';
 
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const limite = new Date(hoje); limite.setDate(limite.getDate() + dias);
-  const saldoBase = Number(saldoInput.replace(',', '.')) || 0;
-
-  const eventos = useMemo(() =>
-    data
-      .filter(l => {
-        if (l.pago_em) return false;
-        const v = new Date(l.vencimento + 'T12:00:00');
-        return v >= hoje && v <= limite;
-      })
-      .sort((a, b) => a.vencimento.localeCompare(b.vencimento)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, dias],
-  );
-
-  let saldoAcc = saldoBase;
-  const eventosSaldo = eventos.map(l => {
-    saldoAcc += l.tipo === 'RECEBER' ? l.valor : -l.valor;
-    return { ...l, saldoApos: saldoAcc };
-  });
-
-  const saldoFinal = saldoAcc;
-  const minSaldo = Math.min(saldoBase, ...eventosSaldo.map(e => e.saldoApos));
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-ink-soft whitespace-nowrap">Saldo atual (R$)</span>
-          <input value={saldoInput} onChange={e => setSaldoInput(e.target.value)} inputMode="decimal"
-            placeholder="0,00"
-            className="w-36 rounded-xl border border-line bg-surface-card px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20" />
-        </div>
-        <div className="flex gap-1">
-          {[30, 60, 90].map(d => (
-            <button key={d} type="button" onClick={() => setDias(d)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${dias === d ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10'}`}>
-              {d} dias
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card-flat rounded-card p-4">
-          <p className="text-xs text-ink-soft">Saldo atual</p>
-          <p className={`mt-1.5 text-xl font-semibold ${saldoBase >= 0 ? '' : 'text-critical'}`}>{fmt(saldoBase)}</p>
-        </div>
-        <div className="card-flat rounded-card p-4">
-          <p className="text-xs text-ink-soft">Saldo em {dias} dias</p>
-          <p className={`mt-1.5 text-xl font-semibold ${saldoFinal >= 0 ? 'text-ok' : 'text-critical'}`}>{fmt(saldoFinal)}</p>
-        </div>
-        <div className={`rounded-card p-4 ${minSaldo < 0 ? 'bg-critical/5 border border-critical/20' : 'card-flat'}`}>
-          <p className="text-xs text-ink-soft">Menor saldo no período</p>
-          <p className={`mt-1.5 text-xl font-semibold ${minSaldo >= 0 ? 'text-ok' : 'text-critical'}`}>{fmt(minSaldo)}</p>
-          {minSaldo < 0 && <p className="mt-0.5 text-xs text-critical">Atenção: saldo negativo previsto</p>}
-        </div>
-      </div>
-
-      {eventosSaldo.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-          <Calendar className="h-8 w-8 opacity-30" />
-          <p className="text-sm">Nenhum vencimento pendente nos próximos {dias} dias.</p>
-        </div>
-      ) : (
-        <div className="card-flat rounded-card overflow-hidden">
-          <div className="hidden grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 bg-surface-card border border-line px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/3 sm:grid">
-            <span className="w-24">Data</span>
-            <span>Descrição</span>
-            <span className="w-8" />
-            <span className="w-32 text-right">Valor</span>
-            <span className="w-36 text-right">Saldo após</span>
-          </div>
-          <div className="divide-y divide-line">
-            {eventosSaldo.map(e => (
-              <div key={e.id} className={`grid grid-cols-[1fr_auto] items-center gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_auto_auto_auto] ${e.saldoApos < 0 ? 'bg-critical/3' : ''}`}>
-                <span className="hidden w-24 text-xs text-ink-soft sm:block">{fmtDate(e.vencimento)}</span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{e.descricao}</p>
-                  <p className="text-xs text-ink-soft sm:hidden">{fmtDate(e.vencimento)}</p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {e.tipo === 'PAGAR'
-                    ? <ArrowDownRight className="h-4 w-4 text-critical" />
-                    : <ArrowUpRight className="h-4 w-4 text-ok" />}
-                  <span className={`text-sm font-medium ${e.tipo === 'PAGAR' ? 'text-critical' : 'text-ok'}`}>
-                    {e.tipo === 'PAGAR' ? '−' : '+'}{fmt(e.valor)}
-                  </span>
-                </div>
-                <span className="hidden w-8 sm:block" />
-                <span className={`hidden w-36 text-right text-sm font-semibold sm:block ${e.saldoApos >= 0 ? 'text-ok' : 'text-critical'}`}>
-                  {fmt(e.saldoApos)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <p className="text-xs text-ink-soft">Informe o saldo atual da conta para projetar o saldo acumulado ao longo do período.</p>
-    </div>
-  );
-}
-
-// ── Main ─────────────────────────────────────────────────────────────────────
-
-type TabKey = 'geral' | 'pagar' | 'receber' | 'conciliacao' | 'impostos' | 'dre' | 'fluxo';
-
-const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
-  { key: 'geral',       label: 'Visão Geral', icon: SquaresFour },
-  { key: 'pagar',       label: 'A Pagar', icon: ArrowCircleDown },
-  { key: 'receber',     label: 'A Receber', icon: ArrowCircleUp },
-  { key: 'impostos',    label: 'Impostos', icon: Percent },
-  { key: 'dre',         label: 'DRE', icon: ChartPie },
-  { key: 'fluxo',       label: 'Fluxo de Caixa', icon: TrendUp },
-  { key: 'conciliacao', label: 'Conciliação', icon: Bank },
+const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'geral', label: 'Visão Geral', icon: LayoutGrid },
+  { key: 'pagar', label: 'Contas a Pagar', icon: ArrowDownCircle },
+  { key: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
+  { key: 'dre', label: 'DRE Interativo', icon: PieChart },
 ];
 
 export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
@@ -1098,83 +1249,82 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
       setData(json);
     } catch {
       setLoadError('Falha na conexão com o banco.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  async function refresh() { await load(true); }
+  async function refresh() {
+    await load(true);
+  }
 
-  function onAdd(l: Lancamento) { refresh(); }
-  function onUpdate(l: Lancamento) { refresh(); }
-  function onDelete(id: string) { refresh(); }
-
-  const vencidos = data.filter(l => getStatus(l) === 'vencido').length;
+  const vencidos = data.filter((l) => getStatus(l) === 'vencido').length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Tab bar */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-card border border-line p-1 dark:bg-white/3">
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={`relative whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                tab === t.key
-                  ? 'bg-surface-card text-brand-600 shadow-sm dark:text-brand-400'
-                  : 'text-ink-soft hover:text-ink'
-              }`}
-            >
-              {t.label}
-              {t.key === 'geral' && vencidos > 0 && (
-                <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-critical text-[10px] font-bold text-white">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SegmentedTabs
+          tabs={[
+            { id: 'geral', label: 'Visão Geral', icon: LayoutGrid },
+            {
+              id: 'pagar',
+              label: 'Contas a Pagar',
+              icon: ArrowDownCircle,
+              badge: vencidos > 0 ? (
+                <span className="rounded-full bg-red-500 text-white px-1.5 py-0.2 text-[10px] font-bold">
                   {vencidos}
                 </span>
-              )}
-            </button>
-          ))}
-        </div>
+              ) : undefined,
+            },
+            { id: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
+            { id: 'dre', label: 'DRE Interativo', icon: PieChart },
+          ]}
+          activeTab={tab}
+          onChange={setTab}
+          layoutId="financeiroTabsIndicator"
+        />
+
         <button
           type="button"
           onClick={refresh}
           disabled={refreshing || loading}
           title="Atualizar"
-          className="rounded-xl border border-line p-2 text-ink-soft transition-colors hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10"
+          className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-2.5 text-[#6E6A61] hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-colors"
         >
-          <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {/* Loading / Error */}
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-16 text-ink-soft">
-          <Spinner className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Carregando dados financeiros…</span>
+        <div className="flex items-center justify-center gap-2.5 py-16 text-[#6E6A61]">
+          <Loader2 className="h-5 w-5 animate-spin text-[#2F4A3C]" />
+          <span className="text-sm font-bold">Carregando dados financeiros…</span>
         </div>
       )}
 
       {!loading && loadError && (
-        <p className="flex items-center gap-2 rounded-xl bg-warn/10 px-4 py-2 text-sm text-warn">
-          <WarningCircle className="h-4 w-4 shrink-0" />{loadError}
+        <p className="flex items-center gap-2 rounded-2xl bg-amber-100 p-4 text-xs font-bold text-amber-900">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {loadError}
         </p>
       )}
 
       {/* Panels */}
       {!loading && (
         <>
-          {tab === 'geral'       && <VisaoGeral data={data} />}
-          {tab === 'pagar'       && <LancamentosTab tipo="PAGAR"   data={data} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />}
-          {tab === 'receber'     && <LancamentosTab tipo="RECEBER" data={data} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />}
-          {tab === 'impostos'    && <ImpostosTab data={data} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />}
-          {tab === 'dre'         && <DRETab data={data} />}
-          {tab === 'fluxo'       && <FluxoTab data={data} />}
-          {tab === 'conciliacao' && <Conciliacao data={data} />}
+          {tab === 'geral' && <VisaoGeral data={data} />}
+          {tab === 'pagar' && <LancamentosTab tipo="PAGAR" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
+          {tab === 'receber' && <LancamentosTab tipo="RECEBER" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
+          {tab === 'dre' && <DRETab data={data} />}
         </>
       )}
-
     </div>
   );
 }

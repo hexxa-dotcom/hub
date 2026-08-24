@@ -10,8 +10,10 @@ export const company = pgTable('company', {
   cnpj: text('cnpj').notNull().unique(),
   type: companyType('type').notNull(),
   taxRegime: taxRegime('tax_regime').notNull().default('SIMPLES_NACIONAL'),
-  /** Teto de faturamento p/ o Termômetro Tributário. */
+  /** Teto de faturamento p/ a Bússola Tributária. */
   revenueCeiling: numeric('revenue_ceiling', { precision: 14, scale: 2 }),
+  /** MENSAL | TRIMESTRAL | SEMESTRAL | ANUAL — periodicidade de distribuição de lucro escolhida. */
+  profitDistributionFrequency: text('profit_distribution_frequency').notNull().default('MENSAL'),
   municipalRegistration: text('municipal_registration'),
   addressLine1: text('address_line1'),
   addressNumber: text('address_number'),

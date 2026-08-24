@@ -2,60 +2,73 @@ export type NavItem = { label: string; href: string; badge?: string };
 export type NavSection = { title: string; items: NavItem[] };
 
 /**
- * Navegação reestruturada por Zonas de Contexto e Frequência de Uso:
- * 1. Meu Dia (Rotina operacional diária rápida)
- * 2. Meu Negócio & Gestão (CRM, Comercial, DRE e Contratos)
- * 3. Minha Contabilidade (Fiscal, Impostos, Sócios e Balanço)
- * 4. Patrimônio & Cofre (Holdings, Imóveis e Documentos Seguros)
- * 5. Suporte & Configurações (Atendimento, Planos e Ajustes)
+ * Navegação organizada por pilar de negócio — nomes curtos (uma palavra
+ * quando possível, no máximo "Gestão de X" quando precisar), mas sem
+ * misturar assuntos diferentes na mesma seção (ex.: imposto é Contabilidade,
+ * não Pessoas).
+ * 1. Início (resumo de tudo — seção de 1 item só)
+ * 2. Contabilidade (impostos, bússola tributária/Fator R, balanço)
+ * 3. Financeiro (resumo/DRE, contas a pagar/receber, notas, conciliação)
+ * 4. Relacionamento (CRM, propostas, contratos)
+ * 5. Gestão de Pessoas (sócios, colaboradores)
+ * 6. Gestão do Patrimônio (imóveis, arquivos)
+ * 7. Suporte (atendimento, plano, ajustes)
  */
 export const NAV: NavSection[] = [
   {
-    title: 'Meu Dia',
+    title: 'Início',
     items: [
-      { label: 'Visão Geral', href: '/cliente' },
-      { label: 'Emissão de Notas (NFSe)', href: '/meu-negocio/notas' },
-      { label: 'Contas a Pagar', href: '/meu-negocio/contas-a-pagar' },
-      { label: 'Contas a Receber', href: '/meu-negocio/contas-a-receber' },
-      { label: 'Conciliação Bancária', href: '/meu-negocio/conciliacao' },
+      { label: 'Início', href: '/cliente' },
+      { label: 'Resumo do Mês', href: '/cliente/resumo-mes' },
     ],
   },
   {
-    title: 'Meu Negócio',
+    title: 'Contabilidade',
     items: [
-      { label: 'Hub Financeiro & DRE', href: '/meu-negocio/hub-financeiro' },
-      { label: 'Clientes & CRM', href: '/meu-negocio/clientes' },
-      { label: 'Relacionamento', href: '/relacionamento' },
-      { label: 'Contratos & Assinaturas', href: '/meu-negocio/contratos' },
-      { label: 'Propostas Comerciais', href: '/meu-negocio/propostas' },
-      { label: 'Gestão Fiscal', href: '/meu-negocio/fiscal' },
+      { label: 'Impostos', href: '/minha-contabilidade/guias' },
+      { label: 'Bússola', href: '/minha-contabilidade/termometro-tributario' },
+      { label: 'Balanço', href: '/meu-negocio/relatorios/fechamento' },
     ],
   },
   {
-    title: 'Minha Contabilidade',
+    title: 'Financeiro',
     items: [
-      { label: 'Guias de Impostos (DAS)', href: '/minha-contabilidade/guias' },
-      { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
-      { label: 'Sócios & Pró-Labore', href: '/minha-contabilidade/socios' },
-      { label: 'Distribuição de Lucros', href: '/minha-contabilidade/distribuicao-lucros' },
-      { label: 'Departamento Pessoal', href: '/minha-contabilidade/departamento-pessoal' },
-      { label: 'Relatórios & Balanço', href: '/meu-negocio/relatorios/fechamento' },
+      { label: 'Resumo', href: '/meu-negocio/hub-financeiro' },
+      { label: 'Notas', href: '/meu-negocio/notas' },
+      { label: 'Vendas', href: '/meu-negocio/vendas' },
+      { label: 'Pagar', href: '/meu-negocio/contas-a-pagar' },
+      { label: 'Receber', href: '/meu-negocio/contas-a-receber' },
+      { label: 'Conciliação', href: '/meu-negocio/conciliacao', badge: 'Em breve' },
     ],
   },
   {
-    title: 'Patrimônio & Cofre',
+    title: 'Relacionamento',
     items: [
-      { label: 'Gestão Patrimonial', href: '/patrimonial' },
-      { label: 'Cofre de Documentos', href: '/cofre' },
-      { label: 'Arquivos Permanentes', href: '/minha-contabilidade/arquivos' },
+      { label: 'CRM', href: '/relacionamento' },
+      { label: 'Propostas', href: '/meu-negocio/propostas' },
+      { label: 'Contratos', href: '/meu-negocio/contratos' },
     ],
   },
   {
-    title: 'Sistema & Suporte',
+    title: 'Gestão de Pessoas',
     items: [
-      { label: 'Atendimento & Suporte', href: '/suporte' },
-      { label: 'Meu Plano & Assinatura', href: '/meu-plano' },
-      { label: 'Serviços Adicionais', href: '/mais/servicos' },
+      { label: 'Sócios', href: '/minha-contabilidade/socios' },
+      { label: 'Colaboradores', href: '/minha-contabilidade/departamento-pessoal' },
+    ],
+  },
+  {
+    title: 'Gestão do Patrimônio',
+    items: [
+      { label: 'Imóveis', href: '/patrimonial' },
+      { label: 'Arquivos', href: '/minha-contabilidade/arquivos' },
+    ],
+  },
+  {
+    title: 'Suporte',
+    items: [
+      { label: 'Atendimento', href: '/suporte' },
+      { label: 'Plano', href: '/meu-plano' },
+      { label: 'Serviços', href: '/mais/servicos' },
       { label: 'Configurações', href: '/configuracoes' },
     ],
   },

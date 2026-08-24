@@ -5,6 +5,7 @@
   "framework": "nextjs",
   "crons": [
     { "path": "/api/cron/cobranca", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/despesas-fixas", "schedule": "0 6 * * *" },
     { "path": "/api/cron/fechamento", "schedule": "0 5 1 * *" }
   ]
 }

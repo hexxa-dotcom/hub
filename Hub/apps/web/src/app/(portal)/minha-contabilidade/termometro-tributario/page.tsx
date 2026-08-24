@@ -1,7 +1,7 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { TaxThermometerService } from '@hexxa/core';
-import { WarningCircle, TrendUp, ChartBar, Users } from '@phosphor-icons/react/dist/ssr';
+import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -22,79 +22,90 @@ export default async function TermometroTributarioPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-          <ChartBar className="h-5 w-5" />
-        </div>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Quanto Pago de Imposto (Fator R)</h1>
-          <p className="text-sm text-ink-soft">
-            Calculado ao vivo a partir do seu faturamento e folha reais — não depende de envio da contabilidade.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Minha Contabilidade
+            </span>
+          </div>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
+            Bússola Tributária
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+            Acompanhamento em tempo real da alíquota efetiva do Simples Nacional, sublimite e enquadramento do Fator R.
           </p>
         </div>
-      </div>
+      </header>
 
       {rbt12 === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line p-10 text-center">
-          <p className="text-ink-soft font-medium">Nenhum faturamento registrado nos últimos 12 meses ainda.</p>
-          <p className="text-ink-soft/70 text-sm mt-1">Emita notas fiscais ou lance recebíveis para ver a posição tributária aqui.</p>
+        <div className="rounded-3xl border border-dashed border-black/15 dark:border-white/15 bg-[#F4EFE4]/40 dark:bg-[#1A201C]/40 p-12 text-center">
+          <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nenhum faturamento registrado nos últimos 12 meses.</p>
+          <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Emita notas fiscais ou lance recebíveis para ver a posição tributária aqui.</p>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Card Principal: RBT12 */}
-            <div className="lg:col-span-2 rounded-2xl border border-line bg-surface-card p-6 shadow-sm relative overflow-hidden">
-              <h2 className="text-sm font-semibold text-ink mb-6 flex items-center justify-between">
-                Faturamento Acumulado (RBT12)
-                <span className="text-xs font-normal px-2 py-1 bg-surface-card border border-line dark:bg-white/5 rounded text-ink-soft">Últimos 12 meses, hoje</span>
-              </h2>
+            <div className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm relative overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">
+                  Faturamento Acumulado (RBT12)
+                </h2>
+                <span className="rounded-full bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 px-3 py-1 text-[11px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                  Últimos 12 meses
+                </span>
+              </div>
               <div className="mb-6">
-                <div className="flex items-baseline gap-3">
-                  <p className="text-3xl font-bold text-ink">{BRL.format(rbt12)}</p>
-                  <p className="text-sm text-ink-soft mt-1">Faturado nos últimos 12 meses</p>
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <p className="font-serif font-extrabold text-3xl sm:text-4xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(rbt12)}</p>
+                  <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">receita bruta acumulada</p>
                 </div>
               </div>
 
               <div className="relative pt-6 pb-2">
-                <div className="h-4 w-full bg-surface-card border border-line rounded-full dark:bg-white/5 overflow-hidden relative flex">
+                <div className="h-4 w-full bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 rounded-full overflow-hidden relative flex">
                   <div
-                    className={`h-full transition-all duration-1000 ${pctTeto > 95 ? 'bg-critical' : pctTeto > 75 ? 'bg-warn' : 'bg-brand-500'}`}
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      pctTeto > 95 ? 'bg-red-500' : pctTeto > 75 ? 'bg-amber-500' : 'bg-[#2F4A3C] dark:bg-[#DFFFAE]'
+                    }`}
                     style={{ width: `${pctTeto}%` }}
                   />
                 </div>
 
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute top-1 h-10 border-l border-dashed border-ink-soft/40" style={{ left: `${(LIMITE_SUBLIMITE / LIMITE_TETO) * 100}%` }}>
-                    <div className="absolute -top-5 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-ink-soft">Sublimite (R$ 3,6M)</div>
+                  <div className="absolute top-1 h-10 border-l border-dashed border-black/20 dark:border-white/20" style={{ left: `${(LIMITE_SUBLIMITE / LIMITE_TETO) * 100}%` }}>
+                    <div className="absolute -top-5 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">Sublimite (R$ 3,6M)</div>
                   </div>
-                  <div className="absolute top-1 h-10 border-r border-dashed border-critical/50" style={{ left: '100%' }}>
-                    <div className="absolute -top-5 -translate-x-full whitespace-nowrap text-[10px] font-semibold text-critical pr-1">Teto (R$ 4,8M)</div>
+                  <div className="absolute top-1 h-10 border-r border-dashed border-red-500/50" style={{ left: '100%' }}>
+                    <div className="absolute -top-5 -translate-x-full whitespace-nowrap text-[10px] font-bold text-red-600 dark:text-red-400 pr-1">Teto (R$ 4,8M)</div>
                   </div>
                 </div>
               </div>
 
               {isOverSublimite ? (
-                <div className="mt-6 flex items-start gap-3 rounded-xl bg-critical/10 p-4 text-critical">
-                  <WarningCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="mt-6 flex items-start gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-red-800 dark:text-red-300">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-sm">Atenção: Sublimite Ultrapassado</p>
-                    <p className="text-xs mt-1">A empresa ultrapassou R$ 3,6 milhões e passará a recolher ICMS/ISS fora do Simples Nacional.</p>
+                    <p className="font-bold text-sm">Atenção: Sublimite Ultrapassado</p>
+                    <p className="text-xs mt-0.5">A empresa ultrapassou R$ 3,6 milhões e passará a recolher ICMS/ISS fora do Simples Nacional.</p>
                   </div>
                 </div>
               ) : isNearSublimite ? (
-                <div className="mt-6 flex items-start gap-3 rounded-xl bg-warn/10 p-4 text-warn">
-                  <WarningCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="mt-6 flex items-start gap-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-sm">Aviso de Proximidade</p>
-                    <p className="text-xs mt-1">O faturamento está próximo do sublimite de R$ 3,6M. Faltam apenas {BRL.format(LIMITE_SUBLIMITE - rbt12)}.</p>
+                    <p className="font-bold text-sm">Aviso de Proximidade do Sublimite</p>
+                    <p className="text-xs mt-0.5">O faturamento está próximo de R$ 3,6M. Margem disponível: {BRL.format(LIMITE_SUBLIMITE - rbt12)}.</p>
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 flex items-start gap-3 rounded-xl bg-brand-500/10 p-4 text-brand-600 dark:text-brand-400">
-                  <TrendUp className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#EFFFD6] border border-[#2F4A3C]/10 p-4 text-[#2F4A3C] dark:bg-[#2F4A3C]/30 dark:text-[#DFFFAE]">
+                  <TrendingUp className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-sm">Situação Confortável</p>
-                    <p className="text-xs mt-1">Você tem margem de {BRL.format(LIMITE_SUBLIMITE - rbt12)} antes de atingir o sublimite estadual/municipal.</p>
+                    <p className="font-bold text-sm">Enquadramento Confortável</p>
+                    <p className="text-xs mt-0.5">Você tem margem de {BRL.format(LIMITE_SUBLIMITE - rbt12)} antes de atingir o sublimite estadual/municipal.</p>
                   </div>
                 </div>
               )}
@@ -102,37 +113,44 @@ export default async function TermometroTributarioPage() {
 
             {/* Cards Secundários */}
             <div className="flex flex-col gap-6">
-              <div className="rounded-2xl border border-line bg-surface-card p-6 shadow-sm">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-4">Carga Tributária Atual</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-bold text-ink">{rate(simples.effectiveRate)}</span>
-                  <span className="text-sm text-ink-soft mb-1">alíquota efetiva</span>
+              <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-3">Carga Tributária Efetiva</h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-serif font-extrabold text-3xl sm:text-4xl text-[#231F20] dark:text-[#FEFDF3]">{rate(simples.effectiveRate)}</span>
+                  <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">alíquota real</span>
                 </div>
-                <p className="mt-1 text-xs text-ink-soft">Nominal da faixa: {rate(simples.nominalRate)}</p>
-                <div className="mt-4 pt-4 border-t border-line">
-                  <p className="text-sm text-ink-soft">
-                    Enquadramento atual:
-                    <br />
-                    <strong className="text-ink mt-1 block">Anexo {simples.anexo} · Faixa {simples.faixa}</strong>
+                <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Nominal da faixa: {rate(simples.nominalRate)}</p>
+                <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
+                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                    Enquadramento Atual:
+                    <strong className="text-sm text-[#231F20] dark:text-[#FEFDF3] mt-1 block">Anexo {simples.anexo} · Faixa {simples.faixa}</strong>
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-line bg-surface-card p-6 shadow-sm">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-4 flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" /> Fator R
+              <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-3 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" /> Fator R (Folha / Faturamento)
                 </h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-bold text-ink">{rate(simples.fatorR * 100)}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-serif font-extrabold text-3xl sm:text-4xl text-[#231F20] dark:text-[#FEFDF3]">{rate(simples.fatorR * 100)}</span>
                 </div>
-                <p className={`mt-2 text-xs font-medium ${simples.fatorRFavorable ? 'text-ok' : 'text-warn'}`}>
-                  {simples.fatorRFavorable
-                    ? 'Favorável (≥ 28%) — mantém o Anexo III'
-                    : 'Abaixo de 28% — empresa cai no Anexo V (alíquota maior)'}
-                </p>
+                <div className="mt-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                    simples.fatorRFavorable
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    {simples.fatorRFavorable ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                    {simples.fatorRFavorable ? 'Favorável (≥ 28%) · Anexo III' : 'Abaixo de 28% · Anexo V'}
+                  </span>
+                </div>
                 {!simples.fatorRFavorable && (
-                  <Link href="/minha-contabilidade/socios" className="mt-3 inline-block text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">
-                    Ver quanto de pró-labore ajustar em Sócios →
+                  <Link
+                    href="/minha-contabilidade/socios"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]"
+                  >
+                    Ajustar pró-labore em Sócios <ArrowRight className="h-3 w-3" />
                   </Link>
                 )}
               </div>
@@ -140,15 +158,33 @@ export default async function TermometroTributarioPage() {
           </div>
 
           {simples.toNextFaixa !== null ? (
-            <p className="text-sm text-ink-soft">
-              Faltam <span className="font-semibold text-ink">{BRL.format(simples.toNextFaixa)}</span> de faturamento (12 meses) para a Faixa{' '}
-              {simples.faixa + 1} (alíquota nominal sobe para {rate(simples.nextRate ?? 0)}).
-            </p>
+            <div className="flex items-start gap-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Projeção de Próxima Faixa</h3>
+                <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+                  Faltam <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(simples.toNextFaixa)}</span> de faturamento acumulado para entrar na Faixa{' '}
+                  {simples.faixa + 1}, onde a alíquota nominal passa de {rate(simples.nominalRate)} para{' '}
+                  <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{rate(simples.nextRate ?? 0)}</span>.
+                </p>
+              </div>
+            </div>
           ) : (
-            <p className="text-sm text-warn">Você está na última faixa do Simples Nacional — atenção ao teto de R$ 4,8M.</p>
+            <div className="flex items-start gap-4 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Última Faixa do Simples Nacional</h3>
+                <p className="mt-1 text-xs sm:text-sm text-amber-800 dark:text-amber-300">Você está na faixa máxima do regime simplificado — atenção especial ao teto de R$ 4,8M.</p>
+              </div>
+            </div>
           )}
         </div>
       )}
     </div>
   );
 }
+

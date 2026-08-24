@@ -1,10 +1,23 @@
+import { Suspense } from 'react';
 import { SignUp } from '@clerk/nextjs';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { hexxaClerkAppearance } from '@/lib/clerkTheme';
 
-/** Cadastro via Clerk (hash routing → sem catch-all). */
+export const dynamic = 'force-dynamic';
+
 export default function CadastroPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center hero-blue p-4">
-      <SignUp routing="hash" />
-    </div>
+    <Suspense>
+      <AuthLayout
+        title="Criar sua conta"
+        subtitle="Inicie a transformação financeira e contábil da sua empresa"
+      >
+        <SignUp
+          routing="hash"
+          appearance={hexxaClerkAppearance}
+          signInUrl="/auth/login"
+        />
+      </AuthLayout>
+    </Suspense>
   );
 }

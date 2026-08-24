@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { Key, CheckCircle } from '@phosphor-icons/react';
+import { Key, CheckCircle2, Loader2 } from 'lucide-react';
 import { saveAsaasToken } from './actions';
 
 interface AsaasSetupFormProps {
   initialToken: string;
   isConnected: boolean;
 }
+
+const field =
+  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide flex items-center gap-1.5';
 
 export function AsaasSetupForm({ initialToken, isConnected }: AsaasSetupFormProps) {
   const [token, setToken] = useState(initialToken);
@@ -27,46 +30,49 @@ export function AsaasSetupForm({ initialToken, isConnected }: AsaasSetupFormProp
   }
 
   return (
-    <GlassCard title="Credenciais da Integração">
-      <div className="p-6 flex flex-col h-[calc(100%-60px)]">
+    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm flex flex-col h-full justify-between">
+      <div>
+        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] mb-4">Credenciais do Gateway</h2>
         
         {isConnected && (
-          <div className="mb-6 flex items-start gap-3 p-4 bg-ok/10 border border-ok/20 rounded-2xl">
-            <CheckCircle className="h-5 w-5 text-ok shrink-0 mt-0.5" />
+          <div className="mb-6 flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-sm font-bold text-ok mb-1">Integração Ativa</h4>
-              <p className="text-xs text-ok/80">
-                Sua conexão com o Asaas está ativa. Você pode atualizar a chave abaixo se necessário.
+              <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">Integração Ativa</h4>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                Sua conexão com o Asaas está ativa.
               </p>
             </div>
           </div>
         )}
 
-        <div className="space-y-5 flex-1">
+        <div className="space-y-4">
           <div>
-            <label className="text-sm font-semibold text-ink flex items-center gap-2 mb-2">
-              <Key className="h-4 w-4 text-brand-500" /> Chave de API (Access Token)
+            <label className={lbl}>
+              <Key className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Chave de API (Access Token)
             </label>
             <input 
               type="password" 
               value={token}
               onChange={e => setToken(e.target.value)}
               placeholder="Cole sua chave de API (Ex: $aact_...)"
-              className="w-full bg-surface-card border border-line rounded-xl px-4 py-3 text-sm text-ink outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all shadow-sm"
+              className={field}
             />
           </div>
         </div>
-
-        <div className="mt-8 pt-6 border-t border-line">
-          <button 
-            onClick={handleSave}
-            disabled={!token || loading}
-            className="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg focus:ring-4 focus:ring-brand-500/20 active:scale-[0.98]"
-          >
-            {loading ? 'Salvando...' : 'Salvar Conexão'}
-          </button>
-        </div>
       </div>
-    </GlassCard>
+
+      <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/10">
+        <button 
+          onClick={handleSave}
+          disabled={!token || loading}
+          className="w-full py-3 rounded-full text-xs font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] disabled:opacity-50 transition-all shadow-sm hover:scale-105 inline-flex items-center justify-center gap-2"
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {loading ? 'Salvando...' : 'Salvar Conexão'}
+        </button>
+      </div>
+    </div>
   );
 }
+

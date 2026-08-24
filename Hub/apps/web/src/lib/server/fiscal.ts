@@ -342,6 +342,27 @@ export async function getSimplesInputs(
 }
 
 /**
+ * Alíquota efetiva estimada pra uma NFSe deste tenant — mesma regra usada
+ * em nfse/actions.ts na emissão, extraída aqui pra também alimentar o
+ * preview de imposto no formulário (antes de emitir). Se optanteSimples,
+ * usa a faixa do Simples pelo RBT12/Fator R; senão, a alíquota cadastrada
+ * (do perfil de serviço, se houver, senão a global do cadastro fiscal).
+ */
+export async function estimateInvoiceTaxRate(
+  ctx: TenantContext,
+  cfg: NfseConfig,
+  profileAliquota?: number | null,
+): Promise<number> {
+  if (cfg.optanteSimples) {
+    const { rbt12, folha12 } = await getSimplesInputs(ctx);
+    const { TaxThermometerService } = await import('@hexxa/core');
+    const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+    return simples.nominalRate;
+  }
+  return profileAliquota ?? cfg.aliquotaIss ?? 0;
+}
+
+/**
  * Pró-labore mensal mínimo (somado entre os sócios) para manter o Fator R
  * favorável (≥ 28%, Anexo III) dado o faturamento atual — usado pela
  * calculadora de pró-labore saudável em Sócios. Não conta o pró-labore já

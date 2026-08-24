@@ -31,7 +31,14 @@ const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_S
  */
 async function getDevTenantContext(): Promise<TenantContext> {
   const db = getDb();
-  const [first] = await db.select({ id: company.id, type: company.type }).from(company).limit(1);
+  // Sem ORDER BY o Postgres não garante qual linha volta primeiro — precisa
+  // ser determinístico aqui, senão o bypass local cai numa empresa aleatória
+  // (já pegou uma HOLDING vazia em vez da empresa de serviço com dados reais).
+  const [first] = await db
+    .select({ id: company.id, type: company.type })
+    .from(company)
+    .orderBy(company.createdAt)
+    .limit(1);
   if (!first) throw new NoActiveOrganizationError();
   return { companyId: first.id, companyType: first.type, userId: 'dev-skip-auth' };
 }

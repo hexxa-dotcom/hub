@@ -1,5 +1,6 @@
 import { pgTable, uuid, text, numeric, date, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
+import { businessContract } from './service-ops';
 import { docStatus, employeeStatus, employmentEventType } from './_enums';
 
 /**
@@ -87,6 +88,12 @@ export const employee = pgTable('employee', {
   vinculo: text('vinculo').notNull().default('CLT'),
   departamento: text('departamento'),
   email: text('email'),
+  /** Campos de colaborador PJ — CNPJ, vigência (fim; início = admissionDate) e vencimento. */
+  cnpj: text('cnpj'),
+  contractEndDate: date('contract_end_date'),
+  paymentDueDay: integer('payment_due_day'),
+  /** Contrato (business_contract, SAIDA) que gera o pagamento recorrente deste PJ. */
+  businessContractId: uuid('business_contract_id').references(() => businessContract.id),
 });
 
 export const payslip = pgTable('payslip', {

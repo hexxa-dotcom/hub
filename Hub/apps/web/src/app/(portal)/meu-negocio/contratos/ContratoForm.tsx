@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Plus, Trash, UploadSimple, Spinner, CheckCircle, WarningCircle, UserPlus } from '@phosphor-icons/react';
+import { Plus, Trash2, Upload, Loader2, CheckCircle2, AlertTriangle, UserPlus } from 'lucide-react';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 
-const field = 'w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-colors';
-const lbl = 'text-xs font-medium text-ink-soft';
+const field =
+  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
 
 type Props = { onCreated: (doc: SignatureRequestSummary) => void };
 
@@ -63,8 +64,8 @@ export function ContratoForm({ onCreated }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card-flat rounded-card space-y-4 p-5">
-      <h2 className="text-lg font-semibold">Novo contrato</h2>
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md space-y-4 p-6 sm:p-8 shadow-sm">
+      <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo Contrato para Assinatura</h2>
 
       {/* Nome */}
       <div>
@@ -74,18 +75,18 @@ export function ContratoForm({ onCreated }: Props) {
           onChange={e => setName(e.target.value)}
           required
           placeholder="Ex.: Contrato de Prestação de Serviços — João Silva"
-          className={`mt-1 ${field}`}
+          className={`mt-1.5 ${field}`}
         />
       </div>
 
-      {/* UploadSimple PDF */}
+      {/* Upload PDF */}
       <div>
         <label className={lbl}>Arquivo PDF</label>
-        <label className="mt-1 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-line bg-surface-card/50 px-4 py-4 transition-colors hover:border-brand-400 hover:bg-brand-500/5">
-          <UploadSimple className="h-5 w-5 shrink-0 text-brand-500" />
-          <span className="text-sm text-ink-soft">
+        <label className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-white/40 dark:bg-white/5 px-4 py-4 transition-all hover:border-[#2F4A3C]">
+          <Upload className="h-5 w-5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+          <span className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
             {file ? (
-              <span className="font-medium text-ink">{file.name} <span className="font-normal text-ink-soft">({(file.size / 1024).toFixed(0)} KB)</span></span>
+              <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{file.name} <span className="font-normal text-[#6E6A61]">({(file.size / 1024).toFixed(0)} KB)</span></span>
             ) : (
               'Clique para selecionar o PDF do contrato (máx. 5MB)'
             )}
@@ -103,12 +104,12 @@ export function ContratoForm({ onCreated }: Props) {
       {/* Signatários */}
       <div>
         <label className={lbl}>Signatários</label>
-        <div className="mt-1 space-y-2">
+        <div className="mt-1.5 space-y-2">
           {signers.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Nome"
+                placeholder="Nome do signatário"
                 value={s.name}
                 onChange={e => updateSigner(i, { name: e.target.value })}
                 className={`flex-1 ${field}`}
@@ -121,8 +122,8 @@ export function ContratoForm({ onCreated }: Props) {
                 className={`flex-1 ${field}`}
               />
               {signers.length > 1 && (
-                <button type="button" onClick={() => removeSigner(i)} className="text-ink-soft hover:text-critical transition-colors">
-                  <Trash className="h-4 w-4" />
+                <button type="button" onClick={() => removeSigner(i)} className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 transition-colors">
+                  <Trash2 className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -131,7 +132,7 @@ export function ContratoForm({ onCreated }: Props) {
         <button
           type="button"
           onClick={addSigner}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 hover:text-brand-600 transition-colors"
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
         >
           <UserPlus className="h-3.5 w-3.5" /> Adicionar signatário
         </button>
@@ -139,24 +140,25 @@ export function ContratoForm({ onCreated }: Props) {
 
       {/* Status */}
       {error && (
-        <p className="flex items-center gap-2 rounded-xl bg-critical/10 px-3 py-2 text-sm text-critical">
-          <WarningCircle className="h-4 w-4 shrink-0" /> {error}
+        <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
         </p>
       )}
       {success && (
-        <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">
-          <CheckCircle className="h-4 w-4 shrink-0" /> Contrato enviado! Os signatários receberão o link por e-mail.
+        <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4 shrink-0" /> Contrato enviado com sucesso! Os signatários receberão o link por e-mail.
         </p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
       >
-        {loading ? <Spinner className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-        {loading ? 'Enviando para assinatura…' : 'Enviar para assinatura'}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+        {loading ? 'Enviando para assinatura…' : 'Enviar para Assinatura'}
       </button>
     </form>
   );
 }
+

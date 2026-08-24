@@ -1,10 +1,6 @@
-import { PagePlaceholder } from '@/components/ui/PagePlaceholder';
+import { redirect } from 'next/navigation';
 
+/** "Cofre Digital" nunca chegou a ser construído e duplicava a proposta de Arquivos Permanentes. */
 export default function Page() {
-  return (
-    <PagePlaceholder
-      title="Cofre Digital"
-      description="Arquivos fixos da empresa (Contrato Social, Alvarás) guardados com segurança no Supabase Storage."
-    />
-  );
+  redirect('/minha-contabilidade/arquivos');
 }

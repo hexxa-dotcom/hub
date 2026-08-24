@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TrendUp, Info, ArrowsClockwise, Warning, ArrowSquareOut } from '@phosphor-icons/react';
+import { TrendingUp, Info, RotateCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import { getLancamentos } from '@/app/(portal)/meu-negocio/hub-financeiro/actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -23,10 +23,10 @@ function ResultRow({ label, value, cls = '', muted = false, source }: {
   return (
     <div className="flex items-center justify-between py-2">
       <div>
-        <span className={`text-sm ${muted ? 'text-white/60' : ''}`}>{label}</span>
-        {source && <p className="text-[10px] text-white/40">{source}</p>}
+        <span className={`text-sm ${muted ? 'text-[#FEFDF3]/70' : 'text-[#FEFDF3]'}`}>{label}</span>
+        {source && <p className="text-[10px] text-[#FEFDF3]/40">{source}</p>}
       </div>
-      <span className={`text-sm font-semibold ${cls}`}>{BRL.format(value)}</span>
+      <span className={`text-sm font-bold ${cls}`}>{BRL.format(value)}</span>
     </div>
   );
 }
@@ -80,124 +80,138 @@ export function LucroCard() {
   const ultrapassaLimite = faturamento > 0 && distribuivel > limitePresumido;
 
   return (
-    <div className="card-highlight rounded-card p-5 text-white">
+    <div className="rounded-3xl bg-[#1E3328] p-6 sm:p-8 text-[#FEFDF3] shadow-lg">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <TrendUp className="h-5 w-5 text-white/80" />
-            <h2 className="text-base font-semibold">Lucro disponível para distribuição</h2>
+            <TrendingUp className="h-5 w-5 text-[#DFFFAE]" />
+            <h2 className="font-serif font-bold text-lg text-[#FEFDF3]">Lucro Disponível para Distribuição</h2>
           </div>
-          <p className="mt-0.5 text-xs text-white/60 capitalize">{mesAtual}</p>
+          <p className="mt-1 text-xs text-[#DFFFAE]/80 capitalize">{mesAtual}</p>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={fetchData} disabled={refreshing}
-            className="rounded-xl p-1.5 text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-40" aria-label="Atualizar">
-            <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <button
+            type="button"
+            onClick={fetchData}
+            disabled={refreshing}
+            className="rounded-full p-2 text-[#DFFFAE]/70 hover:bg-white/10 hover:text-[#DFFFAE] disabled:opacity-40 transition-colors"
+            aria-label="Atualizar"
+          >
+            <RotateCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <button type="button" onClick={() => setShowInfo(v => !v)}
-            className="rounded-xl p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Informações">
+          <button
+            type="button"
+            onClick={() => setShowInfo(v => !v)}
+            className="rounded-full p-2 text-[#DFFFAE]/70 hover:bg-white/10 hover:text-[#DFFFAE] transition-colors"
+            aria-label="Informações"
+          >
             <Info className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {showInfo && (
-        <div className="mt-3 rounded-xl bg-white/10 p-3 text-xs text-white/80 space-y-1.5">
-          <p><strong className="text-white">Com contabilidade regular:</strong> todo o lucro líquido pode ser distribuído sem incidência de IRPF (Art. 10, Lei 9.249/95).</p>
-          <p><strong className="text-white">Sem contabilidade formal:</strong> o limite isento para serviços é 32% da receita bruta. Acima disso, incide IRPF sobre o excedente.</p>
-          <p><strong className="text-white">Reserva de capital:</strong> valor não distribuído fica no caixa da empresa como capital de giro.</p>
-          <div className="mt-1 flex flex-wrap gap-2 border-t border-white/20 pt-2">
-            <span className="inline-flex items-center gap-1 text-white/60">
-              <ArrowSquareOut className="h-3 w-3" />Faturamento: Notas Fiscais emitidas no mês
+        <div className="mt-4 rounded-2xl bg-white/10 p-4 text-xs text-[#FEFDF3]/90 space-y-2">
+          <p><strong className="text-[#DFFFAE]">Com escrituração contábil regular:</strong> 100% do lucro líquido apurado pode ser distribuído sem incidência de IRPF (Art. 10 da Lei nº 9.249/1995).</p>
+          <p><strong className="text-[#DFFFAE]">Sem escrituração completa:</strong> a isenção de serviços é limitada a 32% da receita bruta.</p>
+          <p><strong className="text-[#DFFFAE]">Reserva de segurança:</strong> parcela recomendada para preservação de capital de giro e investimentos.</p>
+          <div className="mt-2 flex flex-wrap gap-3 border-t border-white/15 pt-2">
+            <span className="inline-flex items-center gap-1 text-[#DFFFAE]/80">
+              <ExternalLink className="h-3 w-3" /> Faturamento: NFSe emitidas no mês
             </span>
-            <span className="inline-flex items-center gap-1 text-white/60">
-              <ArrowSquareOut className="h-3 w-3" />Despesas: Hub Financeiro (contas pagas no mês)
+            <span className="inline-flex items-center gap-1 text-[#DFFFAE]/80">
+              <ExternalLink className="h-3 w-3" /> Despesas: Contas pagas no Financeiro
             </span>
-            <span className="inline-flex items-center gap-1 text-white/60">
-              <ArrowSquareOut className="h-3 w-3" />DAS: Guias de Impostos (DAS marcado como pago no mês)
+            <span className="inline-flex items-center gap-1 text-[#DFFFAE]/80">
+              <ExternalLink className="h-3 w-3" /> DAS: Guia única quitada no mês
             </span>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="mt-6 flex items-center justify-center gap-2 text-white/60">
-          <ArrowsClockwise className="h-4 w-4 animate-spin" />
-          <span className="text-sm">Carregando dados…</span>
+        <div className="mt-6 flex items-center justify-center gap-2 text-[#DFFFAE]/70">
+          <RotateCw className="h-4 w-4 animate-spin" />
+          <span className="text-sm font-medium">Carregando dados financeiros…</span>
         </div>
       ) : (
-        <div className="mt-4 rounded-xl bg-white/10 p-4">
+        <div className="mt-6 rounded-2xl bg-white/10 p-5 space-y-1">
           <ResultRow
             label="Faturamento bruto"
             value={faturamento}
-            cls="text-white"
+            cls="text-[#FEFDF3]"
             source="Notas Fiscais emitidas no mês"
           />
           <ResultRow
             label="(−) Despesas pagas"
             value={-despesas}
-            cls="text-white/70"
+            cls="text-[#FEFDF3]/80"
             muted
             source="Hub Financeiro · contas pagas no mês"
           />
           <ResultRow
             label="(−) DAS pago"
             value={-das}
-            cls="text-white/70"
+            cls="text-[#FEFDF3]/80"
             muted
             source="Guias de Impostos · DAS pago no mês"
           />
-          <div className="border-t border-white/20 pt-2 mt-1">
+          <div className="border-t border-white/15 pt-2 mt-1">
             <ResultRow
-              label="= Lucro líquido"
+              label="= Lucro líquido apurado"
               value={lucroLiquido}
-              cls="text-white font-bold"
+              cls="text-[#DFFFAE] font-extrabold text-base"
             />
           </div>
 
-          <div className="mt-3 border-t border-white/20 pt-3">
+          <div className="mt-3 border-t border-white/15 pt-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs text-white/70">Reserva de capital</span>
+              <span className="text-xs font-bold text-[#FEFDF3]/80 uppercase tracking-wider">Reserva de Capital de Giro</span>
               <div className="flex items-center gap-1">
                 {[10, 20, 30].map(p => (
-                  <button key={p} type="button" onClick={() => setReservaPct(p)}
-                    className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${reservaPct === p ? 'bg-white text-brand-700' : 'text-white/60 hover:text-white'}`}>
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setReservaPct(p)}
+                    className={`rounded-full px-3 py-0.5 text-xs font-bold transition-all ${
+                      reservaPct === p ? 'bg-[#DFFFAE] text-[#1E3328]' : 'text-[#FEFDF3]/70 hover:text-white'
+                    }`}
+                  >
                     {p}%
                   </button>
                 ))}
               </div>
             </div>
             <ResultRow
-              label={`Reserva ${reservaPct}% — fica no caixa`}
+              label={`Reserva ${reservaPct}% — retida em caixa`}
               value={reserva}
-              cls="text-white/60"
+              cls="text-[#FEFDF3]/70"
               muted
             />
           </div>
 
-          <div className="mt-3 rounded-xl bg-white/20 px-4 py-3">
+          <div className="mt-4 rounded-2xl bg-[#DFFFAE] px-5 py-4 text-[#1E3328]">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">Distribuível aos sócios</span>
-              <span className="text-xl font-bold">{BRL.format(distribuivel)}</span>
+              <span className="font-bold text-xs uppercase tracking-wider text-[#2F4A3C]">Distribuível aos Sócios</span>
+              <span className="font-serif font-extrabold text-2xl sm:text-3xl text-[#1E3328]">{BRL.format(distribuivel)}</span>
             </div>
-            <p className="mt-0.5 text-xs text-white/70">Isento de IRPF com contabilidade regular</p>
+            <p className="mt-0.5 text-xs text-[#2F4A3C]/80 font-medium">100% Isento de IRPF com escrituração contábil regular</p>
           </div>
 
           {ultrapassaLimite && (
-            <div className="mt-2 flex items-start gap-2 rounded-xl bg-warn/20 p-3 text-xs text-white/90">
-              <Warning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
+            <div className="mt-3 flex items-start gap-2 rounded-2xl bg-amber-500/20 border border-amber-500/30 p-3.5 text-xs text-[#FEFDF3]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
               <span>
-                Sem contabilidade formal, o limite isento (serviços) é{' '}
-                <strong>{BRL.format(limitePresumido)}</strong> (32% do faturamento).
-                O excedente de <strong>{BRL.format(distribuivel - limitePresumido)}</strong> estaria sujeito ao IRPF.
-                Com escrituração contábil completa, todo o valor é isento.
+                Sem contabilidade formal, o limite isento para serviços é{' '}
+                <strong>{BRL.format(limitePresumido)}</strong> (32% da receita bruta).
+                Com a escrituração contábil completa da Hexxa, todo o valor apurado é isento.
               </span>
             </div>
           )}
 
           {faturamento === 0 && !loading && (
-            <p className="mt-3 text-center text-xs text-white/50">
-              Nenhuma nota emitida este mês encontrada. Emita notas ou verifique o mês de referência.
+            <p className="mt-3 text-center text-xs text-[#FEFDF3]/60">
+              Nenhuma nota fiscal emitida neste mês até o momento.
             </p>
           )}
         </div>
@@ -205,3 +219,4 @@ export function LucroCard() {
     </div>
   );
 }
+

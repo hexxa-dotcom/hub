@@ -8,8 +8,8 @@ export function Hero() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setBarWidth('72%');
-    }, 600);
+      setBarWidth('84%');
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -17,20 +17,20 @@ export function Hero() {
     <section className="landing-hero">
       <div className="landing-wrap hero-inner">
         <span className="hero-eyebrow reveal in">
-          Exclusivo para Empresas de Serviços e Autônomos
+          Para Empresas de Serviços, Agências, Devs e Consultorias
         </span>
         <h1 className="landing-serif hero-title reveal in">
-          O hub completo para você <em>autogerenciar</em> a sua empresa.
+          A contabilidade e a gestão financeira da sua empresa. Sem burocracia.
         </h1>
         <p className="hero-sub reveal in reveal-d1">
-          Contabilidade em tempo real, gestão financeira, contratos digitais e emissão de notas. Tudo o que você precisa em um único lugar, sem malabarismo de planilhas.
+          Emita notas em segundos, saiba seu lucro real e tenha um contador dedicado cuidando dos seus impostos direto pelo WhatsApp.
         </p>
         <div className="flex flex-wrap items-center gap-4 reveal in reveal-d2">
-          <a href="#hub-por-dentro" className="btn-landing btn-landing-lime">
-            Conheça o Hub por Dentro
+          <a href="#planos" className="btn-landing btn-landing-lime">
+            Ver Planos (a partir de R$ 149) →
           </a>
-          <a href="#calculadora" className="btn-landing btn-landing-dark">
-            Simular Minha Economia
+          <a href="#contato" className="btn-landing btn-landing-dark">
+            Falar com a Hexx
           </a>
         </div>
       </div>
@@ -41,7 +41,7 @@ export function Hero() {
             <i style={{ width: barWidth }}></i>
           </div>
           <div className="chip-vals">
-            <span>R$ 24.800 (Faturado)</span>
+            <span>R$ 38.900 (Faturado)</span>
             <span>100% Conciliado</span>
           </div>
         </div>

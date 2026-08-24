@@ -84,6 +84,28 @@ export const integrationCredential = pgTable('integration_credential', {
   active: boolean('active').notNull().default(true),
 });
 
+/**
+ * Token de API pessoal por empresa — dá acesso de leitura aos dados
+ * financeiros via o servidor MCP (`/api/mcp`), pra conectar um assistente de
+ * IA (Claude, ChatGPT) de fora do Hub. Guarda só o hash (sha256) do token;
+ * o valor puro só existe uma vez, na hora da criação.
+ */
+export const apiToken = pgTable('api_token', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  /** Primeiros caracteres do token, só pra reconhecimento visual na lista (não é segredo). */
+  tokenPrefix: text('token_prefix').notNull(),
+  /** 'read' só consulta (MCP); 'write' também pode lançar despesa/faturamento via API. */
+  scope: text('scope').notNull().default('read'),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Avisos Urgentes (Dashboard) + alertas do Termômetro Tributário. */
 export const notification = pgTable('notification', {
   id: uuid('id').primaryKey().defaultRandom(),

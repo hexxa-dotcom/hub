@@ -2,22 +2,36 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Signature, ShieldCheck, File as FileIcon, DownloadSimple, Plus, X, Trash, Spinner, type Icon } from '@phosphor-icons/react';
+import {
+  FileText,
+  FileSignature,
+  ShieldCheck,
+  File,
+  Download,
+  Plus,
+  X,
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
 import type { DocRow } from './actions';
 import { createDocumentAction, deleteDocumentAction } from './actions';
 
 type Category = DocRow['category'];
 
-const CATS: Record<Category, { label: string; icon: Icon; badge: string }> = {
-  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-brand-500/10 text-brand-700 dark:text-brand-300' },
-  CONTRATO: { label: 'Contratos', icon: Signature, badge: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
-  CND: { label: 'CNDs', icon: ShieldCheck, badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' },
-  OUTRO: { label: 'Outros', icon: FileIcon, badge: 'bg-surface-card border border-line text-ink-soft dark:bg-white/10' },
+const CATS: Record<Category, { label: string; icon: React.FC<{ className?: string }>; badge: string }> = {
+  ALVARA: { label: 'Alvarás', icon: FileText, badge: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
+  CONTRATO: { label: 'Contratos', icon: FileSignature, badge: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' },
+  CND: { label: 'CNDs', icon: ShieldCheck, badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+  OUTRO: { label: 'Outros', icon: File, badge: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
 };
 
 const FILTERS: ('TODOS' | Category)[] = ['TODOS', 'ALVARA', 'CONTRATO', 'CND', 'OUTRO'];
-const field = 'mt-1 w-full rounded-xl border border-line bg-surface-card px-3 py-2 text-sm';
-const lbl = 'text-xs font-medium text-ink-soft';
+const field =
+  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
+const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';
 
 function fmt(iso: string | null) {
   if (!iso) return '—';
@@ -28,9 +42,9 @@ function fmt(iso: string | null) {
 function validity(expiresAt: string | null) {
   if (!expiresAt) return null;
   const diff = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000);
-  if (diff < 0) return { label: 'Vencida', cls: 'bg-critical/10 text-critical' };
-  if (diff <= 30) return { label: `Vence em ${diff} dia${diff === 1 ? '' : 's'}`, cls: 'bg-warn/10 text-warn' };
-  return { label: 'Válida', cls: 'bg-ok/10 text-ok' };
+  if (diff < 0) return { label: 'Vencida', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' };
+  if (diff <= 30) return { label: `Vence em ${diff} dia${diff === 1 ? '' : 's'}`, cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' };
+  return { label: 'Válida', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' };
 }
 
 export function ArquivosClient({ initialDocs }: { initialDocs: DocRow[] }) {
@@ -80,39 +94,52 @@ export function ArquivosClient({ initialDocs }: { initialDocs: DocRow[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {alerts > 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          {alerts} certidão(ões) vencendo ou vencida(s) — vale renovar.
+        <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs font-bold text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {alerts} certidão(ões) ou documento(s) com vencimento próximo ou expirado.
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
           {FILTERS.map((f) => (
-            <button key={f} type="button" onClick={() => setFilter(f)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${filter === f ? 'bg-brand-500 text-white' : 'bg-surface-card border border-line text-ink-soft hover:bg-black/5 dark:hover:bg-white/10'}`}>
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                filter === f
+                  ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
+                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+              }`}
+            >
               {f === 'TODOS' ? 'Todos' : CATS[f].label}
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setShowForm((v) => !v)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
-          <Plus className="h-4 w-4" /> Adicionar documento
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+        >
+          <Plus className="h-4 w-4" /> Novo Documento
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="rounded-2xl border border-brand-400/30 bg-brand-500/5 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400">Novo documento</h3>
-            <button type="button" onClick={() => setShowForm(false)} className="text-ink-soft hover:text-ink"><X className="h-4 w-4" /></button>
+        <form onSubmit={handleCreate} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo Documento Permanente</h3>
+            <button type="button" onClick={() => setShowForm(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className={lbl}>Nome do documento</label>
-              <input name="name" required placeholder="Ex.: Alvará de Funcionamento" className={field} />
+              <label className={lbl}>Nome do Documento</label>
+              <input name="name" required placeholder="Ex.: Alvará de Localização e Funcionamento" className={field} />
             </div>
             <div>
               <label className={lbl}>Categoria</label>
@@ -121,62 +148,81 @@ export function ArquivosClient({ initialDocs }: { initialDocs: DocRow[] }) {
               </select>
             </div>
             <div>
-              <label className={lbl}>Link do arquivo (opcional)</label>
+              <label className={lbl}>Link do Arquivo (opcional)</label>
               <input name="fileUrl" type="url" placeholder="https://..." className={field} />
             </div>
             <div>
-              <label className={lbl}>Emitido em</label>
+              <label className={lbl}>Data de Emissão</label>
               <input name="issuedAt" type="date" className={field} />
             </div>
             <div>
-              <label className={lbl}>Validade</label>
+              <label className={lbl}>Data de Validade</label>
               <input name="expiresAt" type="date" className={field} />
             </div>
           </div>
-          <button type="submit" disabled={saving} className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
-            {saving ? 'Salvando...' : 'Salvar documento'}
-          </button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {saving ? 'Salvando...' : 'Salvar Documento'}
+            </button>
+          </div>
         </form>
       )}
 
-      <section className="card-flat divide-y divide-line rounded-card">
+      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
         {docs.map((d) => {
           const cat = CATS[d.category];
           const Icon = cat.icon;
           const v = validity(d.expiresAt);
           return (
-            <div key={d.id} className="flex items-center gap-4 p-4">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+            <div key={d.id} className="flex items-center gap-4 p-5">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
                 <Icon className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate font-medium">{d.name}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${cat.badge}`}>{cat.label}</span>
-                  {v && <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${v.cls}`}>{v.label}</span>}
+                  <p className="truncate font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{d.name}</p>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cat.badge}`}>{cat.label}</span>
+                  {v && <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${v.cls}`}>{v.label}</span>}
                 </div>
-                <p className="mt-0.5 text-xs text-ink-soft">
+                <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
                   {d.issuedAt && <>Emitido em {fmt(d.issuedAt)}</>}
                   {d.issuedAt && d.expiresAt && ' · '}
-                  {d.expiresAt && <>Validade {fmt(d.expiresAt)}</>}
+                  {d.expiresAt && <>Validade: {fmt(d.expiresAt)}</>}
                   {!d.issuedAt && !d.expiresAt && 'Documento permanente'}
                 </p>
               </div>
               {d.fileUrl && (
-                <a href={d.fileUrl} target="_blank" rel="noreferrer" aria-label={`Baixar ${d.name}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft transition-colors hover:bg-black/5 dark:hover:bg-white/10">
-                  <DownloadSimple className="h-4 w-4" /> Abrir
+                <a
+                  href={d.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Visualizar ${d.name}`}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Abrir
                 </a>
               )}
-              <button type="button" onClick={() => handleDelete(d.id)} disabled={busyId === d.id}
-                className="shrink-0 text-ink-soft hover:text-critical disabled:opacity-50">
-                {busyId === d.id ? <Spinner className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+              <button
+                type="button"
+                onClick={() => handleDelete(d.id)}
+                disabled={busyId === d.id}
+                className="shrink-0 rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50 transition-colors"
+              >
+                {busyId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </button>
             </div>
           );
         })}
-        {docs.length === 0 && <p className="p-5 text-sm text-ink-soft">Nenhum documento nesta categoria ainda.</p>}
+        {docs.length === 0 && (
+          <p className="p-8 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum documento encontrado nesta categoria.</p>
+        )}
       </section>
     </div>
   );
 }
+

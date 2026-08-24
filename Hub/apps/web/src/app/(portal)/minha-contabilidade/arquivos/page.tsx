@@ -1,4 +1,4 @@
-import { FileText } from '@phosphor-icons/react/dist/ssr';
+import { FolderArchive, Sparkles } from 'lucide-react';
 import { listDocumentsAction } from './actions';
 import { ArquivosClient } from './ArquivosClient';
 
@@ -9,14 +9,19 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <FileText className="h-6 w-6 text-brand-500" />
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">Arquivos Permanentes</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+              <FolderArchive className="h-3.5 w-3.5" />
+              Minha Contabilidade
+            </span>
           </div>
-          <p className="mt-0.5 text-sm text-ink-soft">
-            Documentos da empresa sempre à mão — alvarás, contratos, CNDs e mais.
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
+            Arquivos Permanentes
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+            Repositório centralizado de atos constitutivos, alvarás, contratos sociais e certidões negativas (CNDs).
           </p>
         </div>
       </header>
@@ -25,3 +30,4 @@ export default async function Page() {
     </div>
   );
 }
+

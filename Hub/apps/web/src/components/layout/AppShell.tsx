@@ -6,7 +6,6 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Handshake,
-  Contact,
   FileText,
   FileSignature,
   TrendingUp,
@@ -15,13 +14,11 @@ import {
   Plug,
   Receipt,
   UsersRound,
-  Coins,
   ClipboardList,
   FolderArchive,
   Users,
   Landmark,
   Layers,
-  ShieldCheck,
   LifeBuoy,
   CreditCard,
   Settings,
@@ -30,15 +27,15 @@ import {
   X,
   Bell,
   MessageCircle,
-  Building2,
   Briefcase,
   Wallet,
   Folder,
-  FileSpreadsheet,
-  Gauge,
+  Compass,
   Sparkles,
   Search,
   Sun,
+  ShoppingCart,
+  Calendar,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
@@ -49,24 +46,22 @@ import { QuickActionsMenu } from './QuickActionsMenu';
 
 const ICONS: Record<string, LucideIcon> = {
   '/cliente': LayoutDashboard,
+  '/cliente/resumo-mes': Calendar,
   '/meu-negocio/notas': Receipt,
+  '/meu-negocio/vendas': ShoppingCart,
   '/meu-negocio/contas-a-pagar': TrendingDown,
   '/meu-negocio/contas-a-receber': TrendingUp,
   '/meu-negocio/conciliacao': Scale,
   '/meu-negocio/hub-financeiro': TrendingUp,
-  '/meu-negocio/clientes': Contact,
   '/relacionamento': Handshake,
   '/meu-negocio/contratos': FileSignature,
   '/meu-negocio/propostas': ClipboardList,
-  '/meu-negocio/fiscal': FileSpreadsheet,
   '/minha-contabilidade/guias': Receipt,
-  '/minha-contabilidade/termometro-tributario': Gauge,
+  '/minha-contabilidade/termometro-tributario': Compass,
   '/minha-contabilidade/socios': UsersRound,
-  '/minha-contabilidade/distribuicao-lucros': Coins,
   '/minha-contabilidade/departamento-pessoal': Users,
   '/meu-negocio/relatorios/fechamento': FileText,
   '/patrimonial': Landmark,
-  '/cofre': ShieldCheck,
   '/minha-contabilidade/arquivos': FolderArchive,
   '/suporte': LifeBuoy,
   '/meu-plano': CreditCard,
@@ -76,11 +71,13 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 const GROUP_ICONS: Record<string, LucideIcon> = {
-  'Meu Dia': Sparkles,
-  'Meu Negócio': Building2,
-  'Minha Contabilidade': FileText,
-  'Patrimônio & Cofre': Landmark,
-  'Sistema & Suporte': Settings,
+  'Início': LayoutDashboard,
+  'Contabilidade': FileText,
+  'Financeiro': Wallet,
+  'Relacionamento': Handshake,
+  'Gestão de Pessoas': Users,
+  'Gestão do Patrimônio': Landmark,
+  'Suporte': Settings,
 };
 
 const STORAGE_KEY = 'hexxa.sidebar.collapsed';
@@ -109,7 +106,7 @@ function NavList({
   pathname,
   onNavigate,
 }: {
-  items: { label: string; href: string }[];
+  items: { label: string; href: string; badge?: string }[];
   pathname: string;
   onNavigate?: () => void;
 }) {
@@ -131,7 +128,12 @@ function NavList({
                   active ? 'text-[#1E3328]' : 'text-[#6E6A61] dark:text-[#A8A49C]'
                 }`}
               />
-              <span className="truncate">{i.label}</span>
+              <span className="truncate flex-1">{i.label}</span>
+              {i.badge && (
+                <span className="shrink-0 rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6E6A61] dark:text-[#A8A49C]">
+                  {i.badge}
+                </span>
+              )}
             </Link>
           </li>
         );
@@ -169,7 +171,7 @@ function AppShellInner({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [avisoAdmin, setAvisoAdmin] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string>('Meu Dia');
+  const [activeGroup, setActiveGroup] = useState<string>('Financeiro');
 
   useEffect(() => {
     if (searchParams.get('aviso') === 'sem-acesso-contador') setAvisoAdmin(true);

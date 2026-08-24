@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { PaperPlaneRight, X } from '@phosphor-icons/react';
+import { Send, X, Loader2 } from 'lucide-react';
 
 type EmailComposerProps = {
   customerId: string;
@@ -44,16 +44,16 @@ export default function EmailComposer({ customerId, companyId, defaultSubject = 
   };
 
   return (
-    <div className="rounded-xl bg-surface-card border border-line p-4 shadow-lg animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-ink">Novo E-mail</h3>
-        <button onClick={onCancel} className="text-ink-soft hover:text-ink">
-          <X weight="bold" />
+    <div className="rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-5 sm:p-6 shadow-lg animate-in fade-in space-y-4">
+      <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Compor Nova Mensagem</h3>
+        <button onClick={onCancel} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5">
+          <X className="h-4 w-4" />
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl bg-critical/10 p-3 text-xs text-critical">
+        <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
@@ -61,26 +61,33 @@ export default function EmailComposer({ customerId, companyId, defaultSubject = 
       <div className="space-y-3">
         <input 
           type="text"
-          placeholder="Assunto"
+          placeholder="Assunto da mensagem"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full rounded-xl bg-black/[0.03] border-none px-4 py-2 text-sm text-ink placeholder-ink-soft focus:ring-1 focus:ring-brand-500"
+          className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
         />
         <textarea 
-          placeholder="Escreva sua mensagem..."
+          placeholder="Escreva sua mensagem aqui..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={5}
-          className="w-full rounded-xl bg-black/[0.03] border-none px-4 py-3 text-sm text-ink placeholder-ink-soft focus:ring-1 focus:ring-brand-500 resize-none"
+          rows={6}
+          className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-3 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] resize-none"
         />
         
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end gap-2 pt-2">
+          <button 
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+          >
+            Descartar
+          </button>
           <button 
             onClick={handleSend}
             disabled={loading || !subject || !text}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-50"
           >
-            <PaperPlaneRight weight="fill" />
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             {loading ? 'Enviando...' : 'Enviar Mensagem'}
           </button>
         </div>
@@ -88,3 +95,4 @@ export default function EmailComposer({ customerId, companyId, defaultSubject = 
     </div>
   );
 }
+

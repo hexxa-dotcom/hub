@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, QrCode, CheckCircle, Copy } from '@phosphor-icons/react';
+import { X, QrCode, CheckCircle2, Copy, Sparkles, Loader2, ExternalLink } from 'lucide-react';
 import { generatePixCharge } from '@/app/(portal)/configuracoes/integracoes/asaas/billing';
 
 interface GeneratePixModalProps {
@@ -11,22 +11,24 @@ interface GeneratePixModalProps {
   initialCustomerName?: string;
   initialCpfCnpj?: string;
   initialDescription?: string;
+  /** Lançamento a baixar automaticamente quando o Pix cair (ver billing.ts). */
+  financialEntryId?: string;
 }
 
-export function GeneratePixModal({ 
-  isOpen, 
-  onClose, 
-  initialValue = 0, 
-  initialCustomerName = '', 
+export function GeneratePixModal({
+  isOpen,
+  onClose,
+  initialValue = 0,
+  initialCustomerName = '',
   initialCpfCnpj = '',
-  initialDescription = 'Cobrança Avulsa'
+  initialDescription = 'Cobrança de Serviços',
+  financialEntryId,
 }: GeneratePixModalProps) {
-  
   const [customerName, setCustomerName] = useState(initialCustomerName);
   const [customerCpfCnpj, setCustomerCpfCnpj] = useState(initialCpfCnpj);
   const [value, setValue] = useState(initialValue);
   const [description, setDescription] = useState(initialDescription);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pixData, setPixData] = useState<{ pixCopyPaste: string; encodedImage: string; invoiceUrl: string } | null>(null);
@@ -47,7 +49,8 @@ export function GeneratePixModal({
         customerCpfCnpj,
         value,
         description,
-        dueDate
+        dueDate,
+        financialEntryId,
       });
       setPixData(res);
     } catch (err: any) {
@@ -60,23 +63,31 @@ export function GeneratePixModal({
   function handleCopy() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopyPaste);
-      alert('Código copiado!');
+      alert('Código Pix Copia e Cola copiado para a área de transferência!');
     }
   }
 
+  const field =
+    'w-full bg-[#FEFDF3] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+  const lbl = 'block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1.5';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-surface w-full max-w-md rounded-3xl shadow-2xl border border-line overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
+      <div className="bg-[#F4EFE4] dark:bg-[#1A201C] w-full max-w-md rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-line bg-surface-card">
+        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
           <div className="flex items-center gap-2.5">
-            <div className="bg-brand-100 text-brand-600 p-2 rounded-xl">
+            <div className="bg-[#1E3328] text-[#DFFFAE] p-2 rounded-2xl shadow-sm">
               <QrCode className="h-5 w-5" />
             </div>
-            <h2 className="text-lg font-bold text-ink">Gerar PIX (Asaas)</h2>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">
+              Gerar Cobrança Pix
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 text-ink-soft hover:text-ink hover:bg-black/5 rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -84,97 +95,101 @@ export function GeneratePixModal({
         {/* Body */}
         <div className="p-6">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-medium">
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 text-xs rounded-2xl border border-red-200 font-bold">
               {error}
             </div>
           )}
 
           {pixData ? (
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-ok/10 text-ok">
-                <CheckCircle className="h-6 w-6" />
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-[#EFFFD6] text-[#2F4A3C] border border-[#DFFFAE]">
+                <CheckCircle2 className="h-6 w-6" />
               </div>
-              <h3 className="font-bold text-xl text-ink">PIX Gerado!</h3>
-              <p className="text-sm text-ink-soft">
-                Mostre o QR Code para o cliente ou envie o link de pagamento.
-              </p>
-              
-              <div className="p-4 bg-white rounded-2xl border border-line shadow-sm">
+              <div>
+                <h3 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Pix Gerado com Sucesso!</h3>
+                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                  Apresente o QR Code ou compartilhe o código copia e cola com o cliente.
+                </p>
+              </div>
+
+              <div className="p-4 bg-white rounded-3xl border border-black/10 shadow-sm">
                 <img src={`data:image/png;base64,${pixData.encodedImage}`} alt="QR Code" className="w-48 h-48 mx-auto" />
               </div>
 
-              <button 
+              <button
+                type="button"
                 onClick={handleCopy}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-surface-card border border-line hover:bg-black/5 transition-colors text-ink font-semibold text-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 hover:bg-black/5 transition-colors text-[#231F20] dark:text-[#FEFDF3] font-bold text-xs shadow-sm"
               >
                 <Copy className="h-4 w-4" /> Copiar Código Pix Copia e Cola
               </button>
 
-              <a 
-                href={pixData.invoiceUrl} 
-                target="_blank" 
+              <a
+                href={pixData.invoiceUrl}
+                target="_blank"
                 rel="noreferrer"
-                className="w-full text-center py-3 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-md"
+                className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full text-xs font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] transition-colors shadow-sm"
               >
-                Abrir Fatura Completa
+                <ExternalLink className="h-4 w-4" /> Abrir Fatura Completa
               </a>
             </div>
           ) : (
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Nome do Cliente</label>
-                <input 
+                <label className={lbl}>Nome do Cliente *</label>
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  className="w-full bg-surface-card border border-line rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
-                  placeholder="Ex: João da Silva"
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className={field}
+                  placeholder="Ex: João da Silva / Empresa X"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">CPF ou CNPJ</label>
-                <input 
+                <label className={lbl}>CPF ou CNPJ *</label>
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={customerCpfCnpj}
-                  onChange={e => setCustomerCpfCnpj(e.target.value)}
-                  className="w-full bg-surface-card border border-line rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
-                  placeholder="Apenas números"
+                  onChange={(e) => setCustomerCpfCnpj(e.target.value)}
+                  className={field}
+                  placeholder="Apenas números ou formatado"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Descrição (Na fatura)</label>
-                <input 
+                <label className={lbl}>Descrição do Serviço *</label>
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="w-full bg-surface-card border border-line rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
-                  placeholder="Ex: Consultoria Jurídica"
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={field}
+                  placeholder="Ex: Prestação de Consultoria"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Valor (R$)</label>
-                <input 
+                <label className={lbl}>Valor (R$) *</label>
+                <input
                   required
-                  type="number" 
+                  type="number"
                   step="0.01"
                   min="5"
                   value={value || ''}
-                  onChange={e => setValue(parseFloat(e.target.value))}
-                  className="w-full bg-surface-card border border-line rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
-                  placeholder="0.00"
+                  onChange={(e) => setValue(parseFloat(e.target.value))}
+                  className={`${field} font-serif text-base font-bold text-[#1E3328] dark:text-[#DFFFAE]`}
+                  placeholder="0,00"
                 />
               </div>
 
               <div className="pt-2">
-                <button 
+                <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 transition-all shadow-md active:scale-[0.98]"
+                  className="w-full py-3.5 rounded-full text-xs sm:text-sm font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] disabled:opacity-50 transition-all shadow-sm flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Gerando PIX...' : 'Gerar Cobrança'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {loading ? 'Gerando Cobrança Pix...' : 'Gerar Cobrança Instantânea'}
                 </button>
               </div>
             </form>

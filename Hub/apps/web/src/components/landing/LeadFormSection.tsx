@@ -58,10 +58,10 @@ export function LeadFormSection() {
         <div className="form-grid">
           <div className="form-side reveal in">
             <h2 className="landing-serif">
-              Clareza pra decidir. Liberdade pra crescer. <em>Faça com a Hexx.</em>
+              Pronto para simplificar sua rotina? <em>Fale com a Hexx.</em>
             </h2>
             <p>
-              Deixe seus dados para receber um diagnóstico gratuito da rotina contábil e operacional da sua empresa de serviço.
+              Tire suas dúvidas ou solicite um diagnóstico gratuito da sua empresa direto com um especialista.
             </p>
             <ul className="form-points">
               <li>

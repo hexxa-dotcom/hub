@@ -1,8 +1,60 @@
 'use server';
 
-import { taxHistory, getDb } from '@hexxa/db';
+import { taxHistory, getDb, eq, and } from '@hexxa/db';
+import { integrationCredential } from '@hexxa/db/schema';
 import { revalidatePath } from 'next/cache';
 const pdfParse = require('pdf-parse');
+
+/**
+ * Token do Oneflow é POR EMPRESA CLIENTE (a doc deles não expõe CNPJ nas
+ * chamadas de fiscal/contábil — só funciona "no contexto do token"), e fica
+ * só aqui na área do contador — o cliente não vê nem mexe nisso.
+ */
+export async function getOneflowCredential(companyId: string): Promise<{ hasToken: boolean; active: boolean }> {
+  const db = getDb();
+  const [row] = await db
+    .select({ active: integrationCredential.active })
+    .from(integrationCredential)
+    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+  return { hasToken: !!row, active: row?.active ?? false };
+}
+
+export async function saveOneflowToken(companyId: string, token: string) {
+  if (!token.trim()) throw new Error('Cole o token do Oneflow dessa empresa.');
+  const db = getDb();
+  const [existing] = await db
+    .select({ id: integrationCredential.id })
+    .from(integrationCredential)
+    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+
+  if (existing) {
+    await db
+      .update(integrationCredential)
+      .set({ secretRef: { token: token.trim() }, active: true })
+      .where(eq(integrationCredential.id, existing.id));
+  } else {
+    await db.insert(integrationCredential).values({
+      companyId,
+      kind: 'ERP',
+      provider: 'oneflow',
+      secretRef: { token: token.trim() },
+      active: true,
+    });
+  }
+
+  revalidatePath(`/contador/clientes/${companyId}/fiscal`);
+  return { success: true };
+}
+
+export async function disconnectOneflow(companyId: string) {
+  const db = getDb();
+  await db
+    .update(integrationCredential)
+    .set({ active: false })
+    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+  revalidatePath(`/contador/clientes/${companyId}/fiscal`);
+  return { success: true };
+}
 
 export async function processPGDAS(companyId: string, formData: FormData) {
   try {
