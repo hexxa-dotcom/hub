@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import '@/app/landing.css';
 
 export function AuthLayout({
   children,
@@ -26,15 +25,14 @@ export function AuthLayout({
     : 'Gestão financeira, fiscal e contábil em tempo real';
 
   return (
-    // `.landing-page` (landing.css) já define background/color próprios (creme/tinta) e
-    // empatam em especificidade com as classes Tailwind bg-/text- neste mesmo elemento —
-    // por ordem de import, `.landing-page` costuma vencer. Força o tema escuro via style
-    // inline (sempre tem prioridade) para não depender da ordem de carregamento do CSS.
+    // Propositalmente sem `landing.css`: reaproveitar classes dali (.landing-wrap,
+    // .landing-logo etc.) fora do contexto original delas quebrou o layout e vazou
+    // estilo pro widget do Clerk. Aqui é só Tailwind + inline style, isolado.
     <div
-      className="landing-page font-sans min-h-screen flex flex-col justify-between relative overflow-hidden"
+      className="font-sans min-h-screen flex flex-col justify-between relative overflow-hidden"
       style={{ backgroundColor: '#121008', color: '#FEFDF3' }}
     >
-      {/* Glows de Fundo da Landing Page */}
+      {/* Glow de fundo */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div
           className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[550px] rounded-full blur-3xl opacity-35"
@@ -49,11 +47,14 @@ export function AuthLayout({
       {/* ── Barra de topo dedicada ao fluxo de autenticação ──
           (não é o navbar de marketing: sem menu, dropdown "Entrar"
           nem CTA — nesta tela isso seria redundante) */}
-      <header className="relative z-10 landing-wrap flex items-center justify-between py-6 sm:py-8">
-        <Link href="/" className="landing-logo" style={{ color: 'var(--cream)' }}>
-          <span className="logo-flex">
-            <b className="logo-main">hexx</b>
-            <span className="logo-tag-hub">HUB</span>
+      <header className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-6 sm:py-8">
+        <Link href="/" className="inline-flex items-center gap-2" style={{ color: '#FEFDF3' }}>
+          <span className="font-serif text-xl sm:text-2xl font-extrabold tracking-tight">hexx</span>
+          <span
+            className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+            style={{ backgroundColor: '#DFFFAE', color: '#1E3328' }}
+          >
+            HUB
           </span>
         </Link>
         <Link
@@ -102,7 +103,7 @@ export function AuthLayout({
 
       {/* ── Rodapé Minimalista Integrado ── */}
       <footer className="relative z-10 py-6 border-t border-white/10 text-center text-xs text-white/40">
-        <div className="landing-wrap flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="w-full max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6">
           <span>© 2026 Hexx Digital. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
             <Link href="/#faq" className="hover:text-white/80 transition-colors">Perguntas Frequentes</Link>
@@ -114,5 +115,3 @@ export function AuthLayout({
     </div>
   );
 }
-
-
