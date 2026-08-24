@@ -417,7 +417,7 @@ function AppShellInner({
             <button onClick={() => setAvisoAdmin(false)} className="shrink-0 text-orange-500 hover:text-orange-700">✕</button>
           </div>
         )}
-        <main className="flex-1 p-5 lg:p-8 max-w-[1600px] w-full mx-auto">{children}</main>
+        <main className="flex-1 p-4 sm:p-5 lg:p-8 max-w-[1600px] w-full mx-auto overflow-x-hidden">{children}</main>
       </div>
 
       {/* Atendimento rápido via WhatsApp */}

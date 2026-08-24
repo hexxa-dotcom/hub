@@ -77,7 +77,7 @@ export function FeatureComparisonTable() {
       <div style={{ textAlign: 'center' }}>
         <button
           onClick={() => setOpen(!open)}
-          className="btn-landing btn-landing-dark"
+          className="btn-landing btn-landing-dark w-full sm:w-auto"
           style={{ border: '1px solid rgba(255,255,255,0.2)' }}
         >
           {open ? 'Ocultar Comparativo Detalhado ↑' : 'Comparar Todos os Recursos Lado a Lado ↓'}
@@ -91,12 +91,16 @@ export function FeatureComparisonTable() {
             background: 'var(--dark)',
             color: 'var(--cream)',
             borderRadius: '24px',
-            padding: '36px 30px',
+            padding: '28px 18px',
             border: '1px solid rgba(255,255,255,0.1)',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+          <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(254, 253, 243, 0.5)', marginBottom: '14px', fontWeight: 600 }}>
+            ← Arraste para o lado para ver todos os planos →
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '660px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                 <th style={{ textAlign: 'left', padding: '16px', fontSize: '16px', fontFamily: 'var(--font-serif)' }}>

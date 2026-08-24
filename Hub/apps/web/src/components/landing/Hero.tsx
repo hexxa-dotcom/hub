@@ -25,11 +25,11 @@ export function Hero() {
         <p className="hero-sub reveal in reveal-d1">
           Emita notas em segundos, saiba seu lucro real e tenha um contador dedicado cuidando dos seus impostos direto pelo WhatsApp.
         </p>
-        <div className="flex flex-wrap items-center gap-4 reveal in reveal-d2">
-          <Link href="/planos" className="btn-landing btn-landing-lime">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 reveal in reveal-d2 w-full sm:w-auto">
+          <Link href="/planos" className="btn-landing btn-landing-lime text-center justify-center">
             Experimentar o Hub →
           </Link>
-          <a href="#contato" className="btn-landing btn-landing-dark">
+          <a href="#contato" className="btn-landing btn-landing-dark text-center justify-center">
             Falar com a Hexx
           </a>
         </div>

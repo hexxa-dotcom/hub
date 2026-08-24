@@ -2477,3 +2477,118 @@
     padding: 30px 22px;
   }
 }
+
+@media (max-width: 768px) {
+  .landing-wrap {
+    padding: 0 18px;
+  }
+  .landing-header .landing-wrap {
+    height: 68px;
+  }
+  .landing-header .landing-nav-cta {
+    font-size: 13px;
+    padding: 9px 16px;
+  }
+  .showcase-tabs {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    gap: 8px;
+    scrollbar-width: none;
+  }
+  .showcase-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .showcase-tab {
+    white-space: nowrap;
+    font-size: 13.5px;
+    padding: 10px 18px;
+    flex-shrink: 0;
+  }
+  .showcase-window {
+    border-radius: 20px;
+  }
+  .showcase-body {
+    padding: 22px 16px;
+    gap: 20px;
+  }
+  .showcase-preview-card {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .pricing-card.featured {
+    transform: none;
+  }
+  .pricing-card.featured:hover {
+    transform: translateY(-4px);
+  }
+  .bento {
+    gap: 14px;
+  }
+  .bcard {
+    padding: 24px 20px;
+    border-radius: 20px;
+  }
+  .pricing-card {
+    padding: 32px 22px;
+    border-radius: 22px;
+  }
+}
+
+@media (max-width: 540px) {
+  .landing-wrap {
+    padding: 0 16px;
+  }
+  .landing-logo {
+    font-size: 20px;
+  }
+  .logo-tag-hub {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  .landing-nav-cta {
+    display: none;
+  }
+  .hero-title {
+    font-size: 30px !important;
+    line-height: 1.18;
+  }
+  .hero-sub {
+    font-size: 15px !important;
+    line-height: 1.5;
+  }
+  .hero-chips {
+    margin-top: 32px;
+    padding: 0 16px 20px;
+    gap: 10px;
+  }
+  .chip-card.chip-main {
+    min-width: 100%;
+  }
+  .bento-sec,
+  .showcase-sec,
+  .form-sec,
+  .footer {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 24px;
+  }
+  .btn-landing {
+    padding: 14px 22px;
+    font-size: 14px;
+  }
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  .mobile-drawer {
+    padding: 24px 18px;
+    overflow-y: auto;
+  }
+  .mobile-drawer-links a {
+    font-size: 20px;
+  }
+}
+
