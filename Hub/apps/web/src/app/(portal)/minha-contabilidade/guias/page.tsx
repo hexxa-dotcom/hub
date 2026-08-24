@@ -2,6 +2,8 @@ import { Receipt, Sparkles } from 'lucide-react';
 import { DrizzleTaxGuideRepository } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 import { HubGuias } from './HubGuias';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +18,19 @@ async function getGuias() {
 }
 
 export default async function Page() {
+  const ctx = await getTenantContext();
   const guias = await getGuias();
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const vencidas = guias.filter((g) => g.status !== 'PAID' && g.dueDate < hoje);
+  const proximas7dias = guias.filter((g) => g.status !== 'PAID' && g.dueDate >= hoje && g.dueDate <= new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10));
+  const insightContext = [
+    `Tela: guias de impostos (DAS, DARF, ISS, parcelamentos) de uma empresa optante do Simples Nacional.`,
+    `Guias vencidas e ainda não pagas: ${vencidas.length}${vencidas.length ? ` — total R$ ${vencidas.reduce((s, g) => s + g.amount, 0).toFixed(2)}` : ''}.`,
+    `Guias vencendo nos próximos 7 dias: ${proximas7dias.length}${proximas7dias.length ? ` — total R$ ${proximas7dias.reduce((s, g) => s + g.amount, 0).toFixed(2)}` : ''}.`,
+    `Total de guias cadastradas: ${guias.length}.`,
+  ].join('\n');
+  const insight = await getContextualInsight(ctx.companyId, 'minha-contabilidade/guias', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -36,6 +50,8 @@ export default async function Page() {
           </p>
         </div>
       </header>
+
+      <InsightCard pageKey="minha-contabilidade/guias" insight={insight} />
 
       <HubGuias initial={guias} />
     </div>

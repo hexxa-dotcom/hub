@@ -8,3 +8,4 @@ export * from './accounting';
 export * from './patrimonial';
 export * from './platform';
 export * from './crm';
+export * from './ai';

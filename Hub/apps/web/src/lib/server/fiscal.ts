@@ -314,6 +314,7 @@ export async function getSimplesInputs(
       FROM financial_entry
       WHERE company_id = ${ctx.companyId}
         AND type = 'RECEIVABLE'
+        AND status != 'CANCELED'
         AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
         AND reference_month < date_trunc('month', now())::date
     `);

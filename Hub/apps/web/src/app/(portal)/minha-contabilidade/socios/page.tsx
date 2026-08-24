@@ -5,6 +5,8 @@ import { listPartnersAction } from './actions';
 import { listDistributionsAction, getYearlyProfitSummaryAction } from '../distribuicao-lucros/actions';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs, proLaboreMinimoParaFatorR } from '@/lib/server/fiscal';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +20,21 @@ export default async function Page() {
   ]);
 
   const prolaboreMinimoRecomendado = proLaboreMinimoParaFatorR(simplesInputs.rbt12, simplesInputs.folhaEmpregados12);
-  const { fatorRFavorable } = new TaxThermometerService().simplesPosition({
+  const { fatorRFavorable, anexo, fatorR } = new TaxThermometerService().simplesPosition({
     rbt12: simplesInputs.rbt12,
     payroll12: simplesInputs.folha12,
   });
+
+  const insightContext = [
+    `Tela: Gestão de Sócios de uma empresa de serviço optante do Simples Nacional.`,
+    `RBT12 (receita bruta 12 meses): R$ ${simplesInputs.rbt12.toFixed(2)}.`,
+    `Fator R atual: ${(fatorR * 100).toFixed(1)}% — ${fatorRFavorable ? 'favorável (Anexo III)' : 'desfavorável (cai no Anexo V)'}. Enquadramento atual: Anexo ${anexo}.`,
+    `Pró-labore total pago aos sócios (mensal, últimos 12 meses/12): R$ ${(simplesInputs.prolabore12 / 12).toFixed(2)}.`,
+    `Pró-labore mínimo recomendado pra manter o Fator R favorável: R$ ${prolaboreMinimoRecomendado.toFixed(2)}.`,
+    `Sócios cadastrados: ${partners.map((p) => `${p.nome} (${p.participacao}% de participação, pró-labore R$ ${p.prolabore.toFixed(2)}/mês)`).join('; ') || 'nenhum'}.`,
+    `Lucro do ano disponível pra distribuir: R$ ${yearlyProfit.availableToDistribute.toFixed(2)} (já distribuído este ano: R$ ${yearlyProfit.distributedThisYear.toFixed(2)}).`,
+  ].join('\n');
+  const insight = await getContextualInsight(ctx.companyId, 'minha-contabilidade/socios', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -41,6 +54,8 @@ export default async function Page() {
           </p>
         </div>
       </header>
+
+      <InsightCard pageKey="minha-contabilidade/socios" insight={insight} />
 
       <HubSocios
         initialPartners={partners}

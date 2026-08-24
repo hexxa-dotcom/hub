@@ -171,7 +171,7 @@ function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lu
       <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
         <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Parâmetros de Simulação</h2>
         <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-          Pré-preenchido com o lucro real do ano ({BRL.format(resumo.lucroExercicio)}) e o acumulado ainda não distribuído ({BRL.format(resumo.lucroAcumuladoNaoDistribuido)}).
+          Pré-preenchido com o lucro real do ano, já descontada a depreciação do período ({BRL.format(resumo.lucroExercicio)}), e o acumulado ainda não distribuído ({BRL.format(resumo.lucroAcumuladoNaoDistribuido)}).
         </p>
         <div className="mt-4 space-y-4">
           <div>
@@ -198,7 +198,8 @@ function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lu
           </div>
         </div>
         <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] pt-2">
-          Considera a reserva legal de 5% (Lei 6.404/76, art. 193). Dividendos são isentos de IR na pessoa física.
+          Reserva legal de 5% aplicada por padrão (obrigatória por lei apenas para S.A. — Lei 6.404/76, art. 193; em LTDA é uma
+          convenção prudente, salvo se o contrato social exigir o contrário). Dividendos são isentos de IR na pessoa física.
         </p>
       </section>
 

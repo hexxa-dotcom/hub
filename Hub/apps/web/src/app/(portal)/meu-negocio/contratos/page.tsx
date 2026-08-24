@@ -3,6 +3,8 @@ import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
 import { listContractsAction } from './actions';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +20,20 @@ async function getSignatureRequests() {
 }
 
 export default async function Page() {
+  const ctx = await getTenantContext();
   const [initialDocs, initialContracts] = await Promise.all([getSignatureRequests(), listContractsAction()]);
+
+  const hoje = new Date();
+  const in30Dias = new Date(hoje.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
+  const semAssinatura = initialContracts.filter((c) => c.status === 'ATIVO' && !c.signingDate);
+  const vencendoLogo = initialContracts.filter((c) => c.status === 'ATIVO' && c.endDate <= in30Dias);
+  const insightContext = [
+    `Tela: gestão de contratos (vínculos) de entrada (receita) e saída (despesa) de uma empresa.`,
+    `Total de contratos ativos: ${initialContracts.filter((c) => c.status === 'ATIVO').length}.`,
+    `Contratos ativos sem data de assinatura registrada: ${semAssinatura.length}${semAssinatura.length ? ` (ex.: ${semAssinatura.slice(0, 3).map((c) => c.title).join(', ')})` : ''}.`,
+    `Contratos ativos vencendo nos próximos 30 dias: ${vencendoLogo.length}${vencendoLogo.length ? ` (ex.: ${vencendoLogo.slice(0, 3).map((c) => `${c.title} em ${c.endDate}`).join(', ')})` : ''}.`,
+  ].join('\n');
+  const insight = await getContextualInsight(ctx.companyId, 'meu-negocio/contratos', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -38,6 +53,8 @@ export default async function Page() {
           </p>
         </div>
       </header>
+
+      <InsightCard pageKey="meu-negocio/contratos" insight={insight} />
 
       <ContratosClient initialDocs={initialDocs} initialContracts={initialContracts} />
     </div>

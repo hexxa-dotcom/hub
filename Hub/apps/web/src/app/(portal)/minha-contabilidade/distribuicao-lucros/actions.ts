@@ -115,6 +115,7 @@ export async function getYearlyProfitSummaryAction(): Promise<YearlyProfitSummar
         SELECT type, coalesce(sum(amount), 0) AS total
         FROM financial_entry
         WHERE company_id = ${ctx.companyId}
+          AND status != 'CANCELED'
           AND reference_month >= ${yearStart} AND reference_month <= ${yearEnd}
         GROUP BY type
       `);

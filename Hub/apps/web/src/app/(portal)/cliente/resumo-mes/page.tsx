@@ -123,7 +123,7 @@ export default async function ResumoMesPage() {
                c.name AS category_name
         FROM financial_entry fe
         LEFT JOIN category c ON c.id = fe.category_id
-        WHERE fe.company_id = ${ctx.companyId} AND fe.reference_month >= ${yearRangeStart} AND fe.reference_month <= ${curMonth}
+        WHERE fe.company_id = ${ctx.companyId} AND fe.status != 'CANCELED' AND fe.reference_month >= ${yearRangeStart} AND fe.reference_month <= ${curMonth}
         ORDER BY fe.due_date ASC
       `);
       const dasGuide = await tx.execute(sql`

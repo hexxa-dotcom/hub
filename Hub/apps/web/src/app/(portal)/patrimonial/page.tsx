@@ -2,10 +2,14 @@ import { Landmark } from 'lucide-react';
 import { getProperties, getResumoFinanceiroAction, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
 import { PatrimonioApp } from './PatrimonioApp';
+import { getTenantContext } from '@/lib/server/tenant';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
+  const ctx = await getTenantContext();
   const [properties, partners, resumo, leases] = await Promise.all([
     getProperties(),
     listPartnersAction(),
@@ -13,8 +17,18 @@ export default async function Page() {
     listLeasesAction(),
   ]);
 
+  const ativos = leases.filter((l) => l.status === 'ACTIVE');
+  const insightContext = [
+    `Tela: gestão de patrimônio (imóveis, ativos, depreciação e contratos de aluguel) de uma holding patrimonial.`,
+    `Bens cadastrados: ${properties.length}. Contratos de aluguel ativos: ${ativos.length}, renda mensal total R$ ${ativos.reduce((s, l) => s + l.monthlyRent, 0).toFixed(2)}.`,
+    `Lucro do exercício (já líquido de depreciação, base pro simulador de dividendos): R$ ${resumo.lucroExercicio.toFixed(2)}.`,
+    `Bens sem contrato de aluguel ativo: ${properties.filter((p) => !p.leaseId).length}.`,
+  ].join('\n');
+  const insight = await getContextualInsight(ctx.companyId, 'patrimonial', insightContext);
+
   return (
     <div className="mx-auto w-full space-y-6">
+      <InsightCard pageKey="patrimonial" insight={insight} />
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">

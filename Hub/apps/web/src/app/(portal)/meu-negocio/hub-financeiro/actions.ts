@@ -25,7 +25,7 @@ export async function getLancamentos() {
         f.source
       FROM financial_entry f
       LEFT JOIN category c ON c.id = f.category_id
-      WHERE f.company_id = ${ctx.companyId}
+      WHERE f.company_id = ${ctx.companyId} AND f.status != 'CANCELED'
       ORDER BY f.due_date ASC
     `);
   });

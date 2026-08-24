@@ -20,6 +20,8 @@ import { RevenueChart } from './RevenueChart';
 import { DueDatesTimeline } from './DueDatesTimeline';
 import { HealthScoreCard } from './HealthScoreCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -79,10 +81,12 @@ export default async function DashboardPage() {
   let lastClosureDate: string | null = null;
   let openDasGuide: { amount: number; dueDate: string } | null = null;
   let loadError = false;
+  let companyId = '';
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
   try {
     const ctx = await getTenantContext();
+    companyId = ctx.companyId;
     const simples12 = await getSimplesInputs(ctx);
     rbt12 = simples12.rbt12;
     folha12 = simples12.folha12;
@@ -92,7 +96,7 @@ export default async function DashboardPage() {
                fe.created_at, c.name AS category_name
         FROM financial_entry fe
         LEFT JOIN category c ON c.id = fe.category_id
-        WHERE fe.company_id = ${ctx.companyId}
+        WHERE fe.company_id = ${ctx.companyId} AND fe.status != 'CANCELED'
       `);
       const issuing = await tx.execute(sql`
         SELECT count(*)::int AS n FROM service_invoice
@@ -229,8 +233,19 @@ export default async function DashboardPage() {
       })),
   ];
 
+  const insightContext = [
+    `Tela: painel inicial (resumo em tempo real) de uma empresa de serviço optante do Simples Nacional.`,
+    `Faturamento do mês: R$ ${faturamentoMes.toFixed(2)}. Despesas do mês: R$ ${despesasMes.toFixed(2)}. Lucro do mês: R$ ${lucro.toFixed(2)} (margem ${(margem * 100).toFixed(1)}%).`,
+    `Imposto provisionado no mês: R$ ${provisao.toFixed(2)}. Enquadramento: Anexo ${simples.anexo}, Fator R ${(simples.fatorR * 100).toFixed(1)}%.`,
+    `Contas vencidas e não pagas: ${vencidas.length}${vencidas.length ? ` — total R$ ${vencidas.reduce((s, e) => s + Number(e.amount), 0).toFixed(2)}` : ''}.`,
+    `Contas vencendo nos próximos 7 dias: ${vencendo.length}.`,
+    `Notas fiscais aguardando processamento: ${issuingCount}.`,
+  ].join('\n');
+  const insight = loadError || !companyId ? null : await getContextualInsight(companyId, 'cliente', insightContext);
+
   return (
     <div className="mx-auto w-full space-y-8 animate-fade-up">
+      <InsightCard pageKey="cliente" insight={insight} />
       {/* Header Editorial */}
       <header className="relative overflow-hidden rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 text-[#231F20] dark:text-[#FEFDF3] shadow-sm">
         <div className="relative z-10 flex flex-col gap-6">

@@ -3,6 +3,7 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, sql } from '@hexxa/db';
 import { revalidatePath } from 'next/cache';
+import { impostoAluguel, depreciacaoAnual } from './lib';
 
 const KIND_LABEL_TO_DB: Record<string, string> = {
   'Imóvel': 'COMMERCIAL',
@@ -133,7 +134,7 @@ export async function getRentPaymentsAction(leaseId: string): Promise<RentPaymen
     return tx.execute(sql`
       SELECT id, description, amount, due_date, reference_month, status, paid_at, receipt_base64
       FROM financial_entry
-      WHERE company_id = ${ctx.companyId} AND source = 'RENT' AND source_id = ${leaseId}
+      WHERE company_id = ${ctx.companyId} AND source = 'RENT' AND source_id = ${leaseId} AND type = 'RECEIVABLE'
       ORDER BY due_date DESC
     `);
   });
@@ -166,16 +167,29 @@ async function gerarLancamentosDoAluguel(params: {
     Math.min(24, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1),
   );
 
+  // Imposto mensal estimado (Lucro Presumido) sobre o aluguel — provisionado
+  // junto com a receita, no mesmo período, pra não superestimar o lucro
+  // distribuível (mesmo padrão já usado na emissão de NFSe: ver
+  // service-invoice.service.ts, "Provisão de Imposto - NFSe").
+  const impostoMensal = impostoAluguel(valor * 12) / 12;
+
   await withTenant(companyId, async (tx) => {
     for (let i = 0; i < months; i++) {
       const due = new Date(start);
       due.setMonth(due.getMonth() + i);
       const dueDateStr = due.toISOString().split('T')[0]!;
       const refMonth = dueDateStr.substring(0, 8) + '01';
+      const suffix = months > 1 ? ` (${i + 1}/${months})` : '';
       await tx.execute(sql`
         INSERT INTO financial_entry (company_id, type, description, amount, due_date, reference_month, status, source, source_id)
-        VALUES (${companyId}, 'RECEIVABLE', ${months > 1 ? `${descricao} (${i + 1}/${months})` : descricao}, ${valor}, ${dueDateStr}, ${refMonth}, 'PENDING', 'RENT', ${leaseId})
+        VALUES (${companyId}, 'RECEIVABLE', ${`${descricao}${suffix}`}, ${valor}, ${dueDateStr}, ${refMonth}, 'PENDING', 'RENT', ${leaseId})
       `);
+      if (impostoMensal > 0) {
+        await tx.execute(sql`
+          INSERT INTO financial_entry (company_id, type, description, amount, due_date, reference_month, status, source, source_id)
+          VALUES (${companyId}, 'PAYABLE', ${`Provisão de Imposto - Aluguel${suffix}`}, ${impostoMensal}, ${dueDateStr}, ${refMonth}, 'PENDING', 'RENT', ${leaseId})
+        `);
+      }
     }
   });
 }
@@ -320,6 +334,7 @@ export async function getResumoFinanceiroAction(): Promise<{ lucroExercicio: num
         COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
       FROM financial_entry
       WHERE company_id = ${ctx.companyId}
+        AND status != 'CANCELED'
         AND EXTRACT(YEAR FROM reference_month) = ${anoAtual}
     `);
     const historicoRes = await tx.execute(sql`
@@ -327,18 +342,35 @@ export async function getResumoFinanceiroAction(): Promise<{ lucroExercicio: num
         COALESCE(SUM(CASE WHEN type = 'RECEIVABLE' THEN amount ELSE 0 END), 0) AS receita,
         COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
       FROM financial_entry
-      WHERE company_id = ${ctx.companyId}
+      WHERE company_id = ${ctx.companyId} AND status != 'CANCELED'
     `);
     const distribuidoRes = await tx.execute(sql`
       SELECT COALESCE(SUM(amount), 0) AS total FROM profit_distribution WHERE company_id = ${ctx.companyId}
+    `);
+    // Depreciação do ano — despesa contábil (NBC TG 27) que não passa pelo
+    // financial_entry (não é saída de caixa), mas reduz o lucro apurável pra
+    // distribuição igual reduziria no balanço de verdade.
+    const propsRes = await tx.execute(sql`
+      SELECT acquisition_value, depreciation_rate, acquisition_date
+      FROM property
+      WHERE company_id = ${ctx.companyId} AND acquisition_value IS NOT NULL AND depreciation_rate IS NOT NULL
     `);
 
     const lucroExercicio = Number(anoRes[0]?.receita ?? 0) - Number(anoRes[0]?.despesa ?? 0);
     const lucroHistorico = Number(historicoRes[0]?.receita ?? 0) - Number(historicoRes[0]?.despesa ?? 0);
     const distribuido = Number(distribuidoRes[0]?.total ?? 0);
 
+    const depreciacaoAnualTotal = propsRes.reduce((s: number, r: any) => {
+      const acq = Number(r.acquisition_value);
+      const rate = Number(r.depreciation_rate);
+      const anos = r.acquisition_date ? anoAtual - new Date(r.acquisition_date).getFullYear() : 0;
+      return s + depreciacaoAnual(acq, rate, anos);
+    }, 0);
+
+    const lucroExercicioLiquido = lucroExercicio - depreciacaoAnualTotal;
+
     return {
-      lucroExercicio: Math.max(0, lucroExercicio),
+      lucroExercicio: Math.max(0, lucroExercicioLiquido),
       lucroAcumuladoNaoDistribuido: Math.max(0, lucroHistorico - distribuido - lucroExercicio),
     };
   });

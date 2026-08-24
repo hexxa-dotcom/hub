@@ -4,6 +4,8 @@ import { serviceInvoiceRepository, nfseMode } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getNfseConfig, estimateInvoiceTaxRate, isCertConfiguredForTenant, isFiscalComplete, listServiceProfiles } from '@/lib/server/fiscal';
 import { withTenant, customer, eq } from '@hexxa/db';
+import { getContextualInsight } from '@/lib/server/ai-insight';
+import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +17,11 @@ export default async function Page() {
   let customers: { id: string; name: string; document: string | null; email: string | null }[] = [];
   let profiles: any[] = [];
   let taxRatePercent = 0;
+  let companyId = '';
 
   try {
     const ctx = await getTenantContext();
+    companyId = ctx.companyId;
     const [recentData, modeData, configData, certData, profilesData] = await Promise.all([
       serviceInvoiceRepository.listRecent(ctx, 50),
       nfseMode(ctx),
@@ -59,8 +63,20 @@ export default async function Page() {
 
   const fiscalOk = isFiscalComplete(config);
 
+  const issuedThisMonth = recent.filter((n) => n.status === 'ISSUED' && n.referenceMonth === new Date().toISOString().slice(0, 7));
+  const withError = recent.filter((n) => n.status === 'ERROR');
+  const insightContext = [
+    `Tela: emissão de Notas Fiscais de Serviço (NFSe) de uma empresa optante do Simples Nacional.`,
+    `Cadastro fiscal completo: ${fiscalOk ? 'sim' : 'não'}. Certificado digital configurado: ${certOk ? 'sim' : 'não'}. Modo: ${mode === 'gov' ? 'produção (governo)' : 'teste (mock)'}.`,
+    `Notas emitidas este mês: ${issuedThisMonth.length}, total R$ ${issuedThisMonth.reduce((s, n) => s + n.amount, 0).toFixed(2)}.`,
+    `Notas com erro de emissão: ${withError.length}.`,
+    `Clientes cadastrados: ${customers.length}.`,
+  ].join('\n');
+  const insight = companyId ? await getContextualInsight(companyId, 'meu-negocio/notas', insightContext) : null;
+
   return (
     <div className="mx-auto w-full space-y-7 animate-fade-up">
+      <InsightCard pageKey="meu-negocio/notas" insight={insight} />
       <header className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

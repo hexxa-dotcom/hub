@@ -49,6 +49,7 @@ export default async function BalancoInstantaneoPage({
       FROM financial_entry fe
       LEFT JOIN category c ON c.id = fe.category_id
       WHERE fe.company_id = ${ctx.companyId}
+        AND fe.status != 'CANCELED'
         AND fe.reference_month >= ${deOrdered}
         AND fe.reference_month <= ${ateOrdered}
     `);
