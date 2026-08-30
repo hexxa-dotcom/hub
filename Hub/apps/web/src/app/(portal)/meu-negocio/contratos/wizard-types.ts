@@ -15,6 +15,10 @@ export interface CounterpartyData {
 
 export interface ServicoFormData {
   kind: 'SERVICO';
+  /** ENTRADA = minha empresa presta o serviço (recebe). SAIDA = minha empresa contrata (paga). */
+  direcao: 'ENTRADA' | 'SAIDA';
+  /** Valor de CATEGORIA_SERVICO_OPTIONS (UnifiedContractWizard.tsx) — seleciona o bloco de cláusulas específicas no PDF (StandardContractTemplate.tsx CATEGORY_CLAUSES). */
+  categoria?: string;
   contraparte: CounterpartyData;
   descricao: string;
   valor: number;
@@ -22,6 +26,11 @@ export interface ServicoFormData {
   dueDay: number;
   startDate: string;
   endDate: string;
+  /** Só relevante em SAIDA: vincula este contrato a um repasse automático vindo de uma integração de faturamento externa (ex.: SaaS de telemedicina). Os dois campos vêm juntos ou nenhum. */
+  externalProviderId?: string;
+  repassePercent?: number;
+  /** MENSAL | QUINZENAL | SEMANAL — só relevante junto com o vínculo de repasse acima. */
+  paymentFrequency?: 'MENSAL' | 'QUINZENAL' | 'SEMANAL';
 }
 
 export interface AluguelFormData {

@@ -8,4 +8,4 @@ export * as schema from './schema/index';
 // Tipos gerados do banco vivo (para o client Supabase tipado).
 export type { Database, Tables, TablesInsert, TablesUpdate, Enums, Json } from './types/database.types';
 export { Constants } from './types/database.types';
-export { sql, eq, desc, and } from 'drizzle-orm';
+export { sql, eq, desc, and, inArray, ilike } from 'drizzle-orm';

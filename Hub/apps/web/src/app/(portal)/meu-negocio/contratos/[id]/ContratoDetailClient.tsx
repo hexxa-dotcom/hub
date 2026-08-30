@@ -27,6 +27,7 @@ import {
   cancelarContratoAction,
   marcarNfseEmitidaAction,
   getContractPdfAction,
+  adicionarPagamentoExtraAction,
 } from '../actions';
 import { reenviarParaAssinaturaAction } from '../unified-actions';
 import { STATUS_LABEL, STATUS_CLASS } from '../contract-status';
@@ -79,6 +80,11 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
   const [nfseInput, setNfseInput] = useState('');
 
   const [showPix, setShowPix] = useState(false);
+
+  const [showExtra, setShowExtra] = useState(false);
+  const [extraDescricao, setExtraDescricao] = useState('');
+  const [extraValor, setExtraValor] = useState('');
+  const [extraData, setExtraData] = useState(new Date().toISOString().split('T')[0]!);
 
   function flash(msg: string) {
     setMessage(msg);
@@ -148,6 +154,27 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
     }
   }
 
+  async function handleAdicionarExtra() {
+    setBusy(true);
+    try {
+      const res = await adicionarPagamentoExtraAction({
+        contractId: c.id,
+        descricao: extraDescricao,
+        valor: Number(extraValor.replace(',', '.')),
+        dueDate: extraData,
+      });
+      flash(res.message);
+      if (res.ok) {
+        setShowExtra(false);
+        setExtraDescricao('');
+        setExtraValor('');
+        router.refresh();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleVerComprovante(paymentId: string) {
     const r = await getComprovante(paymentId);
     if (r) window.open(r.dataUrl, '_blank');
@@ -200,6 +227,11 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
           {c.linkedOnPlatform && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3 py-1 text-xs font-bold">
               <Link2 className="h-3 w-3" /> Sincronizado com {detail.mirrorPartyName ?? 'a contraparte'} na Hexxa
+            </span>
+          )}
+          {c.externalProviderId && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#7C3AED]/10 text-[#7C3AED] dark:bg-[#7C3AED]/20 px-3 py-1 text-xs font-bold">
+              Repasse automático — {c.repassePercent}% · {c.paymentFrequency === 'QUINZENAL' ? 'Quinzenal' : c.paymentFrequency === 'SEMANAL' ? 'Semanal' : 'Mensal'}
             </span>
           )}
         </div>
@@ -298,6 +330,11 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               </button>
             </>
           )}
+          {c.status === 'ATIVO' && c.externalProviderId && (
+            <button type="button" onClick={() => setShowExtra(true)} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold mt-3">
+              + Pagamento Extra (Plantão etc.)
+            </button>
+          )}
           {(c.status === 'ATIVO' || c.status === 'AGUARDANDO_ASSINATURA') && (
             <button type="button" onClick={handleCancelar} disabled={busy} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50 mt-3">
               Cancelar Vínculo
@@ -348,6 +385,44 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       </div>
 
       {/* Modais */}
+      {showExtra && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+                Pagamento Extra (Plantão etc.)
+              </h3>
+              <button onClick={() => setShowExtra(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+              Fica separado da regra automática de repasse ({c.repassePercent}%) — soma no total a pagar, mas aparece como extra.
+            </p>
+            <div>
+              <label className={lbl}>Descrição *</label>
+              <input value={extraDescricao} onChange={(e) => setExtraDescricao(e.target.value)} placeholder="Ex.: Plantão extra dia 15" className={`mt-1.5 ${field}`} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={lbl}>Valor (R$) *</label>
+                <input value={extraValor} onChange={(e) => setExtraValor(e.target.value)} placeholder="0,00" className={`mt-1.5 ${field}`} />
+              </div>
+              <div>
+                <label className={lbl}>Data *</label>
+                <input type="date" value={extraData} onChange={(e) => setExtraData(e.target.value)} className={`mt-1.5 ${field}`} />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAdicionarExtra}
+              disabled={busy || !extraDescricao.trim() || !extraValor.trim()}
+              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Lançar Pagamento Extra'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {showNfse && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">

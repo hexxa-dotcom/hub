@@ -1,6 +1,6 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, sql } from '@hexxa/db';
-import { ResumoMesView, type MonthSummary, type CompromissoRow } from './ResumoMesView';
+import { ResumoMesView, type MonthSummary, type CompromissoRow, type WeekFlow } from './ResumoMesView';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +20,19 @@ type ContractRow = {
   type: 'ENTRADA' | 'SAIDA';
   title: string;
   party_name: string;
+  value: number | string;
   status: string;
   start_date: string;
   end_date: string;
+};
+
+type RecurringExpenseRow = {
+  id: string;
+  description: string;
+  amount: number | string;
+  due_day: number;
+  category_name: string | null;
+  active: boolean;
 };
 
 type DistributionRow = {
@@ -46,7 +56,7 @@ type EmploymentEventRow = {
   employee_name: string;
 };
 
-const MONTHS_BACK = 12; // + mês corrente = 13 meses de histórico (cobre "novembro, dezembro" de trás)
+const MONTHS_BACK = 12; // 13 meses de histórico
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -54,7 +64,7 @@ function monthKey(d: Date) {
 
 function monthEndOf(key: string) {
   const [y, m] = key.split('-').map(Number);
-  return new Date(y!, m!, 0).toISOString().slice(0, 10); // dia 0 do mês seguinte = último dia deste mês
+  return new Date(y!, m!, 0).toISOString().slice(0, 10);
 }
 
 function isImposto(e: Entry) {
@@ -67,7 +77,7 @@ function sum(list: Entry[]) {
   return list.reduce((s, e) => s + Number(e.amount), 0);
 }
 
-/** Lucro acumulado de 1º de janeiro até o fim do mês informado (mesmo ano). */
+/** Lucro acumulado de 1º de janeiro até o fim do mês informado. */
 function lucroAcumuladoNoAno(allEntries: Entry[], key: string, monthEnd: string) {
   const yearStart = `${key.slice(0, 4)}-01-01`;
   const inRange = allEntries.filter(
@@ -97,10 +107,7 @@ export default async function ResumoMesPage() {
   }
   const monthKeys = monthDates.map(monthKey);
   const curMonth = monthKeys[monthKeys.length - 1]!;
-  // Pra calcular "lucro acumulado no ano" de cada mês exibido, precisa dos
-  // meses de janeiro em diante do(s) ano(s) cobertos — não só os 13 meses
-  // rolantes (o mês mais antigo pode ser, por exemplo, agosto/25, e aí falta
-  // jan-jul/25 pra fechar o acumulado do ano dele).
+
   const earliestYear = Number(monthKeys[0]!.slice(0, 4));
   const yearRangeStart = `${earliestYear}-01-01`;
 
@@ -108,6 +115,7 @@ export default async function ResumoMesPage() {
   let openDasGuide: { amount: number; dueDate: string } | null = null;
   let closedMonths = new Set<string>();
   let contracts: ContractRow[] = [];
+  let recurringExpenses: RecurringExpenseRow[] = [];
   let distributions: DistributionRow[] = [];
   let notasPorMes = new Map<string, number>();
   let notasParaEmitirPorMes = new Map<string, number>();
@@ -137,9 +145,14 @@ export default async function ResumoMesPage() {
         WHERE company_id = ${ctx.companyId} AND reference_month IN ${monthKeys}
       `);
       const contractRows = await tx.execute(sql`
-        SELECT id, type, title, party_name, status, start_date, end_date
+        SELECT id, type, title, party_name, value, status, start_date, end_date
         FROM business_contract
         WHERE company_id = ${ctx.companyId}
+      `);
+      const recurringRows = await tx.execute(sql`
+        SELECT id, description, amount, due_day, category_name, active
+        FROM recurring_expense
+        WHERE company_id = ${ctx.companyId} AND active = true
       `);
       const distributionRows = await tx.execute(sql`
         SELECT amount, distributed_at
@@ -173,6 +186,7 @@ export default async function ResumoMesPage() {
         dasGuide: dasGuide[0] ? { amount: Number(dasGuide[0].amount), dueDate: String(dasGuide[0].due_date) } : null,
         closed: new Set(closures.map((c: any) => String(c.reference_month).slice(0, 10))),
         contracts: contractRows as unknown as ContractRow[],
+        recurringExpenses: recurringRows as unknown as RecurringExpenseRow[],
         distributions: distributionRows as unknown as DistributionRow[],
         invoiceCounts: invoiceCounts as unknown as InvoiceCountRow[],
         pendingInvoiceCounts: pendingInvoiceCounts as unknown as InvoiceCountRow[],
@@ -184,6 +198,7 @@ export default async function ResumoMesPage() {
     openDasGuide = data.dasGuide;
     closedMonths = data.closed;
     contracts = data.contracts;
+    recurringExpenses = data.recurringExpenses;
     distributions = data.distributions;
     notasPorMes = new Map(data.invoiceCounts.map((r) => [String(r.reference_month).slice(0, 10), r.n]));
     notasParaEmitirPorMes = new Map(data.pendingInvoiceCounts.map((r) => [String(r.reference_month).slice(0, 10), r.n]));
@@ -243,12 +258,104 @@ export default async function ResumoMesPage() {
     const admissoes = eventosNoMes.filter((e) => e.type === 'ADMISSION').map((e) => e.employee_name);
     const desligamentos = eventosNoMes.filter((e) => e.type === 'TERMINATION').map((e) => e.employee_name);
 
-    // Inadimplência: recebível deste mês que segue sem pagar mesmo já vencido.
+    // Inadimplência
     const inadimplente = receivables.filter((e) => e.status !== 'PAID' && e.due_date < todayIso);
     const valorInadimplente = sum(inadimplente);
     const taxaInadimplencia = sum(receivables) > 0 ? valorInadimplente / sum(receivables) : 0;
 
     const lucroAno = lucroAcumuladoNoAno(allEntries, key, monthEnd);
+
+    // === PANORAMA ORÇAMENTÁRIO (Início do Mês) ===
+    // 1. Receita Base Contratada: contratos de clientes ativos
+    const receitaContratos = contratosNoMes
+      .filter((c) => c.type === 'ENTRADA')
+      .reduce((s, c) => s + Number(c.value), 0);
+    const receitaBaseContratada = receitaContratos > 0 ? receitaContratos : sum(receivables);
+
+    // 2. Custos Fixos Comprometidos (despesas fixas cadastradas + pró-labore)
+    const custoFixoRecorrente = recurringExpenses.reduce((s, r) => s + Number(r.amount), 0);
+    const proLaboreEntry = payables.find((p) => String(p.description || '').toLowerCase().includes('pró-labore') || String(p.description || '').toLowerCase().includes('pro-labore'));
+    const custoFixoComprometido = custoFixoRecorrente + (proLaboreEntry ? Number(proLaboreEntry.amount) : 0);
+
+    // 3. 4 Semanas do Mês
+    const weekRanges = [
+      { num: 1, label: 'Semana 1', startDay: 1, endDay: 7, desc: '01 a 07 de ' + d.toLocaleDateString('pt-BR', { month: 'short' }) },
+      { num: 2, label: 'Semana 2', startDay: 8, endDay: 14, desc: '08 a 14 de ' + d.toLocaleDateString('pt-BR', { month: 'short' }) },
+      { num: 3, label: 'Semana 3', startDay: 15, endDay: 21, desc: '15 a 21 de ' + d.toLocaleDateString('pt-BR', { month: 'short' }) },
+      { num: 4, label: 'Semana 4', startDay: 22, endDay: 31, desc: '22 a 31 de ' + d.toLocaleDateString('pt-BR', { month: 'short' }) },
+    ];
+
+    const semanas: WeekFlow[] = weekRanges.map((w) => {
+      const weekReceivables = receivables.filter((r) => {
+        const day = Number(r.due_date.slice(8, 10));
+        return day >= w.startDay && day <= w.endDay;
+      });
+      const weekPayables = payables.filter((p) => {
+        const day = Number(p.due_date.slice(8, 10));
+        return day >= w.startDay && day <= w.endDay;
+      });
+
+      const inflow = sum(weekReceivables);
+      const outflow = sum(weekPayables);
+
+      // Highlights
+      const topIn = weekReceivables.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 2).map((r) => r.description || 'Recebível');
+      const topOut = weekPayables.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 2).map((p) => p.description || 'Despesa');
+      const keyHighlights = [...topIn, ...topOut].slice(0, 3);
+
+      const currentDay = now.getDate();
+      let status: 'past' | 'current' | 'future' = 'future';
+      if (isCurrent) {
+        if (currentDay > w.endDay) status = 'past';
+        else if (currentDay >= w.startDay && currentDay <= w.endDay) status = 'current';
+        else status = 'future';
+      } else {
+        status = 'past';
+      }
+
+      return {
+        weekNum: w.num,
+        label: w.label,
+        dateRange: w.desc,
+        inflow,
+        outflow,
+        net: inflow - outflow,
+        status,
+        keyHighlights,
+      };
+    });
+
+    // 4. Break-Even (Ponto de Equilíbrio)
+    // Calcula em que dia do mês as entradas acumuladas cobrem 100% dos custos fixos
+    let breakEvenDay: number | null = null;
+    let acumuladoEntradas = 0;
+    const targetBreakeven = custoFixoComprometido > 0 ? custoFixoComprometido : sum(payables);
+
+    const sortedReceivables = [...receivables].sort((a, b) => a.due_date.localeCompare(b.due_date));
+    for (const r of sortedReceivables) {
+      acumuladoEntradas += Number(r.amount);
+      if (acumuladoEntradas >= targetBreakeven && breakEvenDay === null) {
+        breakEvenDay = Number(r.due_date.slice(8, 10));
+        break;
+      }
+    }
+
+    const totalFaturamento = sum(receivables);
+    const totalDespesas = sum(payables);
+    const totalImpostos = sum(payables.filter(isImposto));
+    const sobraPrevista = Math.max(0, totalFaturamento - totalDespesas - totalImpostos);
+
+    // === DRE SINTÉTICO (Fechamento) ===
+    const dre = {
+      faturamentoBruto: totalFaturamento,
+      impostosSimples: totalImpostos > 0 ? totalImpostos : totalFaturamento * 0.06,
+      faturamentoLiquido: totalFaturamento - (totalImpostos > 0 ? totalImpostos : totalFaturamento * 0.06),
+      custosFixos: custoFixoComprometido > 0 ? custoFixoComprometido : totalDespesas * 0.7,
+      custosVariaveis: Math.max(0, totalDespesas - (custoFixoComprometido > 0 ? custoFixoComprometido : totalDespesas * 0.7)),
+      lucroOperacional: totalFaturamento - totalDespesas,
+      distribuicaoLucro: lucroDistribuido,
+      saldoFinalRetido: Math.max(0, totalFaturamento - totalDespesas - lucroDistribuido),
+    };
 
     return {
       key,
@@ -256,19 +363,34 @@ export default async function ResumoMesPage() {
       shortLabel: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''),
       isCurrent,
       closed: closedMonths.has(key),
-      faturamento: sum(receivables),
-      despesas: sum(payables),
-      lucro: sum(receivables) - sum(payables),
-      impostos: sum(payables.filter(isImposto)),
+      faturamento: totalFaturamento,
+      faturamentoRecebido: sum(receivables.filter((r) => r.status === 'PAID')),
+      faturamentoPendente: sum(receivables.filter(emAberto)),
+      despesas: totalDespesas,
+      despesasPagas: sum(payables.filter((p) => p.status === 'PAID')),
+      despesasPendentes: sum(payables.filter(emAberto)),
+      lucro: totalFaturamento - totalDespesas,
+      impostos: totalImpostos,
       impostosAberto: sum(payables.filter((e) => isImposto(e) && emAberto(e))),
-      pagarTotal: sum(payables),
+      pagarTotal: totalDespesas,
       pagarAberto: sum(payables.filter(emAberto)),
-      receberTotal: sum(receivables),
+      receberTotal: totalFaturamento,
       receberAberto: sum(receivables.filter(emAberto)),
+      receitaBaseContratada,
+      custoFixoComprometido,
+      breakEvenDay,
+      sobraPrevista,
+      semanas,
+      dre,
       categoriasReceber: groupByCategory(receivables),
       categoriasPagar: groupByCategory(payables),
       compromissos,
-      contratosAtivos: contratosNoMes.map((c) => ({ id: c.id, nome: c.party_name || c.title, tipo: c.type })),
+      contratosAtivos: contratosNoMes.map((c) => ({
+        id: c.id,
+        nome: c.party_name || c.title,
+        tipo: c.type,
+        valor: Number(c.value),
+      })),
       lucroDistribuido,
       notasEmitidas: notasPorMes.get(key) ?? 0,
       notasParaEmitir: notasParaEmitirPorMes.get(key) ?? 0,

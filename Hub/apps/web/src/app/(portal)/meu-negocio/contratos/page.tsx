@@ -2,7 +2,7 @@ import { FileSignature } from 'lucide-react';
 import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
-import { listContractsAction } from './actions';
+import { listContractsAction, listRepassesAction } from './actions';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { withTenant, eq } from '@hexxa/db';
@@ -11,6 +11,9 @@ import { property } from '@hexxa/db/schema';
 export const dynamic = 'force-dynamic';
 
 async function getSignatureRequests() {
+  // DOCUSEAL_API_KEY ainda não configurada (ambiente local/novo) — estado
+  // esperado, não um erro real: devolve lista vazia sem log de exceção.
+  if (!process.env.DOCUSEAL_API_KEY) return [];
   try {
     const ctx = await getTenantContext();
     const service = makeContractSignatureService();
@@ -30,10 +33,11 @@ async function hasAnyProperty(companyId: string): Promise<boolean> {
 
 export default async function Page() {
   const ctx = await getTenantContext();
-  const [initialDocs, initialContracts, hasProperties] = await Promise.all([
+  const [initialDocs, initialContracts, hasProperties, initialRepasses] = await Promise.all([
     getSignatureRequests(),
     listContractsAction(),
     hasAnyProperty(ctx.companyId),
+    listRepassesAction(),
   ]);
 
   const hoje = new Date();
@@ -74,6 +78,7 @@ export default async function Page() {
         initialContracts={initialContracts}
         companyType={ctx.companyType}
         hasProperties={hasProperties}
+        initialRepasses={initialRepasses}
       />
     </div>
   );

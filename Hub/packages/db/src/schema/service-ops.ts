@@ -135,6 +135,12 @@ export const businessContract = pgTable('business_contract', {
   /** Motivo informado quando status vira RECUSADO. */
   refusalReason: text('refusal_reason'),
   signatureRequestId: uuid('signature_request_id').references(() => signatureRequest.id),
+  /** ID desse prestador (ex.: médico) no SaaS de faturamento do cliente — usado pelo webhook de repasse pra achar o contrato certo. Só relevante quando type='SAIDA'. */
+  externalProviderId: text('external_provider_id'),
+  /** % do faturamento atribuído a este prestador no SaaS externo que vira financial_entry PAYABLE automaticamente (ex.: 70.00 = 70%). */
+  repassePercent: numeric('repasse_percent', { precision: 5, scale: 2 }),
+  /** MENSAL | QUINZENAL — só afeta como o valor a pagar é agrupado/exibido (dias 1-15 / 16-fim), não muda quando o evento chega do webhook. */
+  paymentFrequency: text('payment_frequency').notNull().default('MENSAL'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

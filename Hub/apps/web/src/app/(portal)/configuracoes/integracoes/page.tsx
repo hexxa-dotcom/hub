@@ -26,7 +26,15 @@ const BASE_ERPS = [
     desc: 'Sincronização em tempo real de Lançamentos e Baixas diretamente para o seu balanço contábil.',
     color: '#F48221',
     logo: 'OM',
-  }
+  },
+  {
+    id: 'webhook-repasse',
+    name: 'Faturamento do SaaS do Cliente',
+    sub: 'Repasse automático por webhook',
+    desc: 'Recebe o faturamento do SaaS que você usa (ex.: telemedicina) em tempo real e gera automaticamente o valor a pagar de cada prestador vinculado, com base no % de repasse do contrato dele.',
+    color: '#7C3AED',
+    logo: 'WR',
+  },
 ];
 
 export default async function IntegracoesPage() {

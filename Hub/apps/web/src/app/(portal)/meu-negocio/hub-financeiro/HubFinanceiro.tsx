@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import type { Route } from 'next';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import {
   Plus,
@@ -66,6 +68,7 @@ type Lancamento = {
   comprovanteNome?: string | null;
   isFixa?: boolean;
   source?: string | null;
+  sourceId?: string | null;
   originalAmount?: number | null;
   interest?: number | null;
   discount?: number | null;
@@ -113,6 +116,13 @@ function grupoDe(l: Lancamento): string {
       return 'Colaboradores (CLT)';
     case 'CONTRACT':
       return l.tipo === 'PAGAR' ? 'Colaboradores (PJ)' : 'Contratos';
+    case 'INTEGRATION_SAAS':
+      // Repasse automático (ex.: médico de SaaS de telemedicina) — mesmo grupo
+      // de "Colaboradores (PJ)" pro filtro já existente enxergar sem precisar
+      // de uma pílula nova; do lado RECEBER é a receita bruta vinda da integração.
+      return l.tipo === 'PAGAR' ? 'Colaboradores (PJ)' : 'Faturamento Avulso';
+    case 'CONTRACT_EXTRA':
+      return 'Colaboradores (PJ)';
     case 'NFSE':
       return l.tipo === 'PAGAR' ? 'Impostos' : 'Notas Fiscais';
     case 'VENDA':
@@ -127,6 +137,20 @@ function grupoDe(l: Lancamento): string {
 }
 
 const isCurrentMonth = (vencimento: string) => vencimento.slice(0, 7) === new Date().toISOString().slice(0, 7);
+
+/**
+ * URL do contrato de origem, quando este lançamento veio de um (contrato
+ * manual, repasse automático de integração, ou pagamento extra vinculado a
+ * um contrato) — null quando não há contrato por trás (NFSe, despesa fixa
+ * etc.), ou quando é a receita bruta da integração (sourceId aponta pra
+ * credencial da integração, não pra um contrato).
+ */
+function contratoLinkFor(l: Lancamento): string | null {
+  if (!l.sourceId) return null;
+  if (l.source === 'CONTRACT' || l.source === 'CONTRACT_EXTRA') return `/meu-negocio/contratos/${l.sourceId}`;
+  if (l.source === 'INTEGRATION_SAAS' && l.tipo === 'PAGAR') return `/meu-negocio/contratos/${l.sourceId}`;
+  return null;
+}
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
@@ -442,7 +466,18 @@ function MesStatCard({
 }
 
 /** Barra de chips com o total do mês agregado por categoria — inclui os grupos automáticos (folha, PJ, NFSe…). */
-function CategoriaBreakdownRow({ items }: { items: { label: string; total: number }[] }) {
+const CATEGORIA_BREAKDOWN_MAX = 6;
+
+function CategoriaBreakdownRow({ items: rawItems }: { items: { label: string; total: number }[] }) {
+  // Trava em 6 pílulas NO TOTAL — se sobrar categoria, ela entra somada em
+  // "Outros" (que conta como uma das 6), nunca 6 categorias + Outros = 7.
+  const sorted = [...rawItems].sort((a, b) => b.total - a.total);
+  const overflow = sorted.length > CATEGORIA_BREAKDOWN_MAX;
+  const top = sorted.slice(0, overflow ? CATEGORIA_BREAKDOWN_MAX - 1 : CATEGORIA_BREAKDOWN_MAX);
+  const tail = sorted.slice(top.length);
+  const tailTotal = tail.reduce((s, g) => s + g.total, 0);
+  const items = tailTotal > 0 ? [...top, { label: 'Outros', total: tailTotal }] : top;
+
   return (
     <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-4 shadow-sm">
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
@@ -1087,6 +1122,15 @@ function LancamentosTab({
                           >
                             <Paperclip className="h-3 w-3" /> Ver comprovante{l.comprovanteNome ? `: ${l.comprovanteNome}` : ''}
                           </button>
+                        )}
+                        {contratoLinkFor(l) && (
+                          <Link
+                            href={contratoLinkFor(l) as Route}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-3 py-1 text-[11px] font-bold text-[#DFFFAE]"
+                          >
+                            Ver Contrato
+                          </Link>
                         )}
                         <div className="sm:hidden"><StatusBadge l={l} /></div>
                       </div>

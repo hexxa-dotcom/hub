@@ -1,9 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, ChevronRight, ChevronLeft, FileText, Loader2, Briefcase, Home, HandCoins, Upload, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, ChevronRight, ChevronLeft, FileText, Loader2, Briefcase, Home, HandCoins, Upload, Sparkles, Search, UserCheck, X, Wand2 } from 'lucide-react';
 import { CONTRACT_KIND_LABEL, type ContractKind, type CounterpartyData, type DocumentSource, type WizardSubmission } from './wizard-types';
-import { criarContratoEAssinarAction, lookupCounterpartyAction, listPropertiesForWizardAction, type PropertyOption } from './unified-actions';
+import {
+  criarContratoEAssinarAction,
+  lookupCounterpartyAction,
+  listPropertiesForWizardAction,
+  searchCustomersAction,
+  sugerirTextoContratoAction,
+  type PropertyOption,
+  type CustomerOption,
+} from './unified-actions';
 
 interface UnifiedContractWizardProps {
   companyType: 'SERVICE' | 'HOLDING';
@@ -24,6 +32,21 @@ const KIND_CARDS: { kind: ContractKind; icon: typeof Briefcase; needsProperty: b
   { kind: 'MUTUO', icon: HandCoins, needsProperty: false },
 ];
 
+/** Categorias pré-definidas de serviço — dão uma direção pro texto inicial da descrição e deixam a sugestão de IA mais precisa. */
+const CATEGORIA_SERVICO_OPTIONS: { value: string; label: string; starter: string }[] = [
+  { value: 'PJ_AUTONOMO', label: 'PJ Autônomo (Geral)', starter: 'Prestação de serviços autônomos de ' },
+  { value: 'MEDICO', label: 'Médico / Saúde', starter: 'Prestação de serviços médicos/de saúde consistentes em ' },
+  { value: 'MARKETING', label: 'Marketing', starter: 'Prestação de serviços de marketing consistentes em ' },
+  { value: 'SOCIAL_MIDIA', label: 'Social Mídia', starter: 'Gestão e produção de conteúdo para redes sociais, consistentes em ' },
+  { value: 'COMERCIAL', label: 'Comercial / Vendas', starter: 'Prestação de serviços comerciais/vendas consistentes em ' },
+  { value: 'CONSULTORIA', label: 'Consultoria', starter: 'Prestação de serviços de consultoria consistentes em ' },
+  { value: 'TI', label: 'Tecnologia / TI', starter: 'Prestação de serviços de tecnologia consistentes em ' },
+  { value: 'DESIGN', label: 'Design / Criação', starter: 'Prestação de serviços de design/criação consistentes em ' },
+  { value: 'JURIDICO', label: 'Jurídico', starter: 'Prestação de serviços jurídicos consistentes em ' },
+  { value: 'CONTABIL', label: 'Contábil / Financeiro', starter: 'Prestação de serviços contábeis/financeiros consistentes em ' },
+  { value: 'OUTRO', label: 'Outro', starter: '' },
+];
+
 export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCancel }: UnifiedContractWizardProps) {
   const [step, setStep] = useState(1);
   const [kind, setKind] = useState<ContractKind | null>(null);
@@ -33,11 +56,27 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
   const [contraparte, setContraparte] = useState<CounterpartyData>(emptyParty());
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'checking' | 'found' | 'not-found'>('idle');
 
+  // Busca de cliente já cadastrado (Meu Negócio > Clientes)
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [customerResults, setCustomerResults] = useState<CustomerOption[]>([]);
+  const [customerSearching, setCustomerSearching] = useState(false);
+  const [selectedCustomerName, setSelectedCustomerName] = useState<string | null>(null);
+  const customerSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sugestão de texto por IA — guarda qual campo está gerando agora
+  const [suggesting, setSuggesting] = useState<string | null>(null);
+
   // Serviço
+  const [servicoDirecao, setServicoDirecao] = useState<'ENTRADA' | 'SAIDA'>('ENTRADA');
+  const [categoriaServico, setCategoriaServico] = useState('');
   const [descricao, setDescricao] = useState('');
   const [valorServico, setValorServico] = useState('');
   const [formaPagamentoServico, setFormaPagamentoServico] = useState('');
   const [dueDayServico, setDueDayServico] = useState('10');
+  const [vincularRepasse, setVincularRepasse] = useState(false);
+  const [externalProviderId, setExternalProviderId] = useState('');
+  const [repassePercentInput, setRepassePercentInput] = useState('');
+  const [paymentFrequency, setPaymentFrequency] = useState<'MENSAL' | 'QUINZENAL' | 'SEMANAL'>('MENSAL');
 
   // Mútuo
   const [direcao, setDirecao] = useState<'MUTUO_ATIVO' | 'MUTUO_PASSIVO'>('MUTUO_ATIVO');
@@ -87,6 +126,56 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
     }
   }
 
+  function handleCustomerQueryChange(value: string) {
+    setCustomerQuery(value);
+    setSelectedCustomerName(null);
+    if (customerSearchTimer.current) clearTimeout(customerSearchTimer.current);
+    if (value.trim().length < 2) {
+      setCustomerResults([]);
+      return;
+    }
+    customerSearchTimer.current = setTimeout(async () => {
+      setCustomerSearching(true);
+      try {
+        setCustomerResults(await searchCustomersAction(value));
+      } finally {
+        setCustomerSearching(false);
+      }
+    }, 350);
+  }
+
+  function handleSelectCustomer(c: CustomerOption) {
+    setContraparte({ name: c.name, document: c.document ?? '', address: c.address ?? '', email: c.email ?? '' });
+    setSelectedCustomerName(c.name);
+    setCustomerQuery('');
+    setCustomerResults([]);
+  }
+
+  async function handleSugerir(field: 'descricao' | 'formaPagamento' | 'prazo', apply: (text: string) => void) {
+    if (kind !== 'SERVICO' && kind !== 'MUTUO') return;
+    setSuggesting(field);
+    setError(null);
+    try {
+      const valor = kind === 'SERVICO' ? Number(valorServico.replace(',', '.')) : Number(valorMutuo.replace(',', '.'));
+      const result = await sugerirTextoContratoAction({
+        field,
+        kind,
+        direcao: kind === 'SERVICO' ? servicoDirecao : direcao,
+        partyName: contraparte.name,
+        valor,
+        categoria: kind === 'SERVICO' ? CATEGORIA_SERVICO_OPTIONS.find((o) => o.value === categoriaServico)?.label : undefined,
+        draft: field === 'descricao' ? descricao : undefined,
+      });
+      if (!result.ok) {
+        setError(result.message ?? 'Erro ao gerar sugestão.');
+        return;
+      }
+      apply(result.text);
+    } finally {
+      setSuggesting(null);
+    }
+  }
+
   function propertyLabel() {
     return properties.find((p) => p.id === propertyId)?.label ?? '';
   }
@@ -101,6 +190,10 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
     }
     if (documentSource === 'ALREADY_SIGNED' && !signingDate) {
       setError('Informe a data de assinatura.');
+      return;
+    }
+    if (kind === 'SERVICO' && servicoDirecao === 'SAIDA' && vincularRepasse && (!externalProviderId.trim() || !repassePercentInput.trim())) {
+      setError('Pra vincular o repasse automático, preencha o ID do prestador e o percentual.');
       return;
     }
 
@@ -122,7 +215,21 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
         signingDate: signingDate || undefined,
         formData:
           kind === 'SERVICO'
-            ? { kind: 'SERVICO', contraparte, descricao, valor: Number(valorServico.replace(',', '.')), formaPagamento: formaPagamentoServico, dueDay: Number(dueDayServico), startDate, endDate }
+            ? {
+                kind: 'SERVICO',
+                direcao: servicoDirecao,
+                categoria: categoriaServico || undefined,
+                contraparte,
+                descricao,
+                valor: Number(valorServico.replace(',', '.')),
+                formaPagamento: formaPagamentoServico,
+                dueDay: Number(dueDayServico),
+                startDate,
+                endDate,
+                externalProviderId: servicoDirecao === 'SAIDA' && vincularRepasse ? externalProviderId.trim() : undefined,
+                repassePercent: servicoDirecao === 'SAIDA' && vincularRepasse ? Number(repassePercentInput.replace(',', '.')) : undefined,
+                paymentFrequency: servicoDirecao === 'SAIDA' && vincularRepasse ? paymentFrequency : undefined,
+              }
             : kind === 'ALUGUEL'
               ? { kind: 'ALUGUEL', propertyId, propertyLabel: propertyLabel(), contraparte, monthlyRent: Number(monthlyRent.replace(',', '.')), indexType, startDate, endDate }
               : { kind: 'MUTUO', contraparte, direcao, valor: Number(valorMutuo.replace(',', '.')), jurosAoMes, formaPagamento: formaPagamentoMutuo, prazo: prazoMutuo, dueDay: 10, startDate, endDate },
@@ -217,6 +324,60 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
             </div>
           )}
 
+          {kind === 'SERVICO' && (
+            <div>
+              <label className={lblClass}>Direção</label>
+              <select value={servicoDirecao} onChange={(e) => setServicoDirecao(e.target.value as any)} className={fieldClass}>
+                <option value="ENTRADA">Minha empresa presta o serviço (recebe)</option>
+                <option value="SAIDA">Minha empresa contrata (paga)</option>
+              </select>
+            </div>
+          )}
+
+          <div className="relative">
+            <label className={lblClass}>Buscar Cliente Cadastrado (opcional)</label>
+            {selectedCustomerName ? (
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#1E3328]/30 bg-[#EFFFD6] dark:bg-[#1E3328] px-4 py-2.5">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+                  <UserCheck className="h-3.5 w-3.5" /> {selectedCustomerName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCustomerName(null); setContraparte(emptyParty()); }}
+                  className="rounded-full p-1 text-[#2F4A3C] dark:text-[#DFFFAE] hover:bg-black/10"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6E6A61]" />
+                <input
+                  value={customerQuery}
+                  onChange={(e) => handleCustomerQueryChange(e.target.value)}
+                  className={`${fieldClass} pl-10`}
+                  placeholder="Digite pra buscar um cliente já cadastrado, ou ignore e preencha abaixo pra um novo"
+                />
+                {customerSearching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[#6E6A61]" />}
+                {customerResults.length > 0 && (
+                  <div className="absolute z-10 mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] shadow-lg overflow-hidden">
+                    {customerResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectCustomer(c)}
+                        className="w-full text-left px-4 py-2.5 text-xs hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/5 last:border-0"
+                      >
+                        <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.name}</p>
+                        {c.document && <p className="text-[#6E6A61] dark:text-[#A8A49C]">{c.document}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className={lblClass}>{kind === 'ALUGUEL' ? 'Nome do Locatário' : 'Nome ou Razão Social'}</label>
             <input value={contraparte.name} onChange={(e) => setContraparte((c) => ({ ...c, name: e.target.value }))} className={fieldClass} placeholder="Ex: João da Silva / Empresa ME" />
@@ -249,8 +410,31 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
           {kind === 'SERVICO' && (
             <>
               <div>
-                <label className={lblClass}>Descrição do Serviço</label>
-                <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} className={`${fieldClass} resize-none`} placeholder="Ex: Consultoria contábil mensal..." />
+                <label className={lblClass}>Categoria do Serviço</label>
+                <select
+                  value={categoriaServico}
+                  onChange={(e) => {
+                    const cat = e.target.value;
+                    setCategoriaServico(cat);
+                    const opt = CATEGORIA_SERVICO_OPTIONS.find((o) => o.value === cat);
+                    if (opt && opt.starter && !descricao.trim()) setDescricao(opt.starter);
+                  }}
+                  className={fieldClass}
+                >
+                  <option value="">Selecione (opcional, ajuda na descrição e na sugestão de IA)...</option>
+                  {CATEGORIA_SERVICO_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lblClass} mb-0`}>Descrição do Serviço</label>
+                  <button type="button" onClick={() => handleSugerir('descricao', setDescricao)} disabled={suggesting === 'descricao'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                    {suggesting === 'descricao' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} {descricao.trim() ? 'Organizar com IA' : 'Sugerir com IA'}
+                  </button>
+                </div>
+                <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} className={`${fieldClass} resize-none`} placeholder="Descreva o serviço com suas palavras — a IA organiza e formaliza depois" />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -263,9 +447,46 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                 </div>
               </div>
               <div>
-                <label className={lblClass}>Forma de Pagamento</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lblClass} mb-0`}>Forma de Pagamento</label>
+                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoServico)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                    {suggesting === 'formaPagamento' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
+                  </button>
+                </div>
                 <input value={formaPagamentoServico} onChange={(e) => setFormaPagamentoServico(e.target.value)} className={fieldClass} placeholder="Ex: PIX até o dia 5 de cada mês" />
               </div>
+
+              {servicoDirecao === 'SAIDA' && (
+                <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 space-y-3 bg-white/40 dark:bg-white/5">
+                  <label className="flex items-center gap-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">
+                    <input type="checkbox" checked={vincularRepasse} onChange={(e) => setVincularRepasse(e.target.checked)} />
+                    Vincular a repasse automático de uma integração (ex.: SaaS de faturamento do cliente)
+                  </label>
+                  {vincularRepasse && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className={lblClass}>ID do Prestador na Integração</label>
+                        <input value={externalProviderId} onChange={(e) => setExternalProviderId(e.target.value)} className={fieldClass} placeholder="Ex: ID do médico no SaaS do cliente" />
+                      </div>
+                      <div>
+                        <label className={lblClass}>% de Repasse</label>
+                        <input value={repassePercentInput} onChange={(e) => setRepassePercentInput(e.target.value)} className={fieldClass} placeholder="Ex: 70" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className={lblClass}>Periodicidade de Pagamento</label>
+                        <select value={paymentFrequency} onChange={(e) => setPaymentFrequency(e.target.value as any)} className={fieldClass}>
+                          <option value="MENSAL">Mensal</option>
+                          <option value="QUINZENAL">Quinzenal (1ª e 2ª quinzena do mês)</option>
+                          <option value="SEMANAL">Semanal (por semana do mês)</option>
+                        </select>
+                      </div>
+                      <p className="sm:col-span-2 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                        Assim que este contrato for assinado, todo evento de faturamento dessa integração atribuído a este ID gera automaticamente uma conta a pagar neste contrato — {repassePercentInput || '__'}% do valor atribuído.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -282,11 +503,21 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                 </div>
               </div>
               <div>
-                <label className={lblClass}>Forma de Pagamento</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lblClass} mb-0`}>Forma de Pagamento</label>
+                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoMutuo)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                    {suggesting === 'formaPagamento' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
+                  </button>
+                </div>
                 <input value={formaPagamentoMutuo} onChange={(e) => setFormaPagamentoMutuo(e.target.value)} className={fieldClass} placeholder="Ex: Parcela única no vencimento" />
               </div>
               <div>
-                <label className={lblClass}>Prazo / Vencimento Final</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`${lblClass} mb-0`}>Prazo / Vencimento Final</label>
+                  <button type="button" onClick={() => handleSugerir('prazo', setPrazoMutuo)} disabled={suggesting === 'prazo'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                    {suggesting === 'prazo' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
+                  </button>
+                </div>
                 <input value={prazoMutuo} onChange={(e) => setPrazoMutuo(e.target.value)} className={fieldClass} placeholder="Ex: 12 meses" />
               </div>
             </>

@@ -10,16 +10,13 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowRight,
-  TrendingUp,
-  TrendingDown,
   Sparkles,
   ShieldCheck,
   DollarSign,
   Wallet,
-  Building2,
-  Users,
   Coins,
   ArrowUpRight,
+  TrendingUp,
 } from 'lucide-react';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs } from '@/lib/server/fiscal';
@@ -48,7 +45,7 @@ type Entry = {
   created_at: string | Date;
 };
 
-const CAT_COLORS = ['#2F4A3C', '#A2C1CD', '#5F6E46', '#8FA85B'];
+const CAT_COLORS = ['#1E3328', '#385344', '#5E7A6B', '#8FA89B'];
 const OUTROS_COLOR = '#C5BBAA';
 
 function buildCategorias(receivables: Entry[]) {
@@ -155,12 +152,23 @@ export default async function DashboardPage() {
     .filter((e) => e.type === 'PAYABLE' && e.reference_month === curMonth && String(e.description || '').includes('Provisão de Imposto'))
     .reduce((s, e) => s + Number(e.amount), 0);
 
+  // Faturamento Diário (Hoje)
+  const faturamentoDiario = receivables
+    .filter((e) => e.due_date === todayIso && e.status !== 'CANCELED')
+    .reduce((s, e) => s + Number(e.amount), 0);
+
+  // Faturamento Semanal (últimos 7 dias até hoje)
+  const sevenDaysAgoDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+  const sevenDaysAgoIso = sevenDaysAgoDate.toISOString().slice(0, 10);
+  const faturamentoSemanal = receivables
+    .filter((e) => e.due_date && e.due_date >= sevenDaysAgoIso && e.due_date <= todayIso && e.status !== 'CANCELED')
+    .reduce((s, e) => s + Number(e.amount), 0);
+
   // Métrica Estratégica 1: Saldo Líquido Projetado do Mês (O que realmente sobra no bolso)
   const saldoProjetado = faturamentoMes - despesasMes - provisao;
   const margemLiquidaFinal = faturamentoMes > 0 ? saldoProjetado / faturamentoMes : 0;
 
   // Métrica Estratégica 2: Lucro Isento para Sócios (Consultoria Hexx)
-  // Com escrituração contábil regular, todo o lucro contábil apurado é isento de IRPF
   const lucroIsentoDisponivel = Math.max(0, saldoProjetado);
   const economiaIRPF = lucroIsentoDisponivel * 0.275;
 
@@ -281,24 +289,24 @@ export default async function DashboardPage() {
       {/* AI Insight Card */}
       <InsightCard pageKey="cliente" insight={insight} />
 
-      {/* Header Editorial Refinado (Limpo e sem botões de ações rápidas no topo) */}
-      <header className="relative overflow-hidden rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 text-[#231F20] dark:text-[#FEFDF3] shadow-sm">
+      {/* Header Editorial Refinado */}
+      <header className="relative overflow-hidden rounded-3xl bg-[#FAF7F2] dark:bg-[#141C18] border border-black/8 dark:border-white/10 p-6 sm:p-8 text-[#18221C] dark:text-[#FEFDF3] shadow-sm">
         <div className="relative z-10 flex flex-col gap-5">
           {/* Badges de Status & Data */}
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm">
-                <Sparkles className="h-3 w-3" /> Visão Executiva
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#111A15] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm">
+                <Sparkles className="h-3 w-3" /> Visão Geral
               </span>
-              <span className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/10 px-3.5 py-1 text-xs font-medium border border-black/5 dark:border-white/10 text-[#6E6A61] dark:text-[#A8A49C]">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-white/10 px-3.5 py-1 text-xs font-medium border border-black/5 dark:border-white/10 text-[#5F6F66] dark:text-[#94A79C]">
                 <Calendar className="h-3.5 w-3.5" /> {dateFormatted}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               {tudoEmDia ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-3.5 py-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]/50">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#DFFFAE]/30 dark:bg-[#DFFFAE]/15 px-3.5 py-1 text-xs font-bold text-[#1E3328] dark:text-[#DFFFAE] border border-[#DFFFAE]/40">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#1E3328] dark:text-[#DFFFAE]" />
                   Operação 100% em dia
                 </span>
               ) : (
@@ -312,10 +320,10 @@ export default async function DashboardPage() {
 
           {/* Título Editorial de Impacto */}
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] mb-1.5">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold tracking-tight text-[#18221C] dark:text-[#FEFDF3] mb-1.5">
               Visão Geral
             </h1>
-            <p className="text-[#6E6A61] dark:text-[#A8A49C] text-sm sm:text-base max-w-2xl">
+            <p className="text-[#5F6F66] dark:text-[#94A79C] text-sm sm:text-base max-w-2xl">
               Acompanhe suas entradas, saídas e quanto vai sobrar no bolso neste mês.
             </p>
           </div>
@@ -332,19 +340,19 @@ export default async function DashboardPage() {
       )}
 
       {lastClosureDate && (
-        <div className="bg-[#EFFFD6] border border-[#DFFFAE] dark:bg-[#1E3328] dark:border-[#2F4A3C] rounded-3xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        <div className="bg-[#FAF7F2] border border-[#DFFFAE]/80 dark:bg-[#141C18] dark:border-[#2F4A3C] rounded-3xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3.5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#1E3328] text-[#DFFFAE] font-bold shadow-sm">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#111A15] text-[#DFFFAE] font-bold shadow-sm">
               <FileText className="h-5 w-5" />
             </span>
             <div>
-              <p className="font-serif font-bold text-[#1E3328] dark:text-[#DFFFAE]">O fechamento contábil mensal está pronto!</p>
-              <p className="text-xs text-[#2F4A3C] dark:text-[#A8A49C]">Resumo contábil e notas fiscais do mês anterior consolidadas com sucesso.</p>
+              <p className="font-serif font-bold text-[#18221C] dark:text-[#FEFDF3]">O fechamento contábil mensal está pronto!</p>
+              <p className="text-xs text-[#5F6F66] dark:text-[#94A79C]">Resumo contábil e notas fiscais do mês anterior consolidadas com sucesso.</p>
             </div>
           </div>
           <Link
             href={`/meu-negocio/relatorios/fechamento?month=${lastClosureDate}`}
-            className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105 whitespace-nowrap"
+            className="rounded-full bg-[#111A15] hover:bg-[#1E3328] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 whitespace-nowrap"
           >
             Ver Relatório Completo →
           </Link>
@@ -352,99 +360,96 @@ export default async function DashboardPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 1. MASTER BENTO GRID (HERO FINANCEIRO + LUCRO ISENTO SÓCIOS)               */}
+      {/* 1. MASTER BENTO GRID (HERO FINANCEIRO OBSIDIANA + SOBRA PARA O SÓCIO)     */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* HERO MASTER CARD: Posição de Caixa Líquida Projetada (2 Colunas) */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-[#1E3328] text-[#FEFDF3] border border-[#2F4A3C] p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+        {/* HERO MASTER CARD: Faturamento Total & Tração (2 Colunas) */}
+        <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#18261F] via-[#111A15] to-[#0D1410] text-[#FEFDF3] border border-[#2F4A3C]/80 p-6 sm:p-8 shadow-md flex flex-col justify-between">
           <div className="relative z-10">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2 text-[#DFFFAE] text-xs font-bold uppercase tracking-wider">
-                <Wallet className="h-4 w-4" />
-                <span>Previsão de Caixa</span>
+                <TrendingUp className="h-4 w-4" />
+                <span>Faturamento Total</span>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#2F4A3C] px-3 py-0.5 text-[11px] font-bold text-[#DFFFAE] border border-[#DFFFAE]/20">
-                Sobra no Mês
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] px-3 py-0.5 text-[11px] font-bold text-[#DFFFAE] border border-[#DFFFAE]/20">
+                Total do Mês
               </span>
             </div>
 
             <div className="flex flex-wrap items-baseline gap-3 mb-6">
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#FEFDF3]">
-                {BRL.format(saldoProjetado)}
+                {BRL.format(faturamentoMes)}
               </h2>
-              {faturamentoMes > 0 && (
+              {fatTrend !== 0 && (
                 <span
-                  className={`text-xs sm:text-sm font-bold px-2.5 py-1 rounded-xl ${
-                    saldoProjetado >= 0
+                  className={`text-xs sm:text-sm font-mono font-bold px-2.5 py-1 rounded-xl ${
+                    fatTrend >= 0
                       ? 'bg-[#DFFFAE]/15 text-[#DFFFAE]'
                       : 'bg-red-400/20 text-red-300'
                   }`}
                 >
-                  {saldoProjetado >= 0 ? '+' : ''}{pct(margemLiquidaFinal)} da receita
+                  {fatTrend > 0 ? '↑' : '↓'} {pct(Math.abs(fatTrend))} vs mês anterior
                 </span>
               )}
             </div>
           </div>
 
-          {/* 3 Sub-métricas integradas em vidro verde nobre */}
-          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#2F4A3C]">
-            <div className="bg-[#2F4A3C]/60 border border-[#DFFFAE]/15 rounded-2xl p-3.5">
+          {/* 3 Sub-métricas: Diário, Semanal e Imposto Acumulado */}
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10">
+            <div className="bg-white/5 border border-white/8 rounded-2xl p-3.5">
               <div className="flex items-center justify-between text-[11px] text-[#DFFFAE]/70 uppercase tracking-wider mb-1">
-                <span>Entradas Previstas</span>
-                {fatTrend !== 0 && (
-                  <span className="text-[10px] font-bold text-[#DFFFAE]">
-                    {fatTrend > 0 ? '↑' : '↓'} {pct(Math.abs(fatTrend))}
-                  </span>
-                )}
+                <span>Faturamento Diário</span>
+                <span className="text-[10px] font-mono text-[#DFFFAE]/60">Hoje</span>
               </div>
-              <p className="font-serif font-bold text-lg text-[#FEFDF3]">{BRL.format(faturamentoMes)}</p>
+              <p className="font-mono font-bold text-lg text-[#FEFDF3]">{BRL.format(faturamentoDiario)}</p>
             </div>
 
-            <div className="bg-[#2F4A3C]/60 border border-[#DFFFAE]/15 rounded-2xl p-3.5">
-              <span className="text-[11px] text-[#DFFFAE]/70 uppercase tracking-wider block mb-1">
-                Saídas Previstas
-              </span>
-              <p className="font-serif font-bold text-lg text-[#FEFDF3]">{BRL.format(despesasMes)}</p>
+            <div className="bg-white/5 border border-white/8 rounded-2xl p-3.5">
+              <div className="flex items-center justify-between text-[11px] text-[#DFFFAE]/70 uppercase tracking-wider mb-1">
+                <span>Faturamento Semanal</span>
+                <span className="text-[10px] font-mono text-[#DFFFAE]/60">7 dias</span>
+              </div>
+              <p className="font-mono font-bold text-lg text-[#FEFDF3]">{BRL.format(faturamentoSemanal)}</p>
             </div>
 
-            <div className="bg-[#2F4A3C]/60 border border-[#DFFFAE]/15 rounded-2xl p-3.5" title={`Provisão calculada com base no Anexo ${simples.anexo} do Simples Nacional`}>
+            <div className="bg-white/5 border border-white/8 rounded-2xl p-3.5" title={`Provisão acumulada com base no Simples Nacional`}>
               <div className="flex items-center justify-between text-[11px] text-[#DFFFAE]/70 uppercase tracking-wider mb-1">
-                <span>Imposto do Mês (DAS)</span>
-                <span className="text-[9px] text-[#DFFFAE]/60">vence {nextMonthLabel}</span>
+                <span>Imposto Acumulado</span>
+                <span className="text-[9px] text-[#DFFFAE]/60">do mês</span>
               </div>
-              <p className="font-serif font-bold text-lg text-amber-300">{BRL.format(provisao)}</p>
+              <p className="font-mono font-bold text-lg text-amber-300">{BRL.format(provisao)}</p>
             </div>
           </div>
         </div>
 
-        {/* CARD DESTAQUE: Lucro Isento para Sócios (1 Coluna) */}
-        <div className="relative overflow-hidden rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+        {/* CARD DESTAQUE: Sobra para Você (1 Coluna) */}
+        <div className="relative overflow-hidden rounded-3xl border border-black/8 dark:border-white/10 bg-white dark:bg-[#141C18] p-6 sm:p-8 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="grid h-8 w-8 place-items-center rounded-2xl bg-[#1E3328] text-[#DFFFAE]">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-8 w-8 place-items-center rounded-2xl bg-[#111A15] text-[#DFFFAE] shadow-sm">
                   <Coins className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+                  <h3 className="font-serif font-bold text-base text-[#18221C] dark:text-[#FEFDF3]">
                     Sobra para Você
                   </h3>
-                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                  <p className="text-[11px] text-[#5F6F66] dark:text-[#94A79C]">
                     Livre de Imposto de Renda
                   </p>
                 </div>
               </div>
 
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]/50">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#DFFFAE]/40 dark:bg-[#DFFFAE]/15 px-2.5 py-0.5 text-[10px] font-bold text-[#1E3328] dark:text-[#DFFFAE] border border-[#DFFFAE]/60">
                 100% Isento
               </span>
             </div>
 
             <div className="my-5">
-              <p className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#2F4A3C] dark:text-[#DFFFAE]">
+              <p className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#1E3328] dark:text-[#DFFFAE]">
                 {BRL.format(lucroIsentoDisponivel)}
               </p>
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-2 leading-relaxed">
+              <p className="text-xs text-[#5F6F66] dark:text-[#94A79C] mt-2 leading-relaxed">
                 Quanto você pode transferir para a sua conta pessoal este mês sem pagar imposto de renda.
               </p>
             </div>
@@ -452,13 +457,13 @@ export default async function DashboardPage() {
 
           <div className="pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-xs">
             <div>
-              <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] block">Economia no IRPF:</span>
-              <strong className="text-[#2F4A3C] dark:text-[#DFFFAE] font-mono text-sm">~{BRL.format(economiaIRPF)}</strong>
+              <span className="text-[11px] text-[#5F6F66] dark:text-[#94A79C] block">Economia no IRPF:</span>
+              <strong className="text-[#1E3328] dark:text-[#DFFFAE] font-mono text-sm font-bold">~{BRL.format(economiaIRPF)}</strong>
             </div>
 
             <Link
               href="/minha-contabilidade/distribuicao-lucros"
-              className="inline-flex items-center gap-1 font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
+              className="inline-flex items-center gap-1 font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline"
             >
               Ver Retiradas <ArrowRight className="h-3 w-3" />
             </Link>
@@ -467,26 +472,26 @@ export default async function DashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. OPERAÇÃO & PULSO (RADAR DE INADIMPLÊNCIA + FLUXO DE CAIXA 14 DIAS)       */}
+      {/* 2. OPERAÇÃO & PULSO (CONTAS ATRASADAS + RÉGUA DE TESOURARIA 14 DIAS)       */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* RADAR DE INADIMPLÊNCIA: Dinheiro na Rua (1 Coluna) */}
-        <div className="relative overflow-hidden rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+        {/* CONTAS ATRASADAS: Radar de Inadimplência (1 Coluna) */}
+        <div className="relative overflow-hidden rounded-3xl border border-black/8 dark:border-white/10 bg-white dark:bg-[#141C18] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span className={`grid h-8 w-8 place-items-center rounded-2xl ${
                   totalInadimplente > 0
                     ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                    : 'bg-[#EFFFD6] dark:bg-[#2F4A3C] text-[#2F4A3C] dark:text-[#DFFFAE]'
+                    : 'bg-[#DFFFAE]/30 dark:bg-[#DFFFAE]/15 text-[#1E3328] dark:text-[#DFFFAE]'
                 }`}>
                   <DollarSign className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+                  <h3 className="font-serif font-bold text-base text-[#18221C] dark:text-[#FEFDF3]">
                     Contas Atrasadas
                   </h3>
-                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                  <p className="text-[11px] text-[#5F6F66] dark:text-[#94A79C]">
                     Clientes pendentes
                   </p>
                 </div>
@@ -497,7 +502,7 @@ export default async function DashboardPage() {
                   {qtdInadimplentes} pendente{qtdInadimplentes > 1 ? 's' : ''}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#DFFFAE]/30 dark:bg-[#DFFFAE]/15 px-2.5 py-0.5 text-[10px] font-bold text-[#1E3328] dark:text-[#DFFFAE]">
                   Nenhum atraso
                 </span>
               )}
@@ -505,23 +510,23 @@ export default async function DashboardPage() {
 
             {totalInadimplente > 0 ? (
               <div className="my-4">
-                <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">
+                <p className="text-[11px] text-[#5F6F66] dark:text-[#94A79C] uppercase tracking-wider font-bold">
                   Total a receber em atraso:
                 </p>
-                <p className="font-serif text-3xl font-bold text-amber-700 dark:text-amber-400 mt-1">
+                <p className="font-serif text-3xl font-bold text-[#C85A32] dark:text-[#E57850] mt-1">
                   {BRL.format(totalInadimplente)}
                 </p>
-                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-2 leading-relaxed">
+                <p className="text-xs text-[#5F6F66] dark:text-[#94A79C] mt-2 leading-relaxed">
                   Cobranças que passaram da data de vencimento e requerem atenção.
                 </p>
               </div>
             ) : (
               <div className="my-5 py-4 text-center">
-                <CheckCircle2 className="h-8 w-8 text-[#2F4A3C] dark:text-[#DFFFAE] mx-auto mb-2" />
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">
+                <CheckCircle2 className="h-8 w-8 text-[#1E3328] dark:text-[#DFFFAE] mx-auto mb-2" />
+                <p className="text-sm font-bold text-[#18221C] dark:text-[#FEFDF3]">
                   Tudo em dia!
                 </p>
-                <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                <p className="text-xs text-[#5F6F66] dark:text-[#94A79C] mt-1">
                   Todos os clientes pagaram no prazo neste mês.
                 </p>
               </div>
@@ -531,15 +536,15 @@ export default async function DashboardPage() {
           <div className="pt-4 border-t border-black/5 dark:border-white/5">
             <Link
               href="/meu-negocio/contas-a-receber"
-              className="inline-flex items-center justify-between w-full rounded-2xl bg-white/70 dark:bg-white/10 hover:bg-white dark:hover:bg-white/15 px-4 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] transition-all"
+              className="inline-flex items-center justify-between w-full rounded-2xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 px-4 py-2.5 text-xs font-bold text-[#18221C] dark:text-[#FEFDF3] transition-all"
             >
               <span>Cobrar Clientes</span>
-              <ArrowRight className="h-3.5 w-3.5 text-[#6E6A61]" />
+              <ArrowRight className="h-3.5 w-3.5 text-[#5F6F66]" />
             </Link>
           </div>
         </div>
 
-        {/* FLUXO DE CAIXA DOS PRÓXIMOS 14 DIAS (2 Colunas) */}
+        {/* RÉGUA DE TESOURARIA DOS PRÓXIMOS 14 DIAS (2 Colunas) */}
         <div className="lg:col-span-2">
           <CashflowForecast
             days={cashflowDays}
@@ -550,52 +555,63 @@ export default async function DashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. HISTÓRICO & SERVIÇOS                                                    */}
+      {/* 3. HISTÓRICO & COMPOSIÇÃO DE SERVIÇOS                                      */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <GlassCard
           title="Histórico de Faturamento"
           action
           href="/meu-negocio/hub-financeiro"
-          className="lg:col-span-2"
+          className="lg:col-span-2 bg-white dark:bg-[#141C18] border border-black/8 dark:border-white/10"
         >
           <RevenueChart data={chartData} />
         </GlassCard>
 
-        <GlassCard
-          title="Serviços Mais Vendidos"
-          action
-          href="/meu-negocio/hub-financeiro"
-        >
-          {categorias.length ? (
-            <div className="mt-5 space-y-4">
-              <div className="flex h-3.5 w-full gap-[2px] overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
-                {categorias.map((c) => (
-                  <div
-                    key={c.label}
-                    title={`${c.label}: ${pct(c.pct / 100)}`}
-                    className="h-full min-w-[6px] first:rounded-l-full last:rounded-r-full transition-[flex-grow] duration-500"
-                    style={{ flexGrow: c.pct, flexBasis: 0, background: c.color }}
-                  />
-                ))}
-              </div>
-              <ul className="space-y-2.5 text-xs sm:text-sm">
-                {categorias.map((c) => (
-                  <li key={c.label} className="flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
-                    <span className="flex-1 truncate text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</span>
-                    <span className="tabular font-medium text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}</span>
-                    <span className="w-10 text-right font-bold tabular text-[#6E6A61] dark:text-[#A8A49C]">{pct(c.pct / 100, 0)}</span>
-                  </li>
-                ))}
-              </ul>
+        {/* SERVIÇOS MAIS VENDIDOS */}
+        <div className="rounded-3xl border border-black/8 dark:border-white/10 bg-white dark:bg-[#141C18] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
+              <h2 className="font-serif font-bold text-base text-[#18221C] dark:text-[#FEFDF3]">
+                Serviços Mais Vendidos
+              </h2>
+              <Link href="/meu-negocio/hub-financeiro" className="text-xs font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline">
+                Ver todos →
+              </Link>
             </div>
-          ) : (
-            <p className="mt-6 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-              Sem recebíveis no mês — emita notas fiscais para visualizar a distribuição por serviço.
-            </p>
-          )}
-        </GlassCard>
+
+            {categorias.length ? (
+              <div className="mt-5 space-y-4">
+                {/* Segmented Bar */}
+                <div className="flex h-3 w-full gap-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+                  {categorias.map((c) => (
+                    <div
+                      key={c.label}
+                      title={`${c.label}: ${pct(c.pct / 100)}`}
+                      className="h-full first:rounded-l-full last:rounded-r-full transition-[flex-grow] duration-500"
+                      style={{ flexGrow: c.pct, flexBasis: 0, background: c.color }}
+                    />
+                  ))}
+                </div>
+
+                {/* Categories List */}
+                <ul className="space-y-3 pt-2 text-xs sm:text-sm">
+                  {categorias.map((c) => (
+                    <li key={c.label} className="flex items-center gap-2.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                      <span className="flex-1 truncate text-[#5F6F66] dark:text-[#94A79C] font-medium">{c.label}</span>
+                      <span className="font-mono font-bold text-[#18221C] dark:text-[#FEFDF3]">{BRL.format(c.value)}</span>
+                      <span className="w-10 text-right font-mono text-xs font-bold text-[#5F6F66] dark:text-[#94A79C]">{pct(c.pct / 100, 0)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-[#5F6F66] dark:text-[#94A79C]">
+                Sem recebíveis no mês — emita notas fiscais para visualizar a distribuição por serviço.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -611,25 +627,25 @@ export default async function DashboardPage() {
             action
             highlight
             href="/suporte"
-            className="h-full"
+            className="h-full bg-white dark:bg-[#141C18] border border-black/8 dark:border-white/10"
           >
             <div className="mt-3 space-y-2.5 text-xs">
               {openDasGuide && (
-                <div className="rounded-2xl border border-[#DFFFAE]/30 bg-[#DFFFAE]/10 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between font-bold text-[#DFFFAE]">
+                <div className="rounded-2xl border border-[#1E3328]/20 dark:border-[#DFFFAE]/30 bg-[#FAF7F2] dark:bg-[#DFFFAE]/10 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between font-bold text-[#1E3328] dark:text-[#DFFFAE]">
                     <span className="flex items-center gap-1.5 font-serif text-sm">
                       <FileText className="h-4 w-4" /> Guia DAS Simples
                     </span>
-                    <span className="rounded-full bg-[#DFFFAE] text-[#1E3328] px-2 py-0.5 text-[10px] font-bold">Pendente</span>
+                    <span className="rounded-full bg-[#111A15] text-[#DFFFAE] px-2 py-0.5 text-[10px] font-bold">Pendente</span>
                   </div>
-                  <p className="text-[#FEFDF3]/80 text-xs">
+                  <p className="text-[#18221C]/80 dark:text-[#FEFDF3]/80 text-xs">
                     Guia do DAS no valor de <strong>{BRL.format(openDasGuide.amount)}</strong> disponível para pagamento.
                   </p>
-                  <div className="pt-2 flex items-center justify-between border-t border-white/10">
-                    <span className="text-[11px] text-[#FEFDF3]/60">
+                  <div className="pt-2 flex items-center justify-between border-t border-black/5 dark:border-white/10">
+                    <span className="text-[11px] text-[#5F6F66] dark:text-[#FEFDF3]/60 font-mono">
                       Vencimento: {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
                     </span>
-                    <Link href="/minha-contabilidade/guias" className="font-bold text-[#DFFFAE] hover:underline flex items-center gap-1">
+                    <Link href="/minha-contabilidade/guias" className="font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline flex items-center gap-1">
                       Ver Guia <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
@@ -641,26 +657,26 @@ export default async function DashboardPage() {
                   key={a.text}
                   className={
                     a.tone === 'critical'
-                      ? 'flex items-center gap-2.5 rounded-2xl bg-red-500/15 border border-red-400/25 p-3 text-red-200'
+                      ? 'flex items-center gap-2.5 rounded-2xl bg-red-500/10 border border-red-400/25 p-3 text-red-700 dark:text-red-300'
                       : a.tone === 'warn'
-                        ? 'flex items-center gap-2.5 rounded-2xl bg-amber-400/15 border border-amber-300/25 p-3 text-amber-200'
-                        : 'flex items-center gap-2.5 rounded-2xl bg-white/10 border border-white/10 p-3 text-[#FEFDF3]/80'
+                        ? 'flex items-center gap-2.5 rounded-2xl bg-amber-400/10 border border-amber-300/25 p-3 text-amber-800 dark:text-amber-300'
+                        : 'flex items-center gap-2.5 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/10 p-3 text-[#18221C] dark:text-[#FEFDF3]/80'
                   }
                 >
                   {a.tone === 'critical' ? (
-                    <AlertCircle className="h-4 w-4 shrink-0 text-red-300" />
+                    <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
                   ) : a.tone === 'warn' ? (
-                    <Clock className="h-4 w-4 shrink-0 text-amber-300" />
+                    <Clock className="h-4 w-4 shrink-0 text-amber-500" />
                   ) : (
-                    <FileText className="h-4 w-4 shrink-0 text-[#DFFFAE]" />
+                    <FileText className="h-4 w-4 shrink-0 text-[#1E3328] dark:text-[#DFFFAE]" />
                   )}
                   <span className="flex-1 font-medium">{a.text}</span>
                 </div>
               ))}
 
               {!openDasGuide && avisos.length === 0 && (
-                <div className="flex items-center gap-2.5 rounded-2xl bg-white/10 border border-white/10 p-3 text-[#FEFDF3]/80">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#DFFFAE]" />
+                <div className="flex items-center gap-2.5 rounded-2xl bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/10 p-3 text-[#18221C] dark:text-[#FEFDF3]/80">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1E3328] dark:text-[#DFFFAE]" />
                   <span className="flex-1 font-medium">Nenhum aviso — caixa postal em dia.</span>
                 </div>
               )}
@@ -674,69 +690,80 @@ export default async function DashboardPage() {
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Margem de Lucro */}
-        <GlassCard
-          title="Margem de Lucro"
-          action
-          href="/meu-negocio/hub-financeiro"
-        >
-          <div className="mt-3 flex items-end justify-between">
-            <p className="text-3xl font-serif font-bold tracking-tight tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{pct(margem)}</p>
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#1E3328] dark:text-[#DFFFAE]">
-              <Percent className="h-4 w-4" />
-            </span>
+        <div className="rounded-3xl border border-black/8 dark:border-white/10 bg-white dark:bg-[#141C18] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
+              <h3 className="font-serif font-bold text-base text-[#18221C] dark:text-[#FEFDF3]">
+                Margem de Lucro
+              </h3>
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#DFFFAE]/30 dark:bg-[#DFFFAE]/15 text-[#1E3328] dark:text-[#DFFFAE]">
+                <Percent className="h-4 w-4" />
+              </span>
+            </div>
+
+            <div className="mt-4 flex items-baseline justify-between">
+              <p className="text-3xl font-serif font-bold tracking-tight text-[#1E3328] dark:text-[#DFFFAE]">{pct(margem)}</p>
+              <span className="text-xs text-[#5F6F66] dark:text-[#94A79C] font-medium">Lucro Líquido / Receita</span>
+            </div>
+
+            <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+              <div className="h-full rounded-full bg-[#1E3328] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(Math.max(0, margem), 0) }} />
+            </div>
+
+            <ul className="mt-5 space-y-2 text-xs text-[#5F6F66] dark:text-[#94A79C]">
+              <li className="flex justify-between font-medium"><span>Faturamento</span><span className="font-mono font-bold text-[#18221C] dark:text-[#FEFDF3]">{BRL.format(faturamentoMes)}</span></li>
+              <li className="flex justify-between font-medium"><span>Despesas</span><span className="font-mono font-bold text-[#18221C] dark:text-[#FEFDF3]">{BRL.format(despesasMes)}</span></li>
+              <li className="flex justify-between border-t border-black/5 dark:border-white/5 pt-2 font-medium"><span>Lucro do mês</span><span className="font-mono font-bold text-[#1E3328] dark:text-[#DFFFAE]">{BRL.format(lucro)}</span></li>
+            </ul>
           </div>
-          <div className="mt-3.5 h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-            <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(Math.max(0, margem), 0) }} />
-          </div>
-          <ul className="mt-4 space-y-1.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-            <li className="flex justify-between"><span>Faturamento</span><span className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(faturamentoMes)}</span></li>
-            <li className="flex justify-between"><span>Despesas</span><span className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(despesasMes)}</span></li>
-            <li className="flex justify-between border-t border-black/5 dark:border-white/5 pt-1"><span>Lucro do mês</span><span className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(lucro)}</span></li>
-          </ul>
-        </GlassCard>
+        </div>
 
         {/* Impostos & Simples Nacional */}
-        <GlassCard
-          title="Impostos &amp; Simples"
-          action
-          href="/minha-contabilidade/termometro-tributario"
-        >
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
-              Anexo {simples.anexo} · Faixa {simples.faixa}
-            </p>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-              isSafeAnexo3
-                ? 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]'
-                : 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200'
-            }`}>
-              {isSafeAnexo3 ? 'Anexo III (6%)' : 'Anexo V (15,5%)'}
-            </span>
-          </div>
+        <div className="rounded-3xl border border-black/8 dark:border-white/10 bg-white dark:bg-[#141C18] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
+              <h3 className="font-serif font-bold text-base text-[#18221C] dark:text-[#FEFDF3]">
+                Impostos &amp; Simples
+              </h3>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                isSafeAnexo3
+                  ? 'bg-[#DFFFAE]/30 text-[#1E3328] dark:bg-[#DFFFAE]/15 dark:text-[#DFFFAE]'
+                  : 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200'
+              }`}>
+                {isSafeAnexo3 ? 'Anexo III (6%)' : 'Anexo V (15,5%)'}
+              </span>
+            </div>
 
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Alíquota nominal {rate(simples.nominalRate)}</p>
-          <div className="mt-3.5 h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-            <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(faixaProgress, 0) }} />
-          </div>
+            <div className="mt-4">
+              <p className="text-xl font-serif font-bold tracking-tight text-[#18221C] dark:text-[#FEFDF3]">
+                Anexo {simples.anexo} · Faixa {simples.faixa}
+              </p>
+              <p className="text-xs text-[#5F6F66] dark:text-[#94A79C] mt-0.5">Alíquota nominal {rate(simples.nominalRate)}</p>
+            </div>
 
-          {simples.toNextFaixa !== null ? (
-            <p className="mt-2 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              Faltam <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(simples.toNextFaixa)}</span> para a Faixa{' '}
-              {simples.faixa + 1} (alíquota sobe para {rate(simples.nextRate ?? 0)}).
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">Você está na última faixa — atenção ao teto do Simples.</p>
-          )}
+            <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+              <div className="h-full rounded-full bg-[#1E3328] dark:bg-[#DFFFAE] transition-[width] duration-700 ease-out" style={{ width: pct(faixaProgress, 0) }} />
+            </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-2.5 py-0.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
-              Fator R {simples.fatorR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 px-2.5 py-0.5 text-xs font-medium text-[#6E6A61] dark:text-[#A8A49C]">
-              {pct(simples.ceilingUsagePct)} do teto
-            </span>
+            {simples.toNextFaixa !== null ? (
+              <p className="mt-2.5 text-xs text-[#5F6F66] dark:text-[#94A79C]">
+                Faltam <span className="font-bold font-mono text-[#18221C] dark:text-[#FEFDF3]">{BRL.format(simples.toNextFaixa)}</span> para a Faixa{' '}
+                {simples.faixa + 1} (alíquota sobe para {rate(simples.nextRate ?? 0)}).
+              </p>
+            ) : (
+              <p className="mt-2.5 text-xs text-amber-600 dark:text-amber-400 font-medium">Você está na última faixa — atenção ao teto do Simples.</p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2 pt-2 border-t border-black/5 dark:border-white/5">
+              <span className="inline-flex items-center rounded-full bg-[#DFFFAE]/30 dark:bg-[#DFFFAE]/15 px-2.5 py-0.5 text-xs font-mono font-bold text-[#1E3328] dark:text-[#DFFFAE]">
+                Fator R {simples.fatorR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-xs font-mono font-medium text-[#5F6F66] dark:text-[#94A79C]">
+                {pct(simples.ceilingUsagePct)} do teto
+              </span>
+            </div>
           </div>
-        </GlassCard>
+        </div>
 
         {/* Saúde Fiscal */}
         <HealthScoreCard

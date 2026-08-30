@@ -97,6 +97,7 @@ export const integrationKind = pgEnum('integration_kind', [
   'OPEN_FINANCE',
   'ERP',
   'GATEWAY',
+  'REVENUE_SAAS',
 ]);
 export const subscriptionStatus = pgEnum('subscription_status', [
   'ACTIVE',

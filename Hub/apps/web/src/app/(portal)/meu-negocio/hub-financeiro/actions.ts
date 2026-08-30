@@ -27,7 +27,8 @@ export async function getLancamentos() {
         f.created_at,
         (f.receipt_base64 IS NOT NULL) as has_receipt,
         f.receipt_filename,
-        f.source
+        f.source,
+        f.source_id
       FROM financial_entry f
       LEFT JOIN category c ON c.id = f.category_id
       LEFT JOIN business_partner bp ON bp.id = f.partner_id
@@ -57,6 +58,7 @@ export async function getLancamentos() {
     comprovanteNome: row.receipt_filename as string | null,
     isFixa: row.source === 'RECURRING',
     source: row.source as string | null,
+    sourceId: row.source_id as string | null,
   }));
 }
 

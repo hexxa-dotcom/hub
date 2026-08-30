@@ -30,11 +30,12 @@ import {
   Folder,
   Link2,
   Sparkles,
+  Wallet,
 } from 'lucide-react';
 import { DocusealBuilder } from '@docuseal/react';
 import dynamic from 'next/dynamic';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
-import { type ContractRow, createContractAction } from './actions';
+import { type ContractRow, type RepasseRow, createContractAction } from './actions';
 import { STATUS_LABEL, STATUS_CLASS } from './contract-status';
 
 // @react-pdf/renderer é pesado — só carrega quando o wizard é aberto.
@@ -52,6 +53,7 @@ const TABS = [
   { key: 'entrada', label: 'Contratos de Entrada (Clientes)', icon: ArrowUpRight },
   { key: 'saida', label: 'Contratos de Saída (Fornecedores)', icon: ArrowDownRight },
   { key: 'mutuo', label: 'Mútuos (Societário)', icon: Sparkles },
+  { key: 'repasses', label: 'Repasses (Integração SaaS)', icon: Wallet },
   { key: 'criar', label: 'Criar & Assinar Contrato (PDF/Wizard)', icon: FilePenLine },
   { key: 'docuseal', label: 'Construtor DocuSeal', icon: FileSignature },
 ];
@@ -61,21 +63,25 @@ export function ContratosClient({
   initialContracts,
   companyType,
   hasProperties,
+  initialRepasses,
 }: {
   initialDocs: SignatureRequestSummary[];
   initialContracts: ContractRow[];
   companyType: 'SERVICE' | 'HOLDING';
   hasProperties: boolean;
+  initialRepasses: RepasseRow[];
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('entrada');
   const [contracts, setContracts] = useState<ContractRow[]>(initialContracts);
+  const [repasses, setRepasses] = useState<RepasseRow[]>(initialRepasses);
   const [docs, setDocs] = useState<SignatureRequestSummary[]>(initialDocs);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [wizardMode, setWizardMode] = useState<'upload' | 'generate'>('generate');
   const [savingContract, setSavingContract] = useState(false);
 
   useEffect(() => setContracts(initialContracts), [initialContracts]);
+  useEffect(() => setRepasses(initialRepasses), [initialRepasses]);
 
   // DocuSeal Token
   const [docusealToken, setDocusealToken] = useState<string | null>(null);
@@ -433,6 +439,95 @@ export function ContratosClient({
 
             {(activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos).length === 0 && (
               <p className="sm:col-span-2 text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : activeTab === 'saida' ? 'saída' : 'mútuo'} cadastrado ainda.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 💰 ABA REPASSES (INTEGRAÇÃO SAAS) */}
+      {activeTab === 'repasses' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Total a Pagar Este Mês</p>
+              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-red-700 dark:text-red-400">
+                {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesPendente + r.valorExtraMesPendente, 0))}
+              </p>
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Pendente, integração + extras</p>
+            </div>
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Faturado Via Integração Este Mês</p>
+              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+                {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesTotal, 0))}
+              </p>
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Pago + pendente, soma de todos os prestadores</p>
+            </div>
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Prestadores Vinculados</p>
+              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+                {repasses.filter((r) => r.status === 'ATIVO').length}
+              </p>
+              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Com contrato ativo e repasse configurado</p>
+            </div>
+          </div>
+
+          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Valor a Pagar por Prestador</h2>
+
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-sm overflow-hidden">
+            {repasses.length === 0 ? (
+              <p className="py-12 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+                Nenhum contrato vinculado a repasse automático ainda. Crie um contrato de Prestação de Serviço com direção "Minha empresa contrata" e marque "Vincular a repasse automático" no wizard.
+              </p>
+            ) : (
+              <div className="divide-y divide-black/5 dark:divide-white/10">
+                {repasses.map((r) => (
+                  <Link
+                    key={r.contractId}
+                    href={`/meu-negocio/contratos/${r.contractId}` as Route}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{r.partyName}</p>
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                        {r.paymentFrequency !== 'MENSAL' && (
+                          <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                            {r.paymentFrequency === 'QUINZENAL' ? 'Quinzenal' : 'Semanal'}
+                          </span>
+                        )}
+                        {r.valorExtraMesPendente > 0 && (
+                          <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                            + {BRL.format(r.valorExtraMesPendente)} extra
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
+                        ID na integração: <span className="font-mono">{r.externalProviderId}</span> · Repasse {r.repassePercent}%
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {r.paymentFrequency === 'QUINZENAL' ? (
+                        <>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">1ª quinz. <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorQuinzena1Pendente)}</span></p>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">2ª quinz. <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorQuinzena2Pendente)}</span></p>
+                        </>
+                      ) : r.paymentFrequency === 'SEMANAL' ? (
+                        <>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 1 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana1Pendente)}</span></p>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 2 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana2Pendente)}</span></p>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 3 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana3Pendente)}</span></p>
+                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 4 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana4Pendente)}</span></p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorMesPendente)}</p>
+                          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">pendente este mês</p>
+                        </>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         </div>

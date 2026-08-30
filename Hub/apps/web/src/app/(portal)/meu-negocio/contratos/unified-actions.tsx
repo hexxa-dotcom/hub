@@ -4,11 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { getTenantContext } from '@/lib/server/tenant';
 import type { TenantContext } from '@hexxa/core';
-import { getDb, withTenant, withDbTimeout, eq, and } from '@hexxa/db';
-import { company, membership, appUser, businessContract, lease, property } from '@hexxa/db/schema';
+import { getDb, withTenant, withDbTimeout, eq, and, ilike } from '@hexxa/db';
+import { company, membership, appUser, businessContract, lease, property, customer } from '@hexxa/db/schema';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 import { makeContractSignatureService, signatureRequestRepository } from '@/lib/server/container';
 import { gerarLancamentosDoContrato, gerarLancamentosDoAluguel } from '@/lib/server/contract-financials';
+import { draftContractField } from '@/lib/server/ai-draft';
 import { StandardContractTemplate, type ContractData } from './StandardContractTemplate';
 import { MutuoContractTemplate, type MutuoContractData } from './MutuoContractTemplate';
 import { AluguelContractTemplate, type AluguelContractData } from './AluguelContractTemplate';
@@ -96,6 +97,69 @@ export async function listPropertiesForWizardAction(): Promise<PropertyOption[]>
   return rows;
 }
 
+export type CustomerOption = { id: string; name: string; document: string | null; email: string | null; address: string | null };
+
+/** Busca clientes já cadastrados (Meu Negócio > Clientes) por nome, pro wizard oferecer "usar cliente existente" em vez de digitar tudo de novo. */
+export async function searchCustomersAction(query: string): Promise<CustomerOption[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const ctx = await getTenantContext();
+  const rows = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({ id: customer.id, name: customer.name, document: customer.document, email: customer.email, address: customer.address })
+      .from(customer)
+      .where(and(eq(customer.companyId, ctx.companyId), ilike(customer.name, `%${q}%`)))
+      .limit(8);
+  });
+  return rows;
+}
+
+export type ContractFieldForSuggestion = 'descricao' | 'formaPagamento' | 'prazo';
+
+/**
+ * Sugestão de texto por IA pra um campo livre do wizard. Pro campo
+ * `descricao`: se o cliente já escreveu algo (rascunho), a IA só REORGANIZA
+ * e formaliza o que foi escrito — não inventa escopo novo. Se estiver
+ * vazio, gera uma sugestão inicial a partir do contexto (categoria, valor,
+ * contraparte).
+ */
+export async function sugerirTextoContratoAction(input: {
+  field: ContractFieldForSuggestion;
+  kind: 'SERVICO' | 'MUTUO';
+  direcao: string;
+  partyName: string;
+  valor: number;
+  categoria?: string;
+  draft?: string;
+}): Promise<{ ok: boolean; text: string; message?: string }> {
+  const valorFmt = input.valor ? input.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '(valor não informado)';
+  const categoriaTrecho = input.categoria ? ` Categoria do serviço: ${input.categoria}.` : '';
+  const contratoContexto =
+    input.kind === 'SERVICO'
+      ? input.direcao === 'SAIDA'
+        ? `Contrato de prestação de serviço onde a empresa CONTRATA ${input.partyName || '(prestador)'} como prestador, valor ${valorFmt}.${categoriaTrecho}`
+        : `Contrato de prestação de serviço onde a empresa PRESTA o serviço a ${input.partyName || '(cliente)'}, valor ${valorFmt}.${categoriaTrecho}`
+      : `Contrato de mútuo financeiro (empréstimo) entre a empresa e ${input.partyName || '(contraparte)'}, valor ${valorFmt}.`;
+
+  const draft = input.draft?.trim();
+  const descricaoPrompt = draft
+    ? `${contratoContexto}\n\nO cliente escreveu o seguinte rascunho, em linguagem informal, descrevendo o serviço:\n"""\n${draft}\n"""\n\nReescreva ISSO em um texto formal, corrido e bem ordenado (1 a 3 frases, sem markdown, sem aspas), adequado pra entrar no corpo de um contrato brasileiro. Mantenha exatamente o mesmo escopo e conteúdo do rascunho — só organize a ordem das ideias e formalize a linguagem. NÃO adicione tarefas, valores ou prazos que não estejam no rascunho.`
+    : `${contratoContexto}\n\nEscreva uma descrição curta e profissional (1 a 2 frases, direto, sem markdown, sem aspas) do objeto/escopo do serviço prestado, adequada pra entrar no corpo de um contrato formal brasileiro. Não invente nomes, valores ou prazos que não foram dados.`;
+
+  const prompts: Record<ContractFieldForSuggestion, string> = {
+    descricao: descricaoPrompt,
+    formaPagamento: `${contratoContexto}\n\nSugira uma forma de pagamento curta e comum no Brasil pra esse tipo de contrato (ex.: meio de pagamento + periodicidade + dia do vencimento), em 1 frase, sem markdown, sem aspas.`,
+    prazo: `${contratoContexto}\n\nSugira um prazo/vencimento final razoável pra esse mútuo, em 1 frase curta (ex.: "12 meses, prorrogável mediante acordo entre as partes"), sem markdown, sem aspas.`,
+  };
+
+  try {
+    const text = await draftContractField(prompts[input.field]);
+    return { ok: true, text };
+  } catch (err) {
+    return { ok: false, text: '', message: err instanceof Error ? err.message : 'Erro ao gerar sugestão.' };
+  }
+}
+
 export type CreateWizardContractState = { ok: boolean; message: string };
 
 /**
@@ -157,11 +221,37 @@ async function criarContratoFinanceiro(
 
   // Tipo de contrato no domínio ENTRADA/SAIDA/MUTUO_ATIVO/MUTUO_PASSIVO.
   const type: 'ENTRADA' | 'SAIDA' | 'MUTUO_ATIVO' | 'MUTUO_PASSIVO' =
-    formData.kind === 'SERVICO'
-      ? 'ENTRADA' // wizard de Serviço = sempre a própria empresa prestando serviço (receita)
-      : formData.direcao;
+    formData.kind === 'SERVICO' ? formData.direcao : formData.direcao;
   const title = formData.kind === 'SERVICO' ? formData.descricao.slice(0, 120) || 'Prestação de Serviço' : `Mútuo — ${contraparte.name}`;
   const { startDate, endDate, dueDay } = formData;
+
+  const externalProviderId = formData.kind === 'SERVICO' && formData.direcao === 'SAIDA' ? formData.externalProviderId?.trim() || null : null;
+  const repassePercent = formData.kind === 'SERVICO' && formData.direcao === 'SAIDA' ? formData.repassePercent ?? null : null;
+  const paymentFrequency = formData.kind === 'SERVICO' ? formData.paymentFrequency ?? 'MENSAL' : 'MENSAL';
+  if ((externalProviderId && repassePercent == null) || (!externalProviderId && repassePercent != null)) {
+    return { ok: false, message: 'Pra vincular o repasse automático, informe o ID do prestador na integração E o percentual — os dois juntos.' };
+  }
+  if (repassePercent != null && (repassePercent <= 0 || repassePercent > 100)) {
+    return { ok: false, message: 'O percentual de repasse deve ser entre 0 e 100.' };
+  }
+  if (externalProviderId) {
+    const [existingActive] = await withTenant(companyId, async (tx) => {
+      return tx
+        .select({ id: businessContract.id })
+        .from(businessContract)
+        .where(
+          and(
+            eq(businessContract.companyId, companyId),
+            eq(businessContract.externalProviderId, externalProviderId),
+            eq(businessContract.status, 'ATIVO'),
+          ),
+        )
+        .limit(1);
+    });
+    if (existingActive) {
+      return { ok: false, message: 'Já existe um contrato ativo vinculado a este ID de prestador na integração. Encerre-o antes de criar um novo.' };
+    }
+  }
 
   const status = input.documentSource === 'ALREADY_SIGNED' ? 'ATIVO' : 'AGUARDANDO_ASSINATURA';
   const signingDate = input.documentSource === 'ALREADY_SIGNED' ? (input.signingDate ?? null) : null;
@@ -198,6 +288,9 @@ async function criarContratoFinanceiro(
         signingDate,
         status,
         pdfBase64,
+        externalProviderId,
+        repassePercent: repassePercent != null ? String(repassePercent) : null,
+        paymentFrequency,
       })
       .returning();
   });
@@ -308,9 +401,12 @@ async function criarContratoFinanceiro(
 }
 
 function gerarPdfServico(own: { name: string; document: string; address: string }, formData: Extract<WizardSubmission['formData'], { kind: 'SERVICO' }>, cityDate: string) {
+  const contraparteParty = { name: formData.contraparte.name, document: formData.contraparte.document, address: formData.contraparte.address };
+  // ENTRADA: minha empresa presta o serviço (CONTRATADA, recebe) — a contraparte é a CONTRATANTE (paga).
+  // SAIDA: minha empresa contrata (CONTRATANTE, paga) — a contraparte é a CONTRATADA (presta o serviço, recebe).
   const data: ContractData = {
-    contractor: { name: formData.contraparte.name, document: formData.contraparte.document, address: formData.contraparte.address },
-    contractee: own,
+    contractor: formData.direcao === 'SAIDA' ? own : contraparteParty,
+    contractee: formData.direcao === 'SAIDA' ? contraparteParty : own,
     service: {
       description: formData.descricao,
       value: formData.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
@@ -318,6 +414,7 @@ function gerarPdfServico(own: { name: string; document: string; address: string 
       deadline: `${formData.startDate} a ${formData.endDate}`,
     },
     cityDate,
+    categoria: formData.categoria,
   };
   return <StandardContractTemplate data={data} />;
 }

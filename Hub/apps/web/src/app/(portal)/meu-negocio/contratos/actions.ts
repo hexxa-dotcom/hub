@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getDb, withTenant, eq, and, desc, withDbTimeout } from '@hexxa/db';
+import { getDb, withTenant, eq, and, desc, withDbTimeout, inArray, sql } from '@hexxa/db';
 import { company, businessContract, financialEntry } from '@hexxa/db/schema';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 import { gerarLancamentosDoContrato } from '@/lib/server/contract-financials';
@@ -26,6 +26,9 @@ export type ContractRow = {
   lastNfseEmitted: boolean;
   nfseNumber: string | null;
   linkedOnPlatform: boolean;
+  externalProviderId: string | null;
+  repassePercent: number | null;
+  paymentFrequency: 'MENSAL' | 'QUINZENAL' | 'SEMANAL';
   createdAt: string;
 };
 
@@ -65,6 +68,9 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
     lastNfseEmitted: r.lastNfseEmitted,
     nfseNumber: r.nfseNumber,
     linkedOnPlatform: !!r.counterpartyCompanyId,
+    externalProviderId: r.externalProviderId,
+    repassePercent: r.repassePercent != null ? Number(r.repassePercent) : null,
+    paymentFrequency: r.paymentFrequency as 'MENSAL' | 'QUINZENAL' | 'SEMANAL',
     createdAt: r.createdAt.toISOString(),
   };
 }
@@ -244,7 +250,7 @@ export async function getContractDetailAction(contractId: string): Promise<Contr
     return tx
       .select()
       .from(financialEntry)
-      .where(and(eq(financialEntry.source, 'CONTRACT'), eq(financialEntry.sourceId, self.id)))
+      .where(and(inArray(financialEntry.source, ['CONTRACT', 'INTEGRATION_SAAS', 'CONTRACT_EXTRA']), eq(financialEntry.sourceId, self.id)))
       .orderBy(desc(financialEntry.dueDate));
   });
 
@@ -448,6 +454,134 @@ export async function marcarNfseEmitidaAction(contractId: string, nfseNumber: st
 
   revalidatePath('/meu-negocio/contratos');
   return { ok: true, message: 'Contrato marcado como faturado.' };
+}
+
+export type RepasseRow = {
+  contractId: string;
+  partyName: string;
+  externalProviderId: string;
+  repassePercent: number;
+  paymentFrequency: 'MENSAL' | 'QUINZENAL' | 'SEMANAL';
+  status: ContractRow['status'];
+  /** Soma de tudo que já entrou via integração pra este prestador no mês corrente (pago + pendente). */
+  valorMesTotal: number;
+  /** Só a parte ainda pendente de pagamento no mês corrente (vinda da integração, regra do contrato). */
+  valorMesPendente: number;
+  /** Pendente da 1ª quinzena (dias 1-15) — só relevante quando paymentFrequency='QUINZENAL'. */
+  valorQuinzena1Pendente: number;
+  /** Pendente da 2ª quinzena (dias 16 em diante). */
+  valorQuinzena2Pendente: number;
+  /** Pendente por semana do mês (dias 1-7 / 8-14 / 15-21 / 22-fim) — só relevante quando paymentFrequency='SEMANAL'. */
+  valorSemana1Pendente: number;
+  valorSemana2Pendente: number;
+  valorSemana3Pendente: number;
+  valorSemana4Pendente: number;
+  /** Pagamentos extras (plantão etc.) lançados manualmente, fora da regra automática de repasse — pendentes no mês corrente. */
+  valorExtraMesPendente: number;
+};
+
+/** Lista os contratos vinculados a repasse automático (externalProviderId preenchido), com o valor do mês corrente vindo da integração + extras manuais. */
+export async function listRepassesAction(): Promise<RepasseRow[]> {
+  const ctx = await getTenantContext();
+  const rows = await withTenant(ctx.companyId, async (tx) => {
+    return tx.execute(sql`
+      SELECT
+        bc.id, bc.party_name, bc.external_provider_id, bc.repasse_percent, bc.payment_frequency, bc.status,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+        ), 0) AS valor_mes_total,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+        ), 0) AS valor_mes_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) <= 15
+        ), 0) AS valor_quinzena1_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) > 15
+        ), 0) AS valor_quinzena2_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) BETWEEN 1 AND 7
+        ), 0) AS valor_semana1_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) BETWEEN 8 AND 14
+        ), 0) AS valor_semana2_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) BETWEEN 15 AND 21
+        ), 0) AS valor_semana3_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'INTEGRATION_SAAS' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+            AND EXTRACT(DAY FROM fe.due_date) >= 22
+        ), 0) AS valor_semana4_pendente,
+        COALESCE(SUM(fe.amount) FILTER (
+          WHERE fe.source = 'CONTRACT_EXTRA' AND fe.status = 'PENDING' AND fe.reference_month = date_trunc('month', CURRENT_DATE)::date
+        ), 0) AS valor_extra_mes_pendente
+      FROM business_contract bc
+      LEFT JOIN financial_entry fe ON fe.source_id = bc.id AND fe.source IN ('INTEGRATION_SAAS', 'CONTRACT_EXTRA')
+      WHERE bc.company_id = ${ctx.companyId} AND bc.external_provider_id IS NOT NULL
+      GROUP BY bc.id
+      ORDER BY bc.party_name
+    `);
+  });
+  return rows.map((r: any) => ({
+    contractId: r.id,
+    partyName: r.party_name,
+    externalProviderId: r.external_provider_id,
+    repassePercent: Number(r.repasse_percent ?? 0),
+    paymentFrequency: r.payment_frequency,
+    status: r.status,
+    valorMesTotal: Number(r.valor_mes_total),
+    valorMesPendente: Number(r.valor_mes_pendente),
+    valorQuinzena1Pendente: Number(r.valor_quinzena1_pendente),
+    valorQuinzena2Pendente: Number(r.valor_quinzena2_pendente),
+    valorSemana1Pendente: Number(r.valor_semana1_pendente),
+    valorSemana2Pendente: Number(r.valor_semana2_pendente),
+    valorSemana3Pendente: Number(r.valor_semana3_pendente),
+    valorSemana4Pendente: Number(r.valor_semana4_pendente),
+    valorExtraMesPendente: Number(r.valor_extra_mes_pendente),
+  }));
+}
+
+/** Lança um pagamento extra pra um prestador (ex.: plantão) — fora da regra automática de repasse, pra monitorar junto sem misturar com o cálculo do %. */
+export async function adicionarPagamentoExtraAction(input: {
+  contractId: string;
+  descricao: string;
+  valor: number;
+  dueDate: string;
+}): Promise<{ ok: boolean; message: string }> {
+  const ctx = await getTenantContext();
+  if (!input.descricao.trim()) return { ok: false, message: 'Informe uma descrição.' };
+  if (!input.valor || input.valor <= 0) return { ok: false, message: 'Informe um valor válido.' };
+  if (!input.dueDate) return { ok: false, message: 'Informe a data.' };
+
+  const [contract] = await withTenant(ctx.companyId, async (tx) => {
+    return tx.select().from(businessContract).where(and(eq(businessContract.id, input.contractId), eq(businessContract.companyId, ctx.companyId)));
+  });
+  if (!contract) return { ok: false, message: 'Contrato não encontrado.' };
+
+  const refMonth = input.dueDate.slice(0, 7) + '-01';
+
+  await withTenant(ctx.companyId, async (tx) => {
+    await tx.insert(financialEntry).values({
+      companyId: ctx.companyId,
+      type: 'PAYABLE',
+      status: 'PENDING',
+      description: input.descricao,
+      amount: String(input.valor),
+      dueDate: input.dueDate,
+      referenceMonth: refMonth,
+      source: 'CONTRACT_EXTRA',
+      sourceId: contract.id,
+    });
+  });
+
+  revalidatePath('/meu-negocio/contratos');
+  revalidatePath(`/meu-negocio/contratos/${input.contractId}`);
+  return { ok: true, message: 'Pagamento extra lançado.' };
 }
 
 /** PDF do contrato gerado pelo wizard (base64) — buscado sob demanda pra não engordar o payload das listagens. */
