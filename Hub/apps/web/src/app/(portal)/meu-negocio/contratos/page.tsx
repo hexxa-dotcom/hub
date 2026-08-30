@@ -5,6 +5,8 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { listContractsAction } from './actions';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
+import { withTenant, eq } from '@hexxa/db';
+import { property } from '@hexxa/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +21,20 @@ async function getSignatureRequests() {
   }
 }
 
+async function hasAnyProperty(companyId: string): Promise<boolean> {
+  const rows = await withTenant(companyId, async (tx) => {
+    return tx.select({ id: property.id }).from(property).where(eq(property.companyId, companyId)).limit(1);
+  });
+  return rows.length > 0;
+}
+
 export default async function Page() {
   const ctx = await getTenantContext();
-  const [initialDocs, initialContracts] = await Promise.all([getSignatureRequests(), listContractsAction()]);
+  const [initialDocs, initialContracts, hasProperties] = await Promise.all([
+    getSignatureRequests(),
+    listContractsAction(),
+    hasAnyProperty(ctx.companyId),
+  ]);
 
   const hoje = new Date();
   const in30Dias = new Date(hoje.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
@@ -56,7 +69,12 @@ export default async function Page() {
 
       <InsightCard pageKey="meu-negocio/contratos" insight={insight} />
 
-      <ContratosClient initialDocs={initialDocs} initialContracts={initialContracts} />
+      <ContratosClient
+        initialDocs={initialDocs}
+        initialContracts={initialContracts}
+        companyType={ctx.companyType}
+        hasProperties={hasProperties}
+      />
     </div>
   );
 }

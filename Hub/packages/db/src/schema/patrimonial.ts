@@ -1,5 +1,6 @@
 import { pgTable, uuid, text, numeric, date, timestamp } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
+import { signatureRequest } from './service-ops';
 import {
   propertyKind,
   propertyStatus,
@@ -46,9 +47,13 @@ export const lease = pgTable('lease', {
   indexType: indexType('index_type').notNull().default('IPCA'),
   /** mês-base do último reajuste (NUNCA "competência"). */
   adjustmentAnchor: date('adjustment_anchor').notNull(),
+  /** DRAFT | PENDING_SIGNATURE | ACTIVE | ENDED | CANCELED — ver businessContract.status pro mesmo ciclo de vida do lado de Contratos. */
   status: leaseStatus('status').notNull().default('ACTIVE'),
   startDate: date('start_date'),
   endDate: date('end_date'),
+  /** PDF do contrato de aluguel gerado (base64), quando criado pelo wizard unificado de Contratos. */
+  pdfBase64: text('pdf_base64'),
+  signatureRequestId: uuid('signature_request_id').references(() => signatureRequest.id),
 });
 
 /** Faturamento imobiliário (recibo/boleto) por mês. */

@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import './checkout.css';
+import { formatDocument } from '@hexxa/core/document-br';
 
 interface PlanInfo {
   id: string;
@@ -102,15 +103,7 @@ function CheckoutContent() {
   };
 
   const handleDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let v = e.target.value.replace(/\D/g, '').slice(0, 14);
-    if (v.length > 11) {
-      // CNPJ: 00.000.000/0000-00
-      v = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
-    } else if (v.length > 9) {
-      // CPF: 000.000.000-00
-      v = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-    }
-    setForm((prev) => ({ ...prev, documento: v }));
+    setForm((prev) => ({ ...prev, documento: formatDocument(e.target.value) }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

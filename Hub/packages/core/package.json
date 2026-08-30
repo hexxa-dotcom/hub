@@ -9,16 +9,19 @@
     ".": "./src/index.ts",
     "./ports": "./src/ports/index.ts",
     "./services": "./src/services/index.ts",
-    "./language": "./src/language.ts"
+    "./language": "./src/language.ts",
+    "./document-br": "./src/document-br.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
   }
 }

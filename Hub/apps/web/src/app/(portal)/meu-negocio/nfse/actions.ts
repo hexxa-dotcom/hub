@@ -1,9 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { makeServiceInvoiceService, serviceInvoiceRepository, resolveNfsePort } from '@/lib/server/container';
+import { makeServiceInvoiceService, makeServiceInvoiceServiceReadOnly, serviceInvoiceRepository, resolveNfsePort } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getNfseConfig, estimateInvoiceTaxRate, listServiceProfiles } from '@/lib/server/fiscal';
+import { sendNfseEmailToCustomer } from '@/lib/server/nfse-email';
 
 export type EmitState = {
   ok: boolean;
@@ -108,6 +109,20 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       };
     }
 
+    // Envio automático ao tomador por e-mail (best-effort — a nota já foi
+    // emitida e persistida; falha aqui nunca deve virar erro pro usuário,
+    // só deixar de mandar o e-mail. Exige conta SMTP conectada em
+    // Configurações > Integrações e nunca roda em nota mock.
+    let emailSent = false;
+    if (!result.isMock && result.status === 'ISSUED') {
+      try {
+        const emailResult = await sendNfseEmailToCustomer(ctx, result.invoiceId);
+        emailSent = emailResult.sent;
+      } catch (err) {
+        console.error('[emitNfseAction] falha ao enviar NFSe por e-mail:', err);
+      }
+    }
+
     return {
       ok: true,
       status: 'ISSUED',
@@ -119,7 +134,7 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       providerProtocol: result.providerProtocol,
       message: result.isMock
         ? `[MODO TESTE] NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} salva, mas NÃO foi enviada ao governo — configure o certificado A1 para emissão real.`
-        : `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!`,
+        : `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!${emailSent ? ' E-mail enviado ao tomador.' : ''}`,
     };
   } catch (err) {
     console.error('ERROR in emitNfseAction:', err);
@@ -130,9 +145,8 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
 export async function cancelNfseAction(id: string, protocol: string): Promise<{ ok: boolean; message: string }> {
   try {
     const ctx = await getTenantContext();
-    const port = await resolveNfsePort(ctx);
-    await port.cancel(protocol, 'Cancelamento solicitado pelo emitente');
-    await serviceInvoiceRepository.updateStatus(ctx, id, { status: 'CANCELED' });
+    const service = await makeServiceInvoiceServiceReadOnly(ctx);
+    await service.cancel(ctx, id, protocol);
     revalidatePath('/meu-negocio/notas');
     return { ok: true, message: 'Nota cancelada.' };
   } catch (err) {
@@ -143,16 +157,10 @@ export async function cancelNfseAction(id: string, protocol: string): Promise<{ 
 export async function refreshNfseStatusAction(id: string, protocol: string): Promise<{ ok: boolean; message: string }> {
   try {
     const ctx = await getTenantContext();
-    const port = await resolveNfsePort(ctx);
-    const result = await port.getStatus(protocol);
-    if (result.status !== 'ISSUING') {
-      await serviceInvoiceRepository.updateStatus(ctx, id, {
-        status: result.status,
-        nfseNumber: result.nfseNumber,
-      });
-    }
+    const service = await makeServiceInvoiceServiceReadOnly(ctx);
+    const newStatus = await service.refreshStatus(ctx, id, protocol);
     revalidatePath('/meu-negocio/notas');
-    return { ok: true, message: result.status };
+    return { ok: true, message: newStatus };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao consultar status.' };
   }

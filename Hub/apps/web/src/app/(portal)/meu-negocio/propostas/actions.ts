@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, eq, and, desc } from '@hexxa/db';
+import { inArray } from 'drizzle-orm';
 import { proposal, proposalItem } from '@hexxa/db/schema';
 
 export type PropostaItemInput = { descricao: string; qtd: number; valor: number };
@@ -23,11 +24,9 @@ export async function listPropostasAction(): Promise<PropostaRow[]> {
   const ctx = await getTenantContext();
   const { propostas, itensReais } = await withTenant(ctx.companyId, async (tx) => {
     const p = await tx.select().from(proposal).where(eq(proposal.companyId, ctx.companyId)).orderBy(desc(proposal.createdAt));
-    const all: (typeof proposalItem.$inferSelect)[] = [];
-    for (const row of p) {
-      const rows = await tx.select().from(proposalItem).where(eq(proposalItem.proposalId, row.id));
-      all.push(...rows);
-    }
+    const all = p.length === 0
+      ? []
+      : await tx.select().from(proposalItem).where(inArray(proposalItem.proposalId, p.map((row) => row.id)));
     return { propostas: p, itensReais: all };
   });
 
@@ -82,14 +81,16 @@ export async function savePropostaAction(input: {
       proposalId = created!.id;
     }
 
-    for (const item of input.itens) {
-      if (!item.descricao.trim()) continue;
-      await tx.insert(proposalItem).values({
-        proposalId: proposalId!,
-        descricao: item.descricao,
-        qtd: String(item.qtd),
-        valor: String(item.valor),
-      });
+    const itensValidos = input.itens.filter((item) => item.descricao.trim());
+    if (itensValidos.length > 0) {
+      await tx.insert(proposalItem).values(
+        itensValidos.map((item) => ({
+          proposalId: proposalId!,
+          descricao: item.descricao,
+          qtd: String(item.qtd),
+          valor: String(item.valor),
+        })),
+      );
     }
   });
 

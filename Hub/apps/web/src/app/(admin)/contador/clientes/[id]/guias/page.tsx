@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Receipt } from 'lucide-react';
-import { getDb, eq, AdminTaxGuideRepository } from '@hexxa/db';
+import { getDb, eq, AdminTaxGuideRepository, withDbTimeout } from '@hexxa/db';
 import { company } from '@hexxa/db/schema';
 import { HubGuiasAdmin } from './HubGuiasAdmin';
 
@@ -10,10 +10,15 @@ export default async function ContadorGuiasPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const db = getDb();
 
-  const [comp] = await db.select().from(company).where(eq(company.id, id));
+  const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, id)), 8000);
   if (!comp) notFound();
 
-  const guias = await new AdminTaxGuideRepository().listByCompany(db, id);
+  let guias: Awaited<ReturnType<AdminTaxGuideRepository['listByCompany']>> = [];
+  try {
+    guias = await withDbTimeout(new AdminTaxGuideRepository().listByCompany(db, id), 8000);
+  } catch (err) {
+    console.error('[ContadorGuiasPage] falha ao carregar guias:', err);
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">

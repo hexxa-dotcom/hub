@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
-import { getDb, eq } from '@hexxa/db';
+import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket } from '@hexxa/db/schema';
 import { ClientesTable, type Cliente } from './ClientesTable';
 
 async function getClientes(): Promise<Cliente[]> {
   const db = getDb();
 
-  const [subs, owners, ticketCounts] = await Promise.all([
+  const [subs, owners, ticketCounts] = await withDbTimeout(Promise.all([
     db
       .select({
         subscriptionId: subscription.id,
@@ -36,7 +36,7 @@ async function getClientes(): Promise<Cliente[]> {
       .select({ companyId: ticket.companyId, id: ticket.id })
       .from(ticket)
       .where(eq(ticket.status, 'OPEN')),
-  ]);
+  ]), 8000);
 
   const ownerByCompany = new Map(owners.map(o => [o.companyId, o]));
   const pendByCompany = new Map<string, number>();
@@ -68,11 +68,17 @@ async function getClientes(): Promise<Cliente[]> {
 
 async function getPlanNames(): Promise<string[]> {
   const db = getDb();
-  const rows = await db.select({ name: plan.name }).from(plan);
+  const rows = await withDbTimeout(db.select({ name: plan.name }).from(plan), 8000);
   return rows.map(r => r.name);
 }
 
 export default async function AdminClientesPage() {
-  const [clientes, planos] = await Promise.all([getClientes(), getPlanNames()]);
+  let clientes: Cliente[] = [];
+  let planos: string[] = [];
+  try {
+    [clientes, planos] = await Promise.all([getClientes(), getPlanNames()]);
+  } catch (err) {
+    console.error('[AdminClientesPage] falha ao carregar clientes:', err);
+  }
   return <ClientesTable initial={clientes} planos={planos} />;
 }

@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { getDb } from '@hexxa/db/client';
+import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { plan, subscription } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
 import { PlanosBoard, type Plano } from './PlanosBoard';
@@ -9,10 +9,13 @@ const DEFAULT_FEATURES: PlanoFeatures = { descricao: '', cor: 'brand', ativo: tr
 
 async function getPlanos(): Promise<Plano[]> {
   const db = getDb();
-  const [plans, subs] = await Promise.all([
-    db.select().from(plan),
-    db.select({ planId: subscription.planId, status: subscription.status }).from(subscription),
-  ]);
+  const [plans, subs] = await withDbTimeout(
+    Promise.all([
+      db.select().from(plan),
+      db.select({ planId: subscription.planId, status: subscription.status }).from(subscription),
+    ]),
+    8000,
+  );
 
   const clientesPorPlano = new Map<string, number>();
   for (const s of subs) {
@@ -36,6 +39,11 @@ async function getPlanos(): Promise<Plano[]> {
 }
 
 export default async function AdminPlanosPage() {
-  const planos = await getPlanos();
+  let planos: Plano[] = [];
+  try {
+    planos = await getPlanos();
+  } catch (err) {
+    console.error('[AdminPlanosPage] falha ao carregar planos:', err);
+  }
   return <PlanosBoard initial={planos} />;
 }

@@ -7,7 +7,7 @@ import { isNull } from 'drizzle-orm';
 import { apiToken } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
-export type ApiTokenScope = 'read' | 'write';
+export type ApiTokenScope = 'read' | 'write' | 'admin';
 
 export type ApiTokenRow = {
   id: string;
@@ -50,6 +50,13 @@ export async function listApiTokens(): Promise<ApiTokenRow[]> {
 export async function createApiToken(name: string, scope: ApiTokenScope): Promise<{ token: string }> {
   const ctx = await getTenantContext();
   if (!name.trim()) throw new Error('Dê um nome pro token (ex.: "Claude Desktop").');
+
+  if (scope === 'admin') {
+    const { isAdminUser } = await import('@/lib/server/admin-guard');
+    if (!(await isAdminUser())) {
+      throw new Error('Apenas administradores podem criar tokens com escopo de Contador/Admin.');
+    }
+  }
 
   const raw = `hexx_mcp_${randomBytes(24).toString('hex')}`;
   const tokenHash = hashToken(raw);

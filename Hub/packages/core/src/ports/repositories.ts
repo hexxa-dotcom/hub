@@ -73,6 +73,7 @@ export interface NewFinancialEntry {
 
 export interface FinancialEntryRepository {
   create(ctx: TenantContext, data: NewFinancialEntry): Promise<{ id: string }>;
+  cancelBySource(ctx: TenantContext, source: string, sourceId: string): Promise<void>;
 }
 
 export interface NewSignatureRequest {

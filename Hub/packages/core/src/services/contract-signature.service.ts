@@ -10,6 +10,10 @@ export interface SendForSignatureInput {
   title: string;
   documentBuffer: { base64: string; filename: string };
   signers: SignatureSigner[];
+  /** Domínio do que está sendo assinado — quando informado, liga o pedido de
+   *  assinatura a um business_contract/lease de verdade (o wizard unificado
+   *  de Contratos usa isso; uploads soltos continuam default 'DOCUMENT'). */
+  subject?: { type: 'CONTRACT' | 'LEASE' | 'DOCUMENT'; id: string };
 }
 
 export interface ContractSignatureDeps {
@@ -29,8 +33,8 @@ export class ContractSignatureService {
       title: input.title,
       signerName: primary.name || primary.email,
       signerEmail: primary.email,
-      subjectType: 'DOCUMENT',
-      subjectId: crypto.randomUUID(),
+      subjectType: input.subject?.type ?? 'DOCUMENT',
+      subjectId: input.subject?.id ?? crypto.randomUUID(),
     });
 
     try {
@@ -38,7 +42,7 @@ export class ContractSignatureService {
         documentBuffer: input.documentBuffer,
         title: input.title,
         signers: input.signers,
-        subject: { type: 'DOCUMENT', id },
+        subject: input.subject ?? { type: 'DOCUMENT', id },
       });
       await this.deps.requests.updateStatus(ctx, id, {
         status: envelope.status,
@@ -63,5 +67,15 @@ export class ContractSignatureService {
 
   async list(ctx: TenantContext, limit?: number): Promise<SignatureRequestRecord[]> {
     return this.deps.requests.listRecent(ctx, limit);
+  }
+
+  /** Cancela um pedido de assinatura ainda pendente — usado quando o contrato/aluguel é cancelado antes de ser assinado. */
+  async cancel(ctx: TenantContext, id: string): Promise<void> {
+    const record = await this.deps.requests.findById(ctx, id);
+    if (!record) return;
+    if (record.providerEnvelopeId && (record.status === 'PENDING' || record.status === 'SENT')) {
+      await this.deps.signature.cancel(record.providerEnvelopeId);
+    }
+    await this.deps.requests.updateStatus(ctx, id, { status: 'EXPIRED' });
   }
 }

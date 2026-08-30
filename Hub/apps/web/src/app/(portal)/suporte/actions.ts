@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, eq, and, desc } from '@hexxa/db';
+import { inArray } from 'drizzle-orm';
 import { ticket, ticketMessage } from '@hexxa/db/schema';
 
 export type ChatMessage = {
@@ -27,11 +28,9 @@ export async function listSupportTicketsAction(): Promise<SupportTicketRow[]> {
   const ctx = await getTenantContext();
   const { tickets, messages } = await withTenant(ctx.companyId, async (tx) => {
     const t = await tx.select().from(ticket).where(eq(ticket.companyId, ctx.companyId)).orderBy(desc(ticket.createdAt));
-    const all: (typeof ticketMessage.$inferSelect)[] = [];
-    for (const row of t) {
-      const msgs = await tx.select().from(ticketMessage).where(eq(ticketMessage.ticketId, row.id)).orderBy(ticketMessage.createdAt);
-      all.push(...msgs);
-    }
+    const all = t.length === 0
+      ? []
+      : await tx.select().from(ticketMessage).where(inArray(ticketMessage.ticketId, t.map((row) => row.id))).orderBy(ticketMessage.createdAt);
     return { tickets: t, messages: all };
   });
 

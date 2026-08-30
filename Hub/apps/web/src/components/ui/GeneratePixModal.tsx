@@ -31,7 +31,7 @@ export function GeneratePixModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [pixData, setPixData] = useState<{ pixCopyPaste: string; encodedImage: string; invoiceUrl: string } | null>(null);
+  const [pixData, setPixData] = useState<{ pixCopyPaste: string; encodedImage?: string; qrCodeUrl?: string; invoiceUrl: string } | null>(null);
 
   if (!isOpen) return null;
 
@@ -113,7 +113,7 @@ export function GeneratePixModal({
               </div>
 
               <div className="p-4 bg-white rounded-3xl border border-black/10 shadow-sm">
-                <img src={`data:image/png;base64,${pixData.encodedImage}`} alt="QR Code" className="w-48 h-48 mx-auto" />
+                <img src={pixData.encodedImage ? `data:image/png;base64,${pixData.encodedImage}` : pixData.qrCodeUrl} alt="QR Code" className="w-48 h-48 mx-auto" />
               </div>
 
               <button

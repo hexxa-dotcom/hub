@@ -1,8 +1,9 @@
 'use server';
 
-import { taxHistory, getDb, eq, and } from '@hexxa/db';
+import { taxHistory, getDb, eq, and, withDbTimeout } from '@hexxa/db';
 import { integrationCredential } from '@hexxa/db/schema';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/server/admin-guard';
 
 /**
  * Token do Oneflow é POR EMPRESA CLIENTE (a doc deles não expõe CNPJ nas
@@ -10,35 +11,49 @@ import { revalidatePath } from 'next/cache';
  * só aqui na área do contador — o cliente não vê nem mexe nisso.
  */
 export async function getOneflowCredential(companyId: string): Promise<{ hasToken: boolean; active: boolean }> {
+  await requireAdmin();
   const db = getDb();
-  const [row] = await db
-    .select({ active: integrationCredential.active })
-    .from(integrationCredential)
-    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+  const [row] = await withDbTimeout(
+    db
+      .select({ active: integrationCredential.active })
+      .from(integrationCredential)
+      .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow'))),
+    8000,
+  );
   return { hasToken: !!row, active: row?.active ?? false };
 }
 
 export async function saveOneflowToken(companyId: string, token: string) {
+  await requireAdmin();
   if (!token.trim()) throw new Error('Cole o token do Oneflow dessa empresa.');
   const db = getDb();
-  const [existing] = await db
-    .select({ id: integrationCredential.id })
-    .from(integrationCredential)
-    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+  const [existing] = await withDbTimeout(
+    db
+      .select({ id: integrationCredential.id })
+      .from(integrationCredential)
+      .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow'))),
+    8000,
+  );
 
   if (existing) {
-    await db
-      .update(integrationCredential)
-      .set({ secretRef: { token: token.trim() }, active: true })
-      .where(eq(integrationCredential.id, existing.id));
+    await withDbTimeout(
+      db
+        .update(integrationCredential)
+        .set({ secretRef: { token: token.trim() }, active: true })
+        .where(eq(integrationCredential.id, existing.id)),
+      8000,
+    );
   } else {
-    await db.insert(integrationCredential).values({
-      companyId,
-      kind: 'ERP',
-      provider: 'oneflow',
-      secretRef: { token: token.trim() },
-      active: true,
-    });
+    await withDbTimeout(
+      db.insert(integrationCredential).values({
+        companyId,
+        kind: 'ERP',
+        provider: 'oneflow',
+        secretRef: { token: token.trim() },
+        active: true,
+      }),
+      8000,
+    );
   }
 
   revalidatePath(`/contador/clientes/${companyId}/fiscal`);
@@ -46,16 +61,21 @@ export async function saveOneflowToken(companyId: string, token: string) {
 }
 
 export async function disconnectOneflow(companyId: string) {
+  await requireAdmin();
   const db = getDb();
-  await db
-    .update(integrationCredential)
-    .set({ active: false })
-    .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow')));
+  await withDbTimeout(
+    db
+      .update(integrationCredential)
+      .set({ active: false })
+      .where(and(eq(integrationCredential.companyId, companyId), eq(integrationCredential.provider, 'oneflow'))),
+    8000,
+  );
   revalidatePath(`/contador/clientes/${companyId}/fiscal`);
   return { success: true };
 }
 
 export async function processPGDAS(companyId: string, formData: FormData) {
+  await requireAdmin();
   try {
     const file = formData.get('file') as File;
     if (!file) throw new Error('Nenhum arquivo enviado.');
@@ -117,20 +137,23 @@ export async function processPGDAS(companyId: string, formData: FormData) {
 
     // Insert into database
     const db = getDb();
-    await db.insert(taxHistory).values({
-      companyId,
-      referenceMonth,
-      rba12: rba12.toString(),
-      effectiveRate: aliquota.toString(),
-      taxBracket: anexo,
-    }).onConflictDoUpdate({
-      target: [taxHistory.companyId, taxHistory.referenceMonth],
-      set: {
+    await withDbTimeout(
+      db.insert(taxHistory).values({
+        companyId,
+        referenceMonth,
         rba12: rba12.toString(),
         effectiveRate: aliquota.toString(),
         taxBracket: anexo,
-      }
-    });
+      }).onConflictDoUpdate({
+        target: [taxHistory.companyId, taxHistory.referenceMonth],
+        set: {
+          rba12: rba12.toString(),
+          effectiveRate: aliquota.toString(),
+          taxBracket: anexo,
+        }
+      }),
+      8000,
+    );
 
     revalidatePath(`/contador/clientes/${companyId}/fiscal`);
     revalidatePath('/minha-contabilidade/termometro-tributario');

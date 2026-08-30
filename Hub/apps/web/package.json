@@ -8,12 +8,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/localizations": "^4.12.1",
     "@clerk/nextjs": "^7.5.13",
     "@docuseal/react": "^1.0.75",
+    "@google/generative-ai": "^0.24.1",
     "@hexxa/core": "*",
     "@hexxa/db": "*",
     "@hexxa/integrations": "*",
@@ -22,6 +24,7 @@
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/supabase-js": "^2.108.0",
     "@tanstack/react-query": "^5.62.0",
+    "@types/qrcode": "^1.5.6",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.9.3",
@@ -33,6 +36,7 @@
     "next": "^16.2.9",
     "nodemailer": "^9.0.3",
     "pdf-parse": "^2.4.5",
+    "qrcode": "^1.5.4",
     "react": "~19.2.3",
     "react-dom": "~19.2.3",
     "recharts": "^3.10.1",
@@ -49,6 +53,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
   }
 }

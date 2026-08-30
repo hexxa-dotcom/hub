@@ -66,6 +66,11 @@ type Lancamento = {
   comprovanteNome?: string | null;
   isFixa?: boolean;
   source?: string | null;
+  originalAmount?: number | null;
+  interest?: number | null;
+  discount?: number | null;
+  partnerName?: string | null;
+  costCenterName?: string | null;
 };
 
 type Status = 'pago' | 'vencido' | 'aberto';
@@ -171,7 +176,12 @@ function LancamentoForm({
   const [categoria, setCategoria] = useState(defaultCategoria ?? '');
   const [categoriaOutros, setCategoriaOutros] = useState('');
   const [observacao, setObservacao] = useState('');
-  const [parcelas, setParcelas] = useState(1);
+  const [tipoLancamento, setTipoLancamento] = useState<'UNICO' | 'PARCELADO' | 'RECORRENTE'>('UNICO');
+  const [qtdParcelas, setQtdParcelas] = useState(2);
+  const [multaJuros, setMultaJuros] = useState('');
+  const [desconto, setDesconto] = useState('');
+  const [parceiro, setParceiro] = useState('');
+  const [centroCusto, setCentroCusto] = useState('');
   const [comprovante, setComprovante] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -193,9 +203,14 @@ function LancamentoForm({
         descricao,
         valor: parseFloat(valor.replace(',', '.')),
         vencimento,
-        parcelas,
+        parcelas: tipoLancamento === 'PARCELADO' ? qtdParcelas : 1,
+        isInfinite: tipoLancamento === 'RECORRENTE',
         categoria: categoriaFinal || undefined,
         comprovante,
+        multaJuros: multaJuros ? parseFloat(multaJuros.replace(',', '.')) : undefined,
+        desconto: desconto ? parseFloat(desconto.replace(',', '.')) : undefined,
+        parceiro: parceiro.trim() || undefined,
+        centroCusto: centroCusto.trim() || undefined,
       });
       onAdd({} as Lancamento);
       onClose();
@@ -250,6 +265,30 @@ function LancamentoForm({
           />
         </div>
         <div>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Multa / Juros (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={multaJuros}
+            onChange={(e) => setMultaJuros(e.target.value)}
+            placeholder="0,00"
+            className={`mt-1 ${field}`}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Desconto (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={desconto}
+            onChange={(e) => setDesconto(e.target.value)}
+            placeholder="0,00"
+            className={`mt-1 ${field}`}
+          />
+        </div>
+        <div>
           <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria</label>
           <select
             value={categoria}
@@ -275,18 +314,47 @@ function LancamentoForm({
           </div>
         )}
         <div>
-          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Recorrência</label>
-          <select
-            value={parcelas}
-            onChange={(e) => setParcelas(Number(e.target.value))}
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">{tipo === 'PAGAR' ? 'Fornecedor' : 'Cliente'}</label>
+          <input
+            value={parceiro}
+            onChange={(e) => setParceiro(e.target.value)}
+            placeholder={tipo === 'PAGAR' ? 'Nome do Fornecedor...' : 'Nome do Cliente...'}
             className={`mt-1 ${field}`}
-          >
-            <option value={1}>Lançamento Único (1x)</option>
-            <option value={2}>Recorrente 2 meses (2x)</option>
-            <option value={3}>Recorrente 3 meses (3x)</option>
-            <option value={6}>Recorrente 6 meses (6x)</option>
-            <option value={12}>Recorrente 12 meses (1 ano)</option>
-          </select>
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Centro de Custo / Projeto</label>
+          <input
+            value={centroCusto}
+            onChange={(e) => setCentroCusto(e.target.value)}
+            placeholder="Ex.: Marketing, Reformas..."
+            className={`mt-1 ${field}`}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Tipo de Lançamento</label>
+          <div className="flex gap-2">
+            <select
+              value={tipoLancamento}
+              onChange={(e) => setTipoLancamento(e.target.value as any)}
+              className={`mt-1 ${field} ${tipoLancamento === 'PARCELADO' ? 'w-2/3' : 'w-full'}`}
+            >
+              <option value="UNICO">Lançamento Único</option>
+              <option value="PARCELADO">Parcelado</option>
+              <option value="RECORRENTE">Recorrente</option>
+            </select>
+            {tipoLancamento === 'PARCELADO' && (
+              <input
+                type="number"
+                min="2"
+                max="120"
+                value={qtdParcelas}
+                onChange={(e) => setQtdParcelas(Number(e.target.value))}
+                placeholder="2x"
+                className={`mt-1 ${field} w-1/3 text-center`}
+              />
+            )}
+          </div>
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Comprovante (opcional)</label>
@@ -337,26 +405,39 @@ function MesStatCard({
   hint = 'Neste mês',
   value,
   tone = 'default',
+  active = false,
+  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   hint?: string;
   value: number;
   tone?: 'default' | 'warn';
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div className="w-full flex items-center justify-between gap-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`w-full flex items-center justify-between gap-4 rounded-3xl border p-5 text-left shadow-sm transition-all ${
+        active
+          ? 'bg-[#1E3328] border-[#1E3328] text-[#FEFDF3]'
+          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'
+      } ${!onClick ? 'cursor-default' : ''}`}
+    >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${tone === 'warn' ? 'bg-amber-100 dark:bg-amber-950/60' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
-          <Icon className={`h-5 w-5 ${tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${active ? 'bg-[#DFFFAE]/20' : tone === 'warn' ? 'bg-amber-100 dark:bg-amber-950/60' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
+          <Icon className={`h-5 w-5 ${active ? 'text-[#DFFFAE]' : tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{label}</p>
-          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{hint}</p>
+          <p className={`truncate text-xs font-bold uppercase tracking-wider ${active ? 'text-[#DFFFAE]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{label}</p>
+          <p className={`truncate text-[11px] ${active ? 'text-[#DFFFAE]/70' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{hint}</p>
         </div>
       </div>
-      <p className="font-serif text-2xl font-bold tabular shrink-0 text-[#231F20] dark:text-[#FEFDF3]">{fmt(value)}</p>
-    </div>
+      <p className={`font-serif text-2xl font-bold tabular shrink-0 ${active ? 'text-[#FEFDF3]' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{fmt(value)}</p>
+    </button>
   );
 }
 
@@ -638,7 +719,7 @@ function DespesasFixasPanel({ onClose, onChanged }: { onClose: () => void; onCha
 
 // ── Tabela de Lançamentos ─────────────────────────────────────────────────────
 
-type FilterTab = 'todos' | 'aberto' | 'vencido' | 'pago' | 'fixas';
+type FilterTab = 'todos' | 'aberto' | 'vencido' | 'pago' | 'fixas' | 'impostos' | 'colaboradores' | 'contratos' | 'servicos';
 
 function LancamentosTab({
   tipo,
@@ -665,6 +746,10 @@ function LancamentosTab({
     const base = data.filter((l) => l.tipo === tipo);
     if (filter === 'todos') return base;
     if (filter === 'fixas') return base.filter((l) => l.isFixa);
+    if (filter === 'impostos') return base.filter((l) => grupoDe(l) === 'Impostos');
+    if (filter === 'colaboradores') return base.filter((l) => grupoDe(l) === 'Colaboradores (CLT)' || grupoDe(l) === 'Colaboradores (PJ)');
+    if (filter === 'contratos') return base.filter((l) => ['Contratos', 'Mensalidade'].includes(grupoDe(l)));
+    if (filter === 'servicos') return base.filter((l) => ['Serviços', 'Notas Fiscais', 'Faturamento Avulso'].includes(grupoDe(l)));
     return base.filter((l) => getStatus(l) === filter);
   }, [data, tipo, filter]);
 
@@ -697,6 +782,11 @@ function LancamentosTab({
     .filter((g) => g.label === 'Colaboradores (CLT)' || g.label === 'Colaboradores (PJ)')
     .reduce((s, g) => s + g.total, 0);
 
+  // Receber aggregations
+  const contratosMes = categoriaBreakdown.find((g) => g.label === 'Contratos' || g.label === 'Mensalidade')?.total ?? 0;
+  const servicosMes = categoriaBreakdown.filter((g) => g.label === 'Serviços' || g.label === 'Notas Fiscais' || g.label === 'Faturamento Avulso').reduce((s, g) => s + g.total, 0);
+  const outrosRecMes = categoriaBreakdown.filter((g) => !['Contratos', 'Mensalidade', 'Serviços', 'Notas Fiscais', 'Faturamento Avulso'].includes(g.label)).reduce((s, g) => s + g.total, 0);
+
   async function togglePago(l: Lancamento) {
     setMarking(l.id);
     const newStatus = l.statusDb === 'PAID' ? 'PENDING' : 'PAID';
@@ -721,24 +811,74 @@ function LancamentosTab({
   const isPagar = tipo === 'PAGAR';
   const label = isPagar ? 'pagar' : 'receber';
 
-  const filterBtns: { key: FilterTab; label: string }[] = [
+  const filterBtns: { key: FilterTab | string; label: string }[] = [
     { key: 'todos', label: `Todos (${counts.todos})` },
     { key: 'aberto', label: `Em aberto (${counts.aberto})` },
     { key: 'vencido', label: `Vencidos (${counts.vencido})` },
     { key: 'pago', label: isPagar ? `Pagos (${counts.pago})` : `Recebidos (${counts.pago})` },
-    ...(isPagar ? [{ key: 'fixas' as const, label: `Despesas Fixas (${counts.fixas})` }] : []),
+    ...(isPagar ? [
+      { key: 'fixas', label: `Despesas Fixas (${counts.fixas})` },
+      { key: 'impostos', label: `Impostos` },
+      { key: 'colaboradores', label: `Colaboradores` },
+    ] : [
+      { key: 'contratos', label: `Mensalidades` },
+      { key: 'servicos', label: `Serviços/Avulsos` },
+    ]),
   ];
 
   return (
     <div className="space-y-4">
-      {isPagar && (
+      {isPagar ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <DespesasFixasCard
             active={filter === 'fixas'}
             onClick={() => setFilter(filter === 'fixas' ? 'todos' : 'fixas')}
           />
-          <MesStatCard icon={Percent} label="Impostos" value={impostosMes} tone="warn" />
-          <MesStatCard icon={Users} label="Colaboradores" hint="PJ + CLT · neste mês" value={colaboradoresMes} tone="default" />
+          <MesStatCard 
+            icon={Percent} 
+            label="Impostos" 
+            value={impostosMes} 
+            tone="warn" 
+            active={filter === 'impostos'}
+            onClick={() => setFilter(filter === 'impostos' ? 'todos' : 'impostos')}
+          />
+          <MesStatCard 
+            icon={Users} 
+            label="Colaboradores" 
+            hint="PJ + CLT · neste mês" 
+            value={colaboradoresMes} 
+            tone="default" 
+            active={filter === 'colaboradores'}
+            onClick={() => setFilter(filter === 'colaboradores' ? 'todos' : 'colaboradores')}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <MesStatCard 
+            icon={Repeat} 
+            label="Contratos Mensais" 
+            hint="Honorários e Mensalidades"
+            value={contratosMes} 
+            tone="default" 
+            active={filter === 'contratos'}
+            onClick={() => setFilter(filter === 'contratos' as any ? 'todos' : 'contratos')}
+          />
+          <MesStatCard 
+            icon={FileText} 
+            label="Serviços e Notas" 
+            hint="Avulsos · neste mês" 
+            value={servicosMes} 
+            tone="default" 
+            active={filter === 'servicos'}
+            onClick={() => setFilter(filter === 'servicos' as any ? 'todos' : 'servicos')}
+          />
+          <MesStatCard 
+            icon={Tag} 
+            label="Outras Entradas" 
+            hint="Diversos · neste mês" 
+            value={outrosRecMes} 
+            tone="default" 
+          />
         </div>
       )}
 
@@ -746,14 +886,14 @@ function LancamentosTab({
         <CategoriaBreakdownRow items={categoriaBreakdown} />
       )}
 
-      {/* Header com Filtros & Botão */}
+      {/* Header com Filtros & Botões */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {filterBtns.map((f) => (
             <button
               key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
+              onClick={() => setFilter(f.key as FilterTab)}
               className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                 filter === f.key
                   ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
@@ -829,8 +969,14 @@ function LancamentosTab({
                     }`}
                     onClick={() => setExpanded(isExp ? null : l.id)}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
+                    <div className="min-w-0 flex items-center gap-2">
+                      {l.tipo === 'PAGAR' ? (
+                        <ArrowDownRight className="h-4 w-4 shrink-0 text-red-600" />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
                       {(l.categoria || l.temComprovante || l.isFixa) && (
                         <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
                           {l.isFixa && (
@@ -857,13 +1003,14 @@ function LancamentosTab({
                         {fmtDate(l.vencimento)} · <strong>{fmt(l.valor)}</strong>
                       </p>
                     </div>
+                  </div>
 
                     <span className="hidden w-28 text-right text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] sm:block">
                       {fmtDate(l.vencimento)}
                     </span>
-                    <span
+                      <span
                       className={`hidden w-32 text-right font-serif text-sm sm:text-base font-bold tabular sm:block ${
-                        isPagar ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'
+                        l.tipo === 'PAGAR' ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'
                       }`}
                     >
                       {fmt(l.valor)}
@@ -873,7 +1020,7 @@ function LancamentosTab({
                     </span>
 
                     <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {!isPagar && !l.pago_em && (
+                      {l.tipo !== 'PAGAR' && !l.pago_em && (
                         <button
                           type="button"
                           title="Gerar Cobrança Pix"
@@ -885,7 +1032,7 @@ function LancamentosTab({
                       )}
                       <button
                         type="button"
-                        title={l.pago_em ? 'Desfazer' : isPagar ? 'Marcar como pago' : 'Marcar como recebido'}
+                        title={l.pago_em ? 'Desfazer' : l.tipo === 'PAGAR' ? 'Marcar como pago' : 'Marcar como recebido'}
                         onClick={() => togglePago(l)}
                         disabled={marking === l.id}
                         className={`rounded-full p-2 transition-colors ${
@@ -921,8 +1068,12 @@ function LancamentosTab({
                     <div className="border-t border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 p-4 text-xs space-y-2">
                       <div className="flex flex-wrap gap-4">
                         <div><span className="text-[#6E6A61]">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
+                        {l.partnerName && <div><span className="text-[#6E6A61]">{l.tipo === 'PAGAR' ? 'Fornecedor:' : 'Cliente:'}</span> <strong>{l.partnerName}</strong></div>}
+                        {l.costCenterName && <div><span className="text-[#6E6A61]">Centro de Custo:</span> <strong>{l.costCenterName}</strong></div>}
+                        {l.interest && l.interest > 0 ? <div><span className="text-[#6E6A61]">Multa/Juros:</span> <strong>{fmt(l.interest)}</strong></div> : null}
+                        {l.discount && l.discount > 0 ? <div><span className="text-[#6E6A61]">Desconto:</span> <strong>{fmt(l.discount)}</strong></div> : null}
                         <div><span className="text-[#6E6A61]">Criado em:</span> <strong>{fmtDate(l.created_at.split('T')[0]!)}</strong></div>
-                        {l.pago_em && <div><span className="text-[#6E6A61]">{isPagar ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
+                        {l.pago_em && <div><span className="text-[#6E6A61]">{l.tipo === 'PAGAR' ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
                         {l.observacao && <div className="w-full"><span className="text-[#6E6A61]">Observações:</span> {l.observacao}</div>}
                         {l.temComprovante && (
                           <button
@@ -1016,6 +1167,8 @@ function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: Re
 }
 
 function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab: 'pagar' | 'receber') => void }) {
+  const [showDre, setShowDre] = useState(false);
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in7 = new Date(today);
@@ -1122,8 +1275,18 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
 
       {/* Composição do mês + Despesas Fixas */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição do Mês</h3>
+        <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4">
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição do Mês</h3>
+            <button
+              type="button"
+              onClick={() => setShowDre(true)}
+              className="flex items-center gap-2 rounded-2xl bg-[#1E3328] px-3 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C] transition-colors shadow-sm"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Visualizar DRE
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => onNavigate('pagar')}
@@ -1202,6 +1365,8 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
           </div>
         </div>
       </div>
+
+      {showDre && <DreModal data={data} onClose={() => setShowDre(false)} />}
     </div>
   );
 }
@@ -1215,6 +1380,90 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: 'pagar', label: 'Contas a Pagar', icon: ArrowDownCircle },
   { key: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
 ];
+
+// ── DRE Modal ───────────────────────────────────────────────────────────────
+
+function DreModal({ data, onClose }: { data: Lancamento[]; onClose: () => void }) {
+  const filterCurrentMonth = data.filter(l => isCurrentMonth(l.vencimento));
+  
+  const receitas = filterCurrentMonth.filter(l => l.tipo === 'RECEBER').reduce((s, l) => s + l.valor, 0);
+  const impostos = filterCurrentMonth.filter(l => l.tipo === 'PAGAR' && grupoDe(l) === 'Impostos').reduce((s, l) => s + l.valor, 0);
+  const receitaLiquida = receitas - impostos;
+  
+  const fixasFilter = (l: Lancamento) => l.tipo === 'PAGAR' && (
+    grupoDe(l) === 'Aluguel/Imóvel' || 
+    grupoDe(l) === 'Contabilidade' || 
+    grupoDe(l) === 'Tecnologia/Sistemas' || 
+    grupoDe(l).startsWith('Colaboradores')
+  );
+  
+  const despesasFixas = filterCurrentMonth.filter(fixasFilter).reduce((s, l) => s + l.valor, 0);
+  const despesasVariaveis = filterCurrentMonth.filter(l => l.tipo === 'PAGAR' && grupoDe(l) !== 'Impostos' && !fixasFilter(l)).reduce((s, l) => s + l.valor, 0);
+
+  const ebitda = receitaLiquida - despesasFixas - despesasVariaveis;
+  const lucroLiquido = ebitda; 
+
+  const row = "flex justify-between items-center py-2.5 border-b border-black/5 dark:border-white/5 last:border-0";
+  const label = "text-sm text-[#6E6A61] dark:text-[#A8A49C]";
+  const val = "text-sm font-bold tabular text-[#231F20] dark:text-[#FEFDF3]";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
+      <div className="bg-[#F4EFE4] dark:bg-[#1A201C] w-full max-w-lg rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[#1E3328] text-[#DFFFAE] p-2 rounded-2xl shadow-sm">
+              <FileText className="h-5 w-5" />
+            </div>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">
+              DRE Gerencial (Neste Mês)
+            </h2>
+          </div>
+          <button onClick={onClose} className="p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:bg-black/5 rounded-full transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <div className="bg-white/80 dark:bg-black/40 rounded-2xl border border-black/5 dark:border-white/10 p-5 shadow-sm space-y-1">
+            <div className={row}>
+              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Receita Bruta (Faturamento)</span>
+              <span className="text-sm font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{fmt(receitas)}</span>
+            </div>
+            <div className={row}>
+              <span className={label}>(-) Impostos Incorridos</span>
+              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(impostos)}</span>
+            </div>
+            <div className={`${row} bg-black/5 dark:bg-white/5 -mx-5 px-5`}>
+              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">(=) Receita Líquida</span>
+              <span className={val}>{fmt(receitaLiquida)}</span>
+            </div>
+            <div className={row}>
+              <span className={label}>(-) Despesas Operacionais Fixas</span>
+              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(despesasFixas)}</span>
+            </div>
+            <div className={row}>
+              <span className={label}>(-) Despesas Operacionais Variáveis</span>
+              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(despesasVariaveis)}</span>
+            </div>
+            <div className={`${row} bg-black/5 dark:bg-white/5 -mx-5 px-5`}>
+              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">(=) Lucro Operacional (EBITDA)</span>
+              <span className={`text-sm font-bold tabular ${ebitda >= 0 ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-600 dark:text-red-400'}`}>{fmt(ebitda)}</span>
+            </div>
+            <div className={`${row} border-t-2 border-black/10 dark:border-white/20 mt-2`}>
+              <span className="text-base font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">Lucro Líquido Distribuível</span>
+              <span className={`text-base font-serif font-bold tabular ${lucroLiquido >= 0 ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-600 dark:text-red-400'}`}>{fmt(lucroLiquido)}</span>
+            </div>
+          </div>
+          
+          <p className="mt-4 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            O DRE Gerencial demonstra o resultado econômico da empresa baseado no regime de competência/caixa simulado pelo mês atual.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
   const [tab, setTab] = useState<TabKey>(initialTab);
@@ -1298,7 +1547,6 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
         </p>
       )}
 
-      {/* Panels */}
       {!loading && (
         <>
           {tab === 'geral' && <VisaoGeral data={data} onNavigate={setTab} />}

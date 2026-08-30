@@ -4,6 +4,11 @@ import { NAV } from '@/lib/nav';
 import { getTenantContext, NoActiveOrganizationError } from '@/lib/server/tenant';
 import { company, withTenant, eq } from '@hexxa/db';
 
+// Toda página sob o portal depende da sessão/tenant em tempo real — nunca
+// pode ser pré-renderada estaticamente no build (o build não tem sessão do
+// Clerk nem conexão de banco garantida, e tentar gera timeout no build).
+export const dynamic = 'force-dynamic';
+
 /** Shell do portal: menu único e completo (sem distinção de tipo de empresa). */
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   let ctx;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@hexxa/db/client';
+import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { financialEntry, contract } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -47,17 +47,23 @@ export async function POST(req: Request) {
     const db = getDb();
 
     // Camada 1: lançamento já vinculado a esta cobrança (por external_id).
-    const [linked] = await db
-      .select()
-      .from(financialEntry)
-      .where(eq(financialEntry.externalId, String(payment.id)));
+    const [linked] = await withDbTimeout(
+      db
+        .select()
+        .from(financialEntry)
+        .where(eq(financialEntry.externalId, String(payment.id))),
+      8000,
+    );
 
     if (linked) {
       if (linked.status !== 'PAID') {
-        await db
-          .update(financialEntry)
-          .set({ status: 'PAID', paidAt: new Date().toISOString().split('T')[0]! })
-          .where(eq(financialEntry.id, linked.id));
+        await withDbTimeout(
+          db
+            .update(financialEntry)
+            .set({ status: 'PAID', paidAt: new Date().toISOString().split('T')[0]! })
+            .where(eq(financialEntry.id, linked.id)),
+          8000,
+        );
       }
       return NextResponse.json({ success: true, message: 'Lançamento baixado via Asaas.' });
     }
@@ -68,7 +74,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pagamento sem lançamento nem contrato vinculado' }, { status: 404 });
     }
 
-    const contracts = await db.select().from(contract).where(eq(contract.id, contractId));
+    const contracts = await withDbTimeout(db.select().from(contract).where(eq(contract.id, contractId)), 8000);
     if (!contracts || contracts.length === 0) {
       return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
     }
@@ -76,17 +82,20 @@ export async function POST(req: Request) {
     const c = contracts[0]!;
     const referenceMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]!;
 
-    await db.insert(financialEntry).values({
-      companyId: c.companyId,
-      type: 'RECEIVABLE',
-      status: 'PAID',
-      description: `Recebimento Ref. ${c.title}`,
-      amount: String(payment.value),
-      dueDate: payment.dueDate || new Date().toISOString().split('T')[0]!,
-      referenceMonth,
-      source: 'ASAAS',
-      externalId: String(payment.id),
-    });
+    await withDbTimeout(
+      db.insert(financialEntry).values({
+        companyId: c.companyId,
+        type: 'RECEIVABLE',
+        status: 'PAID',
+        description: `Recebimento Ref. ${c.title}`,
+        amount: String(payment.value),
+        dueDate: payment.dueDate || new Date().toISOString().split('T')[0]!,
+        referenceMonth,
+        source: 'ASAAS',
+        externalId: String(payment.id),
+      }),
+      8000,
+    );
 
     return NextResponse.json({ success: true, message: 'Recebível baixado.' });
   } catch (error: any) {

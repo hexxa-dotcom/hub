@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { updateCompanyAction } from './actions';
 import { Loader2, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
+import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
 const field =
   'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
@@ -24,15 +25,6 @@ export function CompanyForm({ company }: { company: any }) {
   const zipcodeRef = useRef<HTMLInputElement>(null);
   const cnpjInputRef = useRef<HTMLInputElement>(null);
 
-  const formatCnpj = (v: string) => {
-    const d = v.replace(/\D/g, '').slice(0, 14);
-    return d
-      .replace(/^(\d{2})(\d)/, '$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2');
-  };
-
   const fillForm = useCallback((data: CnpjData) => {
     if (legalNameRef.current) legalNameRef.current.value = data.razaoSocial;
     if (tradeNameRef.current && data.nomeFantasia) tradeNameRef.current.value = data.nomeFantasia;
@@ -45,12 +37,12 @@ export function CompanyForm({ company }: { company: any }) {
 
   const lookupCnpj = useCallback(
     async (rawCnpj: string) => {
-      const digits = rawCnpj.replace(/\D/g, '');
-      if (digits.length !== 14) return;
+      const doc = normalizeDocument(rawCnpj);
+      if (doc.length !== 14) return;
       setLookupStatus('loading');
       setCnpjData(null);
       try {
-        const res = await fetch(`/api/cnpj/${digits}`);
+        const res = await fetch(`/api/cnpj/${doc}`);
         if (!res.ok) {
           setLookupStatus('not_found');
           return;
@@ -68,9 +60,9 @@ export function CompanyForm({ company }: { company: any }) {
 
   function handleCnpjInput(e: React.FormEvent<HTMLInputElement>) {
     const input = e.currentTarget;
-    const formatted = formatCnpj(input.value);
+    const formatted = formatDocument(input.value);
     input.value = formatted;
-    if (formatted.replace(/\D/g, '').length === 14) {
+    if (isCompleteDocument(formatted)) {
       lookupCnpj(formatted);
     } else {
       setLookupStatus('idle');

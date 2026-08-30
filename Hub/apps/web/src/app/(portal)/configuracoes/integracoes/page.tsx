@@ -19,6 +19,14 @@ const BASE_ERPS = [
     color: '#0030B9',
     logo: 'AS',
   },
+  {
+    id: 'omie',
+    name: 'Omie / OneFlow',
+    sub: 'Contabilidade e ERP',
+    desc: 'Sincronização em tempo real de Lançamentos e Baixas diretamente para o seu balanço contábil.',
+    color: '#F48221',
+    logo: 'OM',
+  }
 ];
 
 export default async function IntegracoesPage() {

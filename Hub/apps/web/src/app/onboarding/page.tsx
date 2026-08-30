@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
-import { getDb, company, eq } from '@hexxa/db';
+import { getDb, company, eq, withDbTimeout } from '@hexxa/db';
 import { getTenantContext, NoActiveOrganizationError } from '@/lib/server/tenant';
 import { OnboardingForm } from './OnboardingForm';
 
@@ -32,10 +32,18 @@ export default async function OnboardingPage() {
     );
   }
   const db = getDb();
-  const [row] = await db
-    .select({ cnpj: company.cnpj, name: company.legalName })
-    .from(company)
-    .where(eq(company.id, ctx.companyId));
+  let row: { cnpj: string; name: string } | undefined;
+  try {
+    [row] = await withDbTimeout(
+      db
+        .select({ cnpj: company.cnpj, name: company.legalName })
+        .from(company)
+        .where(eq(company.id, ctx.companyId)),
+      8000,
+    );
+  } catch (err) {
+    console.error('[OnboardingPage] falha ao carregar empresa:', err);
+  }
 
   if (row && !row.cnpj.startsWith('PENDENTE-')) {
     redirect('/cliente');

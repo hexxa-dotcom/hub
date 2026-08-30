@@ -1,7 +1,7 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs } from '@/lib/server/fiscal';
-import { TaxThermometerService } from '@hexxa/core';
-import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { getSimplesInputs, getCurrentMinimumWage } from '@/lib/server/fiscal';
+import { TaxThermometerService, ProlaboreAutopilotService } from '@hexxa/core';
+import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -11,8 +11,25 @@ export const dynamic = 'force-dynamic';
 
 export default async function TermometroTributarioPage() {
   const ctx = await getTenantContext();
-  const { rbt12, folha12 } = await getSimplesInputs(ctx);
+  const [{ rbt12, folha12 }, minimumWage] = await Promise.all([
+    getSimplesInputs(ctx),
+    getCurrentMinimumWage(),
+  ]);
   const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+
+  // Piloto Automático do Pró-labore
+  // `folha12` é uma PROJEÇÃO (folha do mês atual × 12), não um histórico
+  // real mês a mês — o sistema ainda não guarda folha paga por competência.
+  // O serviço espera especificamente os últimos 11 MESES (o 12º é o
+  // pró-labore que ele está calculando agora); escalar por 11/12 alinha as
+  // unidades, mas ainda é uma aproximação enquanto não existir um histórico
+  // de folha de fato.
+  const payrollLast11Months = (folha12 * 11) / 12;
+  const autopilot = new ProlaboreAutopilotService().calculateIdealProlabore({
+    rbt12,
+    payrollLast11Months,
+    minimumWage,
+  });
 
   const LIMITE_TETO = 4_800_000;
   const LIMITE_SUBLIMITE = 3_600_000;
@@ -153,6 +170,32 @@ export default async function TermometroTributarioPage() {
                     Ajustar pró-labore em Sócios <ArrowRight className="h-3 w-3" />
                   </Link>
                 )}
+              </div>
+
+              {/* Novo Card: Piloto Automático do Fator R */}
+              <div className="rounded-3xl border border-[#DFFFAE]/50 bg-[#EFFFD6] p-6 shadow-sm dark:bg-[#1E3328] dark:border-[#2F4A3C]">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE] mb-3 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" /> Piloto Automático Fator R
+                </h3>
+                
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="font-serif font-extrabold text-2xl sm:text-3xl text-[#1E3328] dark:text-[#DFFFAE]">{BRL.format(autopilot.idealProlabore)}</span>
+                </div>
+                <p className="mt-1 text-xs text-[#2F4A3C]/80 dark:text-[#A8A49C]">pró-labore ideal p/ mês atual</p>
+                
+                <div className="mt-3 text-xs font-medium text-[#1E3328] dark:text-[#DFFFAE] leading-relaxed">
+                  {autopilot.reasoning}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-[#2F4A3C]/10 dark:border-white/10 flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Status da Proteção</span>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    autopilot.isSafeAnexoIII ? 'bg-[#2F4A3C] text-[#EFFFD6]' : 'bg-red-500 text-white'
+                  }`}>
+                    {autopilot.isSafeAnexoIII ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                    {autopilot.isSafeAnexoIII ? 'Protegido (Anexo III)' : 'Risco de Anexo V'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

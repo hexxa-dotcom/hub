@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Receipt, HelpCircle, ClipboardList, UploadCloud, Building2, Activity } from 'lucide-react';
-import { getDb, eq, desc } from '@hexxa/db';
+import { getDb, eq, desc, withDbTimeout } from '@hexxa/db';
 import { company, serviceInvoice, ticket, monthlyClosure, taxHistory } from '@hexxa/db/schema';
 
 type Event = { date: Date; icon: 'invoice' | 'ticket' | 'closure' | 'pgdas' | 'company'; title: string; detail?: string };
@@ -11,15 +11,26 @@ export default async function AdminAtividadePage({ params }: { params: Promise<{
   const { id } = await params;
   const db = getDb();
 
-  const [comp] = await db.select().from(company).where(eq(company.id, id));
+  const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, id)), 8000);
   if (!comp) notFound();
 
-  const [invoices, tickets, closures, pgdas] = await Promise.all([
-    db.select().from(serviceInvoice).where(eq(serviceInvoice.companyId, id)).orderBy(desc(serviceInvoice.createdAt)).limit(20),
-    db.select().from(ticket).where(eq(ticket.companyId, id)).orderBy(desc(ticket.createdAt)).limit(20),
-    db.select().from(monthlyClosure).where(eq(monthlyClosure.companyId, id)).orderBy(desc(monthlyClosure.createdAt)).limit(20),
-    db.select().from(taxHistory).where(eq(taxHistory.companyId, id)).orderBy(desc(taxHistory.createdAt)).limit(20),
-  ]);
+  let invoices: (typeof serviceInvoice.$inferSelect)[] = [];
+  let tickets: (typeof ticket.$inferSelect)[] = [];
+  let closures: (typeof monthlyClosure.$inferSelect)[] = [];
+  let pgdas: (typeof taxHistory.$inferSelect)[] = [];
+  try {
+    [invoices, tickets, closures, pgdas] = await withDbTimeout(
+      Promise.all([
+        db.select().from(serviceInvoice).where(eq(serviceInvoice.companyId, id)).orderBy(desc(serviceInvoice.createdAt)).limit(20),
+        db.select().from(ticket).where(eq(ticket.companyId, id)).orderBy(desc(ticket.createdAt)).limit(20),
+        db.select().from(monthlyClosure).where(eq(monthlyClosure.companyId, id)).orderBy(desc(monthlyClosure.createdAt)).limit(20),
+        db.select().from(taxHistory).where(eq(taxHistory.companyId, id)).orderBy(desc(taxHistory.createdAt)).limit(20),
+      ]),
+      8000,
+    );
+  } catch (err) {
+    console.error('[AdminAtividadePage] falha ao carregar atividade:', err);
+  }
 
   const events: Event[] = [
     { date: comp.createdAt, icon: 'company', title: 'Empresa cadastrada na plataforma' } satisfies Event,

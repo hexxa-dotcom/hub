@@ -26,7 +26,10 @@ import {
   renovarContratoAction,
   cancelarContratoAction,
   marcarNfseEmitidaAction,
+  getContractPdfAction,
 } from '../actions';
+import { reenviarParaAssinaturaAction } from '../unified-actions';
+import { STATUS_LABEL, STATUS_CLASS } from '../contract-status';
 import { getComprovante } from '../../hub-financeiro/actions';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
 
@@ -150,6 +153,29 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
     if (r) window.open(r.dataUrl, '_blank');
   }
 
+  async function handleVerPdf() {
+    setBusy(true);
+    try {
+      const base64 = await getContractPdfAction(c.id);
+      if (!base64) { flash('PDF não disponível para este contrato.'); return; }
+      const win = window.open('', '_blank');
+      if (win) win.location.href = `data:application/pdf;base64,${base64}`;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReenviar() {
+    setBusy(true);
+    try {
+      const res = await reenviarParaAssinaturaAction(c.id);
+      flash(res.message);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const totalPago = detail.payments.filter((p) => p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
   const totalAberto = detail.payments.filter((p) => p.status === 'PENDING' || p.status === 'OVERDUE').reduce((s, p) => s + p.amount, 0);
 
@@ -168,8 +194,8 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
           <span className={`rounded-full px-3 py-1 text-xs font-bold ${isEntrada ? 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'}`}>
             {isEntrada ? 'Vínculo de Entrada (você presta o serviço)' : 'Vínculo de Saída (você contrata)'}
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${c.status === 'ATIVO' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}`}>
-            {c.status}
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASS[c.status]}`}>
+            {STATUS_LABEL[c.status]}
           </span>
           {c.linkedOnPlatform && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3 py-1 text-xs font-bold">
@@ -177,6 +203,17 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
             </span>
           )}
         </div>
+
+        {c.status === 'RECUSADO' && c.refusalReason && (
+          <div className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> Motivo da recusa: {c.refusalReason}
+          </div>
+        )}
+        {c.status === 'AGUARDANDO_ASSINATURA' && (
+          <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs font-bold text-amber-800 dark:text-amber-300">
+            <Clock className="h-4 w-4 shrink-0" /> Aguardando a assinatura da contraparte — os lançamentos financeiros só são gerados quando o contrato for assinado.
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <InfoCard label={isEntrada ? 'Cliente' : 'Fornecedor'} value={c.partyName} hint={c.partyCnpj ?? undefined} />
@@ -231,7 +268,17 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
 
         {/* Ações */}
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/10">
-          {isEntrada && (
+          {c.hasPdf && (
+            <button type="button" onClick={handleVerPdf} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 mt-3">
+              <FileText className="h-3.5 w-3.5" /> Ver PDF do Contrato
+            </button>
+          )}
+          {c.status === 'AGUARDANDO_ASSINATURA' && (
+            <button type="button" onClick={handleReenviar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-3.5 py-1.5 text-xs font-bold mt-3 disabled:opacity-50">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Reenviar para Assinatura
+            </button>
+          )}
+          {c.status === 'ATIVO' && isEntrada && (
             <>
               <button type="button" onClick={() => setShowNfse(true)} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold mt-3">
                 <FileText className="h-3.5 w-3.5" /> Marcar NFSe
@@ -241,13 +288,17 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               </button>
             </>
           )}
-          <button type="button" onClick={() => setShowReajuste(true)} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 mt-3">
-            <Percent className="h-3.5 w-3.5" /> Reajustar %
-          </button>
-          <button type="button" onClick={handleRenovar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 mt-3">
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Renovar (+12m)
-          </button>
           {c.status === 'ATIVO' && (
+            <>
+              <button type="button" onClick={() => setShowReajuste(true)} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 mt-3">
+                <Percent className="h-3.5 w-3.5" /> Reajustar %
+              </button>
+              <button type="button" onClick={handleRenovar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 mt-3">
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Renovar (+12m)
+              </button>
+            </>
+          )}
+          {(c.status === 'ATIVO' || c.status === 'AGUARDANDO_ASSINATURA') && (
             <button type="button" onClick={handleCancelar} disabled={busy} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50 mt-3">
               Cancelar Vínculo
             </button>

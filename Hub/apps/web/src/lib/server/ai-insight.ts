@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getDb, eq, and } from '@hexxa/db';
+import { getDb, eq, and, withDbTimeout } from '@hexxa/db';
 import { aiInsight, aiInsightConfig, aiInsightSection } from '@hexxa/db/schema';
 import { decryptSecret } from './secret-crypto';
 
@@ -30,7 +30,7 @@ function hashContext(pageKey: string, context: string) {
 
 async function resolveCredentials(): Promise<{ apiKey: string; provider: AiProvider } | null> {
   const db = getDb();
-  const [cfg] = await db.select().from(aiInsightConfig).limit(1);
+  const [cfg] = await withDbTimeout(db.select().from(aiInsightConfig).limit(1), 8000);
   if (!cfg?.enabled) return null;
   const provider = (cfg.provider as AiProvider) || 'anthropic';
   const dbKey = decryptSecret(cfg.apiKeyEncrypted);
@@ -41,7 +41,7 @@ async function resolveCredentials(): Promise<{ apiKey: string; provider: AiProvi
 
 async function isSectionEnabled(pageKey: string): Promise<boolean> {
   const db = getDb();
-  const [row] = await db.select().from(aiInsightSection).where(eq(aiInsightSection.pageKey, pageKey));
+  const [row] = await withDbTimeout(db.select().from(aiInsightSection).where(eq(aiInsightSection.pageKey, pageKey)), 8000);
   return row ? row.enabled : true; // sem registro = habilitado por padrão
 }
 
@@ -67,7 +67,7 @@ async function callAnthropic(apiKey: string, context: string): Promise<string> {
 
 async function callGemini(apiKey: string, context: string): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -92,13 +92,16 @@ export async function getContextualInsight(companyId: string, pageKey: string, c
   const contextHash = hashContext(pageKey, context);
   const db = getDb();
 
-  const [cached] = await db
-    .select()
-    .from(aiInsight)
-    .where(and(eq(aiInsight.companyId, companyId), eq(aiInsight.pageKey, pageKey)));
+  const [cached] = await withDbTimeout(
+    db.select().from(aiInsight).where(and(eq(aiInsight.companyId, companyId), eq(aiInsight.pageKey, pageKey))),
+    8000,
+  );
 
+  // Serve o cache só quando o contexto NÃO mudou E ainda não passou de 24h —
+  // era "||" antes, o que servia dica desatualizada sempre que o cache
+  // estava fresco, mesmo com o contextHash já divergente (dado real mudou).
   const isFresh = cached && Date.now() - cached.createdAt.getTime() < 24 * 60 * 60 * 1000;
-  if (cached && (cached.contextHash === contextHash || isFresh)) {
+  if (cached && cached.contextHash === contextHash && isFresh) {
     return cached.content === 'SEM_DICA' ? null : cached.content;
   }
 
@@ -112,12 +115,12 @@ export async function getContextualInsight(companyId: string, pageKey: string, c
   }
 
   if (cached) {
-    await db
-      .update(aiInsight)
-      .set({ content, contextHash, createdAt: new Date() })
-      .where(eq(aiInsight.id, cached.id));
+    await withDbTimeout(
+      db.update(aiInsight).set({ content, contextHash, createdAt: new Date() }).where(eq(aiInsight.id, cached.id)),
+      8000,
+    );
   } else {
-    await db.insert(aiInsight).values({ companyId, pageKey, content, contextHash });
+    await withDbTimeout(db.insert(aiInsight).values({ companyId, pageKey, content, contextHash }), 8000);
   }
 
   return content === 'SEM_DICA' ? null : content;

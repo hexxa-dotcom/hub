@@ -5,6 +5,7 @@ import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { Save, Upload, Trash2, CheckCircle2, AlertTriangle, Info, Key, Building2, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText } from 'lucide-react';
 import { saveFiscalAction, uploadCertAction, removeCertAction, createProfileAction, deleteProfileAction, saveTecnicaAction, type FiscalState } from './actions';
 import type { NfseConfig, NfseServiceProfile } from '@/lib/server/fiscal';
+import { formatDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -859,15 +860,6 @@ function CnaeSugestoes({
   );
 }
 
-function formatCNPJ(raw: string) {
-  const d = raw.replace(/\D/g, '').slice(0, 14);
-  return d
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2');
-}
-
 function formatCEP(raw: string) {
   const d = raw.replace(/\D/g, '').slice(0, 8);
   return d.replace(/^(\d{5})(\d)/, '$1-$2');
@@ -934,7 +926,7 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
   const c = config;
 
   // Campos controlados para suportar preenchimento via lookup do CNPJ
-  const [cnpj, setCnpj] = useState(c?.cnpj ? formatCNPJ(c.cnpj) : '');
+  const [cnpj, setCnpj] = useState(c?.cnpj ? formatDocument(c.cnpj) : '');
   const [razao, setRazao] = useState(c?.razaoSocial ?? '');
   const [fantasia, setFantasia] = useState(c?.nomeFantasia ?? '');
   const [cep, setCep] = useState(c?.cep ? formatCEP(c.cep) : '');
@@ -1011,9 +1003,9 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
   }
 
   function handleCnpjChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const formatted = formatCNPJ(e.target.value);
+    const formatted = formatDocument(e.target.value);
     setCnpj(formatted);
-    if (formatted.replace(/\D/g, '').length === 14) buscarCnpj(formatted);
+    if (isCompleteDocument(formatted)) buscarCnpj(formatted);
     else { setCnpjStatus('idle'); setCnpjMsg(''); }
   }
 
@@ -1031,10 +1023,9 @@ function DadosEmpresa({ config }: { config: NfseConfig | null }) {
           <div className="relative mt-1">
             <input
               name="cnpj"
-              inputMode="numeric"
               value={cnpj}
               onChange={handleCnpjChange}
-              placeholder="00.000.000/0001-00"
+              placeholder="00.000.000/0001-00 (ou alfanumérico)"
               className={`${inputCls} pr-10 ${
                 cnpjStatus === 'ok' ? 'border-green-400 focus:border-green-500 focus:ring-green-500/20' :
                 cnpjStatus === 'error' ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : ''

@@ -56,11 +56,11 @@ export function DueDatesTimeline({
               <Calendar className="h-3.5 w-3.5" />
             </span>
             <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">
-              Linha do Tempo de Vencimentos
+              Próximos Vencimentos
             </h2>
           </div>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
-            Próximos compromissos financeiros e guias de impostos a vencer
+            Contas a pagar, a receber e guias programadas
           </p>
         </div>
 

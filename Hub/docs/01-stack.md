@@ -28,7 +28,7 @@ Toda tabela carrega `company_id`. O isolamento é garantido em duas camadas:
 2. **Banco** — **Row Level Security (RLS)** do Postgres com policies por `company_id`, impedindo vazamento mesmo em caso de bug na aplicação.
 
 ### Pronto para MCP / agentes de IA
-Como domínio e schema são pacotes compartilhados, o servidor MCP expõe exatamente as mesmas operações da API (sem duplicar regra). Um agente lê um *Resource* (`hexxa://company/{id}/dashboard`), executa uma *Tool* (`emitir_nfse`) e usa *Prompts* padronizados — tudo respeitando RLS e as regras de linguagem do produto.
+Como domínio e schema são pacotes compartilhados, o servidor MCP (`apps/web/src/app/api/mcp/`) expõe *Tools* de leitura sobre os mesmos dados da API (sem duplicar regra) — ex.: `resumo_mes_atual`, `guias_impostos`, `contratos_ativos` — tudo respeitando RLS e as regras de linguagem do produto. Emissão de NFSe ainda não tem Tool própria; hoje só acontece pela UI.
 
 ### Escalabilidade
 - RSC + streaming reduzem JS no cliente.

@@ -3,23 +3,15 @@
 import { useState, useEffect } from 'react';
 import { Save, Users, Lock, Building2, Trash2, CheckCircle2, AlertTriangle, Plus, Copy } from 'lucide-react';
 import { Section, fi, lb } from '@/components/contador/AdminUI';
+import { formatDocument as formatCNPJ, normalizeDocument } from '@hexxa/core/document-br';
 
 type AcessoCNPJ = {
   id: string;
-  cnpj: string; 
+  cnpj: string;
   descricao: string;
   ativo: boolean;
-  noEnv: boolean; 
+  noEnv: boolean;
 };
-
-function formatCNPJ(raw: string) {
-  const d = raw.replace(/\D/g, '').slice(0, 14);
-  return d
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2');
-}
 
 function AcessoAdminCNPJ() {
   const [lista, setLista] = useState<AcessoCNPJ[]>([]);
@@ -59,9 +51,9 @@ function AcessoAdminCNPJ() {
   }
 
   function adicionar() {
-    const cnpjLimpo = novoCNPJ.replace(/\D/g, '');
-    if (cnpjLimpo.length !== 14) { setErro('CNPJ inválido — deve ter 14 dígitos.'); return; }
-    if (lista.some(c => c.cnpj.replace(/\D/g, '') === cnpjLimpo)) { setErro('Este CNPJ já está na lista.'); return; }
+    const cnpjLimpo = normalizeDocument(novoCNPJ);
+    if (cnpjLimpo.length !== 14) { setErro('CNPJ inválido — deve ter 14 caracteres.'); return; }
+    if (lista.some(c => normalizeDocument(c.cnpj) === cnpjLimpo)) { setErro('Este CNPJ já está na lista.'); return; }
     setLista(prev => [...prev, {
       id: Date.now().toString(),
       cnpj: formatCNPJ(novoCNPJ),
@@ -77,7 +69,7 @@ function AcessoAdminCNPJ() {
 
   const envValue = lista
     .filter(c => c.ativo)
-    .map(c => c.cnpj.replace(/\D/g, ''))
+    .map(c => normalizeDocument(c.cnpj))
     .join(',');
 
   const temPendentes = lista.some(c => !c.noEnv);

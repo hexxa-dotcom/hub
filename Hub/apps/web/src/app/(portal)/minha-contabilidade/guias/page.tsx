@@ -43,10 +43,10 @@ export default async function Page() {
             </span>
           </div>
           <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            Guias de Impostos
+            Central de Guias
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-            DAS, DARF, ISS, parcelamentos e demais guias com histórico completo e status de pagamento.
+            Acompanhe toda a sua jornada de impostos do mês de forma simples. DAS, DARF, ISS e parcelamentos centralizados em um só lugar.
           </p>
         </div>
       </header>

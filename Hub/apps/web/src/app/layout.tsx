@@ -16,14 +16,15 @@ export const metadata: Metadata = {
   description: 'Portal do Cliente e Hub Operacional de Autogestão',
 };
 
-// Aplica o tema salvo antes da pintura (sem flash claro→escuro).
+import Script from 'next/script';
+
 const themeScript = `(function(){try{var t=localStorage.getItem('hexxa.theme')||'system';var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='system'&&m))document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`min-h-screen antialiased ${inter.variable} font-sans`}>
         <ClerkProvider localization={ptBR}>

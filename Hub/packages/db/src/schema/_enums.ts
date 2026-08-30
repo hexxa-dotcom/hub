@@ -70,7 +70,13 @@ export const propertyStatus = pgEnum('property_status', [
   'SOLD',
 ]);
 export const indexType = pgEnum('index_type', ['IPCA', 'IGPM']);
-export const leaseStatus = pgEnum('lease_status', ['ACTIVE', 'ENDED', 'CANCELED']);
+export const leaseStatus = pgEnum('lease_status', [
+  'DRAFT',
+  'PENDING_SIGNATURE',
+  'ACTIVE',
+  'ENDED',
+  'CANCELED',
+]);
 export const rentInvoiceStatus = pgEnum('rent_invoice_status', [
   'OPEN',
   'PAID',

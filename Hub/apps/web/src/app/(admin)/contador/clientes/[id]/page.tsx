@@ -18,7 +18,7 @@ import {
   Clock,
   Receipt,
 } from 'lucide-react';
-import { getDb, eq, and, desc, sql } from '@hexxa/db';
+import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
 import { ClienteStatusActions } from './ClienteStatusActions';
 
@@ -54,48 +54,64 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
   const { id: companyId } = await params;
   const db = getDb();
 
-  const [comp] = await db.select().from(company).where(eq(company.id, companyId));
+  const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, companyId)), 8000);
   if (!comp) notFound();
 
-  const [[sub], [owner], openTickets, invoices, [fiscalContact]] = await Promise.all([
-    db
-      .select({
-        subscriptionId: subscription.id,
-        status: subscription.status,
-        planName: plan.name,
-        monthlyValue: plan.monthlyValue,
-        asaasCustomerId: subscription.asaasCustomerId,
-        asaasSubscriptionId: subscription.asaasSubscriptionId,
-      })
-      .from(subscription)
-      .leftJoin(plan, eq(subscription.planId, plan.id))
-      .where(eq(subscription.companyId, companyId))
-      .limit(1),
-    db
-      .select({ name: appUser.name, email: appUser.email })
-      .from(appUser)
-      .innerJoin(membership, eq(membership.userId, appUser.id))
-      .where(and(eq(membership.companyId, companyId), eq(membership.role, 'OWNER')))
-      .limit(1),
-    db
-      .select({ id: ticket.id, subject: ticket.subject, priority: ticket.priority, createdAt: ticket.createdAt })
-      .from(ticket)
-      .where(and(eq(ticket.companyId, companyId), eq(ticket.status, 'OPEN')))
-      .orderBy(desc(ticket.createdAt)),
-    db
-      .select({
-        id: accountingInvoice.id,
-        referenceMonth: accountingInvoice.referenceMonth,
-        dueDate: accountingInvoice.dueDate,
-        value: accountingInvoice.value,
-        status: accountingInvoice.status,
-      })
-      .from(accountingInvoice)
-      .where(eq(accountingInvoice.companyId, companyId))
-      .orderBy(desc(accountingInvoice.referenceMonth))
-      .limit(6),
-    db.execute(sql`SELECT email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`).then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
-  ]);
+  let sub: { subscriptionId: string; status: string; planName: string | null; monthlyValue: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
+  let owner: { name: string; email: string } | undefined;
+  let openTickets: { id: string; subject: string; priority: string; createdAt: Date }[] = [];
+  let invoices: { id: string; referenceMonth: string; dueDate: string; value: string; status: string }[] = [];
+  let fiscalContact: Record<string, unknown> | undefined;
+  try {
+    let subRows, ownerRows, fiscalRows;
+    [subRows, ownerRows, openTickets, invoices, fiscalRows] = await withDbTimeout(
+      Promise.all([
+        db
+          .select({
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            planName: plan.name,
+            monthlyValue: plan.monthlyValue,
+            asaasCustomerId: subscription.asaasCustomerId,
+            asaasSubscriptionId: subscription.asaasSubscriptionId,
+          })
+          .from(subscription)
+          .leftJoin(plan, eq(subscription.planId, plan.id))
+          .where(eq(subscription.companyId, companyId))
+          .limit(1),
+        db
+          .select({ name: appUser.name, email: appUser.email })
+          .from(appUser)
+          .innerJoin(membership, eq(membership.userId, appUser.id))
+          .where(and(eq(membership.companyId, companyId), eq(membership.role, 'OWNER')))
+          .limit(1),
+        db
+          .select({ id: ticket.id, subject: ticket.subject, priority: ticket.priority, createdAt: ticket.createdAt })
+          .from(ticket)
+          .where(and(eq(ticket.companyId, companyId), eq(ticket.status, 'OPEN')))
+          .orderBy(desc(ticket.createdAt)),
+        db
+          .select({
+            id: accountingInvoice.id,
+            referenceMonth: accountingInvoice.referenceMonth,
+            dueDate: accountingInvoice.dueDate,
+            value: accountingInvoice.value,
+            status: accountingInvoice.status,
+          })
+          .from(accountingInvoice)
+          .where(eq(accountingInvoice.companyId, companyId))
+          .orderBy(desc(accountingInvoice.referenceMonth))
+          .limit(6),
+        db.execute(sql`SELECT email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`).then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
+      ]),
+      8000,
+    );
+    sub = subRows[0];
+    owner = ownerRows[0];
+    fiscalContact = fiscalRows[0];
+  } catch (err) {
+    console.error('[ClienteDetalhe] falha ao carregar dados do cliente:', err);
+  }
 
   const status = (sub?.status as SubStatus) || 'TRIAL';
   const st = STATUS_CFG[status] ?? STATUS_CFG.TRIAL;

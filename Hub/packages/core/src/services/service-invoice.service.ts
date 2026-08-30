@@ -37,7 +37,7 @@ export interface EmitNfseInput {
 
 export interface EmitNfseResult {
   invoiceId: string;
-  status: 'ISSUING' | 'ISSUED' | 'ERROR';
+  status: 'ISSUING' | 'ISSUED' | 'ERROR' | 'CANCELED';
   nfseNumber?: string;
   providerProtocol?: string;
   financialEntryId?: string;
@@ -139,5 +139,25 @@ export class ServiceInvoiceService {
       financialEntryId,
       isMock: issued.isMock,
     };
+  }
+
+  async cancel(ctx: TenantContext, id: string, protocol: string): Promise<void> {
+    await this.deps.nfse.cancel(protocol, 'Cancelamento solicitado pelo emitente');
+    await this.deps.invoices.updateStatus(ctx, id, { status: 'CANCELED' });
+    await this.deps.entries.cancelBySource(ctx, 'NFSE', id);
+  }
+
+  async refreshStatus(ctx: TenantContext, id: string, protocol: string): Promise<string> {
+    const result = await this.deps.nfse.getStatus(protocol);
+    if (result.status !== 'ISSUING') {
+      await this.deps.invoices.updateStatus(ctx, id, {
+        status: result.status,
+        nfseNumber: result.nfseNumber,
+      });
+      if (result.status === 'ERROR' || result.status === 'CANCELED') {
+        await this.deps.entries.cancelBySource(ctx, 'NFSE', id);
+      }
+    }
+    return result.status;
   }
 }

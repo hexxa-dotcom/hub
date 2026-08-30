@@ -1,4 +1,5 @@
 import type { NfseIssueInput } from '@hexxa/core/ports';
+import { normalizeDocument, documentKind } from '@hexxa/core/document-br';
 
 /**
  * Montagem do XML da DPS (Declaração de Prestação de Serviço) — layout v1.01
@@ -88,9 +89,12 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
   const dCompet = input.competenciaDate 
     ? input.competenciaDate 
     : (input.referenceMonth && input.referenceMonth.length === 7 ? `${input.referenceMonth}-01` : todayBrasilia());
-  const cnpjPrest = onlyDigits(e.cnpj);
-  const doc = onlyDigits(input.customer.document);
-  const tomaTag = doc.length > 11 ? 'CNPJ' : 'CPF';
+  // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
+  // novos CNPJs a partir de jul/2026) tem os 12 primeiros caracteres
+  // podendo ser letra OU dígito; um onlyDigits ingênuo destruiria o valor.
+  const cnpjPrest = normalizeDocument(e.cnpj);
+  const doc = normalizeDocument(input.customer.document);
+  const tomaTag = documentKind(doc);
 
   // Id do infDPS conforme NT: DPS + cMun(7) + tpInsc(1) + nInsc(14) + serie(5) + nDPS(15)
   const refId =

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@hexxa/db';
+import { getDb, withDbTimeout } from '@hexxa/db';
 import { contract, financialEntry } from '@hexxa/db/schema';
 import { eq, and, lte, lt } from 'drizzle-orm';
 
@@ -38,17 +38,23 @@ export async function GET(request: Request) {
 
   try {
     // 1) Marca como vencido quem passou do prazo e ainda está pendente.
-    const overdue = await db
-      .update(financialEntry)
-      .set({ status: 'OVERDUE' })
-      .where(and(eq(financialEntry.status, 'PENDING'), lt(financialEntry.dueDate, todayStr)))
-      .returning({ id: financialEntry.id });
+    const overdue = await withDbTimeout(
+      db
+        .update(financialEntry)
+        .set({ status: 'OVERDUE' })
+        .where(and(eq(financialEntry.status, 'PENDING'), lt(financialEntry.dueDate, todayStr)))
+        .returning({ id: financialEntry.id }),
+      8000,
+    );
 
     // 2) Gera a parcela de contratos ativos cuja próxima cobrança já chegou.
-    const dueContracts = await db
-      .select()
-      .from(contract)
-      .where(and(eq(contract.status, 'ACTIVE'), lte(contract.nextBillingDate, todayStr)));
+    const dueContracts = await withDbTimeout(
+      db
+        .select()
+        .from(contract)
+        .where(and(eq(contract.status, 'ACTIVE'), lte(contract.nextBillingDate, todayStr))),
+      8000,
+    );
 
     let generated = 0;
     let finished = 0;
@@ -60,40 +66,46 @@ export async function GET(request: Request) {
 
         // Idempotência: não gera de novo se já existe lançamento deste
         // contrato pra este vencimento (cron pode rodar mais de uma vez).
-        const [already] = await db
-          .select({ id: financialEntry.id })
-          .from(financialEntry)
-          .where(
-            and(
-              eq(financialEntry.source, 'CONTRACT'),
-              eq(financialEntry.sourceId, c.id),
-              eq(financialEntry.dueDate, c.nextBillingDate),
+        const [already] = await withDbTimeout(
+          db
+            .select({ id: financialEntry.id })
+            .from(financialEntry)
+            .where(
+              and(
+                eq(financialEntry.source, 'CONTRACT'),
+                eq(financialEntry.sourceId, c.id),
+                eq(financialEntry.dueDate, c.nextBillingDate),
+              ),
             ),
-          );
+          8000,
+        );
 
         if (!already) {
           const referenceMonth = c.nextBillingDate.slice(0, 8) + '01';
-          await db.insert(financialEntry).values({
-            companyId: c.companyId,
-            type: 'RECEIVABLE',
-            status: 'PENDING',
-            description: `Recebível — ${c.title}`,
-            amount: c.value,
-            dueDate: c.nextBillingDate,
-            referenceMonth,
-            source: 'CONTRACT',
-            sourceId: c.id,
-          });
+          await withDbTimeout(
+            db.insert(financialEntry).values({
+              companyId: c.companyId,
+              type: 'RECEIVABLE',
+              status: 'PENDING',
+              description: `Recebível — ${c.title}`,
+              amount: c.value,
+              dueDate: c.nextBillingDate,
+              referenceMonth,
+              source: 'CONTRACT',
+              sourceId: c.id,
+            }),
+            8000,
+          );
           generated++;
         }
 
         const next = addCycle(c.nextBillingDate, c.billingCycle);
 
         if (c.endDate && next > c.endDate) {
-          await db.update(contract).set({ status: 'FINISHED', nextBillingDate: null }).where(eq(contract.id, c.id));
+          await withDbTimeout(db.update(contract).set({ status: 'FINISHED', nextBillingDate: null }).where(eq(contract.id, c.id)), 8000);
           finished++;
         } else {
-          await db.update(contract).set({ nextBillingDate: next }).where(eq(contract.id, c.id));
+          await withDbTimeout(db.update(contract).set({ nextBillingDate: next }).where(eq(contract.id, c.id)), 8000);
         }
       } catch (err: any) {
         errors.push(`Contrato ${c.id}: ${err.message}`);

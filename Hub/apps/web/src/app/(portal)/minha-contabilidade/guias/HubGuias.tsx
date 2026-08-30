@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
+import { normalizeDocument } from '@hexxa/core/document-br';
 import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -670,14 +671,14 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
               <SlidersHorizontal className="h-4 w-4 shrink-0 text-[#6E6A61]" />
               <input
                 value={cnpjInput}
-                onChange={(e) => setCnpjInput(e.target.value.replace(/\D/g, '').slice(0, 14))}
-                placeholder="CNPJ (14 dígitos, sem pontuação)"
+                onChange={(e) => setCnpjInput(normalizeDocument(e.target.value).slice(0, 14))}
+                placeholder="CNPJ (14 caracteres, sem pontuação)"
                 className="min-w-0 flex-1 bg-transparent text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none placeholder:text-[#6E6A61]"
               />
               <button
                 type="button"
                 onClick={() => {
-                  setCnpjMei(cnpjInput.replace(/\D/g, ''));
+                  setCnpjMei(normalizeDocument(cnpjInput));
                   setShowCnpjConfig(false);
                 }}
                 className="rounded-full bg-[#1E3328] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C]"

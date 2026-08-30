@@ -2,16 +2,18 @@
 
 import { clerkClient } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { getDb } from '@hexxa/db/client';
+import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { company, appUser, membership, subscription, plan } from '@hexxa/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { requireAdmin } from '@/lib/server/admin-guard';
 
 export async function authorizeClientByCnpjAction(cnpj: string) {
+  await requireAdmin();
   try {
     const db = getDb();
-    
+
     // 1. Achar a empresa pelo CNPJ
-    const companyRecord = await db.select().from(company).where(eq(company.cnpj, cnpj)).limit(1);
+    const companyRecord = await withDbTimeout(db.select().from(company).where(eq(company.cnpj, cnpj)).limit(1), 8000);
     
     if (companyRecord.length === 0) {
       return { error: 'Empresa com este CNPJ não encontrada. Peça para o cliente fazer o cadastro inicial primeiro.' };
@@ -23,12 +25,15 @@ export async function authorizeClientByCnpjAction(cnpj: string) {
     const companyId = cRecord.id;
     
     // 2. Achar o membro principal (OWNER) desta empresa
-    const memberRecord = await db.select().from(membership).where(
-      and(
-        eq(membership.companyId, companyId),
-        eq(membership.role, 'OWNER')
-      )
-    ).limit(1);
+    const memberRecord = await withDbTimeout(
+      db.select().from(membership).where(
+        and(
+          eq(membership.companyId, companyId),
+          eq(membership.role, 'OWNER')
+        )
+      ).limit(1),
+      8000,
+    );
     
     if (memberRecord.length === 0) {
       return { error: 'Nenhum usuário dono (OWNER) vinculado a esta empresa.' };
@@ -40,7 +45,7 @@ export async function authorizeClientByCnpjAction(cnpj: string) {
     const userId = mRecord.userId;
     
     // 3. Achar o authUid do usuário no Clerk
-    const userRecord = await db.select().from(appUser).where(eq(appUser.id, userId)).limit(1);
+    const userRecord = await withDbTimeout(db.select().from(appUser).where(eq(appUser.id, userId)).limit(1), 8000);
     
     if (userRecord.length === 0) {
       return { error: 'Usuário não encontrado no banco de dados.' };
@@ -67,13 +72,14 @@ export async function authorizeClientByCnpjAction(cnpj: string) {
 }
 
 export async function changeSubscriptionPlanAction(subscriptionId: string, planName: string) {
+  await requireAdmin();
   try {
     const db = getDb();
-    const planRecord = await db.select().from(plan).where(eq(plan.name, planName)).limit(1);
+    const planRecord = await withDbTimeout(db.select().from(plan).where(eq(plan.name, planName)).limit(1), 8000);
     const p = planRecord[0];
     if (!p) return { error: `Plano "${planName}" não encontrado.` };
 
-    await db.update(subscription).set({ planId: p.id }).where(eq(subscription.id, subscriptionId));
+    await withDbTimeout(db.update(subscription).set({ planId: p.id }).where(eq(subscription.id, subscriptionId)), 8000);
     revalidatePath('/contador/clientes');
     return { success: true };
   } catch (error: any) {
@@ -83,13 +89,17 @@ export async function changeSubscriptionPlanAction(subscriptionId: string, planN
 }
 
 export async function changeSubscriptionStatusAction(subscriptionId: string, status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'TRIAL') {
+  await requireAdmin();
   try {
     const db = getDb();
-    const [row] = await db
-      .update(subscription)
-      .set({ status })
-      .where(eq(subscription.id, subscriptionId))
-      .returning({ companyId: subscription.companyId });
+    const [row] = await withDbTimeout(
+      db
+        .update(subscription)
+        .set({ status })
+        .where(eq(subscription.id, subscriptionId))
+        .returning({ companyId: subscription.companyId }),
+      8000,
+    );
     revalidatePath('/contador/clientes');
     revalidatePath('/contador/renovacoes');
     if (row) revalidatePath(`/contador/clientes/${row.companyId}`);
@@ -101,12 +111,16 @@ export async function changeSubscriptionStatusAction(subscriptionId: string, sta
 }
 
 export async function linkAsaasSubscriptionAction(subscriptionId: string, asaasCustomerId: string, asaasSubscriptionId: string) {
+  await requireAdmin();
   try {
     const db = getDb();
-    await db
-      .update(subscription)
-      .set({ asaasCustomerId, asaasSubscriptionId, status: 'ACTIVE' })
-      .where(eq(subscription.id, subscriptionId));
+    await withDbTimeout(
+      db
+        .update(subscription)
+        .set({ asaasCustomerId, asaasSubscriptionId, status: 'ACTIVE' })
+        .where(eq(subscription.id, subscriptionId)),
+      8000,
+    );
     revalidatePath('/contador/clientes');
     return { success: true };
   } catch (error: any) {
@@ -116,12 +130,16 @@ export async function linkAsaasSubscriptionAction(subscriptionId: string, asaasC
 }
 
 export async function unlinkAsaasSubscriptionAction(subscriptionId: string) {
+  await requireAdmin();
   try {
     const db = getDb();
-    await db
-      .update(subscription)
-      .set({ asaasCustomerId: null, asaasSubscriptionId: null, status: 'CANCELED' })
-      .where(eq(subscription.id, subscriptionId));
+    await withDbTimeout(
+      db
+        .update(subscription)
+        .set({ asaasCustomerId: null, asaasSubscriptionId: null, status: 'CANCELED' })
+        .where(eq(subscription.id, subscriptionId)),
+      8000,
+    );
     revalidatePath('/contador/clientes');
     return { success: true };
   } catch (error: any) {

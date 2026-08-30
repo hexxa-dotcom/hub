@@ -45,6 +45,7 @@ import EmailComposer from '@/components/crm/EmailComposer';
 import { addCustomerAction, type CustomerState } from '../meu-negocio/clientes/actions';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
+import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 import {
   createRelContractAction,
   deleteRelContractAction,
@@ -384,17 +385,12 @@ function AddClienteForm({ onClose, onAdded }: { onClose: () => void; onAdded: (c
   const cidadeRef = useRef<HTMLInputElement>(null);
   const ufRef = useRef<HTMLSelectElement>(null);
 
-  function formatCnpj(v: string) {
-    const d = v.replace(/\D/g, '').slice(0, 14);
-    return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
-  }
-
   async function lookupCnpj(raw: string) {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.length !== 14) return;
+    const doc = normalizeDocument(raw);
+    if (doc.length !== 14) return;
     setLookupStatus('loading');
     try {
-      const res = await fetch(`/api/cnpj/${digits}`);
+      const res = await fetch(`/api/cnpj/${doc}`);
       if (!res.ok) { setLookupStatus('not_found'); return; }
       const data: CnpjData = await res.json();
       if (nomeRef.current) nomeRef.current.value = data.razaoSocial;
@@ -431,8 +427,8 @@ function AddClienteForm({ onClose, onAdded }: { onClose: () => void; onAdded: (c
               placeholder="00.000.000/0001-00"
               onInput={e => {
                 const el = e.currentTarget;
-                el.value = formatCnpj(el.value);
-                if (el.value.replace(/\D/g,'').length === 14) lookupCnpj(el.value);
+                el.value = formatDocument(el.value);
+                if (isCompleteDocument(el.value)) lookupCnpj(el.value);
                 else setLookupStatus('idle');
               }}
               className={`${field} pr-10`}
@@ -848,17 +844,12 @@ function CnpjTab() {
   const [result, setResult] = useState<CnpjResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function formatCnpj(v: string) {
-    const d = v.replace(/\D/g,'').slice(0,14);
-    return d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
-  }
-
   async function handleSearch() {
-    const digits = cnpj.replace(/\D/g,'');
-    if (digits.length !== 14) { setError('Informe um CNPJ com 14 dígitos.'); return; }
+    const doc = normalizeDocument(cnpj);
+    if (doc.length !== 14) { setError('Informe um CNPJ com 14 caracteres.'); return; }
     setLoading(true); setResult(null); setError(null);
     try {
-      const res = await fetch(`/api/cnpj/${digits}?full=true`);
+      const res = await fetch(`/api/cnpj/${doc}?full=true`);
       if (!res.ok) { setError('CNPJ não encontrado na Receita Federal.'); return; }
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
@@ -875,7 +866,7 @@ function CnpjTab() {
         <div className="mt-2 flex flex-col sm:flex-row gap-3">
           <input
             value={cnpj}
-            onChange={e => setCnpj(formatCnpj(e.target.value))}
+            onChange={e => setCnpj(formatDocument(e.target.value))}
             placeholder="00.000.000/0001-00"
             maxLength={18}
             onKeyDown={e => e.key==='Enter' && handleSearch()}
@@ -904,7 +895,7 @@ function CnpjTab() {
                   <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#231F20] dark:text-[#FEFDF3]">{result.company?.name}</h2>
                 </div>
                 {result.alias && <p className="mt-1 text-sm font-medium text-[#6E6A61] dark:text-[#A8A49C]">{result.alias}</p>}
-                <p className="mt-1 font-mono text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{formatCnpj(result.taxId)}</p>
+                <p className="mt-1 font-mono text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{formatDocument(result.taxId)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${result.status?.text==='ATIVA'?'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300':'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}`}>
@@ -928,7 +919,7 @@ function CnpjTab() {
               <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]"><Building2 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]"/>Identificação</h3>
               <CnpjRow label="Razão Social" value={result.company?.name} />
               <CnpjRow label="Nome Fantasia" value={result.alias} />
-              <CnpjRow label="CNPJ" value={formatCnpj(result.taxId)} />
+              <CnpjRow label="CNPJ" value={formatDocument(result.taxId)} />
               <CnpjRow label="Data de Abertura" value={result.founded ?? null} />
               <CnpjRow label="Capital Social" value={result.company?.equity != null ? `R$ ${result.company.equity.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : null} />
               {result.simples && <CnpjRow label="Regime Tributário" value={result.simples.optant ? `Optante Simples Nacional desde ${result.simples.since ?? '?'}` : 'Não optante'} />}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenantContext } from '@/lib/server/tenant';
 import { resolveNfsePort } from '@/lib/server/container';
 import { withTenant, serviceInvoice, eq, and } from '@hexxa/db';
+import { parseNfseXml } from '@/lib/server/danfse';
+import { renderDanfsePdf } from '@/lib/server/danfse-pdf';
 
 export async function GET(
   req: NextRequest,
@@ -40,16 +42,28 @@ export async function GET(
       return NextResponse.json({ error: 'Adapter does not support direct download' }, { status: 501 });
     }
 
+    // O governo não expõe mais um endpoint de PDF utilizável por terceiros —
+    // o XML é o documento fiscal real; o PDF (DANFSe) é layout NOSSO,
+    // gerado localmente a partir dele (ver lib/server/danfse.ts).
+    if (type === 'pdf') {
+      const xmlBuffer = await port.download(nota.providerProtocol, 'xml');
+      const data = parseNfseXml(xmlBuffer.toString('utf-8'), nota.providerProtocol);
+      const pdfBuffer = await renderDanfsePdf(data);
+      return new NextResponse(pdfBuffer as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="nfse_${nota.providerProtocol}.pdf"`,
+        },
+      });
+    }
+
     const buffer = await port.download(nota.providerProtocol, type);
-
-    const filename = `nfse_${nota.providerProtocol}.${type}`;
-    const contentType = type === 'pdf' ? 'application/pdf' : 'application/xml';
-
     return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Type': 'application/xml',
+        'Content-Disposition': `attachment; filename="nfse_${nota.providerProtocol}.xml"`,
       },
     });
   } catch (err: any) {

@@ -45,24 +45,15 @@ export function AuthLayout({
       </div>
 
       {/* ── Barra de topo dedicada ao fluxo de autenticação ──
-          (não é o navbar de marketing: sem menu, dropdown "Entrar"
-          nem CTA — nesta tela isso seria redundante) */}
-      <header className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-6 sm:py-8">
-        <Link href="/" className="inline-flex items-center gap-2" style={{ color: '#FEFDF3' }}>
-          <span className="font-serif text-xl sm:text-2xl font-extrabold tracking-tight">hexx</span>
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-            style={{ backgroundColor: '#DFFFAE', color: '#1E3328' }}
-          >
-            HUB
-          </span>
-        </Link>
+          Só o botão de voltar, à esquerda — sem logo nem menu, pra não dar
+          a impressão de troca de página vindo do navbar de marketing. */}
+      <header className="relative z-10 w-full max-w-6xl mx-auto flex items-center px-4 sm:px-6 py-6 sm:py-8">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-[#DFFFAE] transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Voltar ao site
+          Voltar
         </Link>
       </header>
 

@@ -1,4 +1,4 @@
-import { getDb, eq, sql } from '@hexxa/db';
+import { getDb, eq, sql, withDbTimeout } from '@hexxa/db';
 import { company, subscription, plan, accountingInvoice } from '@hexxa/db/schema';
 import { RelatoriosView, type MonthPoint, type PlanoReceita } from './RelatoriosView';
 
@@ -7,24 +7,27 @@ export const dynamic = 'force-dynamic';
 async function getDados() {
   const db = getDb();
 
-  const [plans, subs, invoiceRows, newCompanyRows] = await Promise.all([
-    db.select().from(plan),
-    db.select({ planId: subscription.planId, status: subscription.status }).from(subscription),
-    db.execute(sql`
-      SELECT reference_month, SUM(value) FILTER (WHERE status = 'PAID') AS paid, SUM(value) AS total
-      FROM accounting_invoice
-      GROUP BY reference_month
-      ORDER BY reference_month DESC
-      LIMIT 12
-    `),
-    db.execute(sql`
-      SELECT date_trunc('month', created_at)::date AS month, count(*)::int AS n
-      FROM company
-      GROUP BY 1
-      ORDER BY 1 DESC
-      LIMIT 12
-    `),
-  ]);
+  const [plans, subs, invoiceRows, newCompanyRows] = await withDbTimeout(
+    Promise.all([
+      db.select().from(plan),
+      db.select({ planId: subscription.planId, status: subscription.status }).from(subscription),
+      db.execute(sql`
+        SELECT reference_month, SUM(value) FILTER (WHERE status = 'PAID') AS paid, SUM(value) AS total
+        FROM accounting_invoice
+        GROUP BY reference_month
+        ORDER BY reference_month DESC
+        LIMIT 12
+      `),
+      db.execute(sql`
+        SELECT date_trunc('month', created_at)::date AS month, count(*)::int AS n
+        FROM company
+        GROUP BY 1
+        ORDER BY 1 DESC
+        LIMIT 12
+      `),
+    ]),
+    8000,
+  );
 
   const clientesPorPlano = new Map<string, number>();
   for (const s of subs) {
@@ -56,7 +59,19 @@ async function getDados() {
   return { planos, mrrAtual, totalClientesAtivos, faturamento };
 }
 
+const EMPTY_DADOS: { planos: PlanoReceita[]; mrrAtual: number; totalClientesAtivos: number; faturamento: MonthPoint[] } = {
+  planos: [],
+  mrrAtual: 0,
+  totalClientesAtivos: 0,
+  faturamento: [],
+};
+
 export default async function AdminRelatorios() {
-  const dados = await getDados();
+  let dados = EMPTY_DADOS;
+  try {
+    dados = await getDados();
+  } catch (err) {
+    console.error('[AdminRelatorios] falha ao carregar relatórios:', err);
+  }
   return <RelatoriosView {...dados} />;
 }

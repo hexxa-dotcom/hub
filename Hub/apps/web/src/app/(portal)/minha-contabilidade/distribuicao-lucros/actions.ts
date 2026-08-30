@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { withTenant, eq, and, desc, sql, getDb } from '@hexxa/db';
+import { withTenant, eq, and, desc, sql, getDb, withDbTimeout } from '@hexxa/db';
 import { profitDistribution, company } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
@@ -126,10 +126,10 @@ export async function getYearlyProfitSummaryAction(): Promise<YearlyProfitSummar
         .from(profitDistribution)
         .where(and(eq(profitDistribution.companyId, ctx.companyId), eq(profitDistribution.referenceYear, year)));
     }),
-    getDb()
-      .select({ frequency: company.profitDistributionFrequency })
-      .from(company)
-      .where(eq(company.id, ctx.companyId)),
+    withDbTimeout(
+      getDb().select({ frequency: company.profitDistributionFrequency }).from(company).where(eq(company.id, ctx.companyId)),
+      8000,
+    ),
   ]);
 
   const revenue = Number(totals.find((r: any) => r.type === 'RECEIVABLE')?.total ?? 0);
@@ -155,7 +155,7 @@ export async function getYearlyProfitSummaryAction(): Promise<YearlyProfitSummar
 
 export async function setDistributionFrequencyAction(frequency: DistributionFrequency): Promise<DistState> {
   const ctx = await getTenantContext();
-  await getDb().update(company).set({ profitDistributionFrequency: frequency }).where(eq(company.id, ctx.companyId));
+  await withDbTimeout(getDb().update(company).set({ profitDistributionFrequency: frequency }).where(eq(company.id, ctx.companyId)), 8000);
   revalidatePath('/minha-contabilidade/socios');
   return { ok: true, message: 'Periodicidade de distribuição atualizada.' };
 }

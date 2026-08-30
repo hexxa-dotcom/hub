@@ -1,13 +1,15 @@
 export const dynamic = 'force-dynamic';
-import { getDb } from '@hexxa/db/client';
+import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { ticket, ticketMessage, company, appUser } from '@hexxa/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { SolicitacoesList, type Solicitacao } from './SolicitacoesList';
+
+const TICKETS_LIMIT = 200;
 
 async function getSolicitacoes(): Promise<Solicitacao[]> {
   const db = getDb();
 
-  const [tickets, messages] = await Promise.all([
+  const tickets = await withDbTimeout(
     db
       .select({
         id: ticket.id,
@@ -21,7 +23,13 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
       })
       .from(ticket)
       .innerJoin(company, eq(ticket.companyId, company.id))
-      .orderBy(desc(ticket.createdAt)),
+      .orderBy(desc(ticket.createdAt))
+      .limit(TICKETS_LIMIT),
+    8000,
+  );
+
+  const ticketIds = tickets.map(t => t.id);
+  const messages = ticketIds.length === 0 ? [] : await withDbTimeout(
     db
       .select({
         id: ticketMessage.id,
@@ -33,8 +41,10 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
       })
       .from(ticketMessage)
       .leftJoin(appUser, eq(ticketMessage.authorUserId, appUser.id))
+      .where(inArray(ticketMessage.ticketId, ticketIds))
       .orderBy(ticketMessage.createdAt),
-  ]);
+    8000,
+  );
 
   const messagesByTicket = new Map<string, typeof messages>();
   for (const m of messages) {
@@ -59,6 +69,11 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
 }
 
 export default async function AdminSolicitacoesPage() {
-  const items = await getSolicitacoes();
+  let items: Solicitacao[] = [];
+  try {
+    items = await getSolicitacoes();
+  } catch (err) {
+    console.error('[AdminSolicitacoesPage] falha ao carregar dados:', err);
+  }
   return <SolicitacoesList initial={items} />;
 }

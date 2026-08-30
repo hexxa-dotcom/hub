@@ -2,6 +2,7 @@
  * Cliente Asaas — wraps a API v3.
  * Usa sandbox quando ASAAS_ENV !== 'production'.
  */
+import { normalizeDocument } from '@hexxa/core/document-br';
 
 const BASE =
   process.env.ASAAS_ENV === 'production'
@@ -93,7 +94,7 @@ export async function getCustomer(id: string): Promise<AsaasCustomer> {
 }
 
 export async function findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCustomer | null> {
-  const res = await request<{ data: AsaasCustomer[] }>('GET', `/customers?cpfCnpj=${cpfCnpj.replace(/\D/g, '')}`);
+  const res = await request<{ data: AsaasCustomer[] }>('GET', `/customers?cpfCnpj=${normalizeDocument(cpfCnpj)}`);
   return res.data[0] ?? null;
 }
 

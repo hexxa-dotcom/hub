@@ -4,23 +4,26 @@
  * apps/mcp só pedem "me dê um NfsePort" sem conhecer o fornecedor.
  */
 import type { NfsePort, EconomicIndexPort, SignaturePort } from '@hexxa/core/ports';
-import { FocusNfseAdapter, MockNfseAdapter } from './nfse/focus-nfse.adapter';
+import { MockNfseAdapter } from './nfse/mock-nfse.adapter';
 import { GovNfseAdapter, type GovNfseConfig } from './nfse/gov-nfse.adapter';
 import { BcbIndexAdapter } from './econ-index/bcb.adapter';
 import { DocusealAdapter } from './signature/docuseal.adapter';
 
-export * from './nfse/focus-nfse.adapter';
+export * from './nfse/mock-nfse.adapter';
 export * from './nfse/gov-nfse.adapter';
 export * from './nfse/dps-builder';
+export * from './nfse/evento-builder';
 export * from './nfse/cert';
 export * from './econ-index/bcb.adapter';
 export * from './signature/docuseal.adapter';
 
-/** Mock por padrão; o gov (Emissor Nacional) é montado via makeGovNfsePort. */
-export function makeNfsePort(env = process.env): NfsePort {
-  if (env.NFSE_PROVIDER === 'focus') {
-    return new FocusNfseAdapter({ baseUrl: env.NFSE_API_BASE_URL!, token: env.NFSE_API_TOKEN! });
-  }
+/**
+ * Mock por padrão; o gov (Emissor Nacional) é montado via makeGovNfsePort.
+ * Único provedor real implementado é o Emissor Nacional (gov.br) — não há
+ * integração com fornecedor terceirizado (Focus NFe/PlugNotas/eNotas): a
+ * emissão direta ao padrão nacional substitui a necessidade de um.
+ */
+export function makeNfsePort(): NfsePort {
   return new MockNfseAdapter();
 }
 

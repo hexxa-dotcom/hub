@@ -2,12 +2,15 @@
 
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getDb, withTenant, eq, and, desc } from '@hexxa/db';
+import { getDb, withTenant, eq, and, desc, withDbTimeout } from '@hexxa/db';
 import { company, businessContract, financialEntry } from '@hexxa/db/schema';
+import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
+import { gerarLancamentosDoContrato } from '@/lib/server/contract-financials';
+import { makeContractSignatureService } from '@/lib/server/container';
 
 export type ContractRow = {
   id: string;
-  type: 'ENTRADA' | 'SAIDA';
+  type: 'ENTRADA' | 'SAIDA' | 'MUTUO_ATIVO' | 'MUTUO_PASSIVO';
   title: string;
   partyName: string;
   partyCnpj: string | null;
@@ -16,7 +19,9 @@ export type ContractRow = {
   startDate: string;
   endDate: string;
   signingDate: string | null;
-  status: 'ATIVO' | 'CANCELADO';
+  status: 'AGUARDANDO_ASSINATURA' | 'ATIVO' | 'CANCELADO' | 'RECUSADO' | 'EXPIRADO';
+  refusalReason: string | null;
+  hasPdf: boolean;
   autoEmitNfse: boolean;
   lastNfseEmitted: boolean;
   nfseNumber: string | null;
@@ -41,14 +46,10 @@ export type ContractDetail = {
   payments: ContractPaymentRow[];
 };
 
-function onlyDigits(v: string) {
-  return v.replace(/\D/g, '');
-}
-
 function toRow(r: typeof businessContract.$inferSelect): ContractRow {
   return {
     id: r.id,
-    type: r.type as 'ENTRADA' | 'SAIDA',
+    type: r.type as 'ENTRADA' | 'SAIDA' | 'MUTUO_ATIVO' | 'MUTUO_PASSIVO',
     title: r.title,
     partyName: r.partyName,
     partyCnpj: r.partyCnpj,
@@ -57,7 +58,9 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
     startDate: r.startDate,
     endDate: r.endDate,
     signingDate: r.signingDate,
-    status: r.status as 'ATIVO' | 'CANCELADO',
+    status: r.status as ContractRow['status'],
+    refusalReason: r.refusalReason,
+    hasPdf: !!r.pdfBase64,
     autoEmitNfse: r.autoEmitNfse,
     lastNfseEmitted: r.lastNfseEmitted,
     nfseNumber: r.nfseNumber,
@@ -78,54 +81,10 @@ export async function listContractsAction(): Promise<ContractRow[]> {
   return rows.map(toRow);
 }
 
-/** Gera os lançamentos financeiros mensais de um contrato para UMA empresa. */
-async function gerarLancamentosDoContrato(params: {
-  companyId: string;
-  contractId: string;
-  tipo: 'PAGAR' | 'RECEBER';
-  descricao: string;
-  valor: number;
-  dueDay: number;
-  startDate: string;
-  endDate: string;
-}) {
-  const { companyId, contractId, tipo, descricao, valor, dueDay, startDate, endDate } = params;
-  const typeStr = tipo === 'PAGAR' ? 'PAYABLE' : 'RECEIVABLE';
-
-  const start = new Date(startDate + 'T12:00:00');
-  const end = new Date(endDate + 'T12:00:00');
-  const months = Math.max(
-    1,
-    Math.min(60, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1),
-  );
-
-  await withTenant(companyId, async (tx) => {
-    for (let i = 0; i < months; i++) {
-      const due = new Date(start);
-      due.setMonth(due.getMonth() + i);
-      due.setDate(Math.min(dueDay, 28));
-      const dueDateStr = due.toISOString().split('T')[0]!;
-      const refMonth = dueDateStr.substring(0, 8) + '01';
-
-      await tx.insert(financialEntry).values({
-        companyId,
-        type: typeStr,
-        description: months > 1 ? `${descricao} (${i + 1}/${months})` : descricao,
-        amount: String(valor),
-        dueDate: dueDateStr,
-        referenceMonth: refMonth,
-        status: 'PENDING',
-        source: 'CONTRACT',
-        sourceId: contractId,
-      });
-    }
-  });
-}
-
 export type CreateContractState = { ok: boolean; message: string; linked?: boolean };
 
 export async function createContractAction(input: {
-  type: 'ENTRADA' | 'SAIDA';
+  type: 'ENTRADA' | 'SAIDA' | 'MUTUO_ATIVO' | 'MUTUO_PASSIVO';
   title: string;
   partyName: string;
   partyCnpj?: string;
@@ -137,24 +96,24 @@ export async function createContractAction(input: {
   autoEmitNfse: boolean;
 }): Promise<CreateContractState> {
   const ctx = await getTenantContext();
-  const cnpjDigits = input.partyCnpj ? onlyDigits(input.partyCnpj) : '';
+  const cnpjDigits = input.partyCnpj ? normalizeDocument(input.partyCnpj) : '';
 
   // A contraparte também é uma empresa cadastrada na Hexxa? (busca global por CNPJ)
   let counterparty: { id: string; legalName: string; cnpj: string } | null = null;
   if (cnpjDigits.length === 14) {
     const db = getDb();
-    const rows = await db
-      .select({ id: company.id, legalName: company.legalName, cnpj: company.cnpj })
-      .from(company)
-      .where(eq(company.cnpj, formatCnpj(cnpjDigits)));
+    const rows = await withDbTimeout(
+      db.select({ id: company.id, legalName: company.legalName, cnpj: company.cnpj }).from(company).where(eq(company.cnpj, formatDocument(cnpjDigits))),
+      8000,
+    );
     const found = rows[0];
     if (found && found.id !== ctx.companyId) counterparty = found;
   }
 
-  const [own] = await getDb()
-    .select({ legalName: company.legalName, cnpj: company.cnpj })
-    .from(company)
-    .where(eq(company.id, ctx.companyId));
+  const [own] = await withDbTimeout(
+    getDb().select({ legalName: company.legalName, cnpj: company.cnpj }).from(company).where(eq(company.id, ctx.companyId)),
+    8000,
+  );
 
   const [selfRow] = await withTenant(ctx.companyId, async (tx) => {
     return tx
@@ -181,7 +140,7 @@ export async function createContractAction(input: {
   await gerarLancamentosDoContrato({
     companyId: ctx.companyId,
     contractId: selfRow.id,
-    tipo: input.type === 'ENTRADA' ? 'RECEBER' : 'PAGAR',
+    tipo: (input.type === 'ENTRADA' || input.type === 'MUTUO_ATIVO') ? 'RECEBER' : 'PAGAR',
     descricao: `[Contrato] ${input.title} — ${input.partyName}`,
     valor: input.value,
     dueDay: input.dueDay,
@@ -192,7 +151,7 @@ export async function createContractAction(input: {
   let linked = false;
 
   if (counterparty && own) {
-    const mirrorType = input.type === 'ENTRADA' ? 'SAIDA' : 'ENTRADA';
+    const mirrorType = input.type === 'ENTRADA' ? 'SAIDA' : input.type === 'SAIDA' ? 'ENTRADA' : input.type === 'MUTUO_ATIVO' ? 'MUTUO_PASSIVO' : 'MUTUO_ATIVO';
     const [mirrorRow] = await withTenant(counterparty.id, async (tx) => {
       return tx
         .insert(businessContract)
@@ -201,7 +160,7 @@ export async function createContractAction(input: {
           type: mirrorType,
           title: input.title,
           partyName: own.legalName,
-          partyCnpj: onlyDigits(own.cnpj),
+          partyCnpj: normalizeDocument(own.cnpj),
           counterpartyCompanyId: ctx.companyId,
           mirrorContractId: selfRow.id,
           value: String(input.value),
@@ -224,7 +183,7 @@ export async function createContractAction(input: {
       await gerarLancamentosDoContrato({
         companyId: counterparty.id,
         contractId: mirrorRow.id,
-        tipo: mirrorType === 'ENTRADA' ? 'RECEBER' : 'PAGAR',
+        tipo: (mirrorType === 'ENTRADA' || mirrorType === 'MUTUO_ATIVO') ? 'RECEBER' : 'PAGAR',
         descricao: `[Contrato] ${input.title} — ${own.legalName}`,
         valor: input.value,
         dueDay: input.dueDay,
@@ -247,10 +206,6 @@ export async function createContractAction(input: {
       ? `Contrato salvo e sincronizado automaticamente com ${counterparty!.legalName} (também cliente Hexxa) — os lançamentos financeiros de ambos os lados já foram gerados.`
       : 'Contrato salvo e lançamentos financeiros gerados.',
   };
-}
-
-function formatCnpj(digits: string) {
-  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 }
 
 async function getOwnAndMirror(contractId: string, ctx: { companyId: string }) {
@@ -278,10 +233,10 @@ export async function getContractDetailAction(contractId: string): Promise<Contr
 
   let mirrorPartyName: string | null = null;
   if (mirror) {
-    const [counterparty] = await getDb()
-      .select({ legalName: company.legalName })
-      .from(company)
-      .where(eq(company.id, mirror.companyId));
+    const [counterparty] = await withDbTimeout(
+      getDb().select({ legalName: company.legalName }).from(company).where(eq(company.id, mirror.companyId)),
+      8000,
+    );
     mirrorPartyName = counterparty?.legalName ?? null;
   }
 
@@ -384,7 +339,7 @@ export async function renovarContratoAction(contractId: string): Promise<{ ok: b
   await gerarLancamentosDoContrato({
     companyId: self.companyId,
     contractId: self.id,
-    tipo: self.type === 'ENTRADA' ? 'RECEBER' : 'PAGAR',
+    tipo: (self.type === 'ENTRADA' || self.type === 'MUTUO_ATIVO') ? 'RECEBER' : 'PAGAR',
     descricao: `[Contrato renovado] ${self.title} — ${self.partyName}`,
     valor: Number(self.value),
     dueDay: self.dueDay,
@@ -403,7 +358,7 @@ export async function renovarContratoAction(contractId: string): Promise<{ ok: b
     await gerarLancamentosDoContrato({
       companyId: mirror.companyId,
       contractId: mirror.id,
-      tipo: mirror.type === 'ENTRADA' ? 'RECEBER' : 'PAGAR',
+      tipo: (mirror.type === 'ENTRADA' || mirror.type === 'MUTUO_ATIVO') ? 'RECEBER' : 'PAGAR',
       descricao: `[Contrato renovado] ${mirror.title} — ${mirror.partyName}`,
       valor: Number(mirror.value),
       dueDay: mirror.dueDay,
@@ -460,6 +415,14 @@ export async function cancelarContratoAction(contractId: string): Promise<{ ok: 
     });
   }
 
+  if (self.signatureRequestId && self.status === 'AGUARDANDO_ASSINATURA') {
+    try {
+      await makeContractSignatureService().cancel(ctx, self.signatureRequestId);
+    } catch (err) {
+      console.error('Erro ao cancelar pedido de assinatura do contrato:', err);
+    }
+  }
+
   revalidatePath('/meu-negocio/contratos');
   revalidatePath('/meu-negocio/hub-financeiro');
   return {
@@ -485,4 +448,16 @@ export async function marcarNfseEmitidaAction(contractId: string, nfseNumber: st
 
   revalidatePath('/meu-negocio/contratos');
   return { ok: true, message: 'Contrato marcado como faturado.' };
+}
+
+/** PDF do contrato gerado pelo wizard (base64) — buscado sob demanda pra não engordar o payload das listagens. */
+export async function getContractPdfAction(contractId: string): Promise<string | null> {
+  const ctx = await getTenantContext();
+  const [row] = await withTenant(ctx.companyId, async (tx) => {
+    return tx
+      .select({ pdfBase64: businessContract.pdfBase64 })
+      .from(businessContract)
+      .where(and(eq(businessContract.id, contractId), eq(businessContract.companyId, ctx.companyId)));
+  });
+  return row?.pdfBase64 ?? null;
 }

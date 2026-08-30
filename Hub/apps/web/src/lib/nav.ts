@@ -26,8 +26,8 @@ export const NAV: NavSection[] = [
   {
     title: 'Contabilidade',
     items: [
-      { label: 'Guias e Impostos', href: '/minha-contabilidade/guias' },
-      { label: 'Bússola', href: '/minha-contabilidade/termometro-tributario' },
+      { label: 'Central de Guias', href: '/minha-contabilidade/guias' },
+      { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
       { label: 'Balanço e DRE', href: '/meu-negocio/relatorios/balanco' },
       { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },

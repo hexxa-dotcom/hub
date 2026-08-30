@@ -1,14 +1,24 @@
 import { SignedXml } from 'xml-crypto';
 
 /**
- * Assinatura digital XMLDSig (RSA-SHA256, enveloped) do XML da DPS, conforme
- * o Padrão Nacional NFS-e (NT 004/2021).
+ * Assinatura digital XMLDSig (RSA-SHA256, enveloped) de um XML do Padrão
+ * Nacional NFS-e (NT 004/2021) — usada tanto para a DPS quanto para o
+ * pedRegEvento (ex: cancelamento).
  * - Canonicalização: Exclusive C14N (exc-c14n#)
  * - Transforms: enveloped-signature + exc-c14n#
  * - Digest: SHA-256
  * - Assinatura: RSA-SHA256
+ *
+ * @param signedElementLocalName nome do elemento que carrega o Id assinado
+ *   (ex: "infDPS", "infPedReg") — a <Signature> é inserida como sua irmã.
  */
-export function signDps(xml: string, refId: string, keyPem: string, certPem: string): string {
+export function signXmlElement(
+  xml: string,
+  refId: string,
+  keyPem: string,
+  certPem: string,
+  signedElementLocalName: string,
+): string {
   const EXC_C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#';
 
   const sig = new SignedXml({
@@ -19,7 +29,7 @@ export function signDps(xml: string, refId: string, keyPem: string, certPem: str
   });
 
   sig.addReference({
-    xpath: `//*[local-name(.)='infDPS' and @Id='${refId}']`,
+    xpath: `//*[local-name(.)='${signedElementLocalName}' and @Id='${refId}']`,
     transforms: [
       'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
       EXC_C14N,
@@ -29,10 +39,15 @@ export function signDps(xml: string, refId: string, keyPem: string, certPem: str
     isEmptyUri: false,
   });
 
-  // Insere a <Signature> como irmã de <infDPS> dentro de <DPS>.
+  // Insere a <Signature> como irmã do elemento assinado.
   sig.computeSignature(xml, {
-    location: { reference: `//*[local-name(.)='infDPS']`, action: 'after' },
+    location: { reference: `//*[local-name(.)='${signedElementLocalName}']`, action: 'after' },
   });
 
   return sig.getSignedXml();
+}
+
+/** Assina o XML da DPS (mantido por compatibilidade — delega ao genérico). */
+export function signDps(xml: string, refId: string, keyPem: string, certPem: string): string {
+  return signXmlElement(xml, refId, keyPem, certPem, 'infDPS');
 }

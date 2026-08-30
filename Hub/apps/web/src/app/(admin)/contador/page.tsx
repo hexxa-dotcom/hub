@@ -12,7 +12,7 @@ import {
   HelpCircle,
   TrendingUp,
 } from 'lucide-react';
-import { getDb, eq, desc } from '@hexxa/db';
+import { getDb, eq, desc, withDbTimeout } from '@hexxa/db';
 import { company, subscription, plan, ticket } from '@hexxa/db/schema';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -81,38 +81,49 @@ function displayName(c: { legalName: string; tradeName: string | null; useTradeN
 }
 
 export default async function AdminDashboard() {
-  const db = getDb();
-
-  const [subs, openTickets] = await Promise.all([
-    db
-      .select({
-        companyId: company.id,
-        legalName: company.legalName,
-        tradeName: company.tradeName,
-        useTradeName: company.useTradeName,
-        planName: plan.name,
-        monthlyValue: plan.monthlyValue,
-        status: subscription.status,
-      })
-      .from(subscription)
-      .innerJoin(company, eq(subscription.companyId, company.id))
-      .innerJoin(plan, eq(subscription.planId, plan.id)),
-    db
-      .select({
-        id: ticket.id,
-        subject: ticket.subject,
-        priority: ticket.priority,
-        createdAt: ticket.createdAt,
-        companyName: company.legalName,
-        companyTradeName: company.tradeName,
-        companyUseTrade: company.useTradeName,
-      })
-      .from(ticket)
-      .innerJoin(company, eq(ticket.companyId, company.id))
-      .where(eq(ticket.status, 'OPEN'))
-      .orderBy(desc(ticket.createdAt))
-      .limit(10),
-  ]);
+  // Sem timeout aqui essa página já travou o /contador inteiro por até 5
+  // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
+  // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
+  let subs: { companyId: string; legalName: string; tradeName: string | null; useTradeName: boolean; planName: string; monthlyValue: string; status: string }[] = [];
+  let openTickets: { id: string; subject: string; priority: string; createdAt: Date; companyName: string; companyTradeName: string | null; companyUseTrade: boolean }[] = [];
+  try {
+    const db = getDb();
+    [subs, openTickets] = await withDbTimeout(
+      Promise.all([
+        db
+          .select({
+            companyId: company.id,
+            legalName: company.legalName,
+            tradeName: company.tradeName,
+            useTradeName: company.useTradeName,
+            planName: plan.name,
+            monthlyValue: plan.monthlyValue,
+            status: subscription.status,
+          })
+          .from(subscription)
+          .innerJoin(company, eq(subscription.companyId, company.id))
+          .innerJoin(plan, eq(subscription.planId, plan.id)),
+        db
+          .select({
+            id: ticket.id,
+            subject: ticket.subject,
+            priority: ticket.priority,
+            createdAt: ticket.createdAt,
+            companyName: company.legalName,
+            companyTradeName: company.tradeName,
+            companyUseTrade: company.useTradeName,
+          })
+          .from(ticket)
+          .innerJoin(company, eq(ticket.companyId, company.id))
+          .where(eq(ticket.status, 'OPEN'))
+          .orderBy(desc(ticket.createdAt))
+          .limit(10),
+      ]),
+      8000,
+    );
+  } catch (err) {
+    console.error('[AdminDashboard] falha ao carregar dados:', err);
+  }
 
   const ativos = subs.filter(s => s.status === 'ACTIVE').length;
   const mrr = subs.filter(s => s.status === 'ACTIVE').reduce((sum, s) => sum + Number(s.monthlyValue), 0);

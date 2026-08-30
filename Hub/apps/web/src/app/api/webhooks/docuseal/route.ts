@@ -1,7 +1,103 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@hexxa/db/client';
-import { signatureRequest } from '@hexxa/db/schema';
+import { getDb, withDbTimeout } from '@hexxa/db/client';
+import { signatureRequest, businessContract, lease, property } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
+import { gerarLancamentosDoContrato, jaTemLancamentosDoContrato, gerarLancamentosDoAluguel, jaTemLancamentosDoAluguel } from '@/lib/server/contract-financials';
+
+type EnvelopeStatus = 'SIGNED' | 'REFUSED' | 'EXPIRED';
+
+/**
+ * Ativa (ou recusa/expira) o business_contract/lease ligado a este pedido de
+ * assinatura — o wizard unificado de Contratos só lança financeiro depois
+ * que o DocuSeal confirma SIGNED. Contrato espelho (mirrorContractId) usa o
+ * MESMO signature_request_id (um envelope, dois signatários), então a busca
+ * por signatureRequestId já traz os dois lados de uma vez.
+ */
+async function activateLinkedRecords(signatureRequestId: string, status: EnvelopeStatus, refusalReason: string | null) {
+  const db = getDb();
+
+  const contracts = await withDbTimeout(
+    db.select().from(businessContract).where(eq(businessContract.signatureRequestId, signatureRequestId)),
+    8000,
+  );
+  for (const c of contracts) {
+    try {
+      if (status === 'SIGNED') {
+        if (c.status === 'ATIVO' || (await jaTemLancamentosDoContrato(c.companyId, c.id))) continue;
+        const today = new Date().toISOString().split('T')[0]!;
+        await withDbTimeout(
+          db.update(businessContract).set({ status: 'ATIVO', signingDate: today, updatedAt: new Date() }).where(eq(businessContract.id, c.id)),
+          8000,
+        );
+        await gerarLancamentosDoContrato({
+          companyId: c.companyId,
+          contractId: c.id,
+          tipo: c.type === 'ENTRADA' || c.type === 'MUTUO_ATIVO' ? 'RECEBER' : 'PAGAR',
+          descricao: `[Contrato] ${c.title} — ${c.partyName}`,
+          valor: Number(c.value),
+          dueDay: c.dueDay,
+          startDate: c.startDate,
+          endDate: c.endDate,
+        });
+      } else if (status === 'REFUSED') {
+        await withDbTimeout(
+          db.update(businessContract).set({ status: 'RECUSADO', refusalReason, updatedAt: new Date() }).where(eq(businessContract.id, c.id)),
+          8000,
+        );
+      } else {
+        await withDbTimeout(
+          db.update(businessContract).set({ status: 'EXPIRADO', updatedAt: new Date() }).where(eq(businessContract.id, c.id)),
+          8000,
+        );
+      }
+    } catch (err) {
+      console.error(`Erro ao ativar business_contract ${c.id} a partir do webhook DocuSeal:`, err);
+    }
+  }
+
+  const leases = await withDbTimeout(
+    db.select().from(lease).where(eq(lease.signatureRequestId, signatureRequestId)),
+    8000,
+  );
+  for (const l of leases) {
+    try {
+      if (status === 'SIGNED') {
+        if (l.status === 'ACTIVE' || (await jaTemLancamentosDoAluguel(l.companyId, l.id))) continue;
+        await withDbTimeout(
+          db.update(lease).set({ status: 'ACTIVE' }).where(eq(lease.id, l.id)),
+          8000,
+        );
+        await withDbTimeout(
+          db.update(property).set({ status: 'RENTED' }).where(eq(property.id, l.propertyId)),
+          8000,
+        );
+        await gerarLancamentosDoAluguel({
+          companyId: l.companyId,
+          leaseId: l.id,
+          descricao: `[Aluguel] ${l.lesseeName}`,
+          valor: Number(l.monthlyRent),
+          startDate: l.startDate ?? l.adjustmentAnchor,
+          endDate: l.endDate,
+        });
+      } else {
+        // Recusado ou expirado antes de assinar — sem estado dedicado em
+        // lease_status, volta pra CANCELED (não havia lançamento gerado
+        // ainda). O imóvel tinha sido reservado (property.status='RENTED')
+        // assim que o contrato nasceu — libera de volta pra AVAILABLE.
+        await withDbTimeout(
+          db.update(lease).set({ status: 'CANCELED' }).where(eq(lease.id, l.id)),
+          8000,
+        );
+        await withDbTimeout(
+          db.update(property).set({ status: 'AVAILABLE' }).where(eq(property.id, l.propertyId)),
+          8000,
+        );
+      }
+    } catch (err) {
+      console.error(`Erro ao ativar lease ${l.id} a partir do webhook DocuSeal:`, err);
+    }
+  }
+}
 
 // Webhook do DocuSeal — atualiza o status local quando o signatário assina,
 // recusa ou a submissão expira. Consulta direta via getDb() (sem tenant
@@ -36,8 +132,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Payload sem submission id' }, { status: 400 });
     }
 
+    // 'form.completed' dispara por SIGNATÁRIO (um evento por pessoa que
+    // assina); 'submission.completed' dispara UMA vez, quando TODOS os
+    // signatários do envelope terminaram. Contrato espelho manda os dois
+    // lados assinarem o MESMO envelope — se ativássemos em 'form.completed',
+    // o contrato entraria em vigor com só uma das partes tendo assinado.
+    // Por isso só 'submission.completed' conta como SIGNED aqui.
     const status =
-      eventType === 'form.completed' || eventType === 'submission.completed'
+      eventType === 'submission.completed'
         ? 'SIGNED'
         : eventType === 'form.declined'
           ? 'REFUSED'
@@ -50,20 +152,29 @@ export async function POST(req: Request) {
     }
 
     const db = getDb();
-    const rows = await db
-      .select({ id: signatureRequest.id })
-      .from(signatureRequest)
-      .where(eq(signatureRequest.providerEnvelopeId, String(submissionId)))
-      .limit(1);
+    const rows = await withDbTimeout(
+      db
+        .select({ id: signatureRequest.id })
+        .from(signatureRequest)
+        .where(eq(signatureRequest.providerEnvelopeId, String(submissionId)))
+        .limit(1),
+      8000,
+    );
 
     if (!rows[0]) {
       return NextResponse.json({ error: 'Pedido de assinatura não encontrado' }, { status: 404 });
     }
 
-    await db
-      .update(signatureRequest)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(signatureRequest.id, rows[0].id));
+    await withDbTimeout(
+      db
+        .update(signatureRequest)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(signatureRequest.id, rows[0].id)),
+      8000,
+    );
+
+    const refusalReason: string | null = data?.decline_reason ?? data?.declined_reason ?? data?.reason ?? null;
+    await activateLinkedRecords(rows[0].id, status, refusalReason);
 
     return NextResponse.json({ received: true });
   } catch (error) {

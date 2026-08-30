@@ -3,7 +3,8 @@ import zlib from 'node:zlib';
 import type { NfsePort, NfseIssueInput, NfseIssueResult } from '@hexxa/core/ports';
 import { type CertMaterial, buildMtlsAgent } from './cert';
 import { buildDps, type DpsEmitente, type DpsServico } from './dps-builder';
-import { signDps } from './xml-sign';
+import { buildCancelamentoEvento, inferCancelamentoMotivo } from './evento-builder';
+import { signXmlElement } from './xml-sign';
 
 /**
  * Adapter de NFSe do PADRÃO NACIONAL (Emissor Nacional / ADN — gov.br).
@@ -77,38 +78,6 @@ function httpsJson(
   });
 }
 
-function httpsBinary(
-  agent: https.Agent,
-  method: string,
-  url: string,
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const req = https.request(
-      {
-        agent,
-        method,
-        hostname: u.hostname,
-        path: u.pathname + u.search,
-        port: u.port || 443,
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (c) => chunks.push(c));
-        res.on('end', () => {
-          if (res.statusCode !== 200) {
-            reject(new Error(`Failed to download binary: HTTP ${res.statusCode}`));
-            return;
-          }
-          resolve(Buffer.concat(chunks));
-        });
-      },
-    );
-    req.on('error', reject);
-    req.end();
-  });
-}
-
 export class GovNfseAdapter implements NfsePort {
   constructor(private readonly config: GovNfseConfig) {}
 
@@ -128,7 +97,7 @@ export class GovNfseAdapter implements NfsePort {
       { emitente: this.config.emitente, servico, serie: this.config.serie, numero: this.config.nextNumber },
       input,
     );
-    const signed = signDps(xml, refId, this.config.cert.keyPem, this.config.cert.certPem);
+    const signed = signXmlElement(xml, refId, this.config.cert.keyPem, this.config.cert.certPem, 'infDPS');
     const dpsXmlGZipB64 = gzipB64(signed);
 
     const agent = buildMtlsAgent(this.config.cert);
@@ -143,7 +112,6 @@ export class GovNfseAdapter implements NfsePort {
         providerProtocol: chave,
         nfseNumber: chave,
         status: 'ISSUED',
-        pdfUrl: `${this.base()}/danfse/${chave}`,
       };
     }
     if (res.status === 202) {
@@ -160,7 +128,6 @@ export class GovNfseAdapter implements NfsePort {
         providerProtocol,
         status: 'ISSUED',
         nfseNumber: (res.json?.numero as string) ?? providerProtocol,
-        pdfUrl: `${this.base()}/danfse/${providerProtocol}`,
       };
     }
     if (res.status === 404 || res.status === 202) {
@@ -170,10 +137,15 @@ export class GovNfseAdapter implements NfsePort {
   }
 
   async download(providerProtocol: string, type: 'xml' | 'pdf'): Promise<Buffer> {
-    const agent = buildMtlsAgent(this.config.cert);
     if (type === 'pdf') {
-      return httpsBinary(agent, 'GET', `${this.base()}/danfse/${providerProtocol}`);
+      // O Emissor Nacional não disponibiliza mais PDF via API pra terceiros
+      // (só pelo site do governo). O PDF do DANFSe é gerado localmente a
+      // partir do XML — ver apps/web/src/lib/server/danfse-pdf.tsx.
+      throw new Error(
+        'Download de PDF direto do governo não é mais suportado. Baixe o XML e gere o DANFSe localmente.',
+      );
     }
+    const agent = buildMtlsAgent(this.config.cert);
     // XML download
     const res = await httpsJson(agent, 'GET', `${this.base()}/nfse/${providerProtocol}`);
     if (res.status !== 200 || !res.json) {
@@ -192,14 +164,26 @@ export class GovNfseAdapter implements NfsePort {
   }
 
   async cancel(providerProtocol: string, reason: string): Promise<void> {
-    // Cancelamento = evento (e101101) assinado e postado em /nfse/{chave}/eventos.
-    // O payload completo (pedido de registro de evento em XML assinado) ainda não
-    // está implementado — se o portal rejeitar, PROPAGAMOS o erro para que a nota
-    // não seja marcada como cancelada localmente sem estar cancelada no governo.
+    // Cancelamento = Pedido de Registro de Evento e101101, um DF-e assinado
+    // (XMLDSig) próprio, GZip+Base64, postado em POST /nfse/{chave}/eventos
+    // com o corpo { pedidoRegistroEventoXmlGZipB64 }. Conforme Manual de
+    // Integração NFS-e Padrão Nacional v1.01 (seção 10.4 "Eventos") e o Guia
+    // de API do Sistema Nacional NFS-e v1.2. Se o portal rejeitar,
+    // PROPAGAMOS o erro para que a nota não seja marcada como cancelada
+    // localmente sem estar cancelada no governo.
+    const { xml, refId } = buildCancelamentoEvento({
+      ambiente: this.config.emitente.ambiente,
+      chaveAcesso: providerProtocol,
+      cnpjAutor: this.config.emitente.cnpj,
+      motivo: inferCancelamentoMotivo(reason),
+      justificativa: reason,
+    });
+    const signed = signXmlElement(xml, refId, this.config.cert.keyPem, this.config.cert.certPem, 'infPedReg');
+    const pedidoRegistroEventoXmlGZipB64 = gzipB64(signed);
+
     const agent = buildMtlsAgent(this.config.cert);
     const res = await httpsJson(agent, 'POST', `${this.base()}/nfse/${providerProtocol}/eventos`, {
-      tipoEvento: 'CANCELAMENTO',
-      justificativa: reason,
+      pedidoRegistroEventoXmlGZipB64,
     });
     if (res.status < 200 || res.status >= 300) {
       throw new Error(`Cancelamento rejeitado pelo Emissor Nacional: ${this.extractError(res)}`);
@@ -217,6 +201,11 @@ export class GovNfseAdapter implements NfsePort {
         })
         .filter(Boolean)
         .join('; ');
+    }
+    // API de Eventos retorna erro singular: { erro: { mensagem, codigo, descricao, complemento } }
+    const erro = res.json?.erro as Record<string, unknown> | undefined;
+    if (erro && typeof erro === 'object') {
+      return [erro.codigo, erro.mensagem ?? erro.descricao, erro.complemento].filter(Boolean).join(' - ');
     }
     // Debug info: dump the entire payload
     return (res.json?.mensagem as string) ?? `HTTP ${res.status}: ${JSON.stringify(res.json) || res.text}`;

@@ -119,10 +119,22 @@ export const businessContract = pgTable('business_contract', {
   endDate: date('end_date').notNull(),
   /** Data em que o contrato foi de fato assinado (pode ficar em aberto até a assinatura acontecer). */
   signingDate: date('signing_date'),
-  status: text('status').notNull().default('ATIVO'), // ATIVO | CANCELADO
+  /**
+   * AGUARDANDO_ASSINATURA | ATIVO | CANCELADO | RECUSADO | EXPIRADO.
+   * Nasce AGUARDANDO_ASSINATURA quando criado pelo wizard com assinatura
+   * eletrônica (financial_entry só é gerado quando o webhook do DocuSeal
+   * confirma SIGNED); nasce ATIVO direto no fluxo de "registro rápido"
+   * (sem assinatura) ou quando o PDF já vem assinado fora do sistema.
+   */
+  status: text('status').notNull().default('ATIVO'),
   autoEmitNfse: boolean('auto_emit_nfse').notNull().default(false),
   lastNfseEmitted: boolean('last_nfse_emitted').notNull().default(false),
   nfseNumber: text('nfse_number'),
+  /** PDF do contrato gerado (base64) — mesma convenção de financial_entry.receiptBase64, sem storage externo. */
+  pdfBase64: text('pdf_base64'),
+  /** Motivo informado quando status vira RECUSADO. */
+  refusalReason: text('refusal_reason'),
+  signatureRequestId: uuid('signature_request_id').references(() => signatureRequest.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

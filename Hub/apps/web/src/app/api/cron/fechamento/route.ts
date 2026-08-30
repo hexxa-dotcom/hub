@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@hexxa/db';
+import { getDb, withDbTimeout } from '@hexxa/db';
 import { monthlyClosure, financialEntry, company, taxGuide, accountingInvoice, taxHistory, subscription, plan } from '@hexxa/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { TaxThermometerService } from '@hexxa/core';
@@ -26,9 +26,10 @@ export async function GET(request: Request) {
     const referenceMonthStr = lastMonth.toISOString().split('T')[0] as string;
 
     // 2. Buscar todas as empresas ativas
-    const companies = await db
-      .select({ id: company.id, legalName: company.legalName, type: company.type })
-      .from(company);
+    const companies = await withDbTimeout(
+      db.select({ id: company.id, legalName: company.legalName, type: company.type }).from(company),
+      8000,
+    );
 
     const thermometer = new TaxThermometerService();
 
@@ -43,30 +44,36 @@ export async function GET(request: Request) {
     for (const comp of companies) {
       try {
         // Verificar se já existe fechamento para este mês
-        const [existing] = await db
-          .select({ id: monthlyClosure.id })
-          .from(monthlyClosure)
-          .where(
-            and(
-              eq(monthlyClosure.companyId, comp.id),
-              eq(monthlyClosure.referenceMonth, referenceMonthStr)
-            )
-          );
+        const [existing] = await withDbTimeout(
+          db
+            .select({ id: monthlyClosure.id })
+            .from(monthlyClosure)
+            .where(
+              and(
+                eq(monthlyClosure.companyId, comp.id),
+                eq(monthlyClosure.referenceMonth, referenceMonthStr)
+              )
+            ),
+          8000,
+        );
 
         if (existing) {
           continue; // Já foi fechado
         }
 
         // Agregar Receitas e Despesas do mês anterior
-        const entries = await db
-          .select({ type: financialEntry.type, amount: financialEntry.amount })
-          .from(financialEntry)
-          .where(
-            and(
-              eq(financialEntry.companyId, comp.id),
-              eq(financialEntry.referenceMonth, referenceMonthStr)
-            )
-          );
+        const entries = await withDbTimeout(
+          db
+            .select({ type: financialEntry.type, amount: financialEntry.amount })
+            .from(financialEntry)
+            .where(
+              and(
+                eq(financialEntry.companyId, comp.id),
+                eq(financialEntry.referenceMonth, referenceMonthStr)
+              )
+            ),
+          8000,
+        );
 
         let totalRevenue = 0;
         let totalExpenses = 0;
@@ -82,15 +89,18 @@ export async function GET(request: Request) {
         const defaultsCount = 0;
 
         // Inserir o fechamento
-        await getDb().insert(monthlyClosure).values({
-          companyId: comp.id,
-          referenceMonth: referenceMonthStr,
-          totalRevenue: String(totalRevenue),
-          totalExpenses: String(totalExpenses),
-          newContractsCount,
-          defaultsCount,
-          status: 'CLOSED',
-        });
+        await withDbTimeout(
+          db.insert(monthlyClosure).values({
+            companyId: comp.id,
+            referenceMonth: referenceMonthStr,
+            totalRevenue: String(totalRevenue),
+            totalExpenses: String(totalExpenses),
+            newContractsCount,
+            defaultsCount,
+            status: 'CLOSED',
+          }),
+          8000,
+        );
 
         const nextMonthStr = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]!;
 
@@ -105,47 +115,59 @@ export async function GET(request: Request) {
         // alíquota nominal real da faixa/anexo em que a empresa está.
         if (totalRevenue > 0) {
           const dasAmount = (totalRevenue * simples.nominalRate) / 100;
-          await getDb().insert(taxGuide).values({
-            companyId: comp.id,
-            taxName: 'DAS - Simples Nacional',
-            referenceMonth: nextMonthStr, // Guia cobrada no mês vigente (sobre o faturamento passado)
-            amount: String(dasAmount),
-            dueDate: new Date(today.getFullYear(), today.getMonth(), 20).toISOString().split('T')[0]!,
-            status: 'OPEN',
-            // TODO: pixCode ainda é um placeholder — gerar cobrança real exige
-            // integração de pagamento própria da plataforma (não a do
-            // Asaas do tenant, que é para cobrar OS CLIENTES da empresa).
-            pixCode: null,
-          });
+          await withDbTimeout(
+            db.insert(taxGuide).values({
+              companyId: comp.id,
+              taxName: 'DAS - Simples Nacional',
+              referenceMonth: nextMonthStr, // Guia cobrada no mês vigente (sobre o faturamento passado)
+              amount: String(dasAmount),
+              dueDate: new Date(today.getFullYear(), today.getMonth(), 20).toISOString().split('T')[0]!,
+              status: 'OPEN',
+              // TODO: pixCode ainda é um placeholder — gerar cobrança real exige
+              // integração de pagamento própria da plataforma (não a do
+              // Asaas do tenant, que é para cobrar OS CLIENTES da empresa).
+              pixCode: null,
+            }),
+            8000,
+          );
 
-          await getDb().insert(taxHistory).values({
-            companyId: comp.id,
-            referenceMonth: nextMonthStr.slice(0, 7), // Apenas YYYY-MM
-            rba12: String(rbt12),
-            effectiveRate: simples.nominalRate.toFixed(2),
-            taxBracket: `Anexo ${simples.anexo} - Faixa ${simples.faixa}`,
-          });
+          await withDbTimeout(
+            db.insert(taxHistory).values({
+              companyId: comp.id,
+              referenceMonth: nextMonthStr.slice(0, 7), // Apenas YYYY-MM
+              rba12: String(rbt12),
+              effectiveRate: simples.nominalRate.toFixed(2),
+              taxBracket: `Anexo ${simples.anexo} - Faixa ${simples.faixa}`,
+            }),
+            8000,
+          );
         }
 
         // Fatura de Honorários (Recorrente) — valor real do plano contratado
         // pela empresa na plataforma, não mais um valor fixo de exemplo.
-        const [activeSub] = await getDb()
-          .select({ monthlyValue: plan.monthlyValue })
-          .from(subscription)
-          .innerJoin(plan, eq(subscription.planId, plan.id))
-          .where(and(eq(subscription.companyId, comp.id), eq(subscription.status, 'ACTIVE')));
+        const [activeSub] = await withDbTimeout(
+          db
+            .select({ monthlyValue: plan.monthlyValue })
+            .from(subscription)
+            .innerJoin(plan, eq(subscription.planId, plan.id))
+            .where(and(eq(subscription.companyId, comp.id), eq(subscription.status, 'ACTIVE'))),
+          8000,
+        );
 
         if (activeSub) {
-          await getDb().insert(accountingInvoice).values({
-            companyId: comp.id,
-            description: 'Honorários Contábeis',
-            value: activeSub.monthlyValue,
-            referenceMonth: nextMonthStr,
-            dueDate: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0]!,
-            status: 'OPEN',
-            // TODO: mesmo placeholder de pixCode acima.
-            pixCode: null,
-          });
+          await withDbTimeout(
+            db.insert(accountingInvoice).values({
+              companyId: comp.id,
+              description: 'Honorários Contábeis',
+              value: activeSub.monthlyValue,
+              referenceMonth: nextMonthStr,
+              dueDate: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0]!,
+              status: 'OPEN',
+              // TODO: mesmo placeholder de pixCode acima.
+              pixCode: null,
+            }),
+            8000,
+          );
         }
 
         successCount++;

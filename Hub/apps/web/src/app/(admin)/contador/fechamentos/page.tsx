@@ -1,4 +1,4 @@
-import { getDb, desc, eq } from '@hexxa/db';
+import { getDb, desc, eq, withDbTimeout } from '@hexxa/db';
 import { monthlyClosure, company } from '@hexxa/db/schema';
 import { FechamentosList, type ClosureRow } from './FechamentosList';
 
@@ -18,20 +18,23 @@ export default async function AdminFechamentosPage() {
     companyName: string | null;
   }[] = [];
   try {
-    closures = await db
-      .select({
-        id: monthlyClosure.id,
-        companyId: monthlyClosure.companyId,
-        referenceMonth: monthlyClosure.referenceMonth,
-        totalRevenue: monthlyClosure.totalRevenue,
-        totalExpenses: monthlyClosure.totalExpenses,
-        defaultsCount: monthlyClosure.defaultsCount,
-        status: monthlyClosure.status,
-        companyName: company.legalName,
-      })
-      .from(monthlyClosure)
-      .leftJoin(company, eq(monthlyClosure.companyId, company.id))
-      .orderBy(desc(monthlyClosure.referenceMonth), desc(monthlyClosure.createdAt));
+    closures = await withDbTimeout(
+      db
+        .select({
+          id: monthlyClosure.id,
+          companyId: monthlyClosure.companyId,
+          referenceMonth: monthlyClosure.referenceMonth,
+          totalRevenue: monthlyClosure.totalRevenue,
+          totalExpenses: monthlyClosure.totalExpenses,
+          defaultsCount: monthlyClosure.defaultsCount,
+          status: monthlyClosure.status,
+          companyName: company.legalName,
+        })
+        .from(monthlyClosure)
+        .leftJoin(company, eq(monthlyClosure.companyId, company.id))
+        .orderBy(desc(monthlyClosure.referenceMonth), desc(monthlyClosure.createdAt)),
+      8000,
+    );
   } catch (error) {
     console.error(error);
   }

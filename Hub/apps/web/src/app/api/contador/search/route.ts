@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb, sql } from '@hexxa/db';
+import { getDb, sql, withDbTimeout } from '@hexxa/db';
 import { company } from '@hexxa/db/schema';
 import { requireAdminApi } from '@/lib/server/admin-guard';
 
@@ -15,11 +15,14 @@ export async function GET(request: Request) {
 
   const db = getDb();
   const like = `%${q}%`;
-  const rows = await db
-    .select({ id: company.id, legalName: company.legalName, tradeName: company.tradeName, cnpj: company.cnpj })
-    .from(company)
-    .where(sql`${company.legalName} ILIKE ${like} OR ${company.tradeName} ILIKE ${like} OR ${company.cnpj} ILIKE ${like}`)
-    .limit(8);
+  const rows = await withDbTimeout(
+    db
+      .select({ id: company.id, legalName: company.legalName, tradeName: company.tradeName, cnpj: company.cnpj })
+      .from(company)
+      .where(sql`${company.legalName} ILIKE ${like} OR ${company.tradeName} ILIKE ${like} OR ${company.cnpj} ILIKE ${like}`)
+      .limit(8),
+    8000,
+  );
 
   return NextResponse.json({ results: rows });
 }

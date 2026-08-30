@@ -2,21 +2,19 @@
 
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import { getDb, company, eq, and } from '@hexxa/db';
+import { getDb, company, eq, and, withDbTimeout } from '@hexxa/db';
 import { like } from 'drizzle-orm';
 import { getTenantContext } from '@/lib/server/tenant';
 import { saveNfseConfig } from '@/lib/server/fiscal';
+import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 
 export type OnboardingState = { ok: boolean; message: string };
 
-const fmtCnpj = (d: string) =>
-  d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-
 /** Consulta o CNPJ (CNPJá com fallback ReceitaWS) e devolve os campos que alimentam o sistema. */
-async function lookupCnpj(digits: string) {
+async function lookupCnpj(doc: string) {
   const key = process.env.CNPJA_API_KEY;
   if (key) {
-    const res = await fetch(`https://api.cnpja.com/${digits}?simples=true`, {
+    const res = await fetch(`https://api.cnpja.com/${doc}?simples=true`, {
       headers: { Authorization: key },
       cache: 'no-store',
     });
@@ -42,7 +40,7 @@ async function lookupCnpj(digits: string) {
       };
     }
   }
-  const res = await fetch(`https://www.receitaws.com.br/v1/cnpj/${digits}`, {
+  const res = await fetch(`https://www.receitaws.com.br/v1/cnpj/${doc}`, {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
   });
@@ -80,26 +78,36 @@ export async function completeOnboardingAction(
     return { ok: false, message: 'Crie ou selecione uma empresa no seletor do topo antes de continuar.' };
   }
 
-  const digits = String(formData.get('cnpj') ?? '').replace(/\D/g, '');
-  if (digits.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 dígitos).' };
+  // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
+  // novos CNPJs a partir de jul/2026) tem os 12 primeiros caracteres
+  // podendo ser letra OU dígito; um replace(/\D/g,'') bloquearia o onboarding
+  // de qualquer empresa nova constituída depois disso.
+  const doc = normalizeDocument(String(formData.get('cnpj') ?? ''));
+  if (doc.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 caracteres).' };
 
   let ctx = await getTenantContext();
   const db = getDb();
 
   // CNPJ já existe no sistema?
-  const [dup] = await db
-    .select({ id: company.id, clerkOrgId: company.clerkOrgId })
-    .from(company)
-    .where(eq(company.cnpj, fmtCnpj(digits)));
+  const [dup] = await withDbTimeout(
+    db
+      .select({ id: company.id, clerkOrgId: company.clerkOrgId })
+      .from(company)
+      .where(eq(company.cnpj, formatDocument(doc))),
+    8000,
+  );
 
   if (dup && dup.id !== ctx.companyId) {
     if (!dup.clerkOrgId) {
       // Empresa já cadastrada mas sem organização vinculada → esta organização
       // a assume: descarta a empresa placeholder e vincula a existente.
-      await db
-        .delete(company)
-        .where(and(eq(company.id, ctx.companyId), like(company.cnpj, 'PENDENTE-%')));
-      await db.update(company).set({ clerkOrgId: orgId }).where(eq(company.id, dup.id));
+      await withDbTimeout(
+        db
+          .delete(company)
+          .where(and(eq(company.id, ctx.companyId), like(company.cnpj, 'PENDENTE-%'))),
+        8000,
+      );
+      await withDbTimeout(db.update(company).set({ clerkOrgId: orgId }).where(eq(company.id, dup.id)), 8000);
       ctx = { ...ctx, companyId: dup.id };
     } else {
       return {
@@ -112,7 +120,7 @@ export async function completeOnboardingAction(
 
   let data;
   try {
-    data = await lookupCnpj(digits);
+    data = await lookupCnpj(doc);
   } catch {
     data = null;
   }
@@ -121,24 +129,27 @@ export async function completeOnboardingAction(
   }
 
   // 1. Alimenta o cadastro da empresa.
-  await db
-    .update(company)
-    .set({
-      legalName: data.razaoSocial,
-      tradeName: data.nomeFantasia,
-      cnpj: fmtCnpj(digits),
-      addressLine1: [data.logradouro, data.complemento].filter(Boolean).join(', ') || null,
-      addressNumber: data.numero,
-      neighborhood: data.bairro,
-      city: data.municipio,
-      state: data.uf,
-      zipcode: data.cep,
-    })
-    .where(eq(company.id, ctx.companyId));
+  await withDbTimeout(
+    db
+      .update(company)
+      .set({
+        legalName: data.razaoSocial,
+        tradeName: data.nomeFantasia,
+        cnpj: formatDocument(doc),
+        addressLine1: [data.logradouro, data.complemento].filter(Boolean).join(', ') || null,
+        addressNumber: data.numero,
+        neighborhood: data.bairro,
+        city: data.municipio,
+        state: data.uf,
+        zipcode: data.cep,
+      })
+      .where(eq(company.id, ctx.companyId)),
+    8000,
+  );
 
   // 2. Semeia o cadastro fiscal (base da emissão de NFS-e).
   await saveNfseConfig(ctx, {
-    cnpj: digits,
+    cnpj: doc,
     razaoSocial: data.razaoSocial,
     nomeFantasia: data.nomeFantasia,
     cep: data.cep,

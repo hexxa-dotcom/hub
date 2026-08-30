@@ -3,17 +3,9 @@
 import { useActionState, useState } from 'react';
 import { Buildings, Spinner, ArrowRight, CheckCircle } from '@phosphor-icons/react';
 import { completeOnboardingAction, type OnboardingState } from './actions';
+import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
 const initialState: OnboardingState = { ok: true, message: '' };
-
-function maskCnpj(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 14);
-  return d
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2');
-}
 
 export function OnboardingForm({ companyName }: { companyName: string }) {
   const [state, formAction, pending] = useActionState(completeOnboardingAction, initialState);
@@ -23,14 +15,13 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
 
   // Preview automático: ao completar 14 dígitos, mostra a razão social encontrada.
   async function handleChange(v: string) {
-    const masked = maskCnpj(v);
+    const masked = formatDocument(v);
     setCnpj(masked);
-    const digits = masked.replace(/\D/g, '');
-    if (digits.length === 14) {
+    if (isCompleteDocument(masked)) {
       setConsultando(true);
       setPreview(null);
       try {
-        const res = await fetch(`/api/cnpj/${digits}`);
+        const res = await fetch(`/api/cnpj/${normalizeDocument(masked)}`);
         if (res.ok) {
           const d = await res.json();
           setPreview({ razaoSocial: d.razaoSocial, municipio: d.municipio ?? null });
@@ -76,8 +67,7 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
               id="cnpj"
               name="cnpj"
               type="text"
-              inputMode="numeric"
-              placeholder="00.000.000/0001-00"
+              placeholder="00.000.000/0001-00 (ou alfanumérico)"
               value={cnpj}
               onChange={(e) => handleChange(e.target.value)}
               required
@@ -102,7 +92,7 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
 
           <button
             type="submit"
-            disabled={pending || cnpj.replace(/\D/g, '').length !== 14}
+            disabled={pending || !isCompleteDocument(cnpj)}
             className="group mt-2 flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-3 font-medium text-white transition-all hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? (

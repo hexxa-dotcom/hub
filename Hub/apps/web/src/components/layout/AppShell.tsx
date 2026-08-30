@@ -41,6 +41,8 @@ import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
 import { OrganizationSwitcher, UserButton, useUser } from '@clerk/nextjs';
+import { LogOut } from 'lucide-react';
+import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
 
@@ -196,6 +198,7 @@ function AppShellInner({
   const activeSectionData = sections.find((s) => s.title === activeGroup) || sections[0];
 
   const { user } = useUser();
+  const sair = useSignOut('cliente');
 
   const hour = new Date().getHours();
   let saudacao = 'Olá';
@@ -413,6 +416,14 @@ function AppShellInner({
                 </span>
               </div>
               <UserButton />
+              <button
+                type="button"
+                onClick={sair}
+                title="Sair"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </header>
@@ -439,6 +450,14 @@ function AppShellInner({
             </button>
             <ThemeToggle collapsed />
             <UserButton />
+            <button
+              type="button"
+              onClick={sair}
+              title="Sair"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </header>
 

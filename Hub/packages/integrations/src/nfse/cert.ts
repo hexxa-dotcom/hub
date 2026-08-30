@@ -48,7 +48,17 @@ export function loadCertFromBase64(pfxBase64: string, password: string): CertMat
   return { keyPem, certPem, caPems, pfx: Buffer.from(pfxBase64, 'base64'), password };
 }
 
-/** Agente HTTPS com o certificado de cliente para o mTLS exigido pela API. */
+/**
+ * Agente HTTPS com o certificado de cliente para o mTLS exigido pela API.
+ *
+ * `cert`/`key` carregam o certificado do CLIENTE (folha + cadeia intermediária,
+ * concatenados em PEM) para a autenticação mútua. `ca` do https.Agent serve
+ * para outro propósito — validar o certificado do SERVIDOR remoto — por isso
+ * NÃO deve receber a cadeia do cliente; usamos o trust store padrão do Node
+ * (que já contém as CAs públicas confiáveis usadas pelo gov.br) e mantemos
+ * `rejectUnauthorized: true` para não abrir brecha de man-in-the-middle.
+ */
 export function buildMtlsAgent(cert: CertMaterial): https.Agent {
-  return new https.Agent({ key: cert.keyPem, cert: cert.certPem, ca: cert.caPems, keepAlive: true, rejectUnauthorized: false });
+  const certChain = [cert.certPem, ...cert.caPems].join('\n');
+  return new https.Agent({ key: cert.keyPem, cert: certChain, keepAlive: true, rejectUnauthorized: true });
 }

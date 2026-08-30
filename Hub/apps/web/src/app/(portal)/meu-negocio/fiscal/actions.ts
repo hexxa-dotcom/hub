@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
 import { saveNfseConfig, getNfseConfig } from '@/lib/server/fiscal';
 import { loadCertFromBase64 } from '@hexxa/integrations';
+import { normalizeDocument } from '@hexxa/core/document-br';
 
 export type FiscalState = { ok: boolean; message: string };
 
@@ -16,9 +17,10 @@ export async function saveFiscalAction(_prev: FiscalState, formData: FormData): 
     const aliquotaRaw = str('aliquota');
     const ctx = await getTenantContext();
 
-    // Remove pontuação do CNPJ antes de salvar
+    // Remove máscara do CNPJ antes de salvar — preserva letras (CNPJ
+    // alfanumérico, obrigatório pra novos CNPJs a partir de jul/2026).
     const cnpjRaw = str('cnpj');
-    const cnpj = cnpjRaw ? cnpjRaw.replace(/\D/g, '') : undefined;
+    const cnpj = cnpjRaw ? normalizeDocument(cnpjRaw) : undefined;
 
     await saveNfseConfig(ctx, {
       ambiente: String(formData.get('ambiente')) === 'producao' ? 'producao' : 'homologacao',

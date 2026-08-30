@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useClerk, UserButton, useUser } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+import { UserButton, useUser } from '@clerk/nextjs';
+import { useSignOut } from '@/lib/client/useSignOut';
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +26,7 @@ import {
   HelpCircle,
   Bell,
   Sparkles,
+  Calculator,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ContadorSearch } from './ContadorSearch';
@@ -58,6 +60,7 @@ function buildNavGroups(openTicketsCount: number): { label: string; items: NavIt
       label: 'Sistema',
       items: [
         { label: 'Usuários & acesso', href: '/contador/usuarios', icon: Shield },
+        { label: 'Regras Tributárias', href: '/contador/regras-tributarias', icon: Calculator },
         { label: 'Integrações', href: '/contador/integracoes', icon: Layers },
         { label: 'Configurações', href: '/contador/configuracoes', icon: Settings },
       ],
@@ -107,17 +110,12 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
-  const { signOut } = useClerk();
   const { user } = useUser();
+  const sair = useSignOut('contador');
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
   const navGroups = buildNavGroups(openTicketsCount);
-
-  function sair() {
-    signOut(() => router.push('/'));
-  }
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={`flex h-full flex-col bg-[#1E3328] text-[#FEFDF3] border-r border-[#2F4A3C]/40 ${mobile ? 'p-4' : 'py-5 px-3'}`}>
@@ -173,13 +171,6 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
           <ArrowLeft className="h-4 w-4 shrink-0" />
           {(!collapsed || mobile) && <span>Voltar ao Portal</span>}
         </Link>
-        <button
-          onClick={sair}
-          className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {(!collapsed || mobile) && <span>Sair</span>}
-        </button>
       </div>
     </div>
   );
@@ -236,6 +227,14 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
                 </span>
               </div>
               <UserButton />
+              <button
+                type="button"
+                onClick={sair}
+                title="Sair"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </header>

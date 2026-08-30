@@ -20,6 +20,26 @@ export const bankAccount = pgTable('bank_account', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const businessPartner = pgTable('business_partner', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  document: text('document'), // CPF/CNPJ
+  type: text('type').notNull().default('CLIENT'), // CLIENT, SUPPLIER, BOTH
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const costCenter = pgTable('cost_center', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const category = pgTable('category', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id')
@@ -27,6 +47,10 @@ export const category = pgTable('category', {
     .references(() => company.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   kind: categoryKind('kind').notNull(),
+  /** Código Contábil para integração Omie/OneFlow (ex: 1.1.01.01) */
+  accountingCode: text('accounting_code'),
+  /** Grupo Contábil (Ativo, Passivo, Despesa, Receita) */
+  accountingGroup: text('accounting_group'),
 });
 
 export const financialEntry = pgTable('financial_entry', {
@@ -36,17 +60,23 @@ export const financialEntry = pgTable('financial_entry', {
     .references(() => company.id, { onDelete: 'cascade' }),
   bankAccountId: uuid('bank_account_id').references(() => bankAccount.id),
   categoryId: uuid('category_id').references(() => category.id),
+  partnerId: uuid('partner_id').references(() => businessPartner.id),
+  costCenterId: uuid('cost_center_id').references(() => costCenter.id),
   type: entryType('type').notNull(),
   status: entryStatus('status').notNull().default('PENDING'),
   description: text('description').notNull(),
+  /** amount = Valor final pago (originalAmount + interest - discount) */
   amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+  originalAmount: numeric('original_amount', { precision: 14, scale: 2 }),
+  interest: numeric('interest', { precision: 14, scale: 2 }), // Juros e Multas
+  discount: numeric('discount', { precision: 14, scale: 2 }), // Descontos
   dueDate: date('due_date').notNull(),
   /** mês de referência (NUNCA "competência"). Primeiro dia do mês. */
   referenceMonth: date('reference_month').notNull(),
   /** Origem operacional do lançamento: NFSE | RENT | MANUAL | IMPORT. */
   source: text('source').notNull().default('MANUAL'),
   sourceId: uuid('source_id'),
-  externalId: text('external_id'),
+  externalId: text('external_id').unique(),
   paidAt: date('paid_at'),
   notes: text('notes'),
   /** Comprovante anexado (recibo/nota/print do Pix) — guardado em base64, sem storage externo. */
@@ -66,6 +96,7 @@ export const recurringExpense = pgTable('recurring_expense', {
   companyId: uuid('company_id')
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
+  type: text('type').notNull().default('PAYABLE'),
   description: text('description').notNull(),
   amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
   categoryName: text('category_name'),
@@ -106,9 +137,11 @@ export const reconciliationMatch = pgTable('reconciliation_match', {
     .references(() => company.id, { onDelete: 'cascade' }),
   bankTransactionId: uuid('bank_transaction_id')
     .notNull()
+    .unique()
     .references(() => bankTransaction.id, { onDelete: 'cascade' }),
   financialEntryId: uuid('financial_entry_id')
     .notNull()
+    .unique()
     .references(() => financialEntry.id, { onDelete: 'cascade' }),
   matchedAt: timestamp('matched_at', { withTimezone: true }).notNull().defaultNow(),
 });

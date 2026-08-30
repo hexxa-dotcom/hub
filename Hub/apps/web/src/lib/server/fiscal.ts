@@ -1,7 +1,7 @@
 import 'server-only';
 import type { TenantContext } from '@hexxa/core';
 import { loadCertFromBase64, type CertMaterial } from '@hexxa/integrations';
-import { withTenant, sql } from '@hexxa/db';
+import { withTenant, getDb, sql } from '@hexxa/db';
 import { encryptSecret, decryptSecret } from './secret-crypto';
 
 export interface NfseConfig {
@@ -340,6 +340,25 @@ export async function getSimplesInputs(
       prolabore12: prolaboreMensal * 12,
     };
   });
+}
+
+/**
+ * Salário mínimo nacional vigente (setting_code='MINIMUM_WAGE' em
+ * tax_regime_setting, seedado por packages/db/src/seed-tax-rules.ts).
+ * Fallback pro valor de 2026 (R$ 1.621,00, Decreto 12.797/2025) se o seed
+ * ainda não rodou nesse ambiente — nunca deve ficar preso num valor de anos
+ * anteriores como acontecia antes (constante de 2024 hardcoded no serviço).
+ */
+export async function getCurrentMinimumWage(): Promise<number> {
+  const rows = await getDb().execute(sql`
+    SELECT parameters
+    FROM tax_regime_setting
+    WHERE setting_code = 'MINIMUM_WAGE' AND valid_from <= now()::date
+    ORDER BY valid_from DESC
+    LIMIT 1
+  `);
+  const value = (rows[0]?.parameters as { value?: number } | undefined)?.value;
+  return typeof value === 'number' && value > 0 ? value : 1621.0;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeDocument } from '@hexxa/core/document-br';
 
 export type CnpjData = {
   razaoSocial: string;
@@ -16,10 +17,10 @@ export type CnpjData = {
 
 const CNPJA_KEY = process.env.CNPJA_API_KEY;
 
-async function fetchCnpja(digits: string, full = false) {
+async function fetchCnpja(doc: string, full = false) {
   const url = full
-    ? `https://api.cnpja.com/${digits}?simples=true&sintegra=true`
-    : `https://api.cnpja.com/${digits}`;
+    ? `https://api.cnpja.com/${doc}?simples=true&sintegra=true`
+    : `https://api.cnpja.com/${doc}`;
 
   const res = await fetch(url, {
     headers: { Authorization: CNPJA_KEY! },
@@ -30,8 +31,8 @@ async function fetchCnpja(digits: string, full = false) {
   return res.json();
 }
 
-async function fetchReceitaWS(digits: string) {
-  const res = await fetch(`https://www.receitaws.com.br/v1/cnpj/${digits}`, {
+async function fetchReceitaWS(doc: string) {
+  const res = await fetch(`https://www.receitaws.com.br/v1/cnpj/${doc}`, {
     headers: { Accept: 'application/json' },
     next: { revalidate: 3600 },
   });
@@ -43,16 +44,18 @@ async function fetchReceitaWS(digits: string) {
 
 export async function GET(req: Request, { params }: { params: Promise<{ cnpj: string }> }) {
   const { cnpj } = await params;
-  const digits = cnpj.replace(/\D/g, '');
+  // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
+  // novos CNPJs a partir de jul/2026).
+  const doc = normalizeDocument(cnpj);
   const full = new URL(req.url).searchParams.get('full') === 'true';
 
-  if (digits.length !== 14) {
+  if (doc.length !== 14) {
     return NextResponse.json({ error: 'CNPJ inválido' }, { status: 400 });
   }
 
   try {
     if (CNPJA_KEY) {
-      const d = await fetchCnpja(digits, full);
+      const d = await fetchCnpja(doc, full);
 
       if (d) {
         // Se full=true, retorna o objeto completo para a página de consulta.
@@ -83,13 +86,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ cnpj: st
     }
 
     // Fallback gratuito (sem chave ou cnpja falhou).
-    const d = await fetchReceitaWS(digits);
+    const d = await fetchReceitaWS(doc);
     if (!d) return NextResponse.json({ error: 'CNPJ não encontrado' }, { status: 404 });
 
     if (full) {
       // Mapeia ReceitaWS para estrutura similar ao cnpja para a página de consulta.
       return NextResponse.json({
-        taxId: digits,
+        taxId: doc,
         company: { name: d.nome, equity: null },
         alias: d.fantasia || null,
         founded: d.abertura || null,

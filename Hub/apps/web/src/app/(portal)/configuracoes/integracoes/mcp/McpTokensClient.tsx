@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Loader2, Trash2, Copy, CheckCircle2, X, KeyRound, AlertTriangle, Eye, PencilLine } from 'lucide-react';
+import { Plus, Loader2, Trash2, Copy, CheckCircle2, X, KeyRound, AlertTriangle, Eye, PencilLine, ShieldCheck } from 'lucide-react';
 import { listApiTokens, createApiToken, revokeApiToken, type ApiTokenRow, type ApiTokenScope } from './actions';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -54,7 +54,7 @@ function NewTokenModal({ token, onClose }: { token: string; onClose: () => void 
   );
 }
 
-export function McpTokensClient() {
+export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
   const [tokens, setTokens] = useState<ApiTokenRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -68,7 +68,10 @@ export function McpTokensClient() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setTokens(await listApiTokens());
+      const list = await listApiTokens();
+      setTokens(list);
+    } catch (e: any) {
+      setErr(e.message || 'Erro ao listar tokens.');
     } finally {
       setLoading(false);
     }
@@ -78,53 +81,61 @@ export function McpTokensClient() {
     load();
   }, [load]);
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) {
-      setErr('Dê um nome pro token.');
-      return;
-    }
-    setSaving(true);
     setErr(null);
+    setSaving(true);
     try {
-      const { token } = await createApiToken(name, scope);
-      setNewToken(token);
+      const res = await createApiToken(name, scope);
+      setNewToken(res.token);
       setName('');
-      setScope('read');
       setShowForm(false);
       await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao criar token.');
+    } catch (e: any) {
+      setErr(e.message || 'Erro ao criar token.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleRevoke(id: string) {
+    if (!confirm('Tem certeza? Esse token vai parar de funcionar imediatamente.')) return;
     setBusyId(id);
     try {
       await revokeApiToken(id);
       await load();
+    } catch (e: any) {
+      setErr(e.message || 'Erro ao revogar token.');
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Tokens Ativos</p>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105"
-        >
-          <Plus className="h-4 w-4" /> Novo token
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">Tokens ativos</h2>
+          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            Chaves de autenticação do MCP e da API REST.
+          </p>
+        </div>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Novo token
+          </button>
+        )}
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="rounded-2xl border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 p-4 space-y-3">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 rounded-2xl bg-white/70 dark:bg-black/30 border border-black/5 dark:border-white/5 p-4"
+        >
           <div>
             <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Nome do token</label>
             <input
@@ -136,7 +147,7 @@ export function McpTokensClient() {
           </div>
           <div>
             <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Permissão</label>
-            <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className={`mt-1 grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
               <button
                 type="button"
                 onClick={() => setScope('read')}
@@ -149,7 +160,7 @@ export function McpTokensClient() {
                 <Eye className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                 <span>
                   <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Só leitura</span>
-                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Assistente de IA (MCP) — só consulta</span>
+                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Consulta apenas esta empresa</span>
                 </span>
               </button>
               <button
@@ -164,9 +175,26 @@ export function McpTokensClient() {
                 <PencilLine className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                 <span>
                   <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Leitura e escrita</span>
-                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Integração externa — também lança despesa/faturamento</span>
+                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Integração externa — lança dados</span>
                 </span>
               </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setScope('admin')}
+                  className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-colors ${
+                    scope === 'admin'
+                      ? 'border-[#1E3328] bg-[#EFFFD6] dark:bg-[#1E3328]'
+                      : 'border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] hover:bg-black/5'
+                  }`}
+                >
+                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                  <span>
+                    <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Contador (Multi-empresa)</span>
+                    <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">IA pode consultar qualquer cliente</span>
+                  </span>
+                </button>
+              )}
             </div>
           </div>
           {err && <p className="text-xs font-bold text-red-700">{err}</p>}
@@ -206,13 +234,21 @@ export function McpTokensClient() {
                   <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{t.name}</p>
                   <span
                     className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      t.scope === 'write'
+                      t.scope === 'admin'
+                        ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300'
+                        : t.scope === 'write'
                         ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                         : 'bg-[#EFFFD6] dark:bg-[#1E3328] text-[#2F4A3C] dark:text-[#DFFFAE]'
                     }`}
                   >
-                    {t.scope === 'write' ? <PencilLine className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
-                    {t.scope === 'write' ? 'Leitura e escrita' : 'Só leitura'}
+                    {t.scope === 'admin' ? (
+                      <ShieldCheck className="h-2.5 w-2.5" />
+                    ) : t.scope === 'write' ? (
+                      <PencilLine className="h-2.5 w-2.5" />
+                    ) : (
+                      <Eye className="h-2.5 w-2.5" />
+                    )}
+                    {t.scope === 'admin' ? 'Contador (Multi-empresa)' : t.scope === 'write' ? 'Leitura e escrita' : 'Só leitura'}
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-[#6E6A61] dark:text-[#A8A49C]">

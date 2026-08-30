@@ -8,7 +8,7 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │  ENTREGA (delivery)                                                │
 │  • apps/web    → páginas, Route Handlers, Server Actions           │
-│  • apps/mcp    → Resources / Tools / Prompts (Model Context Proto.)│
+│  • apps/web/.../api/mcp → Tools (Model Context Protocol, só leitura)│
 └───────────────┬────────────────────────────────────┬──────────────┘
                 │  chamam services (nunca SQL direto) │
 ┌───────────────▼────────────────────────────────────▼──────────────┐
@@ -21,7 +21,7 @@
         implementa ports                       usa repositórios
 ┌───────────────▼──────────────┐  ┌───────────────────▼──────────────┐
 │  ADAPTERS — packages/integr.  │  │  PERSISTÊNCIA — packages/db       │
-│  • nfse/        (Focus, ...)  │  │  • Drizzle schema + client        │
+│  • nfse/ (Emissor Nacional)   │  │  • Drizzle schema + client        │
 │  • signature/   (Clicksign)   │  │  • repositórios (impl. das ports) │
 │  • open-finance/(Pluggy)      │  │  • migrações + RLS                │
 └───────────────────────────────┘  └───────────────────────────────────┘
@@ -60,7 +60,7 @@ web/Server Action  ─►  core: ServiceInvoiceService.emit(input, ctx)
                           │  1. valida regra + tenant
                           │  2. chama port NfsePort.issue(...)
                           ▼
-              integrations/nfse/FocusNfseAdapter ──HTTP──► Focus NFe
+              integrations/nfse/GovNfseAdapter ──mTLS──► Emissor Nacional (gov.br)
                           │  3. retorna protocolo
                           ▼
               core grava via ServiceInvoiceRepository (port)

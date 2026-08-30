@@ -19,7 +19,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import type { PropertyRow, LeaseRow, RentPaymentRow } from './actions';
-import { createLeaseAction, reajustarLeaseAction, encerrarLeaseAction, marcarAluguelPagoAction, getRentPaymentsAction } from './actions';
+import { createLeaseAction, reajustarLeaseAction, encerrarLeaseAction, marcarAluguelPagoAction, getRentPaymentsAction, getLeasePdfAction } from './actions';
 import { getComprovante } from '../meu-negocio/hub-financeiro/actions';
 import { impostoAluguel, depreciacaoAnual } from './lib';
 
@@ -51,10 +51,26 @@ const STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ 
   CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', icon: XCircle },
 };
 
+const LEASE_STATUS_LABEL: Record<LeaseRow['status'], string> = {
+  DRAFT: 'Rascunho',
+  PENDING_SIGNATURE: 'Aguardando Assinatura',
+  ACTIVE: 'Ativo',
+  ENDED: 'Encerrado',
+  CANCELED: 'Cancelado',
+};
+
+const LEASE_STATUS_CLASS: Record<LeaseRow['status'], string> = {
+  DRAFT: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]',
+  PENDING_SIGNATURE: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+  ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+  ENDED: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]',
+  CANCELED: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]',
+};
+
 function NovoAluguelForm({ properties, onClose, onDone }: { properties: PropertyRow[]; onClose: () => void; onDone: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const disponiveis = properties.filter((p) => !p.leaseId);
+  const disponiveis = properties.filter((p) => !p.leaseId && p.status === 'AVAILABLE');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -200,7 +216,10 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
   }
 
   async function handleEncerrar() {
-    if (!confirm('Encerrar este contrato de aluguel? Os lançamentos futuros ainda pendentes serão cancelados.')) return;
+    const msg = lease.status === 'PENDING_SIGNATURE'
+      ? 'Cancelar este contrato antes da assinatura?'
+      : 'Encerrar este contrato de aluguel? Os lançamentos futuros ainda pendentes serão cancelados.';
+    if (!confirm(msg)) return;
     setBusy(true);
     try {
       await encerrarLeaseAction(lease.id);
@@ -208,6 +227,13 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleVerPdf() {
+    const base64 = await getLeasePdfAction(lease.id);
+    if (!base64) return;
+    const win = window.open('', '_blank');
+    if (win) win.location.href = `data:application/pdf;base64,${base64}`;
   }
 
   return (
@@ -219,8 +245,8 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
               <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-1.5">
                 <Home className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> {lease.propertyName}
               </h3>
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${lease.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]'}`}>
-                {lease.status === 'ACTIVE' ? 'Ativo' : lease.status === 'ENDED' ? 'Encerrado' : 'Cancelado'}
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${LEASE_STATUS_CLASS[lease.status]}`}>
+                {LEASE_STATUS_LABEL[lease.status]}
               </span>
             </div>
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
@@ -261,16 +287,23 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
           <div className="flex items-center gap-1.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
             <CalendarClock className="h-3.5 w-3.5" /> Próximo reajuste: {fmtDate(proximoReajuste(lease.adjustmentAnchor))}
           </div>
-          {lease.status === 'ACTIVE' && (
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {lease.hasPdf && (
+              <button type="button" onClick={handleVerPdf} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
+                Ver PDF
+              </button>
+            )}
+            {lease.status === 'ACTIVE' && (
               <button type="button" onClick={() => setShowReajuste((v) => !v)} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
                 <Percent className="h-3.5 w-3.5" /> Reajustar
               </button>
+            )}
+            {(lease.status === 'ACTIVE' || lease.status === 'PENDING_SIGNATURE') && (
               <button type="button" onClick={handleEncerrar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50">
-                <Ban className="h-3.5 w-3.5" /> Encerrar
+                <Ban className="h-3.5 w-3.5" /> {lease.status === 'PENDING_SIGNATURE' ? 'Cancelar' : 'Encerrar'}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {showReajuste && (

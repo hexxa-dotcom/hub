@@ -1,4 +1,4 @@
-import { getDb, eq } from '@hexxa/db';
+import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { or } from 'drizzle-orm';
 import { company, subscription, plan, membership, appUser } from '@hexxa/db/schema';
 import { RenovacoesList, type RiscoItem } from './RenovacoesList';
@@ -8,28 +8,31 @@ export const dynamic = 'force-dynamic';
 async function getRiscos(): Promise<RiscoItem[]> {
   const db = getDb();
 
-  const [rows, owners] = await Promise.all([
-    db
-      .select({
-        subscriptionId: subscription.id,
-        companyId: company.id,
-        nome: company.legalName,
-        planoNome: plan.name,
-        valor: plan.monthlyValue,
-        status: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        asaasCustomerId: subscription.asaasCustomerId,
-      })
-      .from(subscription)
-      .innerJoin(company, eq(subscription.companyId, company.id))
-      .innerJoin(plan, eq(subscription.planId, plan.id))
-      .where(or(eq(subscription.status, 'TRIAL'), eq(subscription.status, 'PAST_DUE'))),
-    db
-      .select({ companyId: membership.companyId, email: appUser.email })
-      .from(membership)
-      .innerJoin(appUser, eq(membership.userId, appUser.id))
-      .where(eq(membership.role, 'OWNER')),
-  ]);
+  const [rows, owners] = await withDbTimeout(
+    Promise.all([
+      db
+        .select({
+          subscriptionId: subscription.id,
+          companyId: company.id,
+          nome: company.legalName,
+          planoNome: plan.name,
+          valor: plan.monthlyValue,
+          status: subscription.status,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          asaasCustomerId: subscription.asaasCustomerId,
+        })
+        .from(subscription)
+        .innerJoin(company, eq(subscription.companyId, company.id))
+        .innerJoin(plan, eq(subscription.planId, plan.id))
+        .where(or(eq(subscription.status, 'TRIAL'), eq(subscription.status, 'PAST_DUE'))),
+      db
+        .select({ companyId: membership.companyId, email: appUser.email })
+        .from(membership)
+        .innerJoin(appUser, eq(membership.userId, appUser.id))
+        .where(eq(membership.role, 'OWNER')),
+    ]),
+    8000,
+  );
 
   const emailByCompany = new Map(owners.map((o) => [o.companyId, o.email]));
   const today = new Date();
@@ -59,6 +62,11 @@ async function getRiscos(): Promise<RiscoItem[]> {
 }
 
 export default async function AdminRenovacoes() {
-  const items = await getRiscos();
+  let items: RiscoItem[] = [];
+  try {
+    items = await getRiscos();
+  } catch (err) {
+    console.error('[AdminRenovacoes] falha ao carregar riscos de renovação:', err);
+  }
   return <RenovacoesList initial={items} />;
 }

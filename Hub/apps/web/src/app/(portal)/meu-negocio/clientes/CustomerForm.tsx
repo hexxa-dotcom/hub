@@ -4,6 +4,7 @@ import { useActionState, useRef, useState, useCallback } from 'react';
 import { Plus, Search, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { addCustomerAction, type CustomerState } from './actions';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
+import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
 const initial: CustomerState = { ok: false, message: '' };
 const field =
@@ -28,15 +29,6 @@ export function CustomerForm() {
   const valorRef = useRef<HTMLInputElement>(null);
   const diaRef = useRef<HTMLSelectElement>(null);
 
-  const formatCnpj = (v: string) => {
-    const d = v.replace(/\D/g, '').slice(0, 14);
-    return d
-      .replace(/^(\d{2})(\d)/, '$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2');
-  };
-
   const fillForm = useCallback((data: CnpjData) => {
     if (nomeRef.current) nomeRef.current.value = data.razaoSocial;
     if (emailRef.current) emailRef.current.value = data.email ?? '';
@@ -49,12 +41,12 @@ export function CustomerForm() {
 
   const lookupCnpj = useCallback(
     async (rawCnpj: string) => {
-      const digits = rawCnpj.replace(/\D/g, '');
-      if (digits.length !== 14) return;
+      const doc = normalizeDocument(rawCnpj);
+      if (doc.length !== 14) return; // CPF não tem lookup na Receita
       setLookupStatus('loading');
       setCnpjData(null);
       try {
-        const res = await fetch(`/api/cnpj/${digits}`);
+        const res = await fetch(`/api/cnpj/${doc}`);
         if (!res.ok) {
           setLookupStatus('not_found');
           return;
@@ -72,9 +64,9 @@ export function CustomerForm() {
 
   function handleCnpjInput(e: React.FormEvent<HTMLInputElement>) {
     const input = e.currentTarget;
-    const formatted = formatCnpj(input.value);
+    const formatted = formatDocument(input.value);
     input.value = formatted;
-    if (formatted.replace(/\D/g, '').length === 14) {
+    if (isCompleteDocument(formatted)) {
       lookupCnpj(formatted);
     } else {
       setLookupStatus('idle');

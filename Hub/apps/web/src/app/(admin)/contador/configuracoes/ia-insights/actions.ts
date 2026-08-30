@@ -1,15 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getDb, eq } from '@hexxa/db';
+import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { aiInsightConfig, aiInsightSection } from '@hexxa/db/schema';
-import { isAdminUser } from '@/lib/server/admin-guard';
+import { requireAdmin } from '@/lib/server/admin-guard';
 import { encryptSecret } from '@/lib/server/secret-crypto';
 import { AI_INSIGHT_PAGES } from '@/lib/ai-insight-pages';
-
-async function requireAdmin() {
-  if (!(await isAdminUser())) throw new Error('Não autorizado.');
-}
 
 export type AiInsightSettings = {
   enabled: boolean;
@@ -21,8 +17,10 @@ export type AiInsightSettings = {
 export async function getAiInsightSettingsAction(): Promise<AiInsightSettings> {
   await requireAdmin();
   const db = getDb();
-  const [cfg] = await db.select().from(aiInsightConfig).limit(1);
-  const sectionRows = await db.select().from(aiInsightSection);
+  const [[cfg], sectionRows] = await withDbTimeout(
+    Promise.all([db.select().from(aiInsightConfig).limit(1), db.select().from(aiInsightSection)]),
+    8000,
+  );
   const byKey = new Map(sectionRows.map((r) => [r.pageKey, r.enabled]));
 
   return {
@@ -36,11 +34,11 @@ export async function getAiInsightSettingsAction(): Promise<AiInsightSettings> {
 export async function setAiInsightEnabledAction(enabled: boolean): Promise<{ ok: boolean }> {
   await requireAdmin();
   const db = getDb();
-  const [cfg] = await db.select().from(aiInsightConfig).limit(1);
+  const [cfg] = await withDbTimeout(db.select().from(aiInsightConfig).limit(1), 8000);
   if (cfg) {
-    await db.update(aiInsightConfig).set({ enabled, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id));
+    await withDbTimeout(db.update(aiInsightConfig).set({ enabled, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id)), 8000);
   } else {
-    await db.insert(aiInsightConfig).values({ enabled });
+    await withDbTimeout(db.insert(aiInsightConfig).values({ enabled }), 8000);
   }
   revalidatePath('/contador/configuracoes/ia-insights');
   return { ok: true };
@@ -59,11 +57,11 @@ export async function saveAiInsightApiKeyAction(rawKey: string, provider: 'anthr
 
   const db = getDb();
   const encrypted = encryptSecret(key);
-  const [cfg] = await db.select().from(aiInsightConfig).limit(1);
+  const [cfg] = await withDbTimeout(db.select().from(aiInsightConfig).limit(1), 8000);
   if (cfg) {
-    await db.update(aiInsightConfig).set({ apiKeyEncrypted: encrypted, provider, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id));
+    await withDbTimeout(db.update(aiInsightConfig).set({ apiKeyEncrypted: encrypted, provider, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id)), 8000);
   } else {
-    await db.insert(aiInsightConfig).values({ apiKeyEncrypted: encrypted, provider, enabled: false });
+    await withDbTimeout(db.insert(aiInsightConfig).values({ apiKeyEncrypted: encrypted, provider, enabled: false }), 8000);
   }
   revalidatePath('/contador/configuracoes/ia-insights');
   return { ok: true, message: `Chave do ${provider === 'gemini' ? 'Gemini' : 'Anthropic'} salva com segurança (cifrada no banco).` };
@@ -72,9 +70,9 @@ export async function saveAiInsightApiKeyAction(rawKey: string, provider: 'anthr
 export async function removeAiInsightApiKeyAction(): Promise<{ ok: boolean }> {
   await requireAdmin();
   const db = getDb();
-  const [cfg] = await db.select().from(aiInsightConfig).limit(1);
+  const [cfg] = await withDbTimeout(db.select().from(aiInsightConfig).limit(1), 8000);
   if (cfg) {
-    await db.update(aiInsightConfig).set({ apiKeyEncrypted: null, enabled: false, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id));
+    await withDbTimeout(db.update(aiInsightConfig).set({ apiKeyEncrypted: null, enabled: false, updatedAt: new Date() }).where(eq(aiInsightConfig.id, cfg.id)), 8000);
   }
   revalidatePath('/contador/configuracoes/ia-insights');
   return { ok: true };
@@ -83,11 +81,11 @@ export async function removeAiInsightApiKeyAction(): Promise<{ ok: boolean }> {
 export async function setAiInsightSectionAction(pageKey: string, enabled: boolean): Promise<{ ok: boolean }> {
   await requireAdmin();
   const db = getDb();
-  const [row] = await db.select().from(aiInsightSection).where(eq(aiInsightSection.pageKey, pageKey));
+  const [row] = await withDbTimeout(db.select().from(aiInsightSection).where(eq(aiInsightSection.pageKey, pageKey)), 8000);
   if (row) {
-    await db.update(aiInsightSection).set({ enabled, updatedAt: new Date() }).where(eq(aiInsightSection.pageKey, pageKey));
+    await withDbTimeout(db.update(aiInsightSection).set({ enabled, updatedAt: new Date() }).where(eq(aiInsightSection.pageKey, pageKey)), 8000);
   } else {
-    await db.insert(aiInsightSection).values({ pageKey, enabled });
+    await withDbTimeout(db.insert(aiInsightSection).values({ pageKey, enabled }), 8000);
   }
   revalidatePath('/contador/configuracoes/ia-insights');
   return { ok: true };

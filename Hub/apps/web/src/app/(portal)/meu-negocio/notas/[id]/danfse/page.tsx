@@ -2,7 +2,8 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { resolveNfsePort } from '@/lib/server/container';
 import { withTenant, serviceInvoice, eq, and } from '@hexxa/db';
 import { redirect } from 'next/navigation';
-import { XMLParser } from 'fast-xml-parser';
+import { parseNfseXml } from '@/lib/server/danfse';
+import { generateNfseQrCode } from '@/lib/server/qrcode';
 import DanfseLayout from './DanfseLayout';
 
 export default async function DanfsePage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,20 +43,10 @@ export default async function DanfsePage({ params }: { params: Promise<{ id: str
     }
 
     const xmlBuffer = await port.download(nota.providerProtocol, 'xml');
-    const xmlString = xmlBuffer.toString('utf-8');
+    const data = parseNfseXml(xmlBuffer.toString('utf-8'), nota.providerProtocol);
+    const qrDataUrl = await generateNfseQrCode(data.chaveAcesso);
 
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '@_',
-      textNodeName: '#text',
-    });
-    
-    const jsonObj = parser.parse(xmlString);
-    
-    // O objeto raiz deve ser <NFSe> ou <DPS>
-    const root = jsonObj?.NFSe || jsonObj;
-    
-    return <DanfseLayout data={root} notaId={id} protocol={nota.providerProtocol} />;
+    return <DanfseLayout data={data} qrDataUrl={qrDataUrl} />;
   } catch (err: any) {
     return (
       <div className="flex h-screen items-center justify-center p-4 text-center">

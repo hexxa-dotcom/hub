@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { taxHistory, getDb, eq, desc } from '@hexxa/db';
+import { taxHistory, getDb, eq, desc, withDbTimeout } from '@hexxa/db';
 import Link from 'next/link';
 import { ArrowLeft, UploadCloud, BarChart3, Calendar, RotateCw } from 'lucide-react';
 import { UploadPGDASForm } from './UploadPGDASForm';
@@ -12,14 +12,23 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const db = getDb();
 
-  // Buscar histórico de PGDAS
-  const history = await db.select()
-    .from(taxHistory)
-    .where(eq(taxHistory.companyId, id))
-    .orderBy(desc(taxHistory.referenceMonth))
-    .limit(12);
-
-  const oneflow = await getOneflowCredential(id);
+  let history: (typeof taxHistory.$inferSelect)[] = [];
+  let oneflow: { hasToken: boolean; active: boolean } = { hasToken: false, active: false };
+  try {
+    [history, oneflow] = await withDbTimeout(
+      Promise.all([
+        db.select()
+          .from(taxHistory)
+          .where(eq(taxHistory.companyId, id))
+          .orderBy(desc(taxHistory.referenceMonth))
+          .limit(12),
+        getOneflowCredential(id),
+      ]),
+      8000,
+    );
+  } catch (err) {
+    console.error('[AdminFiscalPage] falha ao carregar dados fiscais:', err);
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">

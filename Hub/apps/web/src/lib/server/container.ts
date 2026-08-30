@@ -60,6 +60,22 @@ export async function makeServiceInvoiceService(ctx: TenantContext) {
   });
 }
 
+/**
+ * Como makeServiceInvoiceService, mas SEM reservar número de DPS — a
+ * reserva atômica só faz sentido para emit() (que efetivamente usa o
+ * número). cancel()/refreshStatus() não emitem DPS nova; usar
+ * makeServiceInvoiceService para eles queimava um número a cada clique
+ * (gera furos na numeração sem necessidade).
+ */
+export async function makeServiceInvoiceServiceReadOnly(ctx: TenantContext) {
+  return new ServiceInvoiceService({
+    nfse: await resolveNfsePort(ctx),
+    customers: new DrizzleCustomerRepository(),
+    invoices: new DrizzleServiceInvoiceRepository(),
+    entries: new DrizzleFinancialEntryRepository(),
+  });
+}
+
 /** Provedor ativo agora — para a UI mostrar "mock" vs "Emissor Nacional". */
 export async function nfseMode(ctx: TenantContext): Promise<'gov' | 'mock'> {
   const cfg = await getNfseConfig(ctx);

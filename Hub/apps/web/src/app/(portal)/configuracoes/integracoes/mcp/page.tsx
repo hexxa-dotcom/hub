@@ -1,13 +1,15 @@
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ArrowLeft, ArrowSquareOut, Sparkle } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
+import { isAdminUser } from '@/lib/server/admin-guard';
 import { McpTokensClient } from './McpTokensClient';
 
 export const metadata = {
   title: 'Assistente de IA & API | Hexx',
 };
 
-export default function McpSetupPage() {
+export default async function McpSetupPage() {
+  const isAdmin = await isAdminUser();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.hexx.com.br';
   const mcpUrl = `${baseUrl}/api/mcp`;
 
@@ -102,7 +104,7 @@ export default function McpSetupPage() {
         </div>
 
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm h-fit">
-          <McpTokensClient />
+          <McpTokensClient isAdmin={isAdmin} />
         </div>
       </div>
     </div>

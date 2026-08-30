@@ -2,23 +2,37 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
-import { getDb, eq, and, sql } from '@hexxa/db';
+import { getDb, eq, and, sql, withDbTimeout } from '@hexxa/db';
 import { company, membership, serviceInvoice, financialEntry, subscription } from '@hexxa/db/schema';
 
 export default async function AdminOnboardingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
 
-  const [comp] = await db.select().from(company).where(eq(company.id, id));
+  const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, id)), 8000);
   if (!comp) notFound();
 
-  const [fiscalRows, ownerRows, invoiceCount, entryCount, [sub]] = await Promise.all([
-    db.execute(sql`SELECT cnpj, codigo_municipio FROM nfse_config WHERE company_id = ${id} LIMIT 1`),
-    db.select({ id: membership.id }).from(membership).where(and(eq(membership.companyId, id), eq(membership.role, 'OWNER'))),
-    db.select({ n: sql<number>`count(*)::int` }).from(serviceInvoice).where(eq(serviceInvoice.companyId, id)),
-    db.select({ n: sql<number>`count(*)::int` }).from(financialEntry).where(eq(financialEntry.companyId, id)),
-    db.select({ status: subscription.status }).from(subscription).where(eq(subscription.companyId, id)),
-  ]);
+  let fiscalRows: any[] = [];
+  let ownerRows: { id: string }[] = [];
+  let invoiceCount: { n: number }[] = [];
+  let entryCount: { n: number }[] = [];
+  let sub: { status: string } | undefined;
+  try {
+    let subRows: { status: string }[];
+    [fiscalRows, ownerRows, invoiceCount, entryCount, subRows] = await withDbTimeout(
+      Promise.all([
+        db.execute(sql`SELECT cnpj, codigo_municipio FROM nfse_config WHERE company_id = ${id} LIMIT 1`),
+        db.select({ id: membership.id }).from(membership).where(and(eq(membership.companyId, id), eq(membership.role, 'OWNER'))),
+        db.select({ n: sql<number>`count(*)::int` }).from(serviceInvoice).where(eq(serviceInvoice.companyId, id)),
+        db.select({ n: sql<number>`count(*)::int` }).from(financialEntry).where(eq(financialEntry.companyId, id)),
+        db.select({ status: subscription.status }).from(subscription).where(eq(subscription.companyId, id)),
+      ]),
+      8000,
+    );
+    sub = subRows[0];
+  } catch (err) {
+    console.error('[AdminOnboardingPage] falha ao carregar progresso de onboarding:', err);
+  }
 
   const fiscalRow = fiscalRows[0] as { cnpj: string | null; codigo_municipio: string | null } | undefined;
   const cadastroCompleto = !comp.cnpj.startsWith('PENDENTE-');

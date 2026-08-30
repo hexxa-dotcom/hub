@@ -34,7 +34,7 @@ export interface NfseIssueInput {
 export interface NfseIssueResult {
   providerProtocol: string;
   nfseNumber?: string;
-  status: 'ISSUING' | 'ISSUED' | 'ERROR';
+  status: 'ISSUING' | 'ISSUED' | 'ERROR' | 'CANCELED';
   pdfUrl?: string;
   xmlUrl?: string;
   errorMessage?: string;

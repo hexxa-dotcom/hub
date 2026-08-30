@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeDocument } from '@hexxa/core/document-br';
 
 const PGMEI = 'https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app';
 
@@ -32,14 +33,17 @@ function competenciaToPA(competencia: string): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const cnpjRaw = searchParams.get('cnpj') ?? '';
-  const cnpj = cnpjRaw.replace(/\D/g, '');
+  // normalizeDocument PRESERVA letras — o PGMEI da Receita ainda não deve
+  // aceitar CNPJ alfanumérico (é um sistema legado), mas não é a Hexxa quem
+  // deve descartar as letras localmente antes disso mudar.
+  const cnpj = normalizeDocument(cnpjRaw);
   const paRaw = searchParams.get('pa') ?? '';
 
   // Aceita tanto YYYYMM quanto MM/YYYY
   const pa = paRaw.includes('/') ? competenciaToPA(paRaw) : paRaw;
 
   if (cnpj.length !== 14) {
-    return NextResponse.json({ error: 'CNPJ inválido — informe os 14 dígitos.' }, { status: 400 });
+    return NextResponse.json({ error: 'CNPJ inválido — informe os 14 caracteres.' }, { status: 400 });
   }
   if (pa.length !== 6 || isNaN(Number(pa))) {
     return NextResponse.json({ error: 'Período inválido — use AAAAMM ou MM/AAAA.' }, { status: 400 });

@@ -3,6 +3,7 @@
 import { withTenant, eq, and } from '@hexxa/db';
 import { integrationCredential, financialEntry } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
+import { normalizeDocument } from '@hexxa/core/document-br';
 
 interface PixChargeData {
   customerName: string;
@@ -40,7 +41,12 @@ export async function generatePixCharge(data: PixChargeData) {
 
   const secretData = cred?.secretRef as any;
   if (!cred?.active || !secretData?.access_token) {
-    throw new Error('Integração com Asaas não configurada ou inativa.');
+    // Nunca simular uma cobrança "paga sozinha" — isso já existiu aqui como
+    // fallback pra um gateway mock que confirmava o Pix automaticamente
+    // depois de 10s, sem o cliente pagar nada. Perigoso: o contador acharia
+    // que recebeu dinheiro real e poderia dar baixa contábil/liberar serviço
+    // por engano. Sem Asaas configurado, a cobrança simplesmente não existe.
+    throw new Error('Integração com o Asaas não está configurada. Configure em Configurações > Integrações antes de gerar cobranças Pix.');
   }
 
   const apiKey = secretData.access_token;
@@ -65,8 +71,11 @@ export async function generatePixCharge(data: PixChargeData) {
 
   // 2. Buscar ou Criar o Cliente no Asaas
   let asaasCustomerId: string;
-  const searchRes = await asaasFetch(`/customers?cpfCnpj=${data.customerCpfCnpj.replace(/\D/g, '')}`, { method: 'GET' });
-  
+  // normalizeDocument PRESERVA letras — não é a Hexxa quem deve descartar o
+  // CNPJ alfanumérico do cliente antes de mandar pro Asaas.
+  const cpfCnpj = normalizeDocument(data.customerCpfCnpj);
+  const searchRes = await asaasFetch(`/customers?cpfCnpj=${cpfCnpj}`, { method: 'GET' });
+
   if (searchRes.data && searchRes.data.length > 0) {
     asaasCustomerId = searchRes.data[0].id;
   } else {
@@ -74,7 +83,7 @@ export async function generatePixCharge(data: PixChargeData) {
       method: 'POST',
       body: JSON.stringify({
         name: data.customerName,
-        cpfCnpj: data.customerCpfCnpj.replace(/\D/g, ''),
+        cpfCnpj,
       }),
     });
     asaasCustomerId = createCustomerRes.id;
@@ -93,8 +102,7 @@ export async function generatePixCharge(data: PixChargeData) {
     }),
   });
 
-  // 3b. Vincula a cobrança ao lançamento — o webhook confirma o recebimento
-  // automaticamente por esse id quando o Pix cair.
+  // 3b. Vincula a cobrança ao lançamento
   if (data.financialEntryId) {
     await withTenant(ctx.companyId, async (tx) => {
       await tx

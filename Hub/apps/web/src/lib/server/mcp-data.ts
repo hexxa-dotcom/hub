@@ -1,7 +1,123 @@
 import 'server-only';
-import { withTenant, sql } from '@hexxa/db';
+import { withTenant, sql, getDb, company } from '@hexxa/db';
+import { ilike, or, eq } from 'drizzle-orm';
 import { getSimplesInputs } from '@/lib/server/fiscal';
 import { TaxThermometerService, type TenantContext } from '@hexxa/core';
+
+export type CompanyInfo = {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  cnpj: string;
+  type: 'SERVICE' | 'HOLDING';
+};
+
+/**
+ * Busca empresas cadastradas no Hub (por nome fantasia, razão social ou CNPJ).
+ * Se termo for omitido, retorna as primeiras 50 empresas.
+ */
+export async function searchCompanies(term?: string): Promise<CompanyInfo[]> {
+  const db = getDb();
+  if (!term || !term.trim()) {
+    const rows = await db
+      .select({
+        id: company.id,
+        legalName: company.legalName,
+        tradeName: company.tradeName,
+        cnpj: company.cnpj,
+        type: company.type,
+      })
+      .from(company)
+      .limit(50);
+    return rows as CompanyInfo[];
+  }
+
+  const clean = term.trim();
+  const digits = clean.replace(/\D/g, '');
+  const pattern = `%${clean}%`;
+
+  const rows = await db
+    .select({
+      id: company.id,
+      legalName: company.legalName,
+      tradeName: company.tradeName,
+      cnpj: company.cnpj,
+      type: company.type,
+    })
+    .from(company)
+    .where(
+      or(
+        ilike(company.legalName, pattern),
+        ilike(company.tradeName, pattern),
+        ilike(company.cnpj, pattern),
+        digits.length >= 4 ? sql`regexp_replace(${company.cnpj}, '\\D', '', 'g') ILIKE ${'%' + digits + '%'}` : sql`false`
+      )
+    )
+    .limit(20);
+
+  return rows as CompanyInfo[];
+}
+
+/**
+ * Resolve a empresa alvo para uma consulta MCP:
+ * - Se `clienteInput` for vazio: retorna a empresa padrão associada ao token.
+ * - Se `clienteInput` for informado: exige `isAdmin: true` e pesquisa por UUID, CNPJ ou Nome.
+ */
+export async function resolveTargetCompany(
+  clienteInput: string | undefined,
+  defaultCompanyId: string,
+  isAdmin: boolean
+): Promise<CompanyInfo> {
+  const db = getDb();
+
+  if (!clienteInput || !clienteInput.trim()) {
+    const [found] = await db
+      .select({
+        id: company.id,
+        legalName: company.legalName,
+        tradeName: company.tradeName,
+        cnpj: company.cnpj,
+        type: company.type,
+      })
+      .from(company)
+      .where(eq(company.id, defaultCompanyId));
+
+    if (!found) throw new Error(`Empresa associada ao token (${defaultCompanyId}) não encontrada.`);
+    return found as CompanyInfo;
+  }
+
+  if (!isAdmin) {
+    throw new Error('Acesso negado: apenas tokens com perfil de Administrador/Contador podem consultar dados de outras empresas.');
+  }
+
+  const clean = clienteInput.trim();
+
+  // UUID direto
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)) {
+    const [found] = await db
+      .select({
+        id: company.id,
+        legalName: company.legalName,
+        tradeName: company.tradeName,
+        cnpj: company.cnpj,
+        type: company.type,
+      })
+      .from(company)
+      .where(eq(company.id, clean));
+    if (found) return found as CompanyInfo;
+  }
+
+  const results = await searchCompanies(clean);
+  if (results.length === 0) {
+    throw new Error(`Nenhum cliente encontrado para o termo "${clean}". Use a ferramenta "buscar_clientes" para ver as empresas disponíveis.`);
+  }
+  if (results.length > 1) {
+    const matches = results.map((r) => `"${r.tradeName || r.legalName}" (${r.cnpj})`).join(', ');
+    throw new Error(`Mais de um cliente encontrado para "${clean}": ${matches}. Por favor, especifique o CNPJ ou o nome completo.`);
+  }
+
+  return results[0]!;
+}
 
 /**
  * Camada de dados pro servidor MCP (`/api/mcp`) e pra API REST de integração
@@ -321,3 +437,313 @@ export async function createFaturamento(companyId: string, input: LancamentoInpu
 
   return { id: created!.id as string, status };
 }
+
+/**
+ * Consulta contratos ativos e vigentes da empresa (receitas e despesas recorrentes).
+ */
+export async function listContratos(companyId: string) {
+  const db = getDb();
+  const rows = await db.execute(sql`
+    SELECT
+      id,
+      title,
+      type,
+      party_name,
+      party_cnpj,
+      value,
+      due_day,
+      start_date,
+      end_date,
+      status
+    FROM business_contract
+    WHERE company_id = ${companyId}
+    ORDER BY created_at DESC
+    LIMIT 50
+  `);
+
+  const list = (rows as any[]).map((r) => ({
+    id: r.id,
+    titulo: r.title,
+    tipo: r.type === 'ENTRADA' ? 'receita_recorrente' : 'despesa_recorrente',
+    contraparte: r.party_name,
+    cnpjContraparte: r.party_cnpj,
+    valorMensal: Number(r.value),
+    diaVencimento: r.due_day,
+    inicio: r.start_date,
+    fim: r.end_date,
+    status: r.status,
+  }));
+
+  const totalReceitaRecorrente = list
+    .filter((c) => c.tipo === 'receita_recorrente' && c.status === 'ACTIVE')
+    .reduce((acc, c) => acc + c.valorMensal, 0);
+
+  const totalDespesaRecorrente = list
+    .filter((c) => c.tipo === 'despesa_recorrente' && c.status === 'ACTIVE')
+    .reduce((acc, c) => acc + c.valorMensal, 0);
+
+  return {
+    totalContratos: list.length,
+    mrrRecorrenciaAtiva: totalReceitaRecorrente,
+    despesaRecorrenteAtiva: totalDespesaRecorrente,
+    contratos: list,
+  };
+}
+
+/**
+ * Consulta guias de impostos (DAS, INSS, ISS, etc.) da empresa.
+ */
+export async function listGuiasImpostos(companyId: string, filter?: { status?: string; mes?: string }) {
+  const db = getDb();
+  let query = sql`
+    SELECT
+      id,
+      tax_name,
+      reference_month,
+      amount,
+      due_date,
+      status,
+      pix_code IS NOT NULL as tem_pix
+    FROM tax_guide
+    WHERE company_id = ${companyId}
+  `;
+
+  if (filter?.status) {
+    const statusMap: Record<string, string> = {
+      aberto: 'OPEN',
+      pago: 'PAID',
+      vencido: 'OVERDUE',
+    };
+    const s = statusMap[filter.status] || filter.status.toUpperCase();
+    query = sql`${query} AND status = ${s}`;
+  }
+
+  if (filter?.mes) {
+    const refMonth = filter.mes.slice(0, 7) + '-01';
+    query = sql`${query} AND reference_month = ${refMonth}`;
+  }
+
+  query = sql`${query} ORDER BY due_date DESC LIMIT 50`;
+
+  const rows = await db.execute(query);
+  const guias = (rows as any[]).map((r) => ({
+    id: r.id,
+    imposto: r.tax_name,
+    mesReferencia: String(r.reference_month).slice(0, 7),
+    valor: Number(r.amount),
+    vencimento: String(r.due_date).slice(0, 10),
+    status: r.status === 'PAID' ? 'pago' : r.status === 'OVERDUE' ? 'vencido' : 'aberto',
+    temPix: Boolean(r.tem_pix),
+  }));
+
+  const totalAberto = guias.filter((g) => g.status !== 'pago').reduce((acc, g) => acc + g.valor, 0);
+
+  return {
+    totalGuias: guias.length,
+    totalPendente: totalAberto,
+    guias,
+  };
+}
+
+/**
+ * Relatório de inadimplência:
+ * - Se informado `companyId`: inadimplência dos clientes daquela empresa específica.
+ * - Se `isAdmin` e sem `companyId`: inadimplência global da carteira inteira do escritório.
+ */
+export async function getRelatorioInadimplencia(companyId?: string, isAdmin?: boolean) {
+  const db = getDb();
+
+  const whereClause = companyId
+    ? sql`fe.company_id = ${companyId} AND fe.type = 'RECEIVABLE' AND (fe.status = 'OVERDUE' OR (fe.due_date < CURRENT_DATE AND fe.status = 'PENDING'))`
+    : sql`fe.type = 'RECEIVABLE' AND (fe.status = 'OVERDUE' OR (fe.due_date < CURRENT_DATE AND fe.status = 'PENDING'))`;
+
+  const rows = await db.execute(sql`
+    SELECT
+      fe.id,
+      fe.company_id,
+      c.trade_name,
+      c.legal_name,
+      c.cnpj,
+      fe.description,
+      fe.amount,
+      fe.due_date,
+      fe.status,
+      CURRENT_DATE - fe.due_date as dias_atraso
+    FROM financial_entry fe
+    JOIN company c ON c.id = fe.company_id
+    WHERE ${whereClause}
+    ORDER BY fe.due_date ASC
+    LIMIT 100
+  `);
+
+  const list = (rows as any[]).map((r) => ({
+    id: r.id,
+    empresa: {
+      id: r.company_id,
+      nome: r.trade_name || r.legal_name,
+      cnpj: r.cnpj,
+    },
+    descricao: r.description,
+    valor: Number(r.amount),
+    vencimento: String(r.due_date).slice(0, 10),
+    diasAtraso: Math.max(0, Number(r.dias_atraso || 0)),
+  }));
+
+  const totalEmAtraso = list.reduce((acc, item) => acc + item.valor, 0);
+
+  return {
+    totalTitulosEmAtraso: list.length,
+    valorTotalInadimplente: totalEmAtraso,
+    titulos: list,
+  };
+}
+
+/**
+ * Panorama macro de toda a carteira de clientes (apenas para Admin/Contador).
+ */
+export async function getPanoramaCarteira() {
+  const db = getDb();
+  const now = new Date();
+  const curMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+  const companiesRows = await db.execute(sql`
+    SELECT id, legal_name, trade_name, cnpj, type
+    FROM company
+    ORDER BY created_at ASC
+  `);
+
+  const entriesRows = await db.execute(sql`
+    SELECT
+      company_id,
+      type,
+      status,
+      amount,
+      reference_month,
+      due_date < CURRENT_DATE as vencido
+    FROM financial_entry
+    WHERE status != 'CANCELED'
+  `);
+
+  const entries = entriesRows as any[];
+  const companies = companiesRows as any[];
+
+  let faturamentoTotalMes = 0;
+  let inadimplenciaTotal = 0;
+  let aPagarTotalMes = 0;
+
+  const resumoPorEmpresa = companies.map((c) => {
+    const empEntries = entries.filter((e) => e.company_id === c.id);
+
+    const faturadoMes = empEntries
+      .filter((e) => e.type === 'RECEIVABLE' && String(e.reference_month).startsWith(curMonthStart.slice(0, 7)))
+      .reduce((s, e) => s + Number(e.amount), 0);
+
+    const atrasado = empEntries
+      .filter((e) => e.type === 'RECEIVABLE' && (e.status === 'OVERDUE' || (e.vencido && e.status === 'PENDING')))
+      .reduce((s, e) => s + Number(e.amount), 0);
+
+    const aPagarMes = empEntries
+      .filter((e) => e.type === 'PAYABLE' && String(e.reference_month).startsWith(curMonthStart.slice(0, 7)))
+      .reduce((s, e) => s + Number(e.amount), 0);
+
+    faturamentoTotalMes += faturadoMes;
+    inadimplenciaTotal += atrasado;
+    aPagarTotalMes += aPagarMes;
+
+    return {
+      id: c.id,
+      nome: c.trade_name || c.legal_name,
+      cnpj: c.cnpj,
+      tipo: c.type,
+      faturamentoMesAtual: faturadoMes,
+      inadimplenciaEmAberto: atrasado,
+      contasPagarMesAtual: aPagarMes,
+    };
+  });
+
+  return {
+    mesReferencia: curMonthStart.slice(0, 7),
+    totalEmpresasCadastradas: companies.length,
+    faturamentoConsolidadoCarteira: faturamentoTotalMes,
+    inadimplenciaConsolidadaCarteira: inadimplenciaTotal,
+    despesasConsolidadasCarteira: aPagarTotalMes,
+    carteira: resumoPorEmpresa,
+  };
+}
+
+/**
+ * Calcula a previsão de lucro contábil e o valor disponível para distribuição
+ * aos sócios no mês atual e no acumulado do ano.
+ */
+export async function getPrevisaoLucroDistribuicao(companyId: string) {
+  const db = getDb();
+  const now = new Date();
+  const year = now.getFullYear();
+  const curMonth = monthKeyOf(now);
+  const monthEnd = monthEndOf(curMonth);
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  const [entriesMonth, entriesYear, distRowsYear, distRowsMonth] = await Promise.all([
+    db.execute(sql`
+      SELECT type, status, amount
+      FROM financial_entry
+      WHERE company_id = ${companyId} AND reference_month = ${curMonth} AND status != 'CANCELED'
+    `),
+    db.execute(sql`
+      SELECT type, status, amount
+      FROM financial_entry
+      WHERE company_id = ${companyId} AND reference_month >= ${yearStart} AND reference_month <= ${yearEnd} AND status != 'CANCELED'
+    `),
+    db.execute(sql`
+      SELECT coalesce(sum(amount), 0) AS total
+      FROM profit_distribution
+      WHERE company_id = ${companyId} AND reference_year = ${year}
+    `),
+    db.execute(sql`
+      SELECT coalesce(sum(amount), 0) AS total
+      FROM profit_distribution
+      WHERE company_id = ${companyId} AND distributed_at >= ${curMonth} AND distributed_at <= ${monthEnd}
+    `),
+  ]);
+
+  const mEntries = entriesMonth as any[];
+  const yEntries = entriesYear as any[];
+
+  // Mês Atual
+  const receitaMes = mEntries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const despesaMes = mEntries.filter((e) => e.type === 'PAYABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const lucroLiquidoProjetadoMes = receitaMes - despesaMes;
+  const distribuidoMes = Number((distRowsMonth as any[])[0]?.total ?? 0);
+  const saldoLucroDisponivelMes = Math.max(0, lucroLiquidoProjetadoMes - distribuidoMes);
+
+  // Acumulado do Ano
+  const receitaAno = yEntries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const despesaAno = yEntries.filter((e) => e.type === 'PAYABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const lucroLiquidoAcumuladoAno = receitaAno - despesaAno;
+  const distribuidoAno = Number((distRowsYear as any[])[0]?.total ?? 0);
+  const lucroDisponivelAcumuladoAno = Math.max(0, lucroLiquidoAcumuladoAno - distribuidoAno);
+
+  return {
+    mesReferencia: curMonth.slice(0, 7),
+    anoReferencia: year,
+    mesAtual: {
+      receitasPrevistas: receitaMes,
+      despesasPrevistas: despesaMes,
+      lucroLiquidoProjetado: lucroLiquidoProjetadoMes,
+      jaDistribuidoNoMes: distribuidoMes,
+      disponivelParaDistribuirEsteMes: saldoLucroDisponivelMes,
+    },
+    acumuladoAno: {
+      receitasAno: receitaAno,
+      despesasAno: despesaAno,
+      lucroLiquidoTotalAno: lucroLiquidoAcumuladoAno,
+      jaDistribuidoNoAno: distribuidoAno,
+      lucroTotalAindaDisponivelNoAno: lucroDisponivelAcumuladoAno,
+    },
+    orientacaoContabil:
+      'A distribuição de lucros aos sócios é 100% isenta de IRPF desde que haja lucro contábil apurado e a empresa não possua débitos previdenciários (INSS) ou tributários não parcelados.',
+  };
+}
+
+

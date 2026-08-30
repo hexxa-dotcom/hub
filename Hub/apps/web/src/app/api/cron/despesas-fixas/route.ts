@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@hexxa/db';
+import { getDb, withDbTimeout } from '@hexxa/db';
 import { recurringExpense, financialEntry, category } from '@hexxa/db/schema';
 import { eq, and, lte } from 'drizzle-orm';
 
@@ -23,10 +23,13 @@ export async function GET(request: Request) {
   const refMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 
   try {
-    const active = await db
-      .select()
-      .from(recurringExpense)
-      .where(and(eq(recurringExpense.active, true), lte(recurringExpense.startMonth, refMonth)));
+    const active = await withDbTimeout(
+      db
+        .select()
+        .from(recurringExpense)
+        .where(and(eq(recurringExpense.active, true), lte(recurringExpense.startMonth, refMonth))),
+      8000,
+    );
 
     let generated = 0;
     const errors: string[] = [];
@@ -40,34 +43,43 @@ export async function GET(request: Request) {
 
         let categoryId: string | null = null;
         if (r.categoryName) {
-          const [existingCat] = await db
-            .select({ id: category.id })
-            .from(category)
-            .where(and(eq(category.companyId, r.companyId), eq(category.name, r.categoryName), eq(category.kind, 'EXPENSE')));
+          const [existingCat] = await withDbTimeout(
+            db
+              .select({ id: category.id })
+              .from(category)
+              .where(and(eq(category.companyId, r.companyId), eq(category.name, r.categoryName), eq(category.kind, 'EXPENSE'))),
+            8000,
+          );
           categoryId = existingCat
             ? existingCat.id
             : (
-                await db
-                  .insert(category)
-                  .values({ companyId: r.companyId, name: r.categoryName, kind: 'EXPENSE' })
-                  .returning({ id: category.id })
+                await withDbTimeout(
+                  db
+                    .insert(category)
+                    .values({ companyId: r.companyId, name: r.categoryName, kind: 'EXPENSE' })
+                    .returning({ id: category.id }),
+                  8000,
+                )
               )[0]!.id;
         }
 
-        await db.insert(financialEntry).values({
-          companyId: r.companyId,
-          type: 'PAYABLE',
-          status: 'PENDING',
-          description: r.description,
-          amount: r.amount,
-          dueDate,
-          referenceMonth: refMonth,
-          source: 'RECURRING',
-          sourceId: r.id,
-          categoryId,
-        });
+        await withDbTimeout(
+          db.insert(financialEntry).values({
+            companyId: r.companyId,
+            type: (r as any).type || 'PAYABLE', // Handle old schema and new schema
+            status: 'PENDING',
+            description: r.description,
+            amount: r.amount,
+            dueDate,
+            referenceMonth: refMonth,
+            source: 'RECURRING',
+            sourceId: r.id,
+            categoryId,
+          }),
+          8000,
+        );
 
-        await db.update(recurringExpense).set({ lastGeneratedMonth: refMonth }).where(eq(recurringExpense.id, r.id));
+        await withDbTimeout(db.update(recurringExpense).set({ lastGeneratedMonth: refMonth }).where(eq(recurringExpense.id, r.id)), 8000);
         generated++;
       } catch (err: any) {
         errors.push(`Despesa fixa ${r.id}: ${err.message}`);
