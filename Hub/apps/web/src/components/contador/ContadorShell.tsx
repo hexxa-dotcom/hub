@@ -118,7 +118,7 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
   const navGroups = buildNavGroups(openTicketsCount);
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={`flex h-full flex-col bg-[#1E3328] text-[#FEFDF3] border-r border-[#2F4A3C]/40 ${mobile ? 'p-4' : 'py-5 px-3'}`}>
+    <div className={`flex h-full flex-col bg-[#1E3328]/95 dark:bg-[#141A16]/95 backdrop-blur-2xl text-[#FEFDF3] border border-[#2F4A3C]/60 ${mobile ? 'p-4 border-r' : 'py-5 px-3 rounded-[26px] shadow-[0_16px_40px_rgba(0,0,0,0.22)]'}`}>
       {/* Brand */}
       <div className={`flex items-center gap-3 pb-5 border-b border-[#2F4A3C]/40 ${collapsed && !mobile ? 'justify-center px-0' : 'px-2'}`}>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#2F4A3C] text-[#DFFFAE] border border-[#DFFFAE]/30 text-sm font-bold shadow-sm">
@@ -178,7 +178,7 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
   return (
     <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
       {/* Sidebar desktop */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 transition-all duration-300 ease-out lg:block z-40 ${collapsed ? 'w-[76px]' : 'w-64'}`}>
+      <aside className={`sticky top-4 hidden h-[calc(100vh-32px)] shrink-0 transition-all duration-300 ease-out lg:block z-40 ml-4 my-4 ${collapsed ? 'w-[76px]' : 'w-64'}`}>
         <Sidebar />
       </aside>
 

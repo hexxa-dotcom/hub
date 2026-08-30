@@ -290,15 +290,15 @@ export default async function DashboardPage() {
       <InsightCard pageKey="cliente" insight={insight} />
 
       {/* Header Editorial Refinado */}
-      <header className="relative overflow-hidden rounded-3xl bg-[#FAF7F2] dark:bg-[#141C18] border border-black/8 dark:border-white/10 p-6 sm:p-8 text-[#18221C] dark:text-[#FEFDF3] shadow-sm">
+      <header className="relative overflow-hidden rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 text-[#231F20] dark:text-[#FEFDF3] shadow-sm">
         <div className="relative z-10 flex flex-col gap-5">
           {/* Badges de Status & Data */}
           <div className="flex flex-wrap items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#111A15] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm">
                 <Sparkles className="h-3 w-3" /> Visão Geral
               </span>
-              <span className="flex items-center gap-1.5 rounded-full bg-white/80 dark:bg-white/10 px-3.5 py-1 text-xs font-medium border border-black/5 dark:border-white/10 text-[#5F6F66] dark:text-[#94A79C]">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/10 px-3.5 py-1 text-xs font-medium border border-black/5 dark:border-white/10 text-[#6E6A61] dark:text-[#A8A49C]">
                 <Calendar className="h-3.5 w-3.5" /> {dateFormatted}
               </span>
             </div>
@@ -320,11 +320,11 @@ export default async function DashboardPage() {
 
           {/* Título Editorial de Impacto */}
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold tracking-tight text-[#18221C] dark:text-[#FEFDF3] mb-1.5">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] mb-1.5">
               Visão Geral
             </h1>
-            <p className="text-[#5F6F66] dark:text-[#94A79C] text-sm sm:text-base max-w-2xl">
-              Acompanhe suas entradas, saídas e quanto vai sobrar no bolso neste mês.
+            <p className="text-[#6E6A61] dark:text-[#A8A49C] text-sm sm:text-base max-w-2xl">
+              Acompanhe suas entradas, saídas e o resultado financeiro líquido projetado para este mês.
             </p>
           </div>
         </div>

@@ -55,7 +55,7 @@
   --radius-card: 1.5rem;
   --radius-pill: 9999px;
 
-  --font-serif: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: var(--font-serif), 'Source Serif 4', Georgia, Cambria, 'Times New Roman', serif;
   --font-sans: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -133,7 +133,10 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.025em;
 }
 
-.font-serif,
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
 .font-sans {
   font-family: var(--font-sans);
 }

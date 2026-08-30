@@ -47,7 +47,9 @@ export function GlassCard({
         'rounded-3xl p-5 md:p-6 transition-all duration-300',
         highlight
           ? 'bg-[#1E3328] text-[#FEFDF3] shadow-lg border border-[#2F4A3C]'
-          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:border-black/10 dark:hover:border-white/20',
+          : glass
+            ? 'glass text-[#231F20] dark:text-[#FEFDF3]'
+            : 'bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:border-black/10 dark:hover:border-white/20',
         href && 'hover:-translate-y-1 hover:shadow-md cursor-pointer',
         className,
       )}

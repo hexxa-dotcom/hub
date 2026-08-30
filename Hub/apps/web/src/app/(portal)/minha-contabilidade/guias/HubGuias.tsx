@@ -35,12 +35,12 @@ type Guia = TaxGuideRecord;
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CAT_CONFIG: Record<GuiaCategoria, { label: string; cls: string }> = {
-  DAS:          { label: 'DAS',          cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
-  DARF:         { label: 'DARF',         cls: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' },
-  ISS:          { label: 'ISS',          cls: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300' },
-  PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300' },
-  FGTS:         { label: 'FGTS',         cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
-  DIVERSA:      { label: 'Diversa',      cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
+  DAS:          { label: 'DAS',          cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C]/40 dark:text-[#DFFFAE] border border-[#2F4A3C]/10 dark:border-[#DFFFAE]/20' },
+  DARF:         { label: 'DARF',         cls: 'bg-[#EAE3D3] text-[#231F20] dark:bg-white/10 dark:text-[#FEFDF3] border border-black/5 dark:border-white/10' },
+  ISS:          { label: 'ISS',          cls: 'bg-[#DCE7EB] text-[#23434E] dark:bg-[#A2C1CD]/15 dark:text-[#A2C1CD] border border-[#A2C1CD]/30' },
+  PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-[#F4EFE4] text-[#6E6A61] dark:bg-[#1A201C] dark:text-[#A8A49C] border border-black/5 dark:border-white/10' },
+  FGTS:         { label: 'FGTS',         cls: 'bg-[#E2EDE5] text-[#1E3328] dark:bg-[#1E3328]/50 dark:text-[#DFFFAE] border border-[#2F4A3C]/20' },
+  DIVERSA:      { label: 'Diversa',      cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C] border border-black/5 dark:border-white/10' },
 };
 
 const STATUS_CONFIG: Record<GuiaStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {

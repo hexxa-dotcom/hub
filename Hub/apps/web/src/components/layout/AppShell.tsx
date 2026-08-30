@@ -95,10 +95,13 @@ function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
-function itemClass(active: boolean) {
+function itemClass(active: boolean, isDarkOverlay: boolean = false) {
   const base = 'flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-all duration-200';
   if (active) {
     return `${base} font-bold bg-[#DFFFAE] text-[#1E3328] shadow-sm`;
+  }
+  if (isDarkOverlay) {
+    return `${base} font-medium text-[#FEFDF3]/75 hover:bg-white/10 hover:text-[#FEFDF3]`;
   }
   return `${base} font-medium text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3]`;
 }
@@ -107,10 +110,12 @@ function NavList({
   items,
   pathname,
   onNavigate,
+  isDark = false,
 }: {
   items: { label: string; href: string; badge?: string }[];
   pathname: string;
   onNavigate?: () => void;
+  isDark?: boolean;
 }) {
   // prefetch=false: com ~20 links sempre visíveis na sidebar, o prefetch
   // automático do Next dispara todas as rotas dinâmicas (consultas ao banco)
@@ -126,17 +131,19 @@ function NavList({
             <Link
               href={i.href as never}
               onClick={onNavigate}
-              className={itemClass(active)}
+              className={itemClass(active, isDark)}
               prefetch={false}
             >
               <IconCmp
                 className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                  active ? 'text-[#1E3328]' : 'text-[#6E6A61] dark:text-[#A8A49C]'
+                  active ? 'text-[#1E3328]' : isDark ? 'text-[#FEFDF3]/75' : 'text-[#6E6A61] dark:text-[#A8A49C]'
                 }`}
               />
               <span className="truncate flex-1">{i.label}</span>
               {i.badge && (
-                <span className="shrink-0 rounded-full bg-black/5 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6E6A61] dark:text-[#A8A49C]">
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  isDark ? 'bg-white/10 text-[#FEFDF3]' : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
+                }`}>
                   {i.badge}
                 </span>
               )}
@@ -212,61 +219,73 @@ function AppShellInner({
     <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
-      {/* Container das Sidebars Desktop */}
+      {/* Container das Sidebars Desktop - Opção 2: Pure Floating Rail (100% Transparente) */}
       <div
-        className="sticky top-0 hidden h-screen shrink-0 lg:flex z-40"
+        className="sticky top-4 hidden h-[calc(100vh-32px)] shrink-0 lg:flex z-40 ml-3 my-4 relative select-none"
         onMouseLeave={() => setCollapsed(true)}
       >
-        {/* Sidebar Primária (Estreita em Verde Floresta Profundo) */}
-        <aside className="h-full w-[72px] shrink-0 flex-col items-center gap-6 py-5 z-40 flex bg-[#1E3328] border-r border-[#2F4A3C]/40 text-[#FEFDF3]">
-          <Link href="/cliente" className="transition-transform hover:scale-105">
-            <BrandMark />
+        {/* Sidebar Primária (100% Transparente - Ícones Livres Flutuantes) */}
+        <aside className="h-full w-[64px] shrink-0 flex-col items-center gap-4 py-3 px-1 z-40 flex bg-transparent border-0 shadow-none transition-all duration-300">
+          <Link href="/cliente" className="transition-transform hover:scale-110 mt-1">
+            <BrandMark size="sm" />
           </Link>
 
-          <nav className="flex flex-1 flex-col gap-2.5 overflow-y-auto no-scrollbar w-full items-center pt-2">
+          <div className="w-6 h-px bg-black/10 dark:bg-white/10 my-0.5 shrink-0" />
+
+          <nav className="flex flex-1 flex-col gap-2.5 overflow-y-auto no-scrollbar w-full items-center pt-1">
             {sections.map((s) => {
               const IconCmp = GROUP_ICONS[s.title] || LayoutDashboard;
               const isActive = activeGroup === s.title;
               return (
-                <button
-                  key={s.title}
-                  title={s.title}
-                  onMouseEnter={() => {
-                    setActiveGroup(s.title);
-                    if (collapsed) setCollapsed(false);
-                  }}
-                  onClick={() => {
-                    setActiveGroup(s.title);
-                    if (collapsed) setCollapsed(false);
-                    if (s.items.length === 1 && s.items[0]) {
-                      router.push(s.items[0].href as never);
-                    }
-                  }}
-                  className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#DFFFAE] text-[#1E3328] font-bold shadow-md scale-105'
-                      : 'text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3]'
-                  }`}
-                >
-                  <IconCmp className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-                </button>
+                <div key={s.title} className="relative group w-full flex justify-center">
+                  <button
+                    title={s.title}
+                    onMouseEnter={() => {
+                      setActiveGroup(s.title);
+                      setCollapsed(false);
+                    }}
+                    onClick={() => {
+                      setActiveGroup(s.title);
+                      if (s.items.length === 1 && s.items[0]) {
+                        router.push(s.items[0].href as never);
+                        setCollapsed(true);
+                      } else {
+                        setCollapsed((c) => !c);
+                      }
+                    }}
+                    className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-[#1E3328] dark:bg-[#DFFFAE] text-[#DFFFAE] dark:text-[#1E3328] font-bold shadow-md scale-105'
+                        : 'text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:scale-105'
+                    }`}
+                  >
+                    <IconCmp className="h-5 w-5 transition-transform duration-200" />
+                  </button>
+
+                  {/* Tooltip rápido quando o menu lateral estiver recolhido */}
+                  {collapsed && (
+                    <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50 rounded-xl bg-[#1E3328] dark:bg-[#1A201C] border border-[#2F4A3C] px-2.5 py-1 text-xs font-semibold text-[#FEFDF3] opacity-0 shadow-xl transition-all group-hover:opacity-100 whitespace-nowrap">
+                      {s.title}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
         </aside>
 
-        {/* Sidebar Secundária (Expansível em Warm Beige) */}
+        {/* Submenu Flutuante (Flyout Card - NÃO empurra o layout do dashboard!) */}
         <aside
-          className={`h-full shrink-0 flex-col bg-[#F4EFE4] dark:bg-[#1A201C] border-r border-black/5 dark:border-white/10 transition-all duration-300 ease-out z-30 flex overflow-hidden ${
-            collapsed ? 'w-0 !border-none opacity-0' : 'w-64 opacity-100 shadow-xl'
+          className={`absolute left-[calc(100%+10px)] top-0 h-full w-64 rounded-[26px] bg-[#FEFDF3]/95 dark:bg-[#1A201C]/95 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] text-[#231F20] dark:text-[#FEFDF3] transition-all duration-300 ease-out z-30 flex flex-col overflow-hidden ${
+            collapsed ? 'pointer-events-none opacity-0 -translate-x-3' : 'pointer-events-auto opacity-100 translate-x-0'
           }`}
         >
           <div className="flex shrink-0 flex-col border-b border-black/5 dark:border-white/10">
             {/* Workspace Switcher */}
             <div className="p-3">
-              <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
+              <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/70 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2F4A3C] text-[#DFFFAE] font-bold text-sm shadow-sm">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
                     {company
                       ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
                       : 'H'}
@@ -287,14 +306,27 @@ function AppShellInner({
             </div>
 
             {/* Active Group Title */}
-            <div className="px-5 pb-3 pt-1 flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE]">{activeGroup}</span>
+            <div className="px-5 pb-3 pt-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-[#1E3328] dark:text-[#DFFFAE]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1E3328] dark:text-[#DFFFAE]">{activeGroup}</span>
+              </div>
+              <button 
+                onClick={() => setCollapsed(true)} 
+                className="text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] text-xs p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition"
+              >
+                ✕
+              </button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-4">
-            <NavList items={activeSectionData?.items || []} pathname={pathname} />
+            <NavList 
+              items={activeSectionData?.items || []} 
+              pathname={pathname} 
+              onNavigate={() => setCollapsed(true)} 
+              isDark={false}
+            />
           </div>
         </aside>
       </div>
