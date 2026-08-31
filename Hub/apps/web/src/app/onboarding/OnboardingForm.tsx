@@ -7,7 +7,7 @@ import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/co
 
 const initialState: OnboardingState = { ok: true, message: '' };
 
-export function OnboardingForm({ companyName }: { companyName: string }) {
+export function OnboardingForm({ companyName, existingCompanyId }: { companyName: string; existingCompanyId?: string }) {
   const [state, formAction, pending] = useActionState(completeOnboardingAction, initialState);
   const [cnpj, setCnpj] = useState('');
   const [preview, setPreview] = useState<{ razaoSocial: string; municipio: string | null } | null>(null);
@@ -53,6 +53,7 @@ export function OnboardingForm({ companyName }: { companyName: string }) {
 
       <div className="rounded-3xl border border-white/20 bg-white p-6 shadow-2xl dark:bg-slate-900 dark:border-white/10">
         <form action={formAction} className="space-y-4">
+          {existingCompanyId && <input type="hidden" name="existingCompanyId" value={existingCompanyId} />}
           {!state.ok && state.message && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
               {state.message}

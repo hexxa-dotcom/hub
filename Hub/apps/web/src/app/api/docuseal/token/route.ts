@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { currentUser } from '@clerk/nextjs/server';
+import { createClient } from '@/lib/supabase/server';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export async function POST(req: Request) {
@@ -16,8 +16,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing DOCUSEAL_TOKEN' }, { status: 500 });
     }
 
-    const user = await currentUser();
-    const userEmail = user?.emailAddresses?.[0]?.emailAddress ?? `admin_${tenant.companyId}@hexxahub.com.br`;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const userEmail = user?.email ?? `admin_${tenant.companyId}@hexxahub.com.br`;
 
     const payload = {
       user_email: userEmail,

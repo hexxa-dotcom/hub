@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { TrendingUp, Sparkles } from 'lucide-react';
 import { HubFinanceiro } from './HubFinanceiro';
 import { getLancamentos } from './actions';
@@ -7,7 +8,9 @@ import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
+// Isolado em Suspense pra não travar o dashboard inteiro esperando a
+// chamada de IA — o card de dica só aparece quando (e se) ficar pronto.
+async function HubFinanceiroInsight() {
   let insight: string | null = null;
   try {
     const ctx = await getTenantContext();
@@ -26,10 +29,15 @@ export default async function Page() {
   } catch (err) {
     console.error('[hub-financeiro/page] falha ao gerar insight:', err);
   }
+  return <InsightCard pageKey="meu-negocio/hub-financeiro" insight={insight} />;
+}
 
+export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-7 animate-fade-up">
-      <InsightCard pageKey="meu-negocio/hub-financeiro" insight={insight} />
+      <Suspense fallback={null}>
+        <HubFinanceiroInsight />
+      </Suspense>
       <header className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

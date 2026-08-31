@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import type { TenantContext } from '@hexxa/core';
 import { loadCertFromBase64, type CertMaterial } from '@hexxa/integrations';
 import { withTenant, getDb, sql } from '@hexxa/db';
@@ -37,7 +38,8 @@ export interface NfseConfig {
   certPassword?: string | null;
 }
 
-export async function getNfseConfig(ctx: TenantContext): Promise<NfseConfig | null> {
+/** cache() deduplica por request — evita reconsultar quando chamada de novo por getCertForTenant/isCertConfiguredForTenant na mesma requisição. */
+export const getNfseConfig = cache(async function getNfseConfig(ctx: TenantContext): Promise<NfseConfig | null> {
   return withTenant(ctx.companyId, async (tx) => {
     const res = await tx.execute(sql`
       SELECT * FROM nfse_config WHERE company_id = ${ctx.companyId} LIMIT 1
@@ -73,7 +75,7 @@ export async function getNfseConfig(ctx: TenantContext): Promise<NfseConfig | nu
       certPassword: decryptSecret(r.cert_password as string | null),
     };
   });
-}
+});
 
 export async function saveNfseConfig(ctx: TenantContext, input: Partial<NfseConfig>): Promise<void> {
   await withTenant(ctx.companyId, async (tx) => {
@@ -309,28 +311,32 @@ export async function getSimplesInputs(
   ctx: TenantContext,
 ): Promise<{ rbt12: number; folha12: number; folhaEmpregados12: number; prolabore12: number }> {
   return withTenant(ctx.companyId, async (tx) => {
-    const rbtRes = await tx.execute(sql`
-      SELECT coalesce(sum(amount), 0) AS total
-      FROM financial_entry
-      WHERE company_id = ${ctx.companyId}
-        AND type = 'RECEIVABLE'
-        AND status != 'CANCELED'
-        AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
-        AND reference_month < date_trunc('month', now())::date
-    `);
-    // Só CLT/Sócio entram na base do Fator R — contratado PJ não conta como folha.
-    const folhaRes = await tx.execute(sql`
-      SELECT coalesce(sum(salary), 0) AS total
-      FROM employee
-      WHERE company_id = ${ctx.companyId} AND status = 'ACTIVE' AND vinculo IN ('CLT', 'Socio')
-    `);
-    // Fator R = (folha + pró-labore dos sócios) / RBT12 — pró-labore entra na
-    // base tanto quanto salário de empregado (LC 123/2006, art. 18, §24).
-    const prolaboreRes = await tx.execute(sql`
-      SELECT coalesce(sum(pro_labore), 0) AS total
-      FROM partner
-      WHERE company_id = ${ctx.companyId}
-    `);
+    // As 3 queries não dependem uma da outra — rodam em paralelo na mesma
+    // transação (postgres.js pipeline com segurança dentro de sql.begin).
+    const [rbtRes, folhaRes, prolaboreRes] = await Promise.all([
+      tx.execute(sql`
+        SELECT coalesce(sum(amount), 0) AS total
+        FROM financial_entry
+        WHERE company_id = ${ctx.companyId}
+          AND type = 'RECEIVABLE'
+          AND status != 'CANCELED'
+          AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
+          AND reference_month < date_trunc('month', now())::date
+      `),
+      // Só CLT/Sócio entram na base do Fator R — contratado PJ não conta como folha.
+      tx.execute(sql`
+        SELECT coalesce(sum(salary), 0) AS total
+        FROM employee
+        WHERE company_id = ${ctx.companyId} AND status = 'ACTIVE' AND vinculo IN ('CLT', 'Socio')
+      `),
+      // Fator R = (folha + pró-labore dos sócios) / RBT12 — pró-labore entra na
+      // base tanto quanto salário de empregado (LC 123/2006, art. 18, §24).
+      tx.execute(sql`
+        SELECT coalesce(sum(pro_labore), 0) AS total
+        FROM partner
+        WHERE company_id = ${ctx.companyId}
+      `),
+    ]);
     const folhaEmpregadosMensal = Number(folhaRes[0]?.total ?? 0);
     const prolaboreMensal = Number(prolaboreRes[0]?.total ?? 0);
     return {

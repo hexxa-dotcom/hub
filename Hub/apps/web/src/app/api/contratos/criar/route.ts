@@ -6,9 +6,9 @@ type SignerInput = { name: string; email: string; role?: string };
 
 export async function POST(req: Request) {
   try {
-    const ctx = await getTenantContext();
-
-    const form = await req.formData();
+    // req.formData() não depende de ctx — dispara as duas em paralelo em vez
+    // de esperar auth+DB antes de começar a ler o corpo da requisição.
+    const [ctx, form] = await Promise.all([getTenantContext(), req.formData()]);
     const name = String(form.get('name') ?? '').trim();
     const signersRaw = String(form.get('signers') ?? '[]');
     const file = form.get('file') as File | null;

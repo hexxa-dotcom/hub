@@ -1,10 +1,10 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
-import { getDb, company, eq, and, withDbTimeout } from '@hexxa/db';
-import { like } from 'drizzle-orm';
-import { getTenantContext } from '@/lib/server/tenant';
+import { getDb, company, membership, eq, and, withDbTimeout } from '@hexxa/db';
+import { ne } from 'drizzle-orm';
+import { createClient } from '@/lib/supabase/server';
+import { resolveAppUser } from '@/lib/server/tenant';
 import { saveNfseConfig } from '@/lib/server/fiscal';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 
@@ -66,16 +66,24 @@ async function lookupCnpj(doc: string) {
 }
 
 /**
- * Conclui o onboarding da organização ativa: consulta o CNPJ na Receita e
- * alimenta a empresa (company) + o cadastro fiscal (nfse_config) de uma vez.
+ * Conclui o onboarding: consulta o CNPJ na Receita e cria (ou completa) a
+ * empresa + o cadastro fiscal (nfse_config) + a membership OWNER do usuário.
+ *
+ * `existingCompanyId` só vem preenchido no caso legado: usuário já tinha uma
+ * membership pré-Supabase (backfill da migração de auth) apontando pra uma
+ * empresa com CNPJ placeholder — aqui só completamos o CNPJ real dela, sem
+ * criar uma empresa nova.
  */
 export async function completeOnboardingAction(
   _prev: OnboardingState,
   formData: FormData,
 ): Promise<OnboardingState> {
-  const { orgId } = await auth();
-  if (!orgId) {
-    return { ok: false, message: 'Crie ou selecione uma empresa no seletor do topo antes de continuar.' };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, message: 'Sessão expirada. Faça login novamente.' };
   }
 
   // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
@@ -84,39 +92,7 @@ export async function completeOnboardingAction(
   // de qualquer empresa nova constituída depois disso.
   const doc = normalizeDocument(String(formData.get('cnpj') ?? ''));
   if (doc.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 caracteres).' };
-
-  let ctx = await getTenantContext();
-  const db = getDb();
-
-  // CNPJ já existe no sistema?
-  const [dup] = await withDbTimeout(
-    db
-      .select({ id: company.id, clerkOrgId: company.clerkOrgId })
-      .from(company)
-      .where(eq(company.cnpj, formatDocument(doc))),
-    8000,
-  );
-
-  if (dup && dup.id !== ctx.companyId) {
-    if (!dup.clerkOrgId) {
-      // Empresa já cadastrada mas sem organização vinculada → esta organização
-      // a assume: descarta a empresa placeholder e vincula a existente.
-      await withDbTimeout(
-        db
-          .delete(company)
-          .where(and(eq(company.id, ctx.companyId), like(company.cnpj, 'PENDENTE-%'))),
-        8000,
-      );
-      await withDbTimeout(db.update(company).set({ clerkOrgId: orgId }).where(eq(company.id, dup.id)), 8000);
-      ctx = { ...ctx, companyId: dup.id };
-    } else {
-      return {
-        ok: false,
-        message:
-          'Este CNPJ já pertence a outra organização. Use o seletor de empresas no topo para trocar para ela — ou peça um convite ao responsável.',
-      };
-    }
-  }
+  const existingCompanyId = String(formData.get('existingCompanyId') ?? '') || null;
 
   let data;
   try {
@@ -128,42 +104,77 @@ export async function completeOnboardingAction(
     return { ok: false, message: 'Não foi possível consultar este CNPJ na Receita. Confira o número e tente novamente.' };
   }
 
-  // 1. Alimenta o cadastro da empresa.
-  await withDbTimeout(
-    db
-      .update(company)
-      .set({
-        legalName: data.razaoSocial,
-        tradeName: data.nomeFantasia,
-        cnpj: formatDocument(doc),
-        addressLine1: [data.logradouro, data.complemento].filter(Boolean).join(', ') || null,
-        addressNumber: data.numero,
-        neighborhood: data.bairro,
-        city: data.municipio,
-        state: data.uf,
-        zipcode: data.cep,
-      })
-      .where(eq(company.id, ctx.companyId)),
-    8000,
-  );
+  const db = getDb();
+  const appUserRow = await resolveAppUser(user.id, user.email);
+  const cnpjFormatado = formatDocument(doc);
+  const addressFields = {
+    legalName: data.razaoSocial,
+    tradeName: data.nomeFantasia,
+    cnpj: cnpjFormatado,
+    addressLine1: [data.logradouro, data.complemento].filter(Boolean).join(', ') || null,
+    addressNumber: data.numero,
+    neighborhood: data.bairro,
+    city: data.municipio,
+    state: data.uf,
+    zipcode: data.cep,
+  };
 
-  // 2. Semeia o cadastro fiscal (base da emissão de NFS-e).
-  await saveNfseConfig(ctx, {
-    cnpj: doc,
-    razaoSocial: data.razaoSocial,
-    nomeFantasia: data.nomeFantasia,
-    cep: data.cep,
-    logradouro: data.logradouro,
-    numero: data.numero,
-    complemento: data.complemento,
-    bairro: data.bairro,
-    uf: data.uf,
-    codigoMunicipio: data.codigoMunicipioIbge,
-    telefone: data.telefone,
-    emailContato: data.email,
-    cnae: data.cnae,
-    optanteSimples: data.optanteSimples,
-  });
+  let companyId: string;
+
+  if (existingCompanyId) {
+    // Legado: só completa o CNPJ da empresa que a membership já aponta.
+    const [dup] = await withDbTimeout(
+      db.select({ id: company.id }).from(company).where(and(eq(company.cnpj, cnpjFormatado), ne(company.id, existingCompanyId))),
+      8000,
+    );
+    if (dup) {
+      return { ok: false, message: 'Este CNPJ já pertence a outra empresa cadastrada. Peça um convite ao responsável.' };
+    }
+    await withDbTimeout(db.update(company).set(addressFields).where(eq(company.id, existingCompanyId)), 8000);
+    companyId = existingCompanyId;
+  } else {
+    const [dup] = await withDbTimeout(db.select({ id: company.id }).from(company).where(eq(company.cnpj, cnpjFormatado)), 8000);
+    if (dup) {
+      const [existingMembership] = await db.select({ id: membership.id }).from(membership).where(eq(membership.companyId, dup.id));
+      if (existingMembership) {
+        return {
+          ok: false,
+          message: 'Este CNPJ já pertence a outra empresa cadastrada. Peça um convite ao responsável.',
+        };
+      }
+      // Empresa já existe mas sem ninguém vinculado (ex.: criada por engano antes) — este usuário a adota.
+      await withDbTimeout(db.update(company).set(addressFields).where(eq(company.id, dup.id)), 8000);
+      companyId = dup.id;
+    } else {
+      const [created] = await withDbTimeout(
+        db.insert(company).values({ ...addressFields, type: 'SERVICE' }).returning({ id: company.id }),
+        8000,
+      );
+      companyId = created!.id;
+    }
+    await db.insert(membership).values({ companyId, userId: appUserRow.id, role: 'OWNER' });
+  }
+
+  // Semeia o cadastro fiscal (base da emissão de NFS-e).
+  await saveNfseConfig(
+    { companyId, companyType: 'SERVICE', userId: appUserRow.id },
+    {
+      cnpj: doc,
+      razaoSocial: data.razaoSocial,
+      nomeFantasia: data.nomeFantasia,
+      cep: data.cep,
+      logradouro: data.logradouro,
+      numero: data.numero,
+      complemento: data.complemento,
+      bairro: data.bairro,
+      uf: data.uf,
+      codigoMunicipio: data.codigoMunicipioIbge,
+      telefone: data.telefone,
+      emailContato: data.email,
+      cnae: data.cnae,
+      optanteSimples: data.optanteSimples,
+    },
+  );
 
   redirect('/cliente');
 }

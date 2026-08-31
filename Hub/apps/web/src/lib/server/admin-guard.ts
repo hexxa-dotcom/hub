@@ -1,6 +1,6 @@
 import 'server-only';
-import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
 // TEMPORÁRIO — ver comentário em lib/server/tenant.ts. Remover junto.
@@ -16,9 +16,12 @@ export function allowedEmails(): string[] {
 /** Mesmo gate de acesso do (admin)/layout.tsx — login + e-mail na allowlist. */
 export async function isAdminUser(): Promise<boolean> {
   if (DEV_SKIP_AUTH || SKIP_AUTH_TEMP) return true;
-  const user = await currentUser();
-  const emails = (user?.emailAddresses ?? []).map((e) => e.emailAddress.toLowerCase());
-  return emails.some((e) => allowedEmails().includes(e));
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const email = user?.email?.toLowerCase();
+  return Boolean(email && allowedEmails().includes(email));
 }
 
 /**

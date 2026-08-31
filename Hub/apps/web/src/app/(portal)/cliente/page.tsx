@@ -25,9 +25,17 @@ import { RevenueChart } from './RevenueChart';
 import { DueDatesTimeline } from './DueDatesTimeline';
 import { HealthScoreCard } from './HealthScoreCard';
 import { CashflowForecast, type CashflowDay } from './CashflowForecast';
+import { Suspense } from 'react';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 import Link from 'next/link';
+
+// Isolado em Suspense pra não travar o dashboard inteiro esperando a
+// chamada de IA — o card de dica só aparece quando (e se) ficar pronto.
+async function ClienteInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'cliente', insightContext);
+  return <InsightCard pageKey="cliente" insight={insight} />;
+}
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const pct = (n: number, d = 1) => `${(n * 100).toLocaleString('pt-BR', { maximumFractionDigits: d })}%`;
@@ -94,39 +102,46 @@ export default async function DashboardPage() {
   try {
     const ctx = await getTenantContext();
     companyId = ctx.companyId;
-    const simples12 = await getSimplesInputs(ctx);
+    // getSimplesInputs e o bloco withTenant abaixo só dependem de ctx —
+    // independentes entre si, então rodam em paralelo.
+    const [simples12, data] = await Promise.all([
+      getSimplesInputs(ctx),
+      withTenant(ctx.companyId, async (tx) => {
+        // As 4 queries abaixo também são independentes entre si.
+        const [fe, issuing, closure, dasGuide] = await Promise.all([
+          tx.execute(sql`
+            SELECT fe.id, fe.amount, fe.type, fe.status, fe.reference_month, fe.due_date, fe.description,
+                   fe.created_at, c.name AS category_name
+            FROM financial_entry fe
+            LEFT JOIN category c ON c.id = fe.category_id
+            WHERE fe.company_id = ${ctx.companyId} AND fe.status != 'CANCELED'
+          `),
+          tx.execute(sql`
+            SELECT count(*)::int AS n FROM service_invoice
+            WHERE company_id = ${ctx.companyId} AND status = 'ISSUING'
+          `),
+          tx.execute(sql`
+            SELECT id FROM monthly_closure
+            WHERE company_id = ${ctx.companyId} AND reference_month = ${lastMonthStr}
+            LIMIT 1
+          `),
+          tx.execute(sql`
+            SELECT amount, due_date FROM tax_guide
+            WHERE company_id = ${ctx.companyId} AND tax_name = 'DAS - Simples Nacional' AND status = 'OPEN'
+            ORDER BY due_date DESC
+            LIMIT 1
+          `),
+        ]);
+        return {
+          entries: fe as unknown as Entry[],
+          issuing: Number(issuing[0]?.n ?? 0),
+          hasClosure: closure.length > 0,
+          dasGuide: dasGuide[0] ? { amount: Number(dasGuide[0].amount), dueDate: String(dasGuide[0].due_date) } : null,
+        };
+      }),
+    ]);
     rbt12 = simples12.rbt12;
     folha12 = simples12.folha12;
-    const data = await withTenant(ctx.companyId, async (tx) => {
-      const fe = await tx.execute(sql`
-        SELECT fe.id, fe.amount, fe.type, fe.status, fe.reference_month, fe.due_date, fe.description,
-               fe.created_at, c.name AS category_name
-        FROM financial_entry fe
-        LEFT JOIN category c ON c.id = fe.category_id
-        WHERE fe.company_id = ${ctx.companyId} AND fe.status != 'CANCELED'
-      `);
-      const issuing = await tx.execute(sql`
-        SELECT count(*)::int AS n FROM service_invoice
-        WHERE company_id = ${ctx.companyId} AND status = 'ISSUING'
-      `);
-      const closure = await tx.execute(sql`
-        SELECT id FROM monthly_closure
-        WHERE company_id = ${ctx.companyId} AND reference_month = ${lastMonthStr}
-        LIMIT 1
-      `);
-      const dasGuide = await tx.execute(sql`
-        SELECT amount, due_date FROM tax_guide
-        WHERE company_id = ${ctx.companyId} AND tax_name = 'DAS - Simples Nacional' AND status = 'OPEN'
-        ORDER BY due_date DESC
-        LIMIT 1
-      `);
-      return {
-        entries: fe as unknown as Entry[],
-        issuing: Number(issuing[0]?.n ?? 0),
-        hasClosure: closure.length > 0,
-        dasGuide: dasGuide[0] ? { amount: Number(dasGuide[0].amount), dueDate: String(dasGuide[0].due_date) } : null,
-      };
-    });
     entries = data.entries;
     issuingCount = data.issuing;
     if (data.hasClosure) lastClosureDate = lastMonthStr;
@@ -282,12 +297,14 @@ export default async function DashboardPage() {
     `Contas a pagar vencidas: ${vencidas.length}${vencidas.length ? ` — total R$ ${vencidas.reduce((s, e) => s + Number(e.amount), 0).toFixed(2)}` : ''}.`,
     `Notas fiscais aguardando processamento: ${issuingCount}.`,
   ].join('\n');
-  const insight = loadError || !companyId ? null : await getContextualInsight(companyId, 'cliente', insightContext);
-
   return (
     <div className="mx-auto w-full space-y-8 animate-fade-up">
       {/* AI Insight Card */}
-      <InsightCard pageKey="cliente" insight={insight} />
+      {!loadError && companyId && (
+        <Suspense fallback={null}>
+          <ClienteInsight companyId={companyId} insightContext={insightContext} />
+        </Suspense>
+      )}
 
       {/* Header Editorial Refinado */}
       <header className="relative overflow-hidden rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 text-[#231F20] dark:text-[#FEFDF3] shadow-sm">

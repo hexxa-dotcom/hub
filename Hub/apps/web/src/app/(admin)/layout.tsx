@@ -4,6 +4,7 @@ import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { ticket } from '@hexxa/db/schema';
 import { ContadorShell } from '@/components/contador/ContadorShell';
 import { isAdminUser } from '@/lib/server/admin-guard';
+import { createClient } from '@/lib/supabase/server';
 
 /** Área do contador: exige login (Clerk, via proxy) + e-mail na allowlist. */
 export default async function ContadorLayout({ children }: { children: React.ReactNode }) {
@@ -25,5 +26,14 @@ export default async function ContadorLayout({ children }: { children: React.Rea
     console.error('[ContadorLayout] falha ao contar solicitações abertas:', err);
   }
 
-  return <ContadorShell openTicketsCount={openTicketsCount}>{children}</ContadorShell>;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return (
+    <ContadorShell openTicketsCount={openTicketsCount} userEmail={user?.email}>
+      {children}
+    </ContadorShell>
+  );
 }

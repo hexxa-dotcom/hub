@@ -1,13 +1,11 @@
 'use client';
 
-import { useClerk } from '@clerk/nextjs';
+import { createClient } from '@/lib/supabase/client';
 
 export type AccessArea = 'cliente' | 'contador';
 
 /** Logout compartilhado entre o portal do cliente e a área do contador. */
 export function useSignOut(area: AccessArea) {
-  const { signOut } = useClerk();
-
   return async function sair() {
     try {
       await fetch(`/auth/sair?area=${area}`);
@@ -15,9 +13,9 @@ export function useSignOut(area: AccessArea) {
       // ignora — segue pro signOut/redirect mesmo se o fetch falhar
     }
     try {
-      await signOut();
+      await createClient().auth.signOut();
     } catch {
-      // sem sessão Clerk ativa (ex.: SKIP_AUTH_TEMP) — signOut() não lança nem redireciona
+      // sem sessão Supabase ativa (ex.: SKIP_AUTH_TEMP) — segue pro redirect mesmo assim
     }
     window.location.href = '/';
   };

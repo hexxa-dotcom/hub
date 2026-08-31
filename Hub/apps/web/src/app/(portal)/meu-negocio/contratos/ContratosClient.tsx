@@ -32,7 +32,6 @@ import {
   Sparkles,
   Wallet,
 } from 'lucide-react';
-import { DocusealBuilder } from '@docuseal/react';
 import dynamic from 'next/dynamic';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { type ContractRow, type RepasseRow, createContractAction } from './actions';
@@ -40,6 +39,7 @@ import { STATUS_LABEL, STATUS_CLASS } from './contract-status';
 
 // @react-pdf/renderer é pesado — só carrega quando o wizard é aberto.
 const UnifiedContractWizard = dynamic(() => import('./UnifiedContractWizard').then(m => m.UnifiedContractWizard), { ssr: false });
+const DocusealBuilder = dynamic(() => import('@docuseal/react').then((m) => m.DocusealBuilder), { ssr: false });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

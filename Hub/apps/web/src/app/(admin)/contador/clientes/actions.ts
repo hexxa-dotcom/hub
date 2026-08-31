@@ -1,9 +1,8 @@
 'use server';
 
-import { clerkClient } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { getDb, withDbTimeout } from '@hexxa/db/client';
-import { company, appUser, membership, subscription, plan } from '@hexxa/db/schema';
+import { company, membership, subscription, plan } from '@hexxa/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/server/admin-guard';
 
@@ -41,29 +40,10 @@ export async function authorizeClientByCnpjAction(cnpj: string) {
     
     const mRecord = memberRecord[0];
     if (!mRecord) return { error: 'Nenhum usuário dono vinculado a esta empresa.' };
-    
-    const userId = mRecord.userId;
-    
-    // 3. Achar o authUid do usuário no Clerk
-    const userRecord = await withDbTimeout(db.select().from(appUser).where(eq(appUser.id, userId)).limit(1), 8000);
-    
-    if (userRecord.length === 0) {
-      return { error: 'Usuário não encontrado no banco de dados.' };
-    }
-    
-    const uRecord = userRecord[0];
-    if (!uRecord) return { error: 'Usuário não encontrado.' };
-    
-    const authUid = uRecord.authUid;
-    
-    // 4. Liberar acesso no Clerk
-    const client = await clerkClient();
-    await client.users.updateUserMetadata(authUid, {
-      publicMetadata: {
-        authorized: true,
-      }
-    });
-    
+
+    // 3. Liberar acesso — marca a membership como autorizada.
+    await withDbTimeout(db.update(membership).set({ authorized: true }).where(eq(membership.id, mRecord.id)), 8000);
+
     return { success: true, message: 'Acesso liberado com sucesso para ' + cRecord.legalName };
   } catch (error: any) {
     console.error('Erro ao autorizar manualmente:', error);

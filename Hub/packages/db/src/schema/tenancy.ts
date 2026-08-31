@@ -47,5 +47,7 @@ export const membership = pgTable('membership', {
     .notNull()
     .references(() => appUser.id, { onDelete: 'cascade' }),
   role: userRole('role').notNull().default('VIEWER'),
+  /** Gate manual do contador (ex.: liberar acesso após validar o cliente). Hoje sem leitor — ver contador/clientes/actions.ts. */
+  authorized: boolean('authorized').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

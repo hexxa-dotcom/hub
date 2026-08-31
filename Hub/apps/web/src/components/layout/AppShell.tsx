@@ -40,7 +40,6 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
-import { OrganizationSwitcher, UserButton, useUser } from '@clerk/nextjs';
 import { LogOut } from 'lucide-react';
 import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
@@ -160,6 +159,9 @@ export function AppShell(props: {
   children: React.ReactNode;
   sections: NavSection[];
   company?: any;
+  userName?: string | null;
+  userEmail?: string | null;
+  hasMultipleCompanies?: boolean;
 }) {
   return (
     <Suspense>
@@ -172,10 +174,16 @@ function AppShellInner({
   children,
   sections,
   company,
+  userName,
+  userEmail,
+  hasMultipleCompanies,
 }: {
   children: React.ReactNode;
   sections: NavSection[];
   company?: any;
+  userName?: string | null;
+  userEmail?: string | null;
+  hasMultipleCompanies?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -204,7 +212,6 @@ function AppShellInner({
 
   const activeSectionData = sections.find((s) => s.title === activeGroup) || sections[0];
 
-  const { user } = useUser();
   const sair = useSignOut('cliente');
 
   const hour = new Date().getHours();
@@ -212,124 +219,127 @@ function AppShellInner({
   if (hour >= 5 && hour < 12) saudacao = 'Bom dia';
   else if (hour >= 12 && hour < 18) saudacao = 'Boa tarde';
   else saudacao = 'Boa noite';
-  const primeiroNome = user?.firstName;
+  const primeiroNome = userName?.split(' ')[0];
   const greeting = primeiroNome ? `${saudacao}, ${primeiroNome}` : saudacao;
 
   return (
     <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
-      {/* Container das Sidebars Desktop - Opção 2: Pure Floating Rail (100% Transparente) */}
-      <div
-        className="sticky top-4 hidden h-[calc(100vh-32px)] shrink-0 lg:flex z-40 ml-3 my-4 relative select-none"
-        onMouseLeave={() => setCollapsed(true)}
+      {/* Desktop Sidebar (Integrated in layout flow) */}
+      <aside
+        className={`hidden lg:flex flex-col shrink-0 border-r border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] transition-all duration-300 ease-in-out z-40 ${
+          collapsed ? 'w-[88px]' : 'w-[280px]'
+        }`}
       >
-        {/* Sidebar Primária (100% Transparente - Ícones Livres Flutuantes) */}
-        <aside className="h-full w-[64px] shrink-0 flex-col items-center gap-4 py-3 px-1 z-40 flex bg-transparent border-0 shadow-none transition-all duration-300">
-          <Link href="/cliente" className="transition-transform hover:scale-110 mt-1">
+        {/* Header / Brand */}
+        <div className="flex h-[68px] shrink-0 items-center justify-between px-6 border-b border-black/5 dark:border-white/10 bg-[#1E3328]">
+          <div className={`flex items-center gap-3 overflow-hidden transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
             <BrandMark size="sm" />
-          </Link>
+            <span className="text-base font-serif font-bold text-[#DFFFAE] truncate">Hexx Hub</span>
+          </div>
+          {collapsed && (
+            <div className="mx-auto mt-1 cursor-pointer transition-transform hover:scale-110" onClick={() => { setCollapsed(false); localStorage.setItem(STORAGE_KEY, '0'); }}>
+              <BrandMark size="sm" />
+            </div>
+          )}
+        </div>
 
-          <div className="w-6 h-px bg-black/10 dark:bg-white/10 my-0.5 shrink-0" />
+        {/* Workspace Switcher & Collapse Toggle (Only expanded) */}
+        {!collapsed && (
+          <div className="p-4 border-b border-black/5 dark:border-white/10 shrink-0 relative group">
+            <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/70 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
+                  {company
+                    ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
+                    : 'H'}
+                </div>
+                <div className="flex flex-col items-start overflow-hidden text-left">
+                  <span className="w-full truncate text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight">
+                    {company
+                      ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
+                      : 'Hexxa Solutions'}
+                  </span>
+                  <span className="w-full truncate text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C]">
+                    {company?.cnpj || 'Ambiente Ativo'}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
+            </button>
+            
+            <button
+              onClick={() => {
+                setCollapsed(true);
+                localStorage.setItem(STORAGE_KEY, '1');
+              }}
+              title="Recolher Menu"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 grid h-6 w-6 place-items-center rounded-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] shadow-sm z-50 transition-transform hover:scale-110 opacity-0 group-hover:opacity-100"
+            >
+              <ChevronDown className="h-3 w-3 rotate-90" />
+            </button>
+          </div>
+        )}
 
-          <nav className="flex flex-1 flex-col gap-2.5 overflow-y-auto no-scrollbar w-full items-center pt-1">
-            {sections.map((s) => {
-              const IconCmp = GROUP_ICONS[s.title] || LayoutDashboard;
-              const isActive = activeGroup === s.title;
-              return (
-                <div key={s.title} className="relative group w-full flex justify-center">
-                  <button
-                    title={s.title}
-                    onMouseEnter={() => {
-                      setActiveGroup(s.title);
-                      setCollapsed(false);
-                    }}
-                    onClick={() => {
-                      setActiveGroup(s.title);
-                      if (s.items.length === 1 && s.items[0]) {
-                        router.push(s.items[0].href as never);
-                        setCollapsed(true);
-                      } else {
-                        setCollapsed((c) => !c);
-                      }
-                    }}
-                    className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
-                      isActive
-                        ? 'bg-[#1E3328] dark:bg-[#DFFFAE] text-[#DFFFAE] dark:text-[#1E3328] font-bold shadow-md scale-105'
-                        : 'text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:scale-105'
-                    }`}
-                  >
-                    <IconCmp className="h-5 w-5 transition-transform duration-200" />
-                  </button>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto no-scrollbar py-4">
+          {!collapsed ? (
+            <div className="space-y-6 px-4 pb-20">
+              {sections.map(s => (
+                <div key={s.title}>
+                  <h3 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+                    {s.title}
+                  </h3>
+                  <NavList items={s.items} pathname={pathname} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 pt-2">
+              <button
+                onClick={() => {
+                  setCollapsed(false);
+                  localStorage.setItem(STORAGE_KEY, '0');
+                }}
+                title="Expandir Menu"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/5 mb-2 shadow-sm hover:scale-105"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
 
-                  {/* Tooltip rápido quando o menu lateral estiver recolhido */}
-                  {collapsed && (
+              {sections.map(s => {
+                const IconCmp = GROUP_ICONS[s.title] || LayoutDashboard;
+                const isActive = activeGroup === s.title;
+                return (
+                  <div key={s.title} className="relative group flex justify-center w-full">
+                    <button
+                      title={s.title}
+                      onClick={() => {
+                        setActiveGroup(s.title);
+                        setCollapsed(false);
+                        localStorage.setItem(STORAGE_KEY, '0');
+                      }}
+                      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#1E3328] dark:bg-[#DFFFAE] text-[#DFFFAE] dark:text-[#1E3328] font-bold shadow-md scale-105'
+                          : 'text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:scale-105'
+                      }`}
+                    >
+                      <IconCmp className="h-5 w-5 transition-transform duration-200" />
+                    </button>
+                    
+                    {/* Tooltip */}
                     <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50 rounded-xl bg-[#1E3328] dark:bg-[#1A201C] border border-[#2F4A3C] px-2.5 py-1 text-xs font-semibold text-[#FEFDF3] opacity-0 shadow-xl transition-all group-hover:opacity-100 whitespace-nowrap">
                       {s.title}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Submenu Flutuante (Flyout Card - NÃO empurra o layout do dashboard!) */}
-        <aside
-          className={`absolute left-[calc(100%+10px)] top-0 h-full w-64 rounded-[26px] bg-[#FEFDF3]/95 dark:bg-[#1A201C]/95 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] text-[#231F20] dark:text-[#FEFDF3] transition-all duration-300 ease-out z-30 flex flex-col overflow-hidden ${
-            collapsed ? 'pointer-events-none opacity-0 -translate-x-3' : 'pointer-events-auto opacity-100 translate-x-0'
-          }`}
-        >
-          <div className="flex shrink-0 flex-col border-b border-black/5 dark:border-white/10">
-            {/* Workspace Switcher */}
-            <div className="p-3">
-              <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/70 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
-                    {company
-                      ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
-                      : 'H'}
                   </div>
-                  <div className="flex flex-col items-start overflow-hidden text-left">
-                    <span className="w-full truncate text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight">
-                      {company
-                        ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
-                        : 'Hexxa Solutions'}
-                    </span>
-                    <span className="w-full truncate text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C]">
-                      {company?.cnpj || 'Ambiente Ativo'}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
-              </button>
+                );
+              })}
             </div>
-
-            {/* Active Group Title */}
-            <div className="px-5 pb-3 pt-1 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-[#1E3328] dark:text-[#DFFFAE]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1E3328] dark:text-[#DFFFAE]">{activeGroup}</span>
-              </div>
-              <button 
-                onClick={() => setCollapsed(true)} 
-                className="text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] text-xs p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-4">
-            <NavList 
-              items={activeSectionData?.items || []} 
-              pathname={pathname} 
-              onNavigate={() => setCollapsed(true)} 
-              isDark={false}
-            />
-          </div>
-        </aside>
-      </div>
+          )}
+        </div>
+      </aside>
 
       {/* Drawer mobile + backdrop */}
       {mobileOpen && (
@@ -423,31 +433,33 @@ function AppShellInner({
             </div>
 
             {/* 2º (da dir p/ esq): Nome da Empresa acessada */}
-            <div className="flex items-center pl-1 border-l border-black/10 dark:border-white/10">
-              <OrganizationSwitcher
-                hidePersonal
-                afterSelectOrganizationUrl="/cliente"
-                afterCreateOrganizationUrl="/cliente"
-                appearance={{
-                  elements: {
-                    rootBox: "flex items-center",
-                    organizationSwitcherTrigger: "rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:bg-black/5 dark:hover:bg-white/5 transition-all max-w-[170px] truncate",
-                  }
-                }}
-              />
-            </div>
+            {company?.legalName && (
+              <div className="flex items-center pl-1 border-l border-black/10 dark:border-white/10">
+                {hasMultipleCompanies ? (
+                  <Link
+                    href={'/auth/empresa?next=/cliente' as never}
+                    className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:bg-black/5 dark:hover:bg-white/5 transition-all max-w-[170px] truncate"
+                  >
+                    {company.legalName}
+                  </Link>
+                ) : (
+                  <span className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm max-w-[170px] truncate">
+                    {company.legalName}
+                  </span>
+                )}
+              </div>
+            )}
 
-            {/* 1º (da dir p/ esq): Nome do Usuário + Foto de Perfil */}
+            {/* 1º (da dir p/ esq): Nome do Usuário */}
             <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
               <div className="hidden xl:flex flex-col items-end text-right">
                 <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
-                  {user?.fullName || user?.firstName || 'Minha Conta'}
+                  {userName || 'Minha Conta'}
                 </span>
                 <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
-                  {user?.primaryEmailAddress?.emailAddress || 'Ativo'}
+                  {userEmail || 'Ativo'}
                 </span>
               </div>
-              <UserButton />
               <button
                 type="button"
                 onClick={sair}
@@ -481,7 +493,6 @@ function AppShellInner({
               <Search className="h-4 w-4" />
             </button>
             <ThemeToggle collapsed />
-            <UserButton />
             <button
               type="button"
               onClick={sair}

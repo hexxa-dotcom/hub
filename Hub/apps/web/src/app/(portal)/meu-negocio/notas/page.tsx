@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Receipt, Sparkles } from 'lucide-react';
 import { HubNotas } from './HubNotas';
 import { serviceInvoiceRepository, nfseMode } from '@/lib/server/container';
@@ -8,6 +9,12 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
+
+// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
+async function NotasInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'meu-negocio/notas', insightContext);
+  return <InsightCard pageKey="meu-negocio/notas" insight={insight} />;
+}
 
 export default async function Page() {
   let recent: Awaited<ReturnType<typeof serviceInvoiceRepository.listRecent>> = [];
@@ -72,11 +79,14 @@ export default async function Page() {
     `Notas com erro de emissão: ${withError.length}.`,
     `Clientes cadastrados: ${customers.length}.`,
   ].join('\n');
-  const insight = companyId ? await getContextualInsight(companyId, 'meu-negocio/notas', insightContext) : null;
 
   return (
     <div className="mx-auto w-full space-y-7 animate-fade-up">
-      <InsightCard pageKey="meu-negocio/notas" insight={insight} />
+      {companyId && (
+        <Suspense fallback={null}>
+          <NotasInsight companyId={companyId} insightContext={insightContext} />
+        </Suspense>
+      )}
       <header className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

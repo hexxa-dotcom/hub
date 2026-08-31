@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Landmark } from 'lucide-react';
 import { getProperties, getResumoFinanceiroAction, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
@@ -7,6 +8,12 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
+
+// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
+async function PatrimonialInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'patrimonial', insightContext);
+  return <InsightCard pageKey="patrimonial" insight={insight} />;
+}
 
 export default async function Page() {
   const ctx = await getTenantContext();
@@ -24,11 +31,12 @@ export default async function Page() {
     `Lucro do exercício (já líquido de depreciação, base pro simulador de dividendos): R$ ${resumo.lucroExercicio.toFixed(2)}.`,
     `Bens sem contrato de aluguel ativo: ${properties.filter((p) => !p.leaseId).length}.`,
   ].join('\n');
-  const insight = await getContextualInsight(ctx.companyId, 'patrimonial', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <InsightCard pageKey="patrimonial" insight={insight} />
+      <Suspense fallback={null}>
+        <PatrimonialInsight companyId={ctx.companyId} insightContext={insightContext} />
+      </Suspense>
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">

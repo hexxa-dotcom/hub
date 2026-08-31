@@ -1,10 +1,16 @@
-import { Users, UserPlus } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { listMembersAction } from './actions';
+import { EquipeClient } from './EquipeClient';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Equipe e Acessos | Hexxa Hub',
 };
 
-export default function EquipePage() {
+export default async function EquipePage() {
+  const members = await listMembersAction();
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
@@ -15,21 +21,13 @@ export default function EquipePage() {
             </span>
             <div>
               <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Gestão de Membros & Permissões</h2>
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerencie quem pode visualizar lançamentos contábeis e gerenciar notas fiscais.</p>
+              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerencie quem pode acessar esta empresa e com qual papel.</p>
             </div>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
-            <UserPlus className="h-4 w-4" /> Convidar Membro
-          </button>
         </div>
 
-        <div className="rounded-2xl border border-dashed border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-8 text-center">
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-            Gestão de permissões granulares por função (Administrador, Financeiro, Consulta).
-          </p>
-        </div>
+        <EquipeClient members={members} />
       </div>
     </div>
   );
 }
-

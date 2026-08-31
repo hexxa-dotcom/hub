@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Users, Sparkles } from 'lucide-react';
 import { TaxThermometerService } from '@hexxa/core';
 import { HubSocios } from './HubSocios';
@@ -9,6 +10,12 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
+
+// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
+async function SociosInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'minha-contabilidade/socios', insightContext);
+  return <InsightCard pageKey="minha-contabilidade/socios" insight={insight} />;
+}
 
 export default async function Page() {
   const ctx = await getTenantContext();
@@ -34,7 +41,6 @@ export default async function Page() {
     `Sócios cadastrados: ${partners.map((p) => `${p.nome} (${p.participacao}% de participação, pró-labore R$ ${p.prolabore.toFixed(2)}/mês)`).join('; ') || 'nenhum'}.`,
     `Lucro do ano disponível pra distribuir: R$ ${yearlyProfit.availableToDistribute.toFixed(2)} (já distribuído este ano: R$ ${yearlyProfit.distributedThisYear.toFixed(2)}).`,
   ].join('\n');
-  const insight = await getContextualInsight(ctx.companyId, 'minha-contabilidade/socios', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -55,7 +61,9 @@ export default async function Page() {
         </div>
       </header>
 
-      <InsightCard pageKey="minha-contabilidade/socios" insight={insight} />
+      <Suspense fallback={null}>
+        <SociosInsight companyId={ctx.companyId} insightContext={insightContext} />
+      </Suspense>
 
       <HubSocios
         initialPartners={partners}

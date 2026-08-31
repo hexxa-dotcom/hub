@@ -1,25 +1,9 @@
-import { Suspense } from 'react';
-import { SignUp } from '@clerk/nextjs';
-import { AuthLayout } from '@/components/auth/AuthLayout';
-import { hexxaClerkAppearance } from '@/lib/clerkTheme';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
+// OTP por e-mail não distingue cadastro de login — o primeiro código de um
+// e-mail novo já cadastra (signInWithOtp com shouldCreateUser: true).
 export default function CadastroPage() {
-  return (
-    <Suspense>
-      <AuthLayout
-        type="cliente"
-        title="Criar sua Conta"
-        subtitle="Inicie a transformação financeira e contábil da sua empresa"
-      >
-        <SignUp
-          appearance={hexxaClerkAppearance}
-          signInUrl="/auth/login"
-          fallbackRedirectUrl="/onboarding"
-        />
-      </AuthLayout>
-    </Suspense>
-  );
+  redirect('/auth/login?next=/onboarding' as never);
 }
-

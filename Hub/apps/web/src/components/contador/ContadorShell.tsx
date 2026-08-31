@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserButton, useUser } from '@clerk/nextjs';
 import { useSignOut } from '@/lib/client/useSignOut';
 import {
   LayoutDashboard,
@@ -106,11 +105,20 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
   );
 }
 
-export function ContadorShell({ children, openTicketsCount }: { children: React.ReactNode; openTicketsCount: number }) {
+export function ContadorShell({
+  children,
+  openTicketsCount,
+  userName,
+  userEmail,
+}: {
+  children: React.ReactNode;
+  openTicketsCount: number;
+  userName?: string | null;
+  userEmail?: string | null;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const { user } = useUser();
   const sair = useSignOut('contador');
 
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -220,13 +228,12 @@ export function ContadorShell({ children, openTicketsCount }: { children: React.
             <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
               <div className="hidden xl:flex flex-col items-end text-right">
                 <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
-                  {user?.fullName || user?.firstName || 'Contador'}
+                  {userName || 'Contador'}
                 </span>
                 <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
-                  {user?.primaryEmailAddress?.emailAddress || 'Área Contábil'}
+                  {userEmail || 'Área Contábil'}
                 </span>
               </div>
-              <UserButton />
               <button
                 type="button"
                 onClick={sair}

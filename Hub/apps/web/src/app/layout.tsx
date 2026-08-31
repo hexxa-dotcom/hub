@@ -1,18 +1,10 @@
-import { ClerkProvider } from '@clerk/nextjs';
-import { ptBR } from '@clerk/localizations';
 import type { Metadata } from 'next';
-import { Inter, Source_Serif_4 } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
-  display: 'swap',
-});
-
-const sourceSerif = Source_Serif_4({
-  subsets: ['latin'],
-  variable: '--font-serif',
   display: 'swap',
 });
 
@@ -32,10 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`min-h-screen antialiased ${inter.variable} ${sourceSerif.variable} font-sans`}>
-        <ClerkProvider localization={ptBR}>
-          {children}
-        </ClerkProvider>
+      <body className={`min-h-screen antialiased ${inter.variable} font-sans`}>
+        {children}
       </body>
     </html>
   );

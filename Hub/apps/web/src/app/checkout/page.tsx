@@ -381,7 +381,7 @@ function CheckoutContent() {
                 </a>
 
                 <Link
-                  href={'/sign-in' as any}
+                  href={'/auth/login' as any}
                   className="btn-landing btn-landing-dark"
                   style={{ width: '100%', justifyContent: 'center' }}
                 >

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Receipt, Sparkles } from 'lucide-react';
 import { DrizzleTaxGuideRepository } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
@@ -6,6 +7,12 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 export const dynamic = 'force-dynamic';
+
+// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
+async function GuiasInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'minha-contabilidade/guias', insightContext);
+  return <InsightCard pageKey="minha-contabilidade/guias" insight={insight} />;
+}
 
 async function getGuias() {
   try {
@@ -30,7 +37,6 @@ export default async function Page() {
     `Guias vencendo nos próximos 7 dias: ${proximas7dias.length}${proximas7dias.length ? ` — total R$ ${proximas7dias.reduce((s, g) => s + g.amount, 0).toFixed(2)}` : ''}.`,
     `Total de guias cadastradas: ${guias.length}.`,
   ].join('\n');
-  const insight = await getContextualInsight(ctx.companyId, 'minha-contabilidade/guias', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -51,7 +57,9 @@ export default async function Page() {
         </div>
       </header>
 
-      <InsightCard pageKey="minha-contabilidade/guias" insight={insight} />
+      <Suspense fallback={null}>
+        <GuiasInsight companyId={ctx.companyId} insightContext={insightContext} />
+      </Suspense>
 
       <HubGuias initial={guias} />
     </div>

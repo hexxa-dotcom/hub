@@ -1,52 +1,45 @@
 import 'server-only';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { cache } from 'react';
+import { cookies } from 'next/headers';
 import type { TenantContext } from '@hexxa/core';
-import { getDb, company, eq, withDbTimeout } from '@hexxa/db';
+import { getDb, company, appUser, membership, eq, and, withDbTimeout } from '@hexxa/db';
+import { createClient } from '@/lib/supabase/server';
 
 /**
- * Lançada quando o usuário está autenticado mas não tem organização ativa
- * selecionada no Clerk. Os chamadores devem tratar isso redirecionando para
- * a seleção/criação de empresa — nunca resolver para um tenant compartilhado.
+ * Lançada quando o usuário está autenticado mas ainda não tem nenhuma
+ * empresa vinculada (nem como dono, nem convidado). Os chamadores devem
+ * tratar isso redirecionando para o onboarding — nunca resolver para um
+ * tenant compartilhado.
  */
 export class NoActiveOrganizationError extends Error {
   constructor() {
-    super('Nenhuma organização ativa selecionada.');
+    super('Nenhuma empresa vinculada a este usuário.');
     this.name = 'NoActiveOrganizationError';
   }
 }
 
-/**
- * Resolve o tenant a partir da sessão do Clerk:
- *   organização ativa (orgId) → empresa no banco (company.clerk_org_id).
- * Se a organização ainda não tem empresa vinculada, cria uma na hora
- * (o CNPJ real é preenchido depois em Configurações).
- */
+/** Lançada quando o usuário tem mais de uma empresa e nenhuma foi escolhida como ativa. */
+export class NoActiveCompanySelectedError extends Error {
+  constructor(public readonly companies: { id: string; legalName: string }[]) {
+    super('Mais de uma empresa disponível — escolha qual acessar.');
+    this.name = 'NoActiveCompanySelectedError';
+  }
+}
+
+const ACTIVE_COMPANY_COOKIE = 'hexx_active_company';
+
 const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
 /**
- * TEMPORÁRIO: liga o mesmo bypass do DEV_SKIP_AUTH em PRODUÇÃO também,
- * enquanto o login do Clerk está sendo estabilizado. Pedido explícito do
- * dono do produto em 2026-08-24 — remover SKIP_AUTH_TEMP=true do Vercel
- * (env de Production) assim que o login voltar a ser exigido.
+ * TEMPORÁRIO: rede de segurança da migração Clerk → Supabase Auth. Enquanto
+ * ligado, ignora a sessão do Supabase e assume a primeira empresa do banco —
+ * mesmo padrão que já existia para estabilizar o login antes. Desligar
+ * (SKIP_AUTH_TEMP=false no Vercel) só depois do corte validado em produção.
  */
 const SKIP_AUTH_TEMP = (process.env.SKIP_AUTH_TEMP ?? '').trim().toLowerCase() === 'true';
 
-/**
- * Bypass de login (dev local via DEV_SKIP_AUTH, ou temporariamente em
- * produção via SKIP_AUTH_TEMP — ver comentário acima): assume a primeira
- * empresa cadastrada no banco como tenant, sem passar pelo Clerk. Exige que
- * já exista pelo menos uma empresa — se o banco estiver vazio, cai no fluxo
- * normal de onboarding.
- */
 async function getDevTenantContext(): Promise<TenantContext> {
   // Sem ORDER BY o Postgres não garante qual linha volta primeiro — precisa
-  // ser determinístico aqui, senão o bypass local cai numa empresa aleatória
-  // (já pegou uma HOLDING vazia em vez da empresa de serviço com dados reais).
-  //
-  // Com SKIP_AUTH_TEMP, TODA navegação roda essa query — uma conexão presa
-  // no pooler do Supabase (visto em produção: ClientRead indefinido, sem
-  // reagir a statement_timeout) já travou o app inteiro por até 5 minutos.
-  // withDbTimeout desiste rápido E descarta o singleton, então a PRÓXIMA
-  // requisição abre conexão nova em vez de ficar presa atrás da mesma.
+  // ser determinístico aqui, senão o bypass local cai numa empresa aleatória.
   let first: { id: string; type: 'SERVICE' | 'HOLDING' } | undefined;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
@@ -63,40 +56,78 @@ async function getDevTenantContext(): Promise<TenantContext> {
   return { companyId: first.id, companyType: first.type, userId: 'dev-skip-auth' };
 }
 
-export async function getTenantContext(): Promise<TenantContext> {
+/** Busca (ou cria) o appUser correspondente ao usuário autenticado no Supabase. */
+export async function resolveAppUser(authUid: string, email: string | undefined): Promise<{ id: string }> {
+  const db = getDb();
+  const [existing] = await db.select({ id: appUser.id }).from(appUser).where(eq(appUser.authUid, authUid));
+  if (existing) return existing;
+
+  // Backfill: usuário pré-existente da era Clerk, marcado como PENDING- na
+  // migração, ainda não religado a um auth_uid do Supabase. Primeiro login
+  // com o e-mail certo reclama a linha (e a membership que já tinha).
+  if (email) {
+    const [pending] = await db
+      .select({ id: appUser.id })
+      .from(appUser)
+      .where(and(eq(appUser.email, email), eq(appUser.authUid, `PENDING-${email}`)));
+    if (pending) {
+      await db.update(appUser).set({ authUid }).where(eq(appUser.id, pending.id));
+      return pending;
+    }
+  }
+
+  const [created] = await db
+    .insert(appUser)
+    .values({ authUid, name: email?.split('@')[0] ?? 'Usuário', email: email ?? `${authUid}@sem-email.invalido` })
+    .returning({ id: appUser.id });
+  return created!;
+}
+
+/**
+ * cache() deduplica por request do React — sem isso, cada chamada (layout +
+ * page + helpers internos) refazia a checagem de sessão e as queries de
+ * tenant do zero.
+ */
+export const getTenantContext = cache(async function getTenantContext(): Promise<TenantContext> {
   if (DEV_SKIP_AUTH || SKIP_AUTH_TEMP) {
     return getDevTenantContext();
   }
 
-  const { userId, orgId } = await auth();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!userId || !orgId) {
+  if (!user) {
     throw new NoActiveOrganizationError();
   }
 
+  const appUserRow = await resolveAppUser(user.id, user.email);
   const db = getDb();
-  const [existing] = await db
-    .select({ id: company.id, type: company.type })
-    .from(company)
-    .where(eq(company.clerkOrgId, orgId));
 
-  if (existing) {
-    return { companyId: existing.id, companyType: existing.type, userId };
+  const rows = await db
+    .select({ companyId: company.id, companyType: company.type, legalName: company.legalName })
+    .from(membership)
+    .innerJoin(company, eq(company.id, membership.companyId))
+    .where(eq(membership.userId, appUserRow.id));
+
+  if (rows.length === 0) {
+    throw new NoActiveOrganizationError();
   }
 
-  // Primeira vez desta organização: cria a empresa vinculada.
-  const client = await clerkClient();
-  const org = await client.organizations.getOrganization({ organizationId: orgId });
-  const [created] = await db
-    .insert(company)
-    .values({
-      legalName: org.name,
-      // CNPJ real é obrigatório e único — placeholder até o usuário preencher em Configurações.
-      cnpj: `PENDENTE-${orgId}`,
-      type: 'SERVICE',
-      clerkOrgId: orgId,
-    })
-    .returning({ id: company.id, type: company.type });
+  if (rows.length === 1) {
+    const only = rows[0]!;
+    return { companyId: only.companyId, companyType: only.companyType, userId: appUserRow.id };
+  }
 
-  return { companyId: created!.id, companyType: created!.type, userId };
-}
+  // Múltiplas empresas (ex.: contador): precisa de uma escolhida como ativa,
+  // sempre revalidada contra a lista atual — nunca confia cegamente no cookie.
+  const jar = await cookies();
+  const activeId = jar.get(ACTIVE_COMPANY_COOKIE)?.value;
+  const active = rows.find((r) => r.companyId === activeId);
+  if (active) {
+    return { companyId: active.companyId, companyType: active.companyType, userId: appUserRow.id };
+  }
+
+  throw new NoActiveCompanySelectedError(rows.map((r) => ({ id: r.companyId, legalName: r.legalName })));
+});

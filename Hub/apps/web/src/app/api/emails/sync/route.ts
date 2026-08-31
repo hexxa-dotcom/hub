@@ -23,14 +23,16 @@ export async function GET(req: Request) {
     }
 
     const { account, cust, existingRemoteIds } = await withTenant(companyId, async (tx) => {
-      // 1. Obter a conta de e-mail do tenant
-      const accountRows = await tx.select().from(emailAccount).where(eq(emailAccount.companyId, companyId)).execute();
-      // 2. Obter o e-mail do cliente — restrito à mesma empresa
-      const custRows = await tx
-        .select()
-        .from(customer)
-        .where(and(eq(customer.id, customerId), eq(customer.companyId, companyId)))
-        .execute();
+      // Conta de e-mail e cliente são independentes entre si — só dependem
+      // de companyId/customerId, já disponíveis — rodam em paralelo.
+      const [accountRows, custRows] = await Promise.all([
+        tx.select().from(emailAccount).where(eq(emailAccount.companyId, companyId)).execute(),
+        tx
+          .select()
+          .from(customer)
+          .where(and(eq(customer.id, customerId), eq(customer.companyId, companyId)))
+          .execute(),
+      ]);
       const acc = accountRows[0];
       const existing = acc
         ? await tx.select({ remoteId: emailMessage.remoteId }).from(emailMessage).where(eq(emailMessage.accountId, acc.id)).execute()

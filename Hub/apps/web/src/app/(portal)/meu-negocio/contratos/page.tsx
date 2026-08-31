@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { FileSignature } from 'lucide-react';
 import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
@@ -9,6 +10,12 @@ import { withTenant, eq } from '@hexxa/db';
 import { property } from '@hexxa/db/schema';
 
 export const dynamic = 'force-dynamic';
+
+// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
+async function ContratosInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
+  const insight = await getContextualInsight(companyId, 'meu-negocio/contratos', insightContext);
+  return <InsightCard pageKey="meu-negocio/contratos" insight={insight} />;
+}
 
 async function getSignatureRequests() {
   // DOCUSEAL_API_KEY ainda não configurada (ambiente local/novo) — estado
@@ -50,7 +57,6 @@ export default async function Page() {
     `Contratos ativos sem data de assinatura registrada: ${semAssinatura.length}${semAssinatura.length ? ` (ex.: ${semAssinatura.slice(0, 3).map((c) => c.title).join(', ')})` : ''}.`,
     `Contratos ativos vencendo nos próximos 30 dias: ${vencendoLogo.length}${vencendoLogo.length ? ` (ex.: ${vencendoLogo.slice(0, 3).map((c) => `${c.title} em ${c.endDate}`).join(', ')})` : ''}.`,
   ].join('\n');
-  const insight = await getContextualInsight(ctx.companyId, 'meu-negocio/contratos', insightContext);
 
   return (
     <div className="mx-auto w-full space-y-6">
@@ -71,7 +77,9 @@ export default async function Page() {
         </div>
       </header>
 
-      <InsightCard pageKey="meu-negocio/contratos" insight={insight} />
+      <Suspense fallback={null}>
+        <ContratosInsight companyId={ctx.companyId} insightContext={insightContext} />
+      </Suspense>
 
       <ContratosClient
         initialDocs={initialDocs}
