@@ -3,3 +3,6 @@ ziPK1UVn
 node_modules
 .next
 .turbo
+
+# Config local do MCP (contém token de autenticação em texto puro)
+.mcp.json
