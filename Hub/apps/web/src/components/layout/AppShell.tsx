@@ -36,6 +36,7 @@ import {
   Sun,
   HandCoins,
   Calendar,
+  Pin,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
@@ -95,7 +96,7 @@ function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
 }
 
 function itemClass(active: boolean, isDarkOverlay: boolean = false) {
-  const base = 'flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-all duration-200';
+  const base = 'flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-all duration-200 w-full overflow-hidden';
   if (active) {
     return `${base} font-bold bg-[#DFFFAE] text-[#1E3328] shadow-sm`;
   }
@@ -110,11 +111,13 @@ function NavList({
   pathname,
   onNavigate,
   isDark = false,
+  collapsed = false,
 }: {
   items: { label: string; href: string; badge?: string }[];
   pathname: string;
   onNavigate?: () => void;
   isDark?: boolean;
+  collapsed?: boolean;
 }) {
   // prefetch=false: com ~20 links sempre visíveis na sidebar, o prefetch
   // automático do Next dispara todas as rotas dinâmicas (consultas ao banco)
@@ -123,23 +126,18 @@ function NavList({
     <ul className="space-y-1">
       {items.map((i) => {
         const active = pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`));
-        const IconCmp = ICONS[i.href] || LayoutDashboard;
 
         return (
           <li key={i.href} className="group relative list-none">
             <Link
               href={i.href as never}
               onClick={onNavigate}
-              className={itemClass(active, isDark)}
+              className={`${itemClass(active, isDark)} pl-[46px]`}
               prefetch={false}
+              title={collapsed ? i.label : undefined}
             >
-              <IconCmp
-                className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                  active ? 'text-[#1E3328]' : isDark ? 'text-[#FEFDF3]/75' : 'text-[#6E6A61] dark:text-[#A8A49C]'
-                }`}
-              />
-              <span className="truncate flex-1">{i.label}</span>
-              {i.badge && (
+              {!collapsed && <span className="truncate flex-1 text-left">{i.label}</span>}
+              {!collapsed && i.badge && (
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                   isDark ? 'bg-white/10 text-[#FEFDF3]' : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
                 }`}>
@@ -188,17 +186,26 @@ function AppShellInner({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [avisoAdmin, setAvisoAdmin] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>('Financeiro');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [title]: prev[title] === undefined ? !(title === activeGroup) : !prev[title]
+    }));
+  };
 
   useEffect(() => {
     if (searchParams.get('aviso') === 'sem-acesso-contador') setAvisoAdmin(true);
   }, [searchParams]);
 
-  useEffect(() => setCollapsed(localStorage.getItem(STORAGE_KEY) === '1'), []);
+  useEffect(() => setIsPinned(localStorage.getItem(STORAGE_KEY) !== '1'), []);
   useEffect(() => setMobileOpen(false), [pathname]);
 
   useEffect(() => {
@@ -222,122 +229,98 @@ function AppShellInner({
   const primeiroNome = userName?.split(' ')[0];
   const greeting = primeiroNome ? `${saudacao}, ${primeiroNome}` : saudacao;
 
+  const isCollapsed = !isPinned && !isHovered;
+
   return (
     <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
-      {/* Desktop Sidebar (Integrated in layout flow) */}
+      {/* Desktop Sidebar (Nibo Style - Secondary Panel Only) */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 border-r border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] transition-all duration-300 ease-in-out z-40 ${
-          collapsed ? 'w-[88px]' : 'w-[280px]'
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`hidden lg:flex flex-col shrink-0 sticky top-0 h-screen bg-[#FEFDF3] dark:bg-[#1A201C] transition-all duration-300 ease-in-out z-40 ${
+          isCollapsed ? 'w-[80px]' : 'w-[280px]'
         }`}
       >
-        {/* Header / Brand */}
-        <div className="flex h-[68px] shrink-0 items-center justify-between px-6 border-b border-black/5 dark:border-white/10 bg-[#1E3328]">
-          <div className={`flex items-center gap-3 overflow-hidden transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
-            <BrandMark size="sm" />
-            <span className="text-base font-serif font-bold text-[#DFFFAE] truncate">Hexx Hub</span>
-          </div>
-          {collapsed && (
-            <div className="mx-auto mt-1 cursor-pointer transition-transform hover:scale-110" onClick={() => { setCollapsed(false); localStorage.setItem(STORAGE_KEY, '0'); }}>
-              <BrandMark size="sm" />
-            </div>
-          )}
-        </div>
-
-        {/* Workspace Switcher & Collapse Toggle (Only expanded) */}
-        {!collapsed && (
-          <div className="p-4 border-b border-black/5 dark:border-white/10 shrink-0 relative group">
-            <button className="flex w-full items-center justify-between rounded-2xl p-2.5 transition-colors bg-white/70 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 border border-black/5 dark:border-white/5">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
-                  {company
-                    ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
-                    : 'H'}
-                </div>
-                <div className="flex flex-col items-start overflow-hidden text-left">
+        {/* Header / Brand & Company */}
+        <div className="h-[68px] flex items-center justify-between px-4 border-b border-black/5 dark:border-white/10 shrink-0 overflow-hidden">
+          <div className={`flex items-center justify-between rounded-xl p-2 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 transition-all ${isCollapsed ? 'w-12 justify-center' : 'w-[248px]'}`}>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
+                {company
+                  ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
+                  : 'H'}
+              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col items-start overflow-hidden text-left w-[140px]">
                   <span className="w-full truncate text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight">
                     {company
                       ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
                       : 'Hexxa Solutions'}
                   </span>
-                  <span className="w-full truncate text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C]">
-                    {company?.cnpj || 'Ambiente Ativo'}
-                  </span>
                 </div>
-              </div>
-              <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />
-            </button>
-            
-            <button
-              onClick={() => {
-                setCollapsed(true);
-                localStorage.setItem(STORAGE_KEY, '1');
-              }}
-              title="Recolher Menu"
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 grid h-6 w-6 place-items-center rounded-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] shadow-sm z-50 transition-transform hover:scale-110 opacity-0 group-hover:opacity-100"
-            >
-              <ChevronDown className="h-3 w-3 rotate-90" />
-            </button>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar py-4">
-          {!collapsed ? (
-            <div className="space-y-6 px-4 pb-20">
-              {sections.map(s => (
-                <div key={s.title}>
-                  <h3 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
-                    {s.title}
-                  </h3>
-                  <NavList items={s.items} pathname={pathname} />
-                </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4 pt-2">
+
+            {/* PIN BUTTON */}
+            {!isCollapsed && (
               <button
                 onClick={() => {
-                  setCollapsed(false);
-                  localStorage.setItem(STORAGE_KEY, '0');
+                  const newVal = !isPinned;
+                  setIsPinned(newVal);
+                  localStorage.setItem(STORAGE_KEY, newVal ? '0' : '1');
                 }}
-                title="Expandir Menu"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/5 mb-2 shadow-sm hover:scale-105"
+                title={isPinned ? "Desafixar menu" : "Fixar menu"}
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors ${
+                  isPinned 
+                    ? 'bg-[#1E3328] text-[#DFFFAE]' 
+                    : 'text-[#6E6A61] hover:bg-black/10 dark:text-[#A8A49C] dark:hover:bg-white/10'
+                }`}
               >
-                <Menu className="h-5 w-5" />
+                <Pin className={`h-4 w-4 transition-transform ${isPinned ? '' : 'rotate-45 opacity-50'}`} />
               </button>
+            )}
+          </div>
+        </div>
 
-              {sections.map(s => {
-                const IconCmp = GROUP_ICONS[s.title] || LayoutDashboard;
-                const isActive = activeGroup === s.title;
-                return (
-                  <div key={s.title} className="relative group flex justify-center w-full">
-                    <button
-                      title={s.title}
-                      onClick={() => {
-                        setActiveGroup(s.title);
-                        setCollapsed(false);
-                        localStorage.setItem(STORAGE_KEY, '0');
-                      }}
-                      className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#1E3328] dark:bg-[#DFFFAE] text-[#DFFFAE] dark:text-[#1E3328] font-bold shadow-md scale-105'
-                          : 'text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:scale-105'
-                      }`}
-                    >
-                      <IconCmp className="h-5 w-5 transition-transform duration-200" />
-                    </button>
-                    
-                    {/* Tooltip */}
-                    <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50 rounded-xl bg-[#1E3328] dark:bg-[#1A201C] border border-[#2F4A3C] px-2.5 py-1 text-xs font-semibold text-[#FEFDF3] opacity-0 shadow-xl transition-all group-hover:opacity-100 whitespace-nowrap">
-                      {s.title}
+        {/* Navigation Sections */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-4 pt-[120px] pb-20 w-full flex flex-col">
+          <div className={`space-y-2 transition-all ${isCollapsed ? 'w-12' : 'w-[248px]'}`}>
+            {sections.map(s => {
+              const isExpanded = expandedSections[s.title] ?? (s.title === activeGroup); // Default to active group
+              const GroupIcon = GROUP_ICONS[s.title] || LayoutDashboard;
+              
+              return (
+                <div key={s.title} className="flex flex-col">
+                  <button
+                    onClick={() => toggleSection(s.title)}
+                    title={isCollapsed ? s.title : undefined}
+                    className="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-all w-full mb-1 group overflow-hidden"
+                  >
+                    <GroupIcon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    {!isCollapsed && (
+                      <>
+                        <span className="flex-1 text-left truncate uppercase tracking-wider text-[10px]">
+                          {s.title}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
+                  </button>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="w-full relative">
+                      {!isCollapsed && (
+                        <div className="absolute left-[23px] top-0 bottom-2 w-px bg-black/10 dark:bg-white/10" />
+                      )}
+                      <NavList items={s.items} pathname={pathname} collapsed={isCollapsed} />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </aside>
 
