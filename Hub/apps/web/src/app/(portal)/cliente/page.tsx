@@ -479,7 +479,7 @@ export default async function DashboardPage() {
             </div>
 
             <Link
-              href="/minha-contabilidade/distribuicao-lucros"
+              href="/minha-contabilidade/socios"
               className="inline-flex items-center gap-1 font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline"
             >
               Ver Retiradas <ArrowRight className="h-3 w-3" />

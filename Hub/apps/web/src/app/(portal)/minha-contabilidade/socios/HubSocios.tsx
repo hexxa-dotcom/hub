@@ -19,12 +19,12 @@ import {
   Landmark,
   Sparkles,
 } from 'lucide-react';
-import { LucroCard } from '../distribuicao-lucros/LucroCard';
-import { DistForm } from '../distribuicao-lucros/DistForm';
+import { LucroCard } from './LucroCard';
+import { DistributionRequestForm } from '@/components/profit-distribution/DistributionRequestForm';
 import type { PartnerRow } from './actions';
-import type { DistributionRow, YearlyProfitSummary, DistributionFrequency } from '../distribuicao-lucros/actions';
+import type { DistributionRow, YearlyProfitSummary, DistributionFrequency } from '@/lib/server/profit-distribution';
 import { savePartnerAction, deletePartnerAction, lancarProLaboreMesAction } from './actions';
-import { setDistributionFrequencyAction } from '../distribuicao-lucros/actions';
+import { setDistributionFrequencyAction } from '@/lib/server/profit-distribution';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -429,7 +429,17 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
 
 // ── DistribuicaoTab ───────────────────────────────────────────────────────────
 
-function DistribuicaoTab({ distribuicoes, yearlyProfit }: { distribuicoes: DistributionRow[]; yearlyProfit: YearlyProfitSummary }) {
+function DistribuicaoTab({
+  distribuicoes,
+  yearlyProfit,
+  partners,
+  onConfirmed,
+}: {
+  distribuicoes: DistributionRow[];
+  yearlyProfit: YearlyProfitSummary;
+  partners: PartnerRow[];
+  onConfirmed: () => void;
+}) {
   const total = distribuicoes.reduce((s, d) => s + d.amount, 0);
   const partnersCount = new Set(distribuicoes.map(d => d.partnerName)).size;
 
@@ -461,7 +471,11 @@ function DistribuicaoTab({ distribuicoes, yearlyProfit }: { distribuicoes: Distr
         </section>
       </div>
 
-      <DistForm />
+      <DistributionRequestForm
+        partners={partners.map((p) => ({ id: p.id, nome: p.nome, participacao: p.participacao }))}
+        availableToDistribute={yearlyProfit.availableToDistribute}
+        onConfirmed={onConfirmed}
+      />
 
       <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
         <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Histórico de Distribuições</h2>
@@ -518,6 +532,7 @@ export function HubSocios({
   yearlyProfit: YearlyProfitSummary;
 }) {
   const [tab, setTab] = useState<'prolabore' | 'distribuicao'>('prolabore');
+  const router = useRouter();
 
   return (
     <div className="space-y-6">
@@ -535,7 +550,12 @@ export function HubSocios({
 
       {tab === 'prolabore'
         ? <ProLaboreTab socios={initialPartners} prolaboreMinimoRecomendado={prolaboreMinimoRecomendado} fatorRFavoravel={fatorRFavoravel} />
-        : <DistribuicaoTab distribuicoes={initialDistribuicoes} yearlyProfit={yearlyProfit} />}
+        : <DistribuicaoTab
+            distribuicoes={initialDistribuicoes}
+            yearlyProfit={yearlyProfit}
+            partners={initialPartners}
+            onConfirmed={() => router.refresh()}
+          />}
     </div>
   );
 }

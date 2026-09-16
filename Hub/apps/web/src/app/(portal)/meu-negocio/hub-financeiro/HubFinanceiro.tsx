@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
@@ -48,10 +48,19 @@ import {
   createRecurringExpense,
   setRecurringExpenseActive,
   deleteRecurringExpense,
+  listCategorias,
   type RecurringExpenseRow,
 } from './actions';
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+type Categoria = {
+  id: string;
+  name: string;
+  kind: 'INCOME' | 'EXPENSE';
+  accountingCode: string | null;
+  accountingGroup: string | null;
+};
 
 type Lancamento = {
   id: string;
@@ -99,9 +108,6 @@ function getStatus(l: Lancamento): Status {
   return venc < today ? 'vencido' : 'aberto';
 }
 
-const CATEGORIAS_PAGAR = ['Aluguel', 'Salários', 'Fornecedores', 'Impostos', 'Infraestrutura', 'Tecnologia', 'Serviços', 'Outros'];
-const CATEGORIAS_RECEBER = ['Serviços', 'Projetos', 'Mensalidade', 'Consultoria', 'Produtos', 'Aluguéis', 'Outros'];
-
 /**
  * Nome do "grupo" pra agregação por categoria. A maioria dos lançamentos
  * automáticos (folha, contrato PJ, provisão de NFSe, despesa fixa) nunca
@@ -127,6 +133,11 @@ function grupoDe(l: Lancamento): string {
       return l.tipo === 'PAGAR' ? 'Impostos' : 'Notas Fiscais';
     case 'VENDA':
       return 'Faturamento Avulso';
+    case 'DFE_SYNC':
+      // Nota emitida por fora do Hub (ex: sistema próprio do município),
+      // sincronizada da Distribuição de DF-e do governo — mesmo grupo de
+      // "Notas Fiscais" porque é exatamente isso: já tem nota emitida.
+      return 'Notas Fiscais';
     case 'RECURRING':
       return 'Despesas Fixas';
     case 'API':
@@ -136,7 +147,18 @@ function grupoDe(l: Lancamento): string {
   }
 }
 
-const isCurrentMonth = (vencimento: string) => vencimento.slice(0, 7) === new Date().toISOString().slice(0, 7);
+const currentMonth = () => new Date().toISOString().slice(0, 7);
+
+/** Filtro de mês compartilhado entre as abas — 'todos' devolve tudo, sem recorte de período. */
+type MonthFilter = string | 'todos';
+const matchesMonth = (vencimento: string, mes: MonthFilter) => mes === 'todos' || vencimento.slice(0, 7) === mes;
+const mesLabel = (mes: MonthFilter) => {
+  if (mes === 'todos') return 'Todos os períodos';
+  if (mes === currentMonth()) return 'Este Mês';
+  const [ano, m] = mes.split('-');
+  const d = new Date(Number(ano), Number(m) - 1, 1);
+  return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+};
 
 /**
  * URL do contrato de origem, quando este lançamento veio de um (contrato
@@ -183,13 +205,17 @@ function StatusBadge({ l }: { l: Lancamento }) {
 
 // ── Form inline ───────────────────────────────────────────────────────────────
 
+const CATEGORIA_OUTROS = '__outros__';
+
 function LancamentoForm({
   tipo,
+  categorias,
   onAdd,
   onClose,
   defaultCategoria,
 }: {
   tipo: 'PAGAR' | 'RECEBER';
+  categorias: Categoria[];
   onAdd: (l: Lancamento) => void;
   onClose: () => void;
   defaultCategoria?: string;
@@ -210,7 +236,20 @@ function LancamentoForm({
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const cats = tipo === 'PAGAR' ? CATEGORIAS_PAGAR : CATEGORIAS_RECEBER;
+  // Categorias do plano de contas (Anexo 7 ITG 1000) filtradas pelo tipo do
+  // lançamento — pagar usa despesa (EXPENSE), receber usa receita (INCOME).
+  // Agrupadas por accountingGroup pra ficar navegável com quase 80 opções.
+  const kind = tipo === 'PAGAR' ? 'EXPENSE' : 'INCOME';
+  const cats = categorias.filter((c) => c.kind === kind);
+  const catsByGroup = useMemo(() => {
+    const groups = new Map<string, Categoria[]>();
+    for (const c of cats) {
+      const g = c.accountingGroup ?? 'Outras';
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g)!.push(c);
+    }
+    return groups;
+  }, [cats]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -221,7 +260,7 @@ function LancamentoForm({
     setSaving(true);
     setErr(null);
     try {
-      const categoriaFinal = categoria === 'Outros' && categoriaOutros.trim() ? categoriaOutros.trim() : categoria;
+      const isOutros = categoria === CATEGORIA_OUTROS;
       await createLancamento({
         tipo,
         descricao,
@@ -229,7 +268,8 @@ function LancamentoForm({
         vencimento,
         parcelas: tipoLancamento === 'PARCELADO' ? qtdParcelas : 1,
         isInfinite: tipoLancamento === 'RECORRENTE',
-        categoria: categoriaFinal || undefined,
+        categoriaId: !isOutros && categoria ? categoria : undefined,
+        categoria: isOutros && categoriaOutros.trim() ? categoriaOutros.trim() : undefined,
         comprovante,
         multaJuros: multaJuros ? parseFloat(multaJuros.replace(',', '.')) : undefined,
         desconto: desconto ? parseFloat(desconto.replace(',', '.')) : undefined,
@@ -313,19 +353,26 @@ function LancamentoForm({
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria</label>
+          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria (plano de contas)</label>
           <select
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
             className={`mt-1 ${field}`}
           >
             <option value="">Sem categoria</option>
-            {cats.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            {[...catsByGroup.entries()].map(([group, items]) => (
+              <optgroup key={group} label={group}>
+                {items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.accountingCode ? `${c.accountingCode} — ${c.name}` : c.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
+            <option value={CATEGORIA_OUTROS}>Outros (categoria nova)</option>
           </select>
         </div>
-        {categoria === 'Outros' && (
+        {categoria === CATEGORIA_OUTROS && (
           <div className="sm:col-span-2">
             <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Qual despesa? *</label>
             <input
@@ -468,7 +515,7 @@ function MesStatCard({
 /** Barra de chips com o total do mês agregado por categoria — inclui os grupos automáticos (folha, PJ, NFSe…). */
 const CATEGORIA_BREAKDOWN_MAX = 6;
 
-function CategoriaBreakdownRow({ items: rawItems }: { items: { label: string; total: number }[] }) {
+function CategoriaBreakdownRow({ items: rawItems, periodo = 'neste mês' }: { items: { label: string; total: number }[]; periodo?: string }) {
   // Trava em 6 pílulas NO TOTAL — se sobrar categoria, ela entra somada em
   // "Outros" (que conta como uma das 6), nunca 6 categorias + Outros = 7.
   const sorted = [...rawItems].sort((a, b) => b.total - a.total);
@@ -481,7 +528,7 @@ function CategoriaBreakdownRow({ items: rawItems }: { items: { label: string; to
   return (
     <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-4 shadow-sm">
       <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
-        Por categoria — neste mês
+        Por categoria — {periodo}
       </p>
       <div className="flex flex-wrap gap-2">
         {items.map((g) => (
@@ -541,7 +588,15 @@ function DespesasFixasCard({ active, onClick }: { active: boolean; onClick: () =
   );
 }
 
-function DespesasFixasPanel({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+function DespesasFixasPanel({
+  categorias,
+  onClose,
+  onChanged,
+}: {
+  categorias: Categoria[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
   const [items, setItems] = useState<RecurringExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -704,12 +759,15 @@ function DespesasFixasPanel({ onClose, onChanged }: { onClose: () => void; onCha
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria</label>
+              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Categoria (plano de contas)</label>
               <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={`mt-1 ${field}`}>
                 <option value="">Sem categoria</option>
-                {CATEGORIAS_PAGAR.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {categorias
+                  .filter((c) => c.kind === 'EXPENSE')
+                  .map((c) => (
+                    <option key={c.id} value={c.name}>{c.accountingCode ? `${c.accountingCode} — ${c.name}` : c.name}</option>
+                  ))}
+                <option value="Outros">Outros (categoria nova)</option>
               </select>
             </div>
             {categoria === 'Outros' && (
@@ -759,12 +817,16 @@ type FilterTab = 'todos' | 'aberto' | 'vencido' | 'pago' | 'fixas' | 'impostos' 
 function LancamentosTab({
   tipo,
   data,
+  categorias,
+  selectedMonth,
   onAdd,
   onUpdate,
   onDelete,
 }: {
   tipo: 'PAGAR' | 'RECEBER';
   data: Lancamento[];
+  categorias: Categoria[];
+  selectedMonth: MonthFilter;
   onAdd: (l: Lancamento) => void;
   onUpdate: (l: Lancamento) => void;
   onDelete: (id: string) => void;
@@ -778,7 +840,7 @@ function LancamentosTab({
   const [selectedPixLancamento, setSelectedPixLancamento] = useState<Lancamento | null>(null);
 
   const list = useMemo(() => {
-    const base = data.filter((l) => l.tipo === tipo);
+    const base = data.filter((l) => l.tipo === tipo && matchesMonth(l.vencimento, selectedMonth));
     if (filter === 'todos') return base;
     if (filter === 'fixas') return base.filter((l) => l.isFixa);
     if (filter === 'impostos') return base.filter((l) => grupoDe(l) === 'Impostos');
@@ -786,10 +848,10 @@ function LancamentosTab({
     if (filter === 'contratos') return base.filter((l) => ['Contratos', 'Mensalidade'].includes(grupoDe(l)));
     if (filter === 'servicos') return base.filter((l) => ['Serviços', 'Notas Fiscais', 'Faturamento Avulso'].includes(grupoDe(l)));
     return base.filter((l) => getStatus(l) === filter);
-  }, [data, tipo, filter]);
+  }, [data, tipo, filter, selectedMonth]);
 
   const counts = useMemo(() => {
-    const base = data.filter((l) => l.tipo === tipo);
+    const base = data.filter((l) => l.tipo === tipo && matchesMonth(l.vencimento, selectedMonth));
     return {
       todos: base.length,
       aberto: base.filter((l) => getStatus(l) === 'aberto').length,
@@ -797,12 +859,12 @@ function LancamentosTab({
       pago: base.filter((l) => getStatus(l) === 'pago').length,
       fixas: base.filter((l) => l.isFixa).length,
     };
-  }, [data, tipo]);
+  }, [data, tipo, selectedMonth]);
 
-  // Agregados do mês corrente por categoria — inclui pago e em aberto, é "o
-  // que esse mês representa", não só o que ainda falta pagar/receber.
+  // Agregados do período selecionado por categoria — inclui pago e em
+  // aberto, é "o que esse período representa", não só o que falta pagar/receber.
   const categoriaBreakdown = useMemo(() => {
-    const base = data.filter((l) => l.tipo === tipo && isCurrentMonth(l.vencimento));
+    const base = data.filter((l) => l.tipo === tipo && matchesMonth(l.vencimento, selectedMonth));
     const groups = new Map<string, number>();
     for (const l of base) {
       groups.set(grupoDe(l), (groups.get(grupoDe(l)) ?? 0) + l.valor);
@@ -810,7 +872,7 @@ function LancamentosTab({
     return Array.from(groups.entries())
       .map(([label, total]) => ({ label, total }))
       .sort((a, b) => b.total - a.total);
-  }, [data, tipo]);
+  }, [data, tipo, selectedMonth]);
 
   const impostosMes = categoriaBreakdown.find((g) => g.label === 'Impostos')?.total ?? 0;
   const colaboradoresMes = categoriaBreakdown
@@ -880,7 +942,7 @@ function LancamentosTab({
           <MesStatCard 
             icon={Users} 
             label="Colaboradores" 
-            hint="PJ + CLT · neste mês" 
+            hint={`PJ + CLT · ${mesLabel(selectedMonth)}`}
             value={colaboradoresMes} 
             tone="default" 
             active={filter === 'colaboradores'}
@@ -901,7 +963,7 @@ function LancamentosTab({
           <MesStatCard 
             icon={FileText} 
             label="Serviços e Notas" 
-            hint="Avulsos · neste mês" 
+            hint={mesLabel(selectedMonth)}
             value={servicosMes} 
             tone="default" 
             active={filter === 'servicos'}
@@ -910,7 +972,7 @@ function LancamentosTab({
           <MesStatCard 
             icon={Tag} 
             label="Outras Entradas" 
-            hint="Diversos · neste mês" 
+            hint={`Diversos · ${mesLabel(selectedMonth)}`}
             value={outrosRecMes} 
             tone="default" 
           />
@@ -918,7 +980,7 @@ function LancamentosTab({
       )}
 
       {categoriaBreakdown.length > 0 && (
-        <CategoriaBreakdownRow items={categoriaBreakdown} />
+        <CategoriaBreakdownRow items={categoriaBreakdown} periodo={mesLabel(selectedMonth).toLowerCase()} />
       )}
 
       {/* Header com Filtros & Botões */}
@@ -962,12 +1024,13 @@ function LancamentosTab({
       </div>
 
       {isPagar && showFixas && (
-        <DespesasFixasPanel onClose={() => setShowFixas(false)} onChanged={() => onUpdate({} as Lancamento)} />
+        <DespesasFixasPanel categorias={categorias} onClose={() => setShowFixas(false)} onChanged={() => onUpdate({} as Lancamento)} />
       )}
 
       {showForm && (
         <LancamentoForm
           tipo={tipo}
+          categorias={categorias}
           onAdd={(l) => {
             onAdd(l);
             setFilter('todos');
@@ -1210,7 +1273,7 @@ function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: Re
   );
 }
 
-function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab: 'pagar' | 'receber') => void }) {
+function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; selectedMonth: MonthFilter; onNavigate: (tab: 'pagar' | 'receber') => void }) {
   const [showDre, setShowDre] = useState(false);
   
   const today = new Date();
@@ -1229,8 +1292,8 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
   }, []);
   const totalFixas = (fixas ?? []).filter((f) => f.active).reduce((s, f) => s + f.amount, 0);
 
-  const receberMes = data.filter((l) => l.tipo === 'RECEBER' && isCurrentMonth(l.vencimento));
-  const pagarMes = data.filter((l) => l.tipo === 'PAGAR' && isCurrentMonth(l.vencimento));
+  const receberMes = data.filter((l) => l.tipo === 'RECEBER' && matchesMonth(l.vencimento, selectedMonth));
+  const pagarMes = data.filter((l) => l.tipo === 'PAGAR' && matchesMonth(l.vencimento, selectedMonth));
   const composicaoReceitas = buildComposicao(receberMes);
   const composicaoDespesas = buildComposicao(pagarMes);
 
@@ -1321,7 +1384,7 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
       <div>
         <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição do Mês</h3>
+            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição · {mesLabel(selectedMonth)}</h3>
             <button
               type="button"
               onClick={() => setShowDre(true)}
@@ -1342,8 +1405,8 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
           </button>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
-          <ComposicaoCard title="Receitas por origem" items={composicaoReceitas} emptyLabel="Sem recebíveis lançados neste mês." />
-          <ComposicaoCard title="Despesas por origem" items={composicaoDespesas} emptyLabel="Sem despesas lançadas neste mês." />
+          <ComposicaoCard title="Receitas por origem" items={composicaoReceitas} emptyLabel={`Sem recebíveis lançados ${mesLabel(selectedMonth).toLowerCase()}.`} />
+          <ComposicaoCard title="Despesas por origem" items={composicaoDespesas} emptyLabel={`Sem despesas lançadas ${mesLabel(selectedMonth).toLowerCase()}.`} />
         </div>
       </div>
 
@@ -1410,7 +1473,58 @@ function VisaoGeral({ data, onNavigate }: { data: Lancamento[]; onNavigate: (tab
         </div>
       </div>
 
-      {showDre && <DreModal data={data} onClose={() => setShowDre(false)} />}
+      {showDre && <DreModal data={data} selectedMonth={selectedMonth} onClose={() => setShowDre(false)} />}
+    </div>
+  );
+}
+
+/** Seletor de mês num dropdown — evita empilhar uma pílula por mês na tela (poluía). */
+function MonthDropdown({ months, selected, onChange }: { months: string[]; selected: MonthFilter; onChange: (m: MonthFilter) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const options: MonthFilter[] = [...months, 'todos'];
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2.5 text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] hover:border-black/20 dark:hover:border-white/20 transition-colors capitalize"
+      >
+        <Calendar className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
+        {mesLabel(selected)}
+        <ChevronDown className={`h-3.5 w-3.5 text-[#6E6A61] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-2 w-56 max-h-72 overflow-y-auto rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] shadow-lg p-1.5">
+          {options.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                onChange(m);
+                setOpen(false);
+              }}
+              className={`w-full text-left rounded-xl px-3.5 py-2 text-sm font-semibold capitalize transition-colors ${
+                selected === m
+                  ? 'bg-[#1E3328] text-[#DFFFAE]'
+                  : 'text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5 dark:hover:bg-white/5'
+              }`}
+            >
+              {mesLabel(m)}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1427,8 +1541,8 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?
 
 // ── DRE Modal ───────────────────────────────────────────────────────────────
 
-function DreModal({ data, onClose }: { data: Lancamento[]; onClose: () => void }) {
-  const filterCurrentMonth = data.filter(l => isCurrentMonth(l.vencimento));
+function DreModal({ data, selectedMonth, onClose }: { data: Lancamento[]; selectedMonth: MonthFilter; onClose: () => void }) {
+  const filterCurrentMonth = data.filter(l => matchesMonth(l.vencimento, selectedMonth));
   
   const receitas = filterCurrentMonth.filter(l => l.tipo === 'RECEBER').reduce((s, l) => s + l.valor, 0);
   const impostos = filterCurrentMonth.filter(l => l.tipo === 'PAGAR' && grupoDe(l) === 'Impostos').reduce((s, l) => s + l.valor, 0);
@@ -1460,7 +1574,7 @@ function DreModal({ data, onClose }: { data: Lancamento[]; onClose: () => void }
               <FileText className="h-5 w-5" />
             </div>
             <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">
-              DRE Gerencial (Neste Mês)
+              DRE Gerencial · {mesLabel(selectedMonth)}
             </h2>
           </div>
           <button onClick={onClose} className="p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:bg-black/5 rounded-full transition-colors">
@@ -1512,17 +1626,28 @@ function DreModal({ data, onClose }: { data: Lancamento[]; onClose: () => void }
 export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [data, setData] = useState<Lancamento[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<MonthFilter>(currentMonth());
+
+  // Meses com pelo menos um lançamento, mais recente primeiro — sempre inclui
+  // o mês atual mesmo sem lançamento nenhum (é o padrão da tela).
+  const allMonths = useMemo(() => {
+    const set = new Set(data.map((l) => l.vencimento.slice(0, 7)));
+    set.add(currentMonth());
+    return Array.from(set).sort().reverse();
+  }, [data]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     setLoadError(null);
     try {
-      const json = await getLancamentos();
+      const [json, cats] = await Promise.all([getLancamentos(), listCategorias()]);
       setData(json);
+      setCategorias(cats);
     } catch {
       setLoadError('Falha na conexão com o banco.');
     } finally {
@@ -1576,6 +1701,15 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
         </button>
       </div>
 
+      {/* Período em foco — título claro do mês atual + dropdown pra trocar, sem poluir a tela com uma pílula por mês. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Você está visualizando</p>
+          <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3] capitalize">{mesLabel(selectedMonth)}</h2>
+        </div>
+        <MonthDropdown months={allMonths} selected={selectedMonth} onChange={setSelectedMonth} />
+      </div>
+
       {/* Loading / Error */}
       {loading && (
         <div className="flex items-center justify-center gap-2.5 py-16 text-[#6E6A61]">
@@ -1593,9 +1727,9 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
 
       {!loading && (
         <>
-          {tab === 'geral' && <VisaoGeral data={data} onNavigate={setTab} />}
-          {tab === 'pagar' && <LancamentosTab tipo="PAGAR" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
-          {tab === 'receber' && <LancamentosTab tipo="RECEBER" data={data} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
+          {tab === 'geral' && <VisaoGeral data={data} selectedMonth={selectedMonth} onNavigate={setTab} />}
+          {tab === 'pagar' && <LancamentosTab tipo="PAGAR" data={data} categorias={categorias} selectedMonth={selectedMonth} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
+          {tab === 'receber' && <LancamentosTab tipo="RECEBER" data={data} categorias={categorias} selectedMonth={selectedMonth} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
         </>
       )}
     </div>

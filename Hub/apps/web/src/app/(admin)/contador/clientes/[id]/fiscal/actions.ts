@@ -9,6 +9,14 @@ import { requireAdmin } from '@/lib/server/admin-guard';
  * Token do Oneflow é POR EMPRESA CLIENTE (a doc deles não expõe CNPJ nas
  * chamadas de fiscal/contábil — só funciona "no contexto do token"), e fica
  * só aqui na área do contador — o cliente não vê nem mexe nisso.
+ *
+ * STATUS: salva de verdade (provider='oneflow' em integration_credential),
+ * mas hoje NENHUM código lê esse token de volta — órfão até a integração
+ * real de puxar guia/dado do OneFlow (Omie) ser construída. Não confundir
+ * com o provider='omie' usado por packages/core/src/services/omie-integration.service.ts
+ * (também ainda placeholder, mas é o lado do TENANT, não do contador).
+ * Quando for implementar a automação de guias do OneFlow, reaproveitar esta
+ * estrutura em vez de criar uma terceira.
  */
 export async function getOneflowCredential(companyId: string): Promise<{ hasToken: boolean; active: boolean }> {
   await requireAdmin();

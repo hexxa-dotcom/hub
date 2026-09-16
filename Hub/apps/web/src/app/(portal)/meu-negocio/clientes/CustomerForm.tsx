@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState, useRef, useState, useCallback } from 'react';
-import { Plus, Search, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useActionState, useRef, useState, useCallback, useEffect } from 'react';
+import { Plus, Search, Loader2, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { addCustomerAction, type CustomerState } from './actions';
 import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
 import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
@@ -13,8 +13,22 @@ const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase trac
 
 type LookupStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'error';
 
-export function CustomerForm() {
+/**
+ * `onClose`/`onSuccess` são opcionais — usados quando embutido num modal (ex:
+ * CRM em /relacionamento). Sem eles, funciona como página standalone.
+ * Componente único reaproveitado em vez de duplicado — a versão antiga
+ * hand-rolled em HubRelacionamento.tsx (`AddClienteForm`) não tinha a seção
+ * de cobrança/emissão automática de NFSe, então cadastrar cliente pelo CRM
+ * (o único caminho alcançável — `meu-negocio/clientes/page.tsx` só redireciona
+ * pra cá) nunca oferecia essa opção.
+ */
+export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onSuccess?: () => void } = {}) {
   const [state, action, pending] = useActionState(addCustomerAction, initial);
+
+  useEffect(() => {
+    if (state.ok) onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
   const [lookupStatus, setLookupStatus] = useState<LookupStatus>('idle');
   const [cnpjData, setCnpjData] = useState<CnpjData | null>(null);
 
@@ -75,7 +89,14 @@ export function CustomerForm() {
 
   return (
     <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-      <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Adicionar Novo Cliente</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Adicionar Novo Cliente</h2>
+        {onClose && (
+          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Tipo */}
@@ -220,6 +241,34 @@ export function CustomerForm() {
               (dia) => <option key={dia} value={dia}>Dia {dia}</option>,
             )}
           </select>
+        </div>
+
+        {/* Descrição do serviço (usada na NFSe automática) */}
+        <div className="md:col-span-2">
+          <label className={lbl}>Descrição do Serviço (para a Nota Fiscal)</label>
+          <input
+            name="descricaoServico"
+            placeholder="Ex: Serviço de Contabilidade e Consultoria"
+            className={field}
+          />
+        </div>
+
+        {/* Emissão automática de NFSe */}
+        <div className="md:col-span-2 flex items-start gap-2.5 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-3">
+          <input
+            id="autoEmitNfse"
+            name="autoEmitNfse"
+            type="checkbox"
+            value="true"
+            className="mt-0.5 h-4 w-4 rounded border-black/20 accent-[#2F4A3C]"
+          />
+          <label htmlFor="autoEmitNfse" className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">Emitir a nota fiscal automaticamente todo mês</span>
+            <br />
+            Sem contrato assinado, sem lançar nada na mão — o Hub emite a NFSe no dia de vencimento
+            acima usando o valor e a descrição do serviço informados. Precisa do CNPJ e do
+            certificado A1 configurados em Meu Negócio {'>'} NFS-e.
+          </label>
         </div>
       </div>
 

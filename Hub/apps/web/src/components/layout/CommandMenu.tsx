@@ -5,15 +5,11 @@ import { useRouter } from 'next/navigation';
 import {
   Search,
   Receipt,
-  Plus,
   FileSignature,
-  FileText,
-  DollarSign,
   MessageCircle,
   TrendingUp,
   Scale,
   Users,
-  Building2,
   Landmark,
   ShieldCheck,
   LifeBuoy,
@@ -24,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NAV } from '@/lib/nav';
+import { QUICK_ACTIONS_CATALOG } from '@/lib/quickActions';
 
 type CommandAction = {
   id: string;
@@ -50,45 +47,17 @@ export function CommandMenu({
   const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com minha contabilidade.')}`;
 
+  // Deriva do catálogo único (@/lib/quickActions), em vez de reimplementar
+  // os mesmos atalhos na mão — evita rótulos divergentes entre esta tela e
+  // o painel "Ações Rápidas" (Configurações).
   const QUICK_ACTIONS: CommandAction[] = [
-    {
-      id: 'nova-nfse',
-      label: 'Emitir Nova Nota Fiscal (NFSe)',
-      category: 'Ações Rápidas',
-      href: '/meu-negocio/notas',
-      icon: Receipt,
-      badge: 'Atalho 1',
-    },
-    {
-      id: 'lancar-despesa',
-      label: 'Lançar Nova Despesa / Saída',
-      category: 'Ações Rápidas',
-      href: '/meu-negocio/hub-financeiro',
-      icon: Plus,
-      badge: 'Atalho 2',
-    },
-    {
-      id: 'novo-contrato',
-      label: 'Criar Novo Contrato com Assinatura Digital',
-      category: 'Ações Rápidas',
-      href: '/meu-negocio/contratos',
-      icon: FileSignature,
-      badge: 'Atalho 3',
-    },
-    {
-      id: 'ver-guias',
-      label: 'Ver e Pagar Guias de Impostos (DAS)',
-      category: 'Ações Rápidas',
-      href: '/minha-contabilidade/guias',
-      icon: FileText,
-    },
-    {
-      id: 'gerar-balanco',
-      label: 'Visualizar Relatório de Fechamento / Balanço',
-      category: 'Ações Rápidas',
-      href: '/meu-negocio/relatorios/fechamento',
-      icon: FileText,
-    },
+    ...QUICK_ACTIONS_CATALOG.map((a) => ({
+      id: a.id,
+      label: a.label,
+      category: 'Ações Rápidas' as const,
+      href: a.href,
+      icon: a.icon,
+    })),
     {
       id: 'falar-contador',
       label: 'Falar com o Contador no WhatsApp',

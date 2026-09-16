@@ -13,6 +13,24 @@ import {
  * notificações). Comum a SERVICE e HOLDING.
  */
 
+/**
+ * Config GLOBAL da conta Asaas da própria Hexxa (usada pra cobrar TODAS as
+ * empresas-cliente da plataforma pela mensalidade do Hub) — singleton (uma
+ * linha só), mesmo padrão de `ai_insight_config`. NÃO é por tenant: essa é
+ * a chave da Hexxa, não de cada empresa-cliente (ver nota em
+ * meu-negocio/clientes/actions.ts sobre isolar por empresa no futuro).
+ * lib/asaas.ts lê daqui primeiro, cai pra env var (ASAAS_API_KEY etc) se
+ * a linha não existir — permite configurar pelo painel do contador sem
+ * precisar redeploy.
+ */
+export const platformAsaasConfig = pgTable('platform_asaas_config', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  env: text('env').notNull().default('sandbox'), // 'sandbox' | 'production'
+  apiKeyEncrypted: text('api_key_encrypted'),
+  webhookTokenEncrypted: text('webhook_token_encrypted'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Cofre Digital — arquivos fixos (Contrato Social, Alvarás...). */
 export const vaultDocument = pgTable('vault_document', {
   id: uuid('id').primaryKey().defaultRandom(),

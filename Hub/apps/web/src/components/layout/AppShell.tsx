@@ -34,9 +34,9 @@ import {
   Sparkles,
   Search,
   Sun,
-  HandCoins,
   Calendar,
   Pin,
+  PieChart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { NavSection } from '@/lib/nav';
@@ -50,7 +50,6 @@ const ICONS: Record<string, LucideIcon> = {
   '/cliente': LayoutDashboard,
   '/cliente/resumo-mes': Calendar,
   '/meu-negocio/notas': Receipt,
-  '/meu-negocio/vendas': HandCoins,
   '/meu-negocio/contas-a-pagar': TrendingDown,
   '/meu-negocio/contas-a-receber': TrendingUp,
   '/meu-negocio/conciliacao': Scale,
@@ -62,6 +61,7 @@ const ICONS: Record<string, LucideIcon> = {
   '/minha-contabilidade/termometro-tributario': Compass,
   '/minha-contabilidade/socios': UsersRound,
   '/minha-contabilidade/departamento-pessoal': Users,
+  '/meu-negocio/relatorios/balanco': PieChart,
   '/meu-negocio/relatorios/fechamento': FileText,
   '/patrimonial': Landmark,
   '/minha-contabilidade/arquivos': FolderArchive,

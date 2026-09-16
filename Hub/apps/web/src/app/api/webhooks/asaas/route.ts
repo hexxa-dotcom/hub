@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout } from '@hexxa/db/client';
-import { financialEntry, contract } from '@hexxa/db/schema';
+import { financialEntry, contract, platformAsaasConfig } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
+import { decryptSecret } from '@/lib/server/secret-crypto';
 
 /**
  * POST /api/webhooks/asaas
  * Recebe eventos de cobrança do Asaas e baixa o recebível correspondente —
  * é a integração automática de faturamento via gateway (Pix/boleto/cartão),
- * ao lado da NFSe e da Venda avulsa (/meu-negocio/vendas).
+ * ao lado da NFSe.
  *
  * Configure em Asaas > Configurações > Webhooks:
  *   URL: https://seu-dominio.com/api/webhooks/asaas
- *   Token de autenticação: valor de ASAAS_WEBHOOK_TOKEN
+ *   Token de autenticação: o mesmo definido em Contador > Integrações
+ *   (platform_asaas_config, com fallback pra ASAAS_WEBHOOK_TOKEN)
  *
  * Reconciliação em duas camadas:
  *   1) Se a cobrança já nasceu vinculada a um financial_entry (Pix gerado a
@@ -28,7 +30,10 @@ import { eq } from 'drizzle-orm';
  */
 export async function POST(req: Request) {
   const token = req.headers.get('asaas-access-token');
-  if (!process.env.ASAAS_WEBHOOK_TOKEN || token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+  const db = getDb();
+  const [cfg] = await withDbTimeout(db.select().from(platformAsaasConfig).limit(1), 8000);
+  const expectedToken = decryptSecret(cfg?.webhookTokenEncrypted) || process.env.ASAAS_WEBHOOK_TOKEN;
+  if (!expectedToken || token !== expectedToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

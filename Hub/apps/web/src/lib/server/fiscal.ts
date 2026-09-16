@@ -36,6 +36,8 @@ export interface NfseConfig {
   /** Certificado salvo no banco (base64 do .pfx). Prioritário sobre env var. */
   certPfxB64?: string | null;
   certPassword?: string | null;
+  /** Cursor (NSU) da última sincronização com a Distribuição de DF-e do ADN. */
+  ultNsuDistribuicao: number;
 }
 
 /** cache() deduplica por request — evita reconsultar quando chamada de novo por getCertForTenant/isCertConfiguredForTenant na mesma requisição. */
@@ -73,6 +75,7 @@ export const getNfseConfig = cache(async function getNfseConfig(ctx: TenantConte
       proxNumeroDps: (r.prox_numero_dps as number) ?? 1,
       certPfxB64: decryptSecret(r.cert_pfx_b64 as string | null),
       certPassword: decryptSecret(r.cert_password as string | null),
+      ultNsuDistribuicao: Number(r.ult_nsu_distribuicao ?? 0),
     };
   });
 });

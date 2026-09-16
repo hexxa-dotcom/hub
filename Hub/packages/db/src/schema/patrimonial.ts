@@ -83,18 +83,7 @@ export const partner = pgTable('partner', {
   ownershipPct: numeric('ownership_pct', { precision: 6, scale: 3 }).notNull(),
   /** Pró-labore mensal recorrente — entra na folha de 12 meses do Fator R. */
   proLabore: numeric('pro_labore', { precision: 14, scale: 2 }).notNull().default('0'),
+  /** Saldo de mútuo (empréstimo) ativo do sócio com a empresa — alimenta a trava de DDL do ProfitDistributionService. */
+  mutualLoanBalance: numeric('mutual_loan_balance', { precision: 14, scale: 2 }).notNull().default('0'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Painel de Rentabilidade do Sócio — lucro após impostos (Lucro Presumido), por mês. */
-export const partnerDistribution = pgTable('partner_distribution', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  partnerId: uuid('partner_id')
-    .notNull()
-    .references(() => partner.id, { onDelete: 'cascade' }),
-  /** mês de referência (NUNCA "competência"). */
-  referenceMonth: date('reference_month').notNull(),
-  grossProfit: numeric('gross_profit', { precision: 14, scale: 2 }).notNull(),
-  taxes: numeric('taxes', { precision: 14, scale: 2 }).notNull(),
-  netDistributed: numeric('net_distributed', { precision: 14, scale: 2 }).notNull(),
 });

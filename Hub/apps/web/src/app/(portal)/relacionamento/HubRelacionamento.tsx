@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useActionState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
@@ -40,12 +40,9 @@ import {
   Target,
   Sparkles,
 } from 'lucide-react';
-import EmailViewer from '@/components/crm/EmailViewer';
-import EmailComposer from '@/components/crm/EmailComposer';
-import { addCustomerAction, type CustomerState } from '../meu-negocio/clientes/actions';
+import { CustomerForm } from '../meu-negocio/clientes/CustomerForm';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
-import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
-import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
+import { formatDocument, normalizeDocument } from '@hexxa/core/document-br';
 import {
   createRelContractAction,
   deleteRelContractAction,
@@ -353,160 +350,21 @@ function VisaoGeral({
   );
 }
 
-// ── Add Customer Form ─────────────────────────────────────────────────────────
-
-type LookupStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'error';
-
-function AddClienteForm({ onClose, onAdded }: { onClose: () => void; onAdded: (c: Customer) => void }) {
-  const initial: CustomerState = { ok: false, message: '' };
-  const [state, action, pending] = useActionState(async (prev: CustomerState, fd: FormData) => {
-    const res = await addCustomerAction(prev, fd);
-    if (res.ok) {
-      onAdded({
-        id: crypto.randomUUID(),
-        name: String(fd.get('nome') ?? ''),
-        document: String(fd.get('documento') ?? '') || null,
-        email: String(fd.get('email') ?? '') || null,
-        phone: String(fd.get('telefone') ?? '') || null,
-        type: String(fd.get('tipo') ?? 'PJ'),
-        address: null,
-      });
-      onClose();
-    }
-    return res;
-  }, initial);
-
-  const [lookupStatus, setLookupStatus] = useState<LookupStatus>('idle');
-  const nomeRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const telefoneRef = useRef<HTMLInputElement>(null);
-  const enderecoRef = useRef<HTMLInputElement>(null);
-  const cepRef = useRef<HTMLInputElement>(null);
-  const cidadeRef = useRef<HTMLInputElement>(null);
-  const ufRef = useRef<HTMLSelectElement>(null);
-
-  async function lookupCnpj(raw: string) {
-    const doc = normalizeDocument(raw);
-    if (doc.length !== 14) return;
-    setLookupStatus('loading');
-    try {
-      const res = await fetch(`/api/cnpj/${doc}`);
-      if (!res.ok) { setLookupStatus('not_found'); return; }
-      const data: CnpjData = await res.json();
-      if (nomeRef.current) nomeRef.current.value = data.razaoSocial;
-      if (emailRef.current) emailRef.current.value = data.email ?? '';
-      if (telefoneRef.current) telefoneRef.current.value = data.telefone ?? '';
-      if (enderecoRef.current) enderecoRef.current.value = data.endereco ?? '';
-      if (cepRef.current) cepRef.current.value = data.cep ?? '';
-      if (cidadeRef.current) cidadeRef.current.value = data.municipio ?? '';
-      if (ufRef.current && data.uf) ufRef.current.value = data.uf;
-      setLookupStatus('found');
-    } catch { setLookupStatus('error'); }
-  }
-
-  return (
-    <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm animate-in fade-in">
-      <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo Cliente</p>
-        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-4 w-4" /></button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className={lbl}>Tipo de Pessoa</label>
-          <select name="tipo" defaultValue="PJ" className={`mt-1.5 ${field}`}>
-            <option value="PJ">Pessoa Jurídica (CNPJ)</option>
-            <option value="PF">Pessoa Física (CPF)</option>
-          </select>
-        </div>
-        <div>
-          <label className={lbl}>CNPJ / CPF</label>
-          <div className="relative mt-1.5">
-            <input
-              name="documento"
-              required
-              placeholder="00.000.000/0001-00"
-              onInput={e => {
-                const el = e.currentTarget;
-                el.value = formatDocument(el.value);
-                if (isCompleteDocument(el.value)) lookupCnpj(el.value);
-                else setLookupStatus('idle');
-              }}
-              className={`${field} pr-10`}
-            />
-            <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
-              {lookupStatus === 'loading' && <Loader2 className="h-4 w-4 animate-spin text-[#6E6A61]" />}
-              {lookupStatus === 'found' && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-              {(lookupStatus === 'not_found' || lookupStatus === 'error') && <AlertTriangle className="h-4 w-4 text-amber-600" />}
-            </span>
-          </div>
-          {lookupStatus === 'found' && <p className="mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">✓ Dados preenchidos via Receita Federal</p>}
-        </div>
-        <div className="sm:col-span-2">
-          <label className={lbl}>Razão Social / Nome Completo</label>
-          <input ref={nomeRef} name="nome" required placeholder="Nome completo ou razão social" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>E-mail</label>
-          <input ref={emailRef} name="email" type="email" placeholder="contato@empresa.com" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>Telefone / WhatsApp</label>
-          <input ref={telefoneRef} name="telefone" placeholder="(11) 98765-4321" className={`mt-1.5 ${field}`} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className={lbl}>Endereço</label>
-          <input ref={enderecoRef} name="endereco" placeholder="Rua, número, complemento, bairro" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>CEP</label>
-          <input ref={cepRef} name="cep" placeholder="00000-000" className={`mt-1.5 ${field}`} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="col-span-2">
-            <label className={lbl}>Cidade</label>
-            <input ref={cidadeRef} name="cidade" placeholder="São Paulo" className={`mt-1.5 ${field}`} />
-          </div>
-          <div>
-            <label className={lbl}>UF</label>
-            <select ref={ufRef} name="uf" className={`mt-1.5 ${field}`}>
-              <option value="">—</option>
-              {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => <option key={uf} value={uf}>{uf}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
-      {state.message && !state.ok && (
-        <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
-          <AlertTriangle className="h-4 w-4 shrink-0" />{state.message}
-        </p>
-      )}
-      <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
-        >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Cadastrar Cliente
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
 // ── Clientes Tab ──────────────────────────────────────────────────────────────
 
 function ClientesTab({ initial }: { initial: Customer[] }) {
+  const router = useRouter();
   const [clientes, setClientes] = useState(initial);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<'todos' | 'PJ' | 'PF'>('todos');
+
+  // A lista vem do server component (initial); quando o form (que já
+  // revalida /relacionamento) salva um cliente, router.refresh() busca de
+  // novo e esse effect sincroniza o estado local com o prop atualizado.
+  useEffect(() => {
+    setClientes(initial);
+  }, [initial]);
 
   const filtered = clientes.filter(c => {
     const q = search.toLowerCase();
@@ -551,7 +409,15 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
         </button>
       </div>
 
-      {showForm && <AddClienteForm onClose={() => setShowForm(false)} onAdded={c => setClientes(prev => [c, ...prev])} />}
+      {showForm && (
+        <CustomerForm
+          onClose={() => setShowForm(false)}
+          onSuccess={() => {
+            setShowForm(false);
+            router.refresh();
+          }}
+        />
+      )}
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">

@@ -1,25 +1,45 @@
 /**
  * Cliente Asaas — wraps a API v3.
- * Usa sandbox quando ASAAS_ENV !== 'production'.
+ * Usa sandbox quando o ambiente configurado !== 'production'.
+ *
+ * Credencial: config global (singleton) em `platform_asaas_config`,
+ * editável pelo painel do contador (contador/integracoes) — cai pra env var
+ * (ASAAS_API_KEY/ASAAS_ENV/ASAAS_WEBHOOK_TOKEN) se a linha não existir, pra
+ * não quebrar quem já configurava só por variável de ambiente.
  */
+import 'server-only';
 import { normalizeDocument } from '@hexxa/core/document-br';
+import { getDb, withDbTimeout } from '@hexxa/db';
+import { platformAsaasConfig } from '@hexxa/db/schema';
+import { decryptSecret } from './server/secret-crypto';
 
-const BASE =
-  process.env.ASAAS_ENV === 'production'
-    ? 'https://api.asaas.com/v3'
-    : 'https://sandbox.asaas.com/api/v3';
+async function resolveConfig(): Promise<{ env: string; apiKey: string | null }> {
+  const db = getDb();
+  const [row] = await withDbTimeout(db.select().from(platformAsaasConfig).limit(1), 8000);
+  const dbKey = decryptSecret(row?.apiKeyEncrypted);
+  return {
+    env: row?.env ?? process.env.ASAAS_ENV ?? 'sandbox',
+    apiKey: dbKey || process.env.ASAAS_API_KEY || null,
+  };
+}
 
-function apiKey() {
-  const k = process.env.ASAAS_API_KEY;
-  if (!k) throw new Error('ASAAS_API_KEY não configurada');
+async function baseUrl(): Promise<string> {
+  const { env } = await resolveConfig();
+  return env === 'production' ? 'https://api.asaas.com/v3' : 'https://sandbox.asaas.com/api/v3';
+}
+
+async function apiKey(): Promise<string> {
+  const { apiKey: k } = await resolveConfig();
+  if (!k) throw new Error('Asaas não configurado — configure em Contador > Integrações ou defina ASAAS_API_KEY.');
   return k;
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const [base, key] = await Promise.all([baseUrl(), apiKey()]);
+  const res = await fetch(`${base}${path}`, {
     method,
     headers: {
-      'access_token': apiKey(),
+      'access_token': key,
       'Content-Type': 'application/json',
     },
     body: body ? JSON.stringify(body) : undefined,

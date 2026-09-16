@@ -1,58 +1,13 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs } from '@/lib/server/fiscal';
-import { withTenant, sql } from '@hexxa/db';
-import { TaxThermometerService } from '@hexxa/core';
+import { getBalancoDreData, monthLabel, monthLabelShort } from '@/lib/server/reports';
 import { FileText, Info, TrendingDown, Scale, Receipt } from 'lucide-react';
 import { PrintButton } from './PrintButton';
+import { ReportToolbar } from '../ReportToolbar';
 
 export const dynamic = 'force-dynamic';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-
-type Entry = { amount: number; type: string; status: string; reference_month: string; description: string | null; category_name: string | null };
-
-type MonthSummary = {
-  month: string;
-  receita: number;
-  despesasOperacionais: number;
-  prolabore: number;
-  impostoEstimado: number;
-  lucroLiquido: number;
-};
-
-function monthLabel(iso: string) {
-  const [y, m] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-}
-
-function monthLabelShort(iso: string) {
-  const [y, m] = iso.split('-');
-  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-}
-
-function lastNMonths(n: number) {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
-  }
-  return out;
-}
-
-function summarize(entries: Entry[], effectiveRate: number) {
-  const receita = entries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
-  const prolabore = entries
-    .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
-    .reduce((s, e) => s + Number(e.amount), 0);
-  const despesasOperacionais = entries
-    .filter((e) => e.type === 'PAYABLE' && !String(e.description || '').startsWith('Pró-labore'))
-    .reduce((s, e) => s + Number(e.amount), 0);
-  const impostoEstimado = receita * (effectiveRate / 100);
-  const lucroLiquido = receita - despesasOperacionais - prolabore - impostoEstimado;
-  return { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido };
-}
 
 export default async function BalancoInstantaneoPage({
   searchParams,
@@ -61,53 +16,11 @@ export default async function BalancoInstantaneoPage({
 }) {
   const ctx = await getTenantContext();
   const params = await searchParams;
-  const options = lastNMonths(12);
-  const curMonth = options[0]!;
-  const oldestMonth = options[options.length - 1]!;
-  const de = params.de && options.includes(params.de) ? params.de : curMonth;
-  const ate = params.ate && options.includes(params.ate) ? params.ate : curMonth;
-  const [deOrdered, ateOrdered] = de <= ate ? [de, ate] : [ate, de];
-
-  const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
-
-  // Lançamentos dos últimos 12 meses (usado tanto no período filtrado quanto
-  // no histórico mensal de cada seção — uma query só, filtrada em memória).
-  const allEntries = await withTenant(ctx.companyId, async (tx) => {
-    const rows = await tx.execute(sql`
-      SELECT fe.amount, fe.type, fe.status, fe.reference_month, fe.description,
-             c.name AS category_name
-      FROM financial_entry fe
-      LEFT JOIN category c ON c.id = fe.category_id
-      WHERE fe.company_id = ${ctx.companyId}
-        AND fe.status != 'CANCELED'
-        AND fe.reference_month >= ${oldestMonth}
-        AND fe.reference_month <= ${curMonth}
-    `);
-    return rows as unknown as Entry[];
-  });
-
-  const entries = allEntries.filter((e) => e.reference_month >= deOrdered && e.reference_month <= ateOrdered);
-  const { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarize(entries, simples.effectiveRate);
-  const despesasTotais = despesasOperacionais + prolabore + impostoEstimado;
-  const margem = receita > 0 ? (lucroLiquido / receita) * 100 : 0;
-
-  // despesas por categoria (excluindo pró-labore, que já tem linha própria)
-  const byCat = new Map<string, number>();
-  for (const e of entries) {
-    if (e.type !== 'PAYABLE') continue;
-    if (String(e.description || '').startsWith('Pró-labore')) continue;
-    const key = e.category_name?.trim() || 'Sem categoria';
-    byCat.set(key, (byCat.get(key) ?? 0) + Number(e.amount));
-  }
-  const categorias = [...byCat.entries()].sort(([, a], [, b]) => b - a);
-
-  const monthly: MonthSummary[] = [...options]
-    .reverse()
-    .map((m) => ({ month: m, ...summarize(allEntries.filter((e) => e.reference_month === m), simples.effectiveRate) }));
-
-  const periodoLabel = deOrdered === ateOrdered ? monthLabel(deOrdered) : `${monthLabel(deOrdered)} a ${monthLabel(ateOrdered)}`;
-  const hasData = entries.length > 0;
+  const {
+    periodoLabel, deOrdered, ateOrdered, options, hasData,
+    receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
+    categorias, monthly, simples, rbt12,
+  } = await getBalancoDreData(ctx, params);
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
@@ -134,22 +47,29 @@ export default async function BalancoInstantaneoPage({
           </p>
         </div>
 
-        <form method="get" className="flex flex-wrap items-center gap-2">
-          <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
-            {options.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
-          <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">até</span>
-          <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
-            {options.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
-          <button type="submit" className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] transition-all shadow-sm">
-            Filtrar
-          </button>
-        </form>
+        <div className="flex flex-col items-end gap-2">
+          <form method="get" className="flex flex-wrap items-center gap-2">
+            <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
+              {options.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)}</option>
+              ))}
+            </select>
+            <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">até</span>
+            <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
+              {options.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)}</option>
+              ))}
+            </select>
+            <button type="submit" className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] transition-all shadow-sm">
+              Filtrar
+            </button>
+          </form>
+          <ReportToolbar
+            reportType="balanco"
+            query={{ de: deOrdered, ate: ateOrdered }}
+            documentTitle={`Balanço e DRE — ${periodoLabel}`}
+          />
+        </div>
       </header>
 
       {/* ===================== Seção: Balanço ===================== */}

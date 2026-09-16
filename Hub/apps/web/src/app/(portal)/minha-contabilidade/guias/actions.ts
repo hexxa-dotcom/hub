@@ -6,13 +6,24 @@ import { getTenantContext } from '@/lib/server/tenant';
 
 const repo = new DrizzleTaxGuideRepository();
 
-export async function registrarGuiaAction(data: NewTaxGuide) {
+const MAX_ANEXO_BYTES = 4 * 1024 * 1024; // 4MB — mesmo limite do comprovante em Hub Financeiro
+
+export async function registrarGuiaAction(data: Omit<NewTaxGuide, 'fileUrl'> & { anexo?: File | null }) {
   if (!data.taxName.trim()) return { error: 'Informe a descrição.' };
   if (!data.dueDate) return { error: 'Informe o vencimento.' };
   if (!data.amount || data.amount <= 0) return { error: 'Informe um valor válido.' };
+
+  let fileUrl: string | null = null;
+  if (data.anexo && data.anexo.size > 0) {
+    if (data.anexo.size > MAX_ANEXO_BYTES) return { error: 'Arquivo muito grande (máx. 4MB).' };
+    const buf = Buffer.from(await data.anexo.arrayBuffer());
+    const mime = data.anexo.type || 'application/pdf';
+    fileUrl = `data:${mime};base64,${buf.toString('base64')}`;
+  }
+
   try {
     const ctx = await getTenantContext();
-    const { id } = await repo.create(ctx, data);
+    const { id } = await repo.create(ctx, { ...data, fileUrl });
     revalidatePath('/minha-contabilidade/guias');
     return { success: true, id };
   } catch (error) {

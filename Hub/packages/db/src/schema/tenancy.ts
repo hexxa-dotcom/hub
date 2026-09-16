@@ -25,6 +25,10 @@ export const company = pgTable('company', {
   clerkOrgId: text('clerk_org_id').unique(),
   /** Token BYOK do Autentique para gestão de assinaturas do cliente. */
   autentiqueToken: text('autentique_token'),
+  /** Capital social ainda não integralizado (Código Civil Art. 1.059 veda distribuição de lucro enquanto > 0) — alimenta o ProfitDistributionService. */
+  unpaidShareCapital: numeric('unpaid_share_capital', { precision: 14, scale: 2 }).notNull().default('0'),
+  /** Contrato Social prevê distribuição desproporcional à participação societária — checado pelo ProfitDistributionService. */
+  allowsDisproportionateDistribution: boolean('allows_disproportionate_distribution').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

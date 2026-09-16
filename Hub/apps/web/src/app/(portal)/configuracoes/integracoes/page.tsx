@@ -1,8 +1,8 @@
-import { Plug, CheckCircle2, XCircle, ArrowLeftRight, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
+import { Plug, CheckCircle2, XCircle, ArrowLeftRight, ArrowRight, ExternalLink, Sparkles, Mail } from 'lucide-react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { withTenant, eq, and } from '@hexxa/db';
-import { integrationCredential } from '@hexxa/db/schema';
+import { integrationCredential, emailAccount } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 import { IntegrationStatusBlock } from './IntegrationStatusBlock';
 
@@ -62,6 +62,13 @@ export default async function IntegracoesPage() {
     ...erp,
     connected: connectedMap.has(erp.id),
   }));
+
+  // E-mail não usa integration_credential (fica em email_account, tabela
+  // própria — IMAP/SMTP, não API key) — checado à parte.
+  const [emailAcc] = await withTenant(ctx.companyId, async (tx) => {
+    return tx.select({ isActive: emailAccount.isActive }).from(emailAccount).where(eq(emailAccount.companyId, ctx.companyId));
+  });
+  const emailConnected = emailAcc?.isActive ?? false;
 
   return (
     <div className="mx-auto w-full space-y-8 animate-in fade-in">
@@ -156,6 +163,42 @@ export default async function IntegracoesPage() {
             )}
           </div>
         ))}
+
+        {/* E-mail (IMAP/SMTP) — fora do grid de ERPS porque não usa API key/OAuth, é conta de e-mail. */}
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-[#1E3328]/30 transition-all">
+          <div className="absolute top-0 left-0 right-0 h-1.5 opacity-80 bg-[#1E3328]" />
+          <div>
+            <div className="flex items-start justify-between mb-4 mt-1">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1E3328] text-[#DFFFAE] shadow-md transition-transform group-hover:scale-105">
+                  <Mail className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] leading-tight">E-mail (NFSe)</h3>
+                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Envio automático por e-mail</p>
+                  {emailConnected ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Conectado
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                      <XCircle className="h-3.5 w-3.5" /> Não configurado
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed mb-6">
+              Conecte a caixa de e-mail (IMAP/SMTP) que o Hub usa pra mandar a NFSe automaticamente pro cliente assim que ela é emitida.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
+            <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">IMAP / SMTP</span>
+            <Link href={'/configuracoes/integracoes/email' as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+              {emailConnected ? 'Gerenciar' : 'Configurar'} <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Seção Explicativa / Como funciona */}

@@ -18,6 +18,8 @@ export interface EmitNfseInput {
   amount: number;
   serviceDescription: string;
   referenceMonth: string;
+  /** Contrato de recorrência de origem, quando a emissão veio do motor de cobrança automática (não de um formulário manual). */
+  contractId?: string;
   /** data de competência completa YYYY-MM-DD. */
   competenciaDate?: string;
   /** vencimento do recebível YYYY-MM-DD (default: dia 10 do mês). */
@@ -41,6 +43,8 @@ export interface EmitNfseResult {
   nfseNumber?: string;
   providerProtocol?: string;
   financialEntryId?: string;
+  /** Mensagem real do provedor (Emissor Nacional) quando status='ERROR' — nunca descartar, é o único jeito de diagnosticar a rejeição. */
+  errorMessage?: string;
   isMock?: boolean;
 }
 
@@ -74,6 +78,7 @@ export class ServiceInvoiceService {
     // 3. Cria a nota como ISSUING (em emissão).
     const invoice = await this.deps.invoices.create(ctx, {
       customerId: customer.id,
+      contractId: input.contractId,
       amount: input.amount,
       serviceDescription: input.serviceDescription,
       referenceMonth: input.referenceMonth,
@@ -138,6 +143,7 @@ export class ServiceInvoiceService {
       providerProtocol: issued.providerProtocol,
       financialEntryId,
       isMock: issued.isMock,
+      errorMessage: issued.errorMessage,
     };
   }
 

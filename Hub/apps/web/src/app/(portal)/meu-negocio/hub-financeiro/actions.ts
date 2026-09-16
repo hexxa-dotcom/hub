@@ -7,6 +7,26 @@ import { revalidatePath } from 'next/cache';
 
 const MAX_RECEIPT_BYTES = 4 * 1024 * 1024; // 4MB — guarda base64 direto no banco, sem storage externo.
 
+export async function listCategorias(): Promise<
+  { id: string; name: string; kind: 'INCOME' | 'EXPENSE'; accountingCode: string | null; accountingGroup: string | null }[]
+> {
+  const ctx = await getTenantContext();
+  return withTenant(ctx.companyId, async (tx) => {
+    const rows = await tx
+      .select({
+        id: category.id,
+        name: category.name,
+        kind: category.kind,
+        accountingCode: category.accountingCode,
+        accountingGroup: category.accountingGroup,
+      })
+      .from(category)
+      .where(eq(category.companyId, ctx.companyId))
+      .orderBy(category.accountingCode, category.name);
+    return rows;
+  });
+}
+
 export async function getLancamentos() {
   const ctx = await getTenantContext();
   const data = await withTenant(ctx.companyId, async (tx) => {
@@ -113,6 +133,9 @@ export async function createLancamento(data: {
   vencimento: string;
   parcelas?: number;
   isInfinite?: boolean;
+  /** Categoria já existente (plano de contas), pelo id — preferível a `categoria`. */
+  categoriaId?: string;
+  /** Nome livre — usado só quando não há categoriaId (ex: "Outros" no formulário), cria categoria nova sem código contábil. */
   categoria?: string;
   comprovante?: File | null;
   multaJuros?: number;
@@ -140,9 +163,11 @@ export async function createLancamento(data: {
   }
 
   await withTenant(ctx.companyId, async (tx) => {
-    const categoryId = data.categoria
-      ? await getOrCreateCategoryId(tx, ctx.companyId, data.categoria, data.tipo === 'PAGAR' ? 'EXPENSE' : 'INCOME')
-      : null;
+    const categoryId = data.categoriaId
+      ? data.categoriaId
+      : data.categoria
+        ? await getOrCreateCategoryId(tx, ctx.companyId, data.categoria, data.tipo === 'PAGAR' ? 'EXPENSE' : 'INCOME')
+        : null;
     
     const partnerId = data.parceiro 
       ? await getOrCreateBusinessPartner(tx, ctx.companyId, data.parceiro, data.tipo === 'PAGAR' ? 'SUPPLIER' : 'CLIENT')

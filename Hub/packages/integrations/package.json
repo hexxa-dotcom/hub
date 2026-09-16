@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hexxa/core": "*",
+    "@xmldom/xmldom": "^0.8.10",
     "node-forge": "^1.4.0",
     "xml-crypto": "^6.1.2",
     "zod": "^3.24.1"

@@ -8,6 +8,24 @@ import { normalizeDocument } from '@hexxa/core/document-br';
 
 export type FiscalState = { ok: boolean; message: string };
 
+/**
+ * Normaliza o item da lista de serviço (LC 116) pro formato "XX.XX" que
+ * lcItemToCTribNac() espera. Achado real: um usuário copiou o "Serviço" de
+ * uma NFS-e já emitida (ex: "170202") achando que era o item LC116 — mas
+ * esse número já é o cTribNac completo (grupo+sub+subclasse municipal, 6
+ * dígitos), não o item em si ("17.02"). Sem essa normalização, o valor cru
+ * sem ponto quebra a derivação do cTribNac (vira 10 dígitos em vez de 6) e
+ * o Emissor Nacional rejeita a nota com um erro de schema XML — genérico
+ * demais pra alguém sem saber ler XSD adivinhar a causa.
+ */
+function normalizeLc116Item(raw: string): string {
+  if (raw.includes('.')) return raw;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length === 6) return `${digits.slice(0, 2)}.${digits.slice(2, 4)}`; // descarta subclasse municipal (vai em codigoTributacaoMunicipio, não aqui)
+  return raw;
+}
+
 export async function saveFiscalAction(_prev: FiscalState, formData: FormData): Promise<FiscalState> {
   const str = (k: string) => {
     const v = String(formData.get(k) ?? '').trim();
@@ -44,7 +62,7 @@ export async function saveFiscalAction(_prev: FiscalState, formData: FormData): 
       emailContato: str('emailContato'),
       telefone: str('telefone'),
       // Serviço
-      itemListaServico: str('item'),
+      itemListaServico: (() => { const raw = str('item'); return raw ? normalizeLc116Item(raw) : raw; })(),
       codigoTributacaoMunicipio: str('ctrib'),
       cnae: str('cnae'),
       aliquotaIss: aliquotaRaw ? Number(aliquotaRaw.replace(',', '.')) : null,
@@ -139,7 +157,8 @@ export async function createProfileAction(_prev: FiscalState, formData: FormData
   try {
     const id = str('id');
     const nome = str('nome');
-    const item = str('item');
+    const itemRaw = str('item');
+    const item = itemRaw ? normalizeLc116Item(itemRaw) : itemRaw;
     if (!nome || !item) return { ok: false, message: 'Nome e Código LC 116 são obrigatórios.' };
 
     const aliquotaRaw = str('aliquota');

@@ -12,6 +12,8 @@ export type NewTaxGuide = {
   amount: number;
   dueDate: string; // YYYY-MM-DD
   pixCode?: string | null;
+  /** PDF da guia como data URI ("data:application/pdf;base64,...") — sem storage externo, mesmo padrão de financial_entry.receiptBase64. */
+  fileUrl?: string | null;
 };
 
 export type TaxGuideRecord = {
@@ -49,6 +51,7 @@ export class DrizzleTaxGuideRepository {
           amount: String(data.amount),
           dueDate: data.dueDate,
           pixCode: data.pixCode ?? null,
+          fileUrl: data.fileUrl ?? null,
           status,
         })
         .returning({ id: taxGuide.id });
@@ -115,6 +118,7 @@ export class AdminTaxGuideRepository {
         amount: String(data.amount),
         dueDate: data.dueDate,
         pixCode: data.pixCode ?? null,
+        fileUrl: data.fileUrl ?? null,
         status,
       })
       .returning({ id: taxGuide.id });

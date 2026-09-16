@@ -6,9 +6,11 @@ import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { PieChart, Calculator, Package, KeyRound, Trash2, Loader2, Plus, Sparkles } from 'lucide-react';
 import type { PropertyRow, LeaseRow } from './actions';
 import type { PartnerRow } from '../minha-contabilidade/socios/actions';
+import type { YearlyProfitSummary } from '@/lib/server/profit-distribution';
 import { createProperty, deleteProperty } from './actions';
 import { AlugueisTab } from './AlugueisTab';
 import { TAXAS, valorContabilLiquido, depreciacaoAcumulada, impostoAluguel } from './lib';
+import { DistributionRequestForm } from '@/components/profit-distribution/DistributionRequestForm';
 
 const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -32,10 +34,11 @@ export function PatrimonioApp({
 }: {
   initialProperties: PropertyRow[];
   partners: PartnerRow[];
-  resumo: { lucroExercicio: number; lucroAcumuladoNaoDistribuido: number };
+  resumo: YearlyProfitSummary;
   initialLeases: LeaseRow[];
 }) {
   const [tab, setTab] = useState<Tab>('patrimonio');
+  const router = useRouter();
 
   return (
     <div className="space-y-6">
@@ -50,7 +53,7 @@ export function PatrimonioApp({
 
       {tab === 'patrimonio' && <Patrimonio properties={initialProperties} partners={partners} />}
       {tab === 'alugueis' && <AlugueisTab properties={initialProperties} leases={initialLeases} />}
-      {tab === 'dividendos' && <Dividendos partners={partners} resumo={resumo} />}
+      {tab === 'dividendos' && <Dividendos partners={partners} resumo={resumo} onConfirmed={() => router.refresh()} />}
       {tab === 'ativos' && <Ativos properties={initialProperties} partners={partners} />}
     </div>
   );
@@ -148,11 +151,23 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
 }
 
 // ============================================================
-// 2) Simulador de Dividendos — base real (lucro do exercício + acumulado)
+// 2) Simulador de Dividendos — base real (lucro do exercício + acumulado),
+//    com pedido de distribuição validado pelas 6 travas legais reais
+//    (ProfitDistributionService, ver lib/server/profit-distribution.ts).
+//    O simulador abaixo é só uma prévia informativa — quem grava de verdade
+//    é o DistributionRequestForm (mesmo componente usado em Sócios).
 // ============================================================
-function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lucroExercicio: number; lucroAcumuladoNaoDistribuido: number } }) {
-  const [lucro, setLucro] = useState(resumo.lucroExercicio);
-  const [reservas, setReservas] = useState(resumo.lucroAcumuladoNaoDistribuido);
+function Dividendos({
+  partners,
+  resumo,
+  onConfirmed,
+}: {
+  partners: PartnerRow[];
+  resumo: YearlyProfitSummary;
+  onConfirmed: () => void;
+}) {
+  const [lucro, setLucro] = useState(resumo.netProfit);
+  const [reservas, setReservas] = useState(resumo.accumulatedProfit);
   const [reterPct, setReterPct] = useState(20);
 
   const calc = useMemo(() => {
@@ -171,7 +186,7 @@ function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lu
       <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
         <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Parâmetros de Simulação</h2>
         <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-          Pré-preenchido com o lucro real do ano, já descontada a depreciação do período ({BRL.format(resumo.lucroExercicio)}), e o acumulado ainda não distribuído ({BRL.format(resumo.lucroAcumuladoNaoDistribuido)}).
+          Pré-preenchido com o lucro real do ano, já descontada a depreciação do período ({BRL.format(resumo.netProfit)}), e o acumulado histórico ainda não distribuído ({BRL.format(resumo.accumulatedProfit)}).
         </p>
         <div className="mt-4 space-y-4">
           <div>
@@ -221,7 +236,7 @@ function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lu
         </div>
 
         <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Distribuição por Sócio</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Prévia por Sócio (simulação, não grava nada)</h3>
           {partners.length === 0 ? (
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Cadastre os sócios em Minha Contabilidade → Sócios para ver a divisão aqui.</p>
           ) : (
@@ -236,6 +251,14 @@ function Dividendos({ partners, resumo }: { partners: PartnerRow[]; resumo: { lu
           )}
         </div>
       </section>
+
+      <div className="lg:col-span-2">
+        <DistributionRequestForm
+          partners={partners.map((p) => ({ id: p.id, nome: p.nome, participacao: p.participacao }))}
+          availableToDistribute={resumo.availableToDistribute}
+          onConfirmed={onConfirmed}
+        />
+      </div>
     </div>
   );
 }

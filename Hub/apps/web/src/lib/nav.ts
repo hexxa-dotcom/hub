@@ -7,9 +7,10 @@ export type NavSection = { title: string; items: NavItem[] };
  * misturar assuntos diferentes na mesma seção (ex.: imposto é Contabilidade,
  * não Pessoas).
  * 1. Início (resumo de tudo — seção de 1 item só)
- * 2. Contabilidade (guias/impostos, parcelamentos, bússola tributária/Fator
- *    R, balanço/DRE, documentos da empresa, serviços adicionais)
- * 3. Financeiro (resumo/DRE, contas a pagar/receber, notas, conciliação)
+ * 2. Contabilidade (guias/impostos, parcelamentos, bússola tributária/Fator R,
+ *    documentos da empresa, serviços adicionais)
+ * 3. Financeiro (contas a pagar/receber, notas, conciliação, relatórios —
+ *    balanço/DRE, fechamento mensal)
  * 4. Relacionamento (CRM, propostas, contratos)
  * 5. Gestão de Pessoas (sócios, colaboradores)
  * 6. Gestão do Patrimônio (imóveis)
@@ -28,7 +29,6 @@ export const NAV: NavSection[] = [
     items: [
       { label: 'Central de Guias', href: '/minha-contabilidade/guias' },
       { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
-      { label: 'Balanço e DRE', href: '/meu-negocio/relatorios/balanco' },
       { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
     ],
@@ -36,12 +36,16 @@ export const NAV: NavSection[] = [
   {
     title: 'Financeiro',
     items: [
-      { label: 'Resumo', href: '/meu-negocio/hub-financeiro' },
+      // "Resumo" / "Pagar" / "Receber" eram 3 itens de menu pra UMA tela só
+      // (contas-a-pagar e contas-a-receber são wrappers de hub-financeiro
+      // com uma aba pré-selecionada) — colapsados aqui; as abas internas já
+      // resolvem a navegação entre pagar/receber. As rotas /contas-a-pagar
+      // e /contas-a-receber continuam existindo (usadas como link direto
+      // pelos cards do Início), só saíram do menu lateral.
+      { label: 'Financeiro', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
-      { label: 'Faturamento Avulso', href: '/meu-negocio/vendas' },
-      { label: 'Pagar', href: '/meu-negocio/contas-a-pagar' },
-      { label: 'Receber', href: '/meu-negocio/contas-a-receber' },
-      { label: 'Conciliação', href: '/meu-negocio/conciliacao', badge: 'Em breve' },
+      { label: 'Conciliação', href: '/meu-negocio/conciliacao' },
+      { label: 'Relatórios', href: '/meu-negocio/relatorios' },
     ],
   },
   {

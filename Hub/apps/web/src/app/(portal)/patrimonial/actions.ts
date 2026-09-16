@@ -3,7 +3,6 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, sql } from '@hexxa/db';
 import { revalidatePath } from 'next/cache';
-import { depreciacaoAnual } from './lib';
 import { gerarLancamentosDoAluguel } from '@/lib/server/contract-financials';
 import { makeContractSignatureService } from '@/lib/server/container';
 
@@ -314,59 +313,11 @@ export async function createProperty(data: {
   revalidatePath('/patrimonial');
 }
 
-/** Lucro do ano corrente e lucro histórico acumulado não distribuído (base real p/ o simulador de dividendos). */
-export async function getResumoFinanceiroAction(): Promise<{ lucroExercicio: number; lucroAcumuladoNaoDistribuido: number }> {
-  const ctx = await getTenantContext();
-  const anoAtual = new Date().getFullYear();
-
-  return withTenant(ctx.companyId, async (tx) => {
-    const anoRes = await tx.execute(sql`
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'RECEIVABLE' THEN amount ELSE 0 END), 0) AS receita,
-        COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
-      FROM financial_entry
-      WHERE company_id = ${ctx.companyId}
-        AND status != 'CANCELED'
-        AND EXTRACT(YEAR FROM reference_month) = ${anoAtual}
-    `);
-    const historicoRes = await tx.execute(sql`
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'RECEIVABLE' THEN amount ELSE 0 END), 0) AS receita,
-        COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
-      FROM financial_entry
-      WHERE company_id = ${ctx.companyId} AND status != 'CANCELED'
-    `);
-    const distribuidoRes = await tx.execute(sql`
-      SELECT COALESCE(SUM(amount), 0) AS total FROM profit_distribution WHERE company_id = ${ctx.companyId}
-    `);
-    // Depreciação do ano — despesa contábil (NBC TG 27) que não passa pelo
-    // financial_entry (não é saída de caixa), mas reduz o lucro apurável pra
-    // distribuição igual reduziria no balanço de verdade.
-    const propsRes = await tx.execute(sql`
-      SELECT acquisition_value, depreciation_rate, acquisition_date
-      FROM property
-      WHERE company_id = ${ctx.companyId} AND acquisition_value IS NOT NULL AND depreciation_rate IS NOT NULL
-    `);
-
-    const lucroExercicio = Number(anoRes[0]?.receita ?? 0) - Number(anoRes[0]?.despesa ?? 0);
-    const lucroHistorico = Number(historicoRes[0]?.receita ?? 0) - Number(historicoRes[0]?.despesa ?? 0);
-    const distribuido = Number(distribuidoRes[0]?.total ?? 0);
-
-    const depreciacaoAnualTotal = propsRes.reduce((s: number, r: any) => {
-      const acq = Number(r.acquisition_value);
-      const rate = Number(r.depreciation_rate);
-      const anos = r.acquisition_date ? anoAtual - new Date(r.acquisition_date).getFullYear() : 0;
-      return s + depreciacaoAnual(acq, rate, anos);
-    }, 0);
-
-    const lucroExercicioLiquido = lucroExercicio - depreciacaoAnualTotal;
-
-    return {
-      lucroExercicio: Math.max(0, lucroExercicioLiquido),
-      lucroAcumuladoNaoDistribuido: Math.max(0, lucroHistorico - distribuido - lucroExercicio),
-    };
-  });
-}
+// getResumoFinanceiroAction foi substituída por getAvailableProfitAction
+// (apps/web/src/lib/server/profit-distribution.ts) — mesmo cálculo (receita
+// - despesa - depreciação do ano p/ HOLDING), agora compartilhado com Sócios
+// e alimentando o motor de 6 travas legais (ProfitDistributionService) em
+// vez de só um simulador que nunca gravava nada.
 
 export async function deleteProperty(id: string) {
   const ctx = await getTenantContext();

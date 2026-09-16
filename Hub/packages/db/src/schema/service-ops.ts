@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, boolean, integer, date, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, boolean, integer, date, timestamp, bigint } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { contractStatus, billingCycle, invoiceStatus, signatureStatus } from './_enums';
 
@@ -43,7 +43,41 @@ export const nfseConfig = pgTable('nfse_config', {
   proxNumeroDps: integer('prox_numero_dps').notNull().default(1),
   certPfxB64: text('cert_pfx_b64'),
   certPassword: text('cert_password'),
+  ultNsuDistribuicao: bigint('ult_nsu_distribuicao', { mode: 'number' }).notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Documentos (NFS-e emitidas/recebidas + eventos) sincronizados da
+ * Distribuição de DF-e do Sistema Nacional NFS-e (ADN) — espelha a migration
+ * 0048_nfse_distribuicao_dfe.sql. Leituras/escritas reais passam por SQL cru
+ * em lib/server/nfse-dfe-sync.ts.
+ */
+export const nfseDistribuicaoDoc = pgTable('nfse_distribuicao_doc', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  nsu: bigint('nsu', { mode: 'number' }).notNull(),
+  chaveAcesso: text('chave_acesso').notNull(),
+  tipoDocumento: text('tipo_documento').notNull(),
+  tipoEvento: text('tipo_evento'),
+  direction: text('direction'), // EMITIDA | RECEBIDA
+  numeroNfse: text('numero_nfse'),
+  municipioEmissao: text('municipio_emissao'),
+  dataEmissao: timestamp('data_emissao', { withTimezone: true }),
+  valorServico: numeric('valor_servico', { precision: 14, scale: 2 }),
+  valorLiquido: numeric('valor_liquido', { precision: 14, scale: 2 }),
+  valorIss: numeric('valor_iss', { precision: 14, scale: 2 }),
+  prestadorCnpj: text('prestador_cnpj'),
+  prestadorNome: text('prestador_nome'),
+  tomadorDocumento: text('tomador_documento'),
+  tomadorNome: text('tomador_nome'),
+  descricaoServico: text('descricao_servico'),
+  itemListaServico: text('item_lista_servico'),
+  cancelado: boolean('cancelado').notNull().default(false),
+  dataHoraGeracao: timestamp('data_hora_geracao', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const nfseServiceProfile = pgTable('nfse_service_profile', {
@@ -91,6 +125,10 @@ export const contract = pgTable('contract', {
   nextBillingDate: date('next_billing_date'),
   endDate: date('end_date'),
   notes: text('notes'),
+  /** Se true, o cron de cobrança emite a NFSe automaticamente a cada ciclo, em vez de só lançar o recebível. */
+  autoEmitNfse: boolean('auto_emit_nfse').notNull().default(false),
+  /** Descrição do serviço usada na NFSe emitida automaticamente. Obrigatória quando autoEmitNfse=true. */
+  serviceDescription: text('service_description'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

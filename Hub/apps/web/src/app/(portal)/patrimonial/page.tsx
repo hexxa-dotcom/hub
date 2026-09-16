@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { Landmark } from 'lucide-react';
-import { getProperties, getResumoFinanceiroAction, listLeasesAction } from './actions';
+import { getProperties, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
+import { getAvailableProfitAction } from '@/lib/server/profit-distribution';
 import { PatrimonioApp } from './PatrimonioApp';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getContextualInsight } from '@/lib/server/ai-insight';
@@ -20,7 +21,7 @@ export default async function Page() {
   const [properties, partners, resumo, leases] = await Promise.all([
     getProperties(),
     listPartnersAction(),
-    getResumoFinanceiroAction(),
+    getAvailableProfitAction(),
     listLeasesAction(),
   ]);
 
@@ -28,7 +29,7 @@ export default async function Page() {
   const insightContext = [
     `Tela: gestão de patrimônio (imóveis, ativos, depreciação e contratos de aluguel) de uma holding patrimonial.`,
     `Bens cadastrados: ${properties.length}. Contratos de aluguel ativos: ${ativos.length}, renda mensal total R$ ${ativos.reduce((s, l) => s + l.monthlyRent, 0).toFixed(2)}.`,
-    `Lucro do exercício (já líquido de depreciação, base pro simulador de dividendos): R$ ${resumo.lucroExercicio.toFixed(2)}.`,
+    `Lucro do exercício (já líquido de depreciação, base pro simulador de dividendos): R$ ${resumo.netProfit.toFixed(2)}.`,
     `Bens sem contrato de aluguel ativo: ${properties.filter((p) => !p.leaseId).length}.`,
   ].join('\n');
 

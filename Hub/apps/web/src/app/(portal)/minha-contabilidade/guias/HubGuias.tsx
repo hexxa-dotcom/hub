@@ -218,12 +218,14 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
 
     setSubmitting(true);
     setError(null);
+    const anexo = fd.get('anexo') as File | null;
     const res = await registrarGuiaAction({
       taxName: `${CAT_CONFIG[tipo as GuiaCategoria]?.label ?? tipo} — ${descricao}`,
       referenceMonth,
       dueDate,
       amount: Number(String(fd.get('valor') ?? '0').replace(',', '.')),
       pixCode: String(fd.get('pix') ?? '').trim() || null,
+      anexo: anexo && anexo.size > 0 ? anexo : null,
     });
     setSubmitting(false);
     if ('error' in res) {
@@ -272,6 +274,11 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         <div className="sm:col-span-2">
           <label className={lbl}>Código Pix (opcional)</label>
           <input name="pix" placeholder="Cole aqui o código Pix copia e cola da guia" className={`mt-1.5 ${field}`} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={lbl}>PDF da Guia (opcional)</label>
+          <input name="anexo" type="file" accept="application/pdf,image/*" className={`mt-1.5 ${field} file:mr-3 file:rounded-full file:border-0 file:bg-[#1E3328] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#DFFFAE]`} />
+          <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Sobe o PDF que você baixou do OneFlow/Omie (ou de onde for) — máx. 4MB.</p>
         </div>
       </div>
       {error && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}

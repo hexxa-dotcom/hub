@@ -3,7 +3,7 @@ import { Users, Sparkles } from 'lucide-react';
 import { TaxThermometerService } from '@hexxa/core';
 import { HubSocios } from './HubSocios';
 import { listPartnersAction } from './actions';
-import { listDistributionsAction, getYearlyProfitSummaryAction } from '../distribuicao-lucros/actions';
+import { listDistributionsAction, getAvailableProfitAction } from '@/lib/server/profit-distribution';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs, proLaboreMinimoParaFatorR } from '@/lib/server/fiscal';
 import { getContextualInsight } from '@/lib/server/ai-insight';
@@ -23,7 +23,7 @@ export default async function Page() {
     listPartnersAction(),
     listDistributionsAction(),
     getSimplesInputs(ctx),
-    getYearlyProfitSummaryAction(),
+    getAvailableProfitAction(),
   ]);
 
   const prolaboreMinimoRecomendado = proLaboreMinimoParaFatorR(simplesInputs.rbt12, simplesInputs.folhaEmpregados12);

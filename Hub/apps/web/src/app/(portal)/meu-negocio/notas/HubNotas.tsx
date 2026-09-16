@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { emitNfseAction, cancelNfseAction, type EmitState } from '../nfse/actions';
-import type { NfseConfig } from '@/lib/server/fiscal';
+import type { NfseConfig, NfseServiceProfile } from '@/lib/server/fiscal';
+import { DfeNacionalCard } from './DfeNacionalCard';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -217,6 +218,8 @@ function Dashboard({
           )}
         </div>
       </div>
+
+      <DfeNacionalCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Coluna Esquerda: Notas Recentes */}
@@ -445,7 +448,7 @@ function EmitirNota({
   prefillDoc?: string;
   certOk: boolean;
   fiscalOk: boolean;
-  profiles?: any[];
+  profiles?: NfseServiceProfile[];
   taxRatePercent: number;
 }) {
   const emitInitial: EmitState = { ok: false, message: '' };
@@ -463,6 +466,40 @@ function EmitirNota({
   const [cusDoc, setCusDoc] = useState(prefillDoc ?? '');
   const [cusEmail, setCusEmail] = useState('');
   const [serviceDesc, setServiceDesc] = useState('');
+  const [profileId, setProfileId] = useState(profiles?.[0]?.id ?? '');
+
+  // Endereço do tomador — a DPS/NFS-e pede endereço completo; resolvido a
+  // partir só do CEP via ViaCEP (também devolve o código IBGE do município,
+  // sem precisar de um seletor de cidade separado).
+  const [cep, setCep] = useState('');
+  const [logradouro, setLogradouro] = useState('');
+  const [numero, setNumero] = useState('');
+  const [complemento, setComplemento] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidadeUf, setCidadeUf] = useState('');
+  const [cMun, setCMun] = useState('');
+  const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+
+  async function handleCepBlur() {
+    const digits = cep.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    setCepStatus('loading');
+    try {
+      const res = await fetch(`/api/cep/${digits}`);
+      if (!res.ok) {
+        setCepStatus('error');
+        return;
+      }
+      const data = await res.json();
+      setLogradouro(data.logradouro);
+      setBairro(data.bairro);
+      setCidadeUf(`${data.cidade} - ${data.uf}`);
+      setCMun(data.codigoMunicipio);
+      setCepStatus('ok');
+    } catch {
+      setCepStatus('error');
+    }
+  }
 
   function handleClientSelect(id: string) {
     setSelectedId(id);
@@ -567,6 +604,28 @@ function EmitirNota({
               <label className={lbl}>Data de Competência *</label>
               <input name="competenciaDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={field} />
             </div>
+            <div className="md:col-span-3">
+              <label className={lbl}>Perfil Fiscal (item da lista de serviço)</label>
+              {profiles && profiles.length > 1 ? (
+                <select name="profileId" value={profileId} onChange={(e) => setProfileId(e.target.value)} className={field}>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nome} — item {p.itemListaServico}</option>
+                  ))}
+                </select>
+              ) : profiles && profiles.length === 1 ? (
+                <>
+                  <input type="hidden" name="profileId" value={profiles[0]!.id} />
+                  <p className={`${field} bg-black/5 dark:bg-white/5 text-[#6E6A61] dark:text-[#A8A49C]`}>
+                    {profiles[0]!.nome} — item {profiles[0]!.itemListaServico}
+                    {profiles[0]!.aliquotaIss != null ? ` · ISS ${profiles[0]!.aliquotaIss}%` : ''}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs font-bold text-red-600">
+                  Nenhum perfil fiscal cadastrado — <Link href="/configuracoes/fiscal" className="underline">cadastre um</Link> antes de emitir.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -635,6 +694,49 @@ function EmitirNota({
               </div>
             </div>
           )}
+
+          {/* Endereço do tomador — resolvido a partir do CEP (ViaCEP já devolve
+              o código IBGE do município junto, sem precisar de outro campo). */}
+          <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/10">
+            <p className={`${lbl} mb-4`}>Endereço do Tomador (opcional, mas evita rejeição da nota por alguns municípios)</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <label className={lbl}>CEP</label>
+                <input
+                  name="cep"
+                  value={cep}
+                  onChange={(e) => setCep(e.target.value)}
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  className={field}
+                />
+                {cepStatus === 'loading' && <p className="mt-1 text-[11px] text-[#6E6A61]">Buscando…</p>}
+                {cepStatus === 'ok' && <p className="mt-1 text-[11px] font-bold text-emerald-700">✓ Endereço preenchido</p>}
+                {cepStatus === 'error' && <p className="mt-1 text-[11px] font-bold text-amber-700">CEP não encontrado</p>}
+              </div>
+              <div className="md:col-span-2">
+                <label className={lbl}>Logradouro</label>
+                <input name="logradouro" value={logradouro} onChange={(e) => setLogradouro(e.target.value)} placeholder="Rua / Avenida" className={field} />
+              </div>
+              <div>
+                <label className={lbl}>Número</label>
+                <input name="numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="123" className={field} />
+              </div>
+              <div>
+                <label className={lbl}>Complemento</label>
+                <input name="complemento" value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Sala, apto…" className={field} />
+              </div>
+              <div>
+                <label className={lbl}>Bairro</label>
+                <input name="bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" className={field} />
+              </div>
+              <div className="md:col-span-2">
+                <label className={lbl}>Cidade / UF</label>
+                <input value={cidadeUf} disabled placeholder="Preenchido automaticamente pelo CEP" className={`${field} bg-black/5 dark:bg-white/5`} />
+              </div>
+            </div>
+            <input type="hidden" name="cMun" value={cMun} />
+          </div>
         </div>
 
         {/* Submit */}

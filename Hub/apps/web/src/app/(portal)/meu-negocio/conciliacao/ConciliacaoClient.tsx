@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { matchTransaction, ignoreTransaction, generateMockTransactions } from './actions';
-import { Loader2, ArrowRightLeft, Check, X, RefreshCw, Plus } from 'lucide-react';
+import {
+  matchTransaction,
+  ignoreTransaction,
+  generateMockTransactions,
+  suggestAiMatchesAction,
+  applyAiMatchAction,
+  applyAiNewEntryAction,
+} from './actions';
+import { Loader2, ArrowRightLeft, Check, X, RefreshCw, Plus, Sparkles } from 'lucide-react';
 
 
 type Transaction = {
@@ -18,6 +25,15 @@ type Entry = {
   description: string;
   amount: number;
   dueDate: string;
+};
+
+type AiSuggestion = {
+  transactionId: string;
+  suggestedCategoryId: string;
+  confidenceScore: number;
+  action: 'MATCH_EXISTING' | 'CREATE_NEW';
+  matchedEntryId?: string;
+  justification: string;
 };
 
 const fmt = (v: number) =>
@@ -37,6 +53,9 @@ export function ConciliacaoClient({
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedTx, setSelectedTx] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Record<string, AiSuggestion>>({});
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   function handleMatch(txId: string, entryId: string) {
     startTransition(async () => {
@@ -77,6 +96,57 @@ export function ConciliacaoClient({
     });
   }
 
+  async function handleSuggestAi() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await suggestAiMatchesAction();
+      if (!res.ok) {
+        setAiError(res.message || 'Não foi possível consultar a IA.');
+        return;
+      }
+      const byTx: Record<string, AiSuggestion> = {};
+      for (const s of res.suggestions ?? []) byTx[s.transactionId] = s;
+      setSuggestions(byTx);
+    } catch {
+      setAiError('Erro ao consultar a IA.');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function handleApplyAiMatch(suggestion: AiSuggestion) {
+    if (!suggestion.matchedEntryId) return;
+    startTransition(async () => {
+      const res = await applyAiMatchAction(suggestion.transactionId, suggestion.matchedEntryId!, suggestion.suggestedCategoryId);
+      if (!res.ok) {
+        alert(res.message || 'Não foi possível aplicar a sugestão.');
+        return;
+      }
+      setSuggestions((prev) => {
+        const next = { ...prev };
+        delete next[suggestion.transactionId];
+        return next;
+      });
+      setSelectedTx(null);
+    });
+  }
+
+  function handleApplyAiNewEntry(suggestion: AiSuggestion) {
+    startTransition(async () => {
+      const res = await applyAiNewEntryAction(suggestion.transactionId, suggestion.suggestedCategoryId);
+      if (!res.ok) {
+        alert(res.message || 'Não foi possível criar o lançamento.');
+        return;
+      }
+      setSuggestions((prev) => {
+        const next = { ...prev };
+        delete next[suggestion.transactionId];
+        return next;
+      });
+    });
+  }
+
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center border border-black/5 dark:border-white/10 rounded-3xl bg-[#F4EFE4]/50 dark:bg-[#1A201C]/50 mt-8">
@@ -99,7 +169,15 @@ export function ConciliacaoClient({
 
   return (
     <div className="mt-8 space-y-6 animate-in fade-in">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={handleSuggestAi}
+          disabled={aiLoading}
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] transition-colors disabled:opacity-50"
+        >
+          {aiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          Sugerir com IA
+        </button>
         <button
           onClick={handleMock}
           disabled={isPending}
@@ -109,6 +187,12 @@ export function ConciliacaoClient({
           + Dados
         </button>
       </div>
+
+      {aiError && (
+        <p className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-xs font-bold text-red-800 dark:text-red-300">
+          {aiError}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
         {/* Lado Esquerdo: Extrato Bancário */}
@@ -138,7 +222,7 @@ export function ConciliacaoClient({
                 <div className="flex justify-between items-center text-xs text-[#6E6A61]">
                   <span>{fmtDate(tx.postedAt)}</span>
                   {selectedTx === tx.id && (
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleIgnore(tx.id); }}
                       className="text-red-600 font-bold hover:underline"
                     >
@@ -146,6 +230,27 @@ export function ConciliacaoClient({
                     </button>
                   )}
                 </div>
+
+                {suggestions[tx.id] && (
+                  <div className="mt-3 rounded-xl bg-[#EFFFD6] dark:bg-[#1E3328]/40 border border-[#2F4A3C]/10 p-3">
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+                      <Sparkles className="h-3 w-3" /> Sugestão da IA
+                    </p>
+                    <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{suggestions[tx.id]!.justification}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const s = suggestions[tx.id]!;
+                        s.action === 'MATCH_EXISTING' ? handleApplyAiMatch(s) : handleApplyAiNewEntry(s);
+                      }}
+                      disabled={isPending}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-3 py-1.5 text-[11px] font-bold text-[#DFFFAE] transition-colors disabled:opacity-50"
+                    >
+                      {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                      {suggestions[tx.id]!.action === 'MATCH_EXISTING' ? 'Conciliar com sugestão' : 'Criar lançamento categorizado'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

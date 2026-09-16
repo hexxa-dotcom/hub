@@ -40,13 +40,17 @@ const SKIP_AUTH_TEMP = (process.env.SKIP_AUTH_TEMP ?? '').trim().toLowerCase() =
 async function getDevTenantContext(): Promise<TenantContext> {
   // Sem ORDER BY o Postgres não garante qual linha volta primeiro — precisa
   // ser determinístico aqui, senão o bypass local cai numa empresa aleatória.
+  // DEV_ACTIVE_COMPANY_ID (opcional): força qual empresa abre no bypass local,
+  // em vez de sempre a mais antiga — útil pra testar uma empresa específica
+  // sem precisar de login real. Nunca afeta produção (guardado por NODE_ENV).
+  const forcedId = process.env.DEV_ACTIVE_COMPANY_ID;
   let first: { id: string; type: 'SERVICE' | 'HOLDING' } | undefined;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      [first] = await withDbTimeout(
-        getDb().select({ id: company.id, type: company.type }).from(company).orderBy(company.createdAt).limit(1),
-        8000,
-      );
+      const query = forcedId
+        ? getDb().select({ id: company.id, type: company.type }).from(company).where(eq(company.id, forcedId)).limit(1)
+        : getDb().select({ id: company.id, type: company.type }).from(company).orderBy(company.createdAt).limit(1);
+      [first] = await withDbTimeout(query, 8000);
       break;
     } catch (err) {
       if (attempt === 2) throw err;

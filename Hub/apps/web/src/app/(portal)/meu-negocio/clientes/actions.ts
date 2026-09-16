@@ -16,6 +16,12 @@ export async function addCustomerAction(_prev: CustomerState, formData: FormData
     const email = String(formData.get('email') ?? '').trim() || null;
     const valorMensalidade = String(formData.get('valorMensalidade') ?? '').trim();
     const diaVencimento = String(formData.get('diaVencimento') ?? '').trim();
+    const autoEmitNfse = formData.get('autoEmitNfse') === 'true';
+    const descricaoServico = String(formData.get('descricaoServico') ?? '').trim() || null;
+
+    if (autoEmitNfse && !descricaoServico) {
+      return { ok: false, message: 'Informe a descrição do serviço pra emissão automática de nota fiscal.' };
+    }
 
     if (!nome || !documento) {
       return { ok: false, message: 'Preencha nome e documento.' };
@@ -100,6 +106,8 @@ export async function addCustomerAction(_prev: CustomerState, formData: FormData
             billingCycle: 'MONTHLY',
             status: 'ACTIVE',
             nextBillingDate: nextDueDateStr,
+            autoEmitNfse,
+            serviceDescription: descricaoServico,
           }).returning({ id: contract.id });
         });
 

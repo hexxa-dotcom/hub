@@ -1446,6 +1446,9 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
           <div>
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Item LC 116 (Ex: 17.19)</label>
             <input name="item" required placeholder="17.19" defaultValue={editingProfile?.itemListaServico || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
+            <p className="mt-1 text-[10px] text-[#6E6A61] dark:text-[#A8A49C]">
+              Formato "grupo.subitem" (ex: 17.02) — não é o código de 6 dígitos que aparece como "Serviço" numa nota já emitida.
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">CNAE (opcional)</label>

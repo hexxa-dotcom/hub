@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, numeric, date, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { businessContract } from './service-ops';
+import { partner } from './patrimonial';
 import { docStatus, employeeStatus, employmentEventType } from './_enums';
 
 /**
@@ -144,7 +145,9 @@ export const profitDistribution = pgTable('profit_distribution', {
   companyId: uuid('company_id')
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
-  partnerName: text('partner_name').notNull(), // sócio/beneficiário
+  partnerName: text('partner_name').notNull(), // sócio/beneficiário (snapshot — mantido por histórico mesmo se o sócio for removido)
+  /** FK real do sócio — nullable pra não quebrar leitura de registros antigos lançados antes desta coluna existir. */
+  partnerId: uuid('partner_id').references(() => partner.id, { onDelete: 'set null' }),
   amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
   distributedAt: date('distributed_at').notNull(),
   referenceYear: integer('reference_year').notNull(),

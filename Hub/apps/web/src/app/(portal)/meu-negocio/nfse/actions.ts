@@ -93,7 +93,13 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
     revalidatePath('/cliente');
 
     if (result.status === 'ERROR') {
-      return { ok: false, message: 'Erro na emissão junto ao Emissor Nacional. Verifique o cadastro fiscal.' };
+      console.error('[emitNfseAction] Emissor Nacional rejeitou a DPS:', result.errorMessage);
+      return {
+        ok: false,
+        message: result.errorMessage
+          ? `Emissor Nacional rejeitou a nota: ${result.errorMessage}`
+          : 'Erro na emissão junto ao Emissor Nacional. Verifique o cadastro fiscal.',
+      };
     }
 
     if (result.status === 'ISSUING') {
