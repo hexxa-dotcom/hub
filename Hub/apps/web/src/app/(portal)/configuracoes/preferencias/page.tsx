@@ -1,5 +1,6 @@
 import { DashboardPreferencesForm } from './DashboardPreferencesForm';
 import { QuickActionsPreferencesForm } from './QuickActionsPreferencesForm';
+import { Card } from '@/components/ui/Card';
 
 export const metadata = {
   title: 'Preferências da Tela Inicial | Hexxa Hub',
@@ -8,19 +9,18 @@ export const metadata = {
 export default function PreferenciasPage() {
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <Card level={1} className="p-6 sm:p-8">
         <div className="mb-6 border-b border-black/5 dark:border-white/10 pb-4">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Personalizar Tela Inicial</h2>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Escolha os componentes visíveis e a quantidade de meses do gráfico histórico.</p>
+          <h2 className="font-serif font-bold text-base text-ink">Personalizar Tela Inicial</h2>
+          <p className="text-xs text-ink-soft">Escolha os componentes visíveis e a quantidade de meses do gráfico histórico.</p>
         </div>
 
         <DashboardPreferencesForm />
-      </div>
+      </Card>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <Card level={1} className="p-6 sm:p-8">
         <QuickActionsPreferencesForm />
-      </div>
+      </Card>
     </div>
   );
 }
-

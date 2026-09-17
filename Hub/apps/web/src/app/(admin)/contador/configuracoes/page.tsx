@@ -17,7 +17,7 @@ export default function AdminConfiguracoes() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Configurações Gerais</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Configurações Gerais</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Ajustes básicos da plataforma e alertas do sistema</p>
       </div>
 
@@ -30,7 +30,7 @@ export default function AdminConfiguracoes() {
             <Sparkles className="h-6 w-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-serif font-bold text-base text-[#FEFDF3]">Hexxa Insights</h3>
+            <h3 className="font-serif font-bold text-base text-[#F5F6F4]">Hexxa Insights</h3>
             <p className="text-xs text-[#DFFFAE]/70 mt-0.5">
               Dicas contextuais por IA nas telas dos clientes — chave da API, liga/desliga geral e por seção.
             </p>

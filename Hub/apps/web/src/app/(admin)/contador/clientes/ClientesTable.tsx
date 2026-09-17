@@ -56,7 +56,7 @@ const STATUS_CFG: Record<Status, { label: string; cls: string; icon: React.Compo
   CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61]', icon: AlertTriangle },
 };
 
-const PLANO_PALETTE = ['bg-[#2F4A3C] text-[#DFFFAE]', 'bg-[#5F6E46] text-[#FEFDF3]', 'bg-[#A2C1CD] text-[#1E3328]'];
+const PLANO_PALETTE = ['bg-[#2F4A3C] text-[#DFFFAE]', 'bg-[#5F6E46] text-[#F5F6F4]', 'bg-[#A2C1CD] text-[#1E3328]'];
 
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -102,13 +102,13 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
   return (
     <div className="w-full space-y-7 animate-fade-up">
       {/* Header */}
-      <div className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
+      <div className="rounded-3xl bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm mb-3">
               <Sparkles className="h-3.5 w-3.5" /> Gestão de Empresas
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#F5F6F4]">
               Carteira de Clientes
             </h1>
             <p className="mt-1 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
@@ -123,13 +123,13 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
 
       {/* Filters & Search */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 shadow-sm focus-within:border-[#2F4A3C]">
+        <div className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] px-4 py-2 shadow-sm focus-within:border-[#2F4A3C]">
           <Search className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por razão, CNPJ..."
-            className="w-48 sm:w-64 bg-transparent text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C]"
+            className="w-48 sm:w-64 bg-transparent text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C]"
           />
         </div>
 
@@ -141,7 +141,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
               className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
                 filterStatus === s
                   ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
-                  : 'border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                  : 'border border-black/10 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
               }`}
             >
               {s === 'todos' ? `Todos (${clientes.length})` : `${STATUS_CFG[s].label} (${clientes.filter(c => c.status === s).length})`}
@@ -151,7 +151,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] shadow-sm">
         {filtered.map(c => {
           const st = STATUS_CFG[c.status];
           const StatusIcon = st.icon;
@@ -169,7 +169,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <p className="font-bold text-sm sm:text-base text-[#231F20] dark:text-[#FEFDF3]">{c.razao}</p>
+                    <p className="font-bold text-sm sm:text-base text-[#231F20] dark:text-[#F5F6F4]">{c.razao}</p>
                     {c.pendencias > 0 && (
                       <span className="rounded-full bg-red-100 dark:bg-red-950/50 px-2.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300 border border-red-200">
                         {c.pendencias} pendência{c.pendencias > 1 ? 's' : ''}
@@ -181,7 +181,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                 <span className={`hidden rounded-full px-3 py-1 text-xs font-bold sm:inline-flex shadow-sm ${PLANO_PALETTE[planos.indexOf(c.plano) % PLANO_PALETTE.length] ?? PLANO_PALETTE[0]}`}>
                   {c.plano}
                 </span>
-                <span className="hidden text-sm font-serif font-bold text-[#231F20] dark:text-[#FEFDF3] lg:block w-28 text-right tabular">
+                <span className="hidden text-sm font-serif font-bold text-[#231F20] dark:text-[#F5F6F4] lg:block w-28 text-right tabular">
                   {c.mrr > 0 ? BRL.format(c.mrr) : '—'}
                 </span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold shrink-0 ${st.cls}`}>
@@ -203,7 +203,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                     ].map(([k, v]) => (
                       <div key={k} className="space-y-0.5">
                         <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
-                        <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{v}</p>
+                        <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{v}</p>
                       </div>
                     ))}
                   </div>
@@ -226,7 +226,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                             className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-50 ${
                               c.plano === p
                                 ? 'bg-[#1E3328] text-[#DFFFAE]'
-                                : 'border border-black/10 dark:border-white/10 bg-[#F4EFE4] text-[#6E6A61] hover:bg-black/5'
+                                : 'border border-black/10 dark:border-white/10 bg-[#E7EAE5] text-[#6E6A61] hover:bg-black/5'
                             }`}
                           >
                             {p}
@@ -237,7 +237,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                     ) : (
                       <button
                         onClick={() => setEditPlano(c.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5"
                       >
                         <CreditCard className="h-3.5 w-3.5" /> Alterar Plano
                       </button>
@@ -263,13 +263,13 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                     )}
                     <a
                       href={`mailto:${c.email}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5"
                     >
                       <Mail className="h-3.5 w-3.5" /> Enviar E-mail
                     </a>
                     <Link
                       href="/contador/notas"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5"
                     >
                       <FileText className="h-3.5 w-3.5" /> Ver NFs
                     </Link>

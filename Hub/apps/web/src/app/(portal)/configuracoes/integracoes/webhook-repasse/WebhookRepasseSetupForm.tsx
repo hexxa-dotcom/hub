@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Link2, CheckCircle2, Loader2, Copy, AlertTriangle, RotateCw } from 'lucide-react';
 import { gerarWebhookSecretAction, desativarWebhookAction } from './actions';
+import { Card } from '@/components/ui/Card';
 
 interface WebhookRepasseSetupFormProps {
   isConnected: boolean;
@@ -10,7 +11,7 @@ interface WebhookRepasseSetupFormProps {
 }
 
 const boxClass =
-  'rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-xs font-mono text-[#231F20] dark:text-[#FEFDF3] break-all';
+  'rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs font-mono text-ink break-all';
 
 export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepasseSetupFormProps) {
   const [loading, setLoading] = useState(false);
@@ -48,28 +49,33 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
   }
 
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm flex flex-col h-full justify-between">
+    <Card level={1} className="p-6 sm:p-8 flex flex-col h-full justify-between">
       <div className="space-y-5">
-        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Conexão do Webhook</h2>
+        <h2 className="font-serif font-bold text-base text-ink">Conexão do Webhook</h2>
 
         {connected && (
-          <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+          <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl shadow-(--elev-1)">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-0.5">Webhook ativo</h4>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">Pronto pra receber eventos do SaaS do cliente.</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">Pronto para receber eventos do SaaS do cliente.</p>
             </div>
           </div>
         )}
 
         <div>
-          <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
-            <Link2 className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" /> URL do Webhook
+          <label className="text-xs font-bold text-ink-soft uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+            <Link2 className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" /> URL do Webhook
           </label>
           <div className="flex items-center gap-2">
             <div className={`flex-1 ${boxClass}`}>{webhookUrl}</div>
-            <button type="button" onClick={() => copy(webhookUrl)} className="rounded-xl p-2.5 border border-black/10 dark:border-white/10 hover:bg-black/5 shrink-0">
-              <Copy className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
+            <button
+              type="button"
+              onClick={() => copy(webhookUrl)}
+              className="rounded-xl p-2.5 border border-black/5 dark:border-white/5 bg-surface-card hover:brightness-105 text-ink-soft hover:text-ink shadow-(--elev-1) transition-all shrink-0"
+              title="Copiar URL"
+            >
+              <Copy className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -81,11 +87,16 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
             </label>
             <div className="flex items-center gap-2">
               <div className={`flex-1 ${boxClass} bg-amber-500/10 border-amber-500/30`}>{freshSecret}</div>
-              <button type="button" onClick={() => copy(freshSecret)} className="rounded-xl p-2.5 border border-black/10 dark:border-white/10 hover:bg-black/5 shrink-0">
-                <Copy className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
+              <button
+                type="button"
+                onClick={() => copy(freshSecret)}
+                className="rounded-xl p-2.5 border border-black/5 dark:border-white/5 bg-surface-card hover:brightness-105 text-ink-soft hover:text-ink shadow-(--elev-1) transition-all shrink-0"
+                title="Copiar segredo"
+              >
+                <Copy className="h-4 w-4" />
               </button>
             </div>
-            <p className="mt-1.5 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Cole este valor no header <code>x-webhook-secret</code> configurado no painel do seu SaaS.</p>
+            <p className="mt-1.5 text-[11px] text-ink-soft">Cole este valor no header <code>x-webhook-secret</code> configurado no painel do seu SaaS.</p>
           </div>
         )}
       </div>
@@ -94,7 +105,7 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
         <button
           onClick={handleGerar}
           disabled={loading}
-          className="w-full py-3 rounded-full text-xs font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] disabled:opacity-50 transition-all shadow-sm hover:scale-105 inline-flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-full text-xs font-bold text-hexxa-lime bg-hexxa-forest hover:brightness-110 shadow-(--elev-1) disabled:opacity-50 transition-all active:scale-95 inline-flex items-center justify-center gap-2"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
           {connected ? 'Rotacionar Segredo' : 'Gerar URL e Segredo'}
@@ -103,12 +114,12 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
           <button
             onClick={handleDesativar}
             disabled={loading}
-            className="w-full py-2.5 rounded-full text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50 transition-all"
+            className="w-full py-2.5 rounded-full text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 disabled:opacity-50 transition-all"
           >
             Desativar Webhook
           </button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

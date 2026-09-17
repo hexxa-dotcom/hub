@@ -16,10 +16,10 @@ function DocRow({ doc }: { doc: SignatureRequestSummary }) {
   const status = STATUS_PT[doc.status] ?? STATUS_PT.PENDING!;
   const Icon = status.icon;
   return (
-    <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/10 px-2 py-3.5 last:border-0">
+    <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 px-2 py-3.5 last:border-0">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{doc.title ?? 'Documento sem título'}</p>
-        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <p className="truncate text-sm font-bold text-ink">{doc.title ?? 'Documento sem título'}</p>
+        <p className="text-footnote text-ink-soft">
           {doc.signerName ?? doc.signerEmail} · {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
         </p>
       </div>
@@ -54,13 +54,13 @@ export function ContratosList({ initial }: Props) {
     docs,
     prepend,
     node: (
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Contratos Enviados</h2>
+      <section className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
+        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
+          <h2 className="font-serif font-bold text-base text-ink">Contratos Enviados</h2>
           <button
             onClick={refresh}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
           >
             <RotateCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
@@ -68,9 +68,9 @@ export function ContratosList({ initial }: Props) {
         </div>
 
         {docs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum contrato enviado ainda. Use o formulário acima.</p>
+          <p className="py-8 text-center text-sm text-ink-soft">Nenhum contrato enviado ainda. Use o formulário acima.</p>
         ) : (
-          <div className="divide-y divide-black/5 dark:divide-white/10">
+          <div className="divide-y divide-black/5 dark:divide-white/5">
             {docs.map(doc => <DocRow key={doc.id} doc={doc} />)}
           </div>
         )}

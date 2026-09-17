@@ -5,8 +5,8 @@ import { CheckCircle2, AlertTriangle, Loader2, TrendingDown } from 'lucide-react
 import { createLancamento } from './actions';
 
 const field =
-  'mt-1 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] uppercase tracking-wider dark:text-[#A8A49C]';
+  'mt-1 w-full rounded-2xl bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
   const [descricao, setDescricao] = useState('');
@@ -41,9 +41,9 @@ export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
   if (done) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl bg-[#EFFFD6] dark:bg-[#1E3328] border border-[#DFFFAE] p-5 text-center">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-[#2F4A3C] dark:text-[#DFFFAE] mb-2" />
-          <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Despesa lançada com sucesso!</p>
+        <div className="rounded-2xl bg-surface-card shadow-(--elev-1) p-5 text-center">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-hexxa-green dark:text-hexxa-lime mb-2" />
+          <p className="text-sm font-bold text-ink">Despesa lançada com sucesso!</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -54,14 +54,14 @@ export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
               setFeedback(null);
               setDone(false);
             }}
-            className="flex-1 rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+            className="flex-1 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-xs font-bold text-ink transition-all"
           >
             Lançar outra
           </button>
           <button
             type="button"
             onClick={onDone}
-            className="flex-1 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2.5 text-xs font-bold text-[#DFFFAE]"
+            className="flex-1 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-4 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
           >
             Fechar
           </button>
@@ -91,7 +91,7 @@ export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
           value={valor}
           onChange={(e) => setValor(e.target.value)}
           placeholder="0,00"
-          className={`${field} font-serif text-lg font-bold text-[#1E3328] dark:text-[#DFFFAE]`}
+          className={`${field} font-serif text-lg font-bold tabular text-hexxa-forest dark:text-hexxa-lime`}
         />
       </div>
 
@@ -106,7 +106,7 @@ export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
       </div>
 
       {feedback && !feedback.ok && (
-        <p className="flex items-center gap-2 rounded-2xl bg-red-100 dark:bg-red-950/30 px-4 py-3 text-xs font-bold text-red-800 dark:text-red-300">
+        <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 shadow-(--elev-inset) px-4 py-3 text-xs font-bold text-red-700 dark:text-red-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {feedback.msg}
         </p>
@@ -115,7 +115,7 @@ export function QuickDespesaForm({ onDone }: { onDone: () => void }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-3 text-sm font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-6 py-3 text-sm font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.01] disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingDown className="h-4 w-4" />}
         {pending ? 'Lançando…' : 'Lançar Despesa'}

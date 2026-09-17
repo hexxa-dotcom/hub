@@ -10,7 +10,7 @@ export default async function AdminIntegracoes() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Integrações</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Integrações</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Configure os serviços externos conectados à plataforma</p>
       </div>
 
@@ -33,9 +33,9 @@ export default async function AdminIntegracoes() {
             que é quem realmente assina hoje via ContractSignatureService).
             Os dois campos nunca salvavam nada de verdade.
           */}
-          <div className="flex items-center justify-between rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-3.5">
+          <div className="flex items-center justify-between rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-3.5">
             <div>
-              <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">cnpja.com — busca de CNPJ</p>
+              <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">cnpja.com — busca de CNPJ</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Configurada via <code className="font-mono bg-black/5 dark:bg-white/10 px-1 rounded">CNPJA_API_KEY</code> no ambiente (.env.local / Vercel).</p>
             </div>
             {cnpjaConfigured ? (

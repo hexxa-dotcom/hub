@@ -21,8 +21,8 @@ interface UnifiedContractWizardProps {
 }
 
 const fieldClass =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lblClass = 'block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide mb-1.5';
+  'w-full rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lblClass = 'block text-caption font-bold text-ink-soft uppercase tracking-wider mb-1.5';
 
 const emptyParty = (): CounterpartyData => ({ name: '', document: '', address: '', email: '' });
 
@@ -251,22 +251,22 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
   const canAdvanceFromKind = kind !== null && (kind !== 'ALUGUEL' || hasProperties);
 
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+    <div className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Novo Contrato — Gerador Automático</h2>
-        <button onClick={onCancel} className="text-xs font-bold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C]">
+        <h2 className="font-serif font-bold text-lg text-ink">Novo Contrato — Gerador Automático</h2>
+        <button onClick={onCancel} className="text-xs font-bold text-ink-soft hover:text-ink">
           Cancelar
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-xs font-bold text-red-800 dark:text-red-300">{error}</div>
+        <div className="mb-6 rounded-2xl bg-status-danger/10 border border-status-danger/20 p-4 text-xs font-bold text-status-danger">{error}</div>
       )}
 
       {/* Passo 1: tipo */}
       {step === 1 && (
         <div className="space-y-4 animate-in fade-in">
-          <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide mb-2">Tipo de Contrato</p>
+          <p className="text-caption font-bold text-ink-soft uppercase tracking-wider mb-2">Tipo de Contrato</p>
           <div className="grid gap-3 sm:grid-cols-3">
             {KIND_CARDS.map((c) => {
               const disabled = c.needsProperty && !hasProperties;
@@ -277,12 +277,12 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                   disabled={disabled}
                   title={disabled ? 'Cadastre um imóvel em Gestão Patrimonial primeiro.' : undefined}
                   onClick={() => setKind(c.kind)}
-                  className={`flex flex-col items-center gap-2 rounded-2xl border p-5 text-center transition-all ${
+                  className={`flex flex-col items-center gap-2 rounded-2xl p-5 text-center transition-all ${
                     disabled
-                      ? 'opacity-40 cursor-not-allowed border-black/5 dark:border-white/5'
+                      ? 'opacity-40 cursor-not-allowed border border-black/5 dark:border-white/5 bg-surface-elevated'
                       : kind === c.kind
-                        ? 'border-[#1E3328] bg-[#1E3328] text-[#DFFFAE] shadow-sm'
-                        : 'border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 hover:bg-white'
+                        ? 'border border-hexxa-green dark:border-hexxa-lime bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                        : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-1) hover:bg-surface-elevated'
                   }`}
                 >
                   <c.icon className="h-6 w-6" />
@@ -298,7 +298,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 2: dados */}
       {step === 2 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] mb-2">
+          <h3 className="font-serif font-bold text-sm text-ink mb-2">
             {kind === 'ALUGUEL' ? 'Locatário e Imóvel' : 'Contraparte'}
           </h3>
 
@@ -337,39 +337,39 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
           <div className="relative">
             <label className={lblClass}>Buscar Cliente Cadastrado (opcional)</label>
             {selectedCustomerName ? (
-              <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#1E3328]/30 bg-[#EFFFD6] dark:bg-[#1E3328] px-4 py-2.5">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-hexxa-green/30 bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-4 py-2.5">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold">
                   <UserCheck className="h-3.5 w-3.5" /> {selectedCustomerName}
                 </span>
                 <button
                   type="button"
                   onClick={() => { setSelectedCustomerName(null); setContraparte(emptyParty()); }}
-                  className="rounded-full p-1 text-[#2F4A3C] dark:text-[#DFFFAE] hover:bg-black/10"
+                  className="rounded-full p-1 hover:bg-black/10 transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6E6A61]" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft" />
                 <input
                   value={customerQuery}
                   onChange={(e) => handleCustomerQueryChange(e.target.value)}
                   className={`${fieldClass} pl-10`}
                   placeholder="Digite pra buscar um cliente já cadastrado, ou ignore e preencha abaixo pra um novo"
                 />
-                {customerSearching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[#6E6A61]" />}
+                {customerSearching && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-ink-soft" />}
                 {customerResults.length > 0 && (
-                  <div className="absolute z-10 mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] shadow-lg overflow-hidden">
+                  <div className="absolute z-10 mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-3) card-finish overflow-hidden">
                     {customerResults.map((c) => (
                       <button
                         key={c.id}
                         type="button"
                         onClick={() => handleSelectCustomer(c)}
-                        className="w-full text-left px-4 py-2.5 text-xs hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 dark:border-white/5 last:border-0"
+                        className="w-full text-left px-4 py-2.5 text-xs hover:bg-surface-elevated border-b border-black/5 dark:border-white/5 last:border-0 transition-colors"
                       >
-                        <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.name}</p>
-                        {c.document && <p className="text-[#6E6A61] dark:text-[#A8A49C]">{c.document}</p>}
+                        <p className="font-bold text-ink">{c.name}</p>
+                        {c.document && <p className="text-footnote text-ink-soft">{c.document}</p>}
                       </button>
                     ))}
                   </div>
@@ -391,9 +391,9 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               className={fieldClass}
               placeholder="000.000.000-00 ou 00.000.000/0000-00"
             />
-            {lookupStatus === 'checking' && <p className="mt-1 text-[11px] text-[#6E6A61]">Verificando...</p>}
+            {lookupStatus === 'checking' && <p className="mt-1 text-caption text-ink-soft">Verificando...</p>}
             {lookupStatus === 'found' && (
-              <p className="mt-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+              <p className="mt-1 text-caption font-bold text-status-success">
                 <Sparkles className="inline h-3 w-3 mr-1" /> Cliente Hexxa detectado — e-mail preenchido automaticamente, os lançamentos financeiros sincronizam nos dois lados.
               </p>
             )}
@@ -430,7 +430,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`${lblClass} mb-0`}>Descrição do Serviço</label>
-                  <button type="button" onClick={() => handleSugerir('descricao', setDescricao)} disabled={suggesting === 'descricao'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => handleSugerir('descricao', setDescricao)} disabled={suggesting === 'descricao'} className="inline-flex items-center gap-1 text-[11px] font-bold text-hexxa-green dark:text-hexxa-lime hover:underline disabled:opacity-50">
                     {suggesting === 'descricao' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} {descricao.trim() ? 'Organizar com IA' : 'Sugerir com IA'}
                   </button>
                 </div>
@@ -449,7 +449,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`${lblClass} mb-0`}>Forma de Pagamento</label>
-                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoServico)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoServico)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-hexxa-green dark:text-hexxa-lime hover:underline disabled:opacity-50">
                     {suggesting === 'formaPagamento' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
                   </button>
                 </div>
@@ -457,8 +457,8 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               </div>
 
               {servicoDirecao === 'SAIDA' && (
-                <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 space-y-3 bg-white/40 dark:bg-white/5">
-                  <label className="flex items-center gap-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">
+                <div className="rounded-2xl border border-black/5 dark:border-white/5 p-4 space-y-3 bg-surface-card shadow-(--elev-inset)">
+                  <label className="flex items-center gap-2 text-xs font-bold text-ink">
                     <input type="checkbox" checked={vincularRepasse} onChange={(e) => setVincularRepasse(e.target.checked)} />
                     Vincular a repasse automático de uma integração (ex.: SaaS de faturamento do cliente)
                   </label>
@@ -480,8 +480,8 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                           <option value="SEMANAL">Semanal (por semana do mês)</option>
                         </select>
                       </div>
-                      <p className="sm:col-span-2 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
-                        Assim que este contrato for assinado, todo evento de faturamento dessa integração atribuído a este ID gera automaticamente uma conta a pagar neste contrato — {repassePercentInput || '__'}% do valor atribuído.
+                      <p className="sm:col-span-2 text-caption text-ink-soft">
+                        O Hub escuta o webhook de repasses da sua plataforma e lança o valor exato a pagar a cada ciclo.
                       </p>
                     </div>
                   )}
@@ -494,7 +494,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className={lblClass}>Valor (R$)</label>
+                  <label className={lblClass}>Valor Total do Empréstimo (R$)</label>
                   <input value={valorMutuo} onChange={(e) => setValorMutuo(e.target.value)} className={fieldClass} placeholder="0,00" />
                 </div>
                 <div>
@@ -505,7 +505,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`${lblClass} mb-0`}>Forma de Pagamento</label>
-                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoMutuo)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => handleSugerir('formaPagamento', setFormaPagamentoMutuo)} disabled={suggesting === 'formaPagamento'} className="inline-flex items-center gap-1 text-[11px] font-bold text-hexxa-green dark:text-hexxa-lime hover:underline disabled:opacity-50">
                     {suggesting === 'formaPagamento' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
                   </button>
                 </div>
@@ -514,7 +514,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`${lblClass} mb-0`}>Prazo / Vencimento Final</label>
-                  <button type="button" onClick={() => handleSugerir('prazo', setPrazoMutuo)} disabled={suggesting === 'prazo'} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => handleSugerir('prazo', setPrazoMutuo)} disabled={suggesting === 'prazo'} className="inline-flex items-center gap-1 text-[11px] font-bold text-hexxa-green dark:text-hexxa-lime hover:underline disabled:opacity-50">
                     {suggesting === 'prazo' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />} Sugerir com IA
                   </button>
                 </div>
@@ -559,12 +559,16 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 3: origem do documento */}
       {step === 3 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] mb-2">Como este contrato será formalizado?</h3>
+          <h3 className="font-serif font-bold text-sm text-ink mb-2">Como este contrato será formalizado?</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => setDocumentSource('AUTO')}
-              className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${documentSource === 'AUTO' ? 'border-[#1E3328] bg-[#1E3328] text-[#DFFFAE]' : 'border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5'}`}
+              className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${
+                documentSource === 'AUTO'
+                  ? 'border-hexxa-green dark:border-hexxa-lime bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                  : 'border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-1) hover:bg-surface-elevated'
+              }`}
             >
               <FileText className="h-5 w-5" />
               <span className="text-xs font-bold">Gerar automaticamente e enviar para assinatura</span>
@@ -573,7 +577,11 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
             <button
               type="button"
               onClick={() => setDocumentSource('ALREADY_SIGNED')}
-              className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${documentSource === 'ALREADY_SIGNED' ? 'border-[#1E3328] bg-[#1E3328] text-[#DFFFAE]' : 'border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5'}`}
+              className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all ${
+                documentSource === 'ALREADY_SIGNED'
+                  ? 'border-hexxa-green dark:border-hexxa-lime bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                  : 'border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-1) hover:bg-surface-elevated'
+              }`}
             >
               <Upload className="h-5 w-5" />
               <span className="text-xs font-bold">Já está assinado fora do sistema</span>
@@ -599,13 +607,13 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 4: revisão */}
       {step === 4 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] mb-2">Revisão</h3>
-          <div className="bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 rounded-2xl p-5 text-sm space-y-2">
+          <h3 className="font-serif font-bold text-sm text-ink mb-2">Revisão</h3>
+          <div className="bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 rounded-2xl p-5 text-sm text-ink space-y-2">
             <p><strong>Tipo:</strong> {CONTRACT_KIND_LABEL[kind]}</p>
             <p><strong>Contraparte:</strong> {contraparte.name || '(vazio)'} {contraparte.email ? `— ${contraparte.email}` : ''}</p>
             {kind === 'ALUGUEL' && <p><strong>Imóvel:</strong> {propertyLabel() || '(vazio)'}</p>}
             <p><strong>Vigência:</strong> {startDate} a {endDate}</p>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] italic mt-2">
+            <p className="text-footnote text-ink-soft italic mt-2">
               {documentSource === 'AUTO'
                 ? 'O contrato ficará "Aguardando Assinatura" e só entra em vigor (com os lançamentos financeiros) quando a contraparte assinar.'
                 : 'O contrato entra em vigor imediatamente, com os lançamentos financeiros gerados na hora.'}
@@ -614,11 +622,11 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-black/5 dark:border-white/10">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-black/5 dark:border-white/5">
         <button
           onClick={() => setStep((s) => Math.max(1, s - 1))}
           disabled={step === 1 || loading}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-30 transition-all"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-bold text-ink-soft hover:text-ink disabled:opacity-30 transition-all"
         >
           <ChevronLeft className="h-4 w-4" /> Voltar
         </button>
@@ -627,7 +635,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
           <button
             onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
             disabled={(step === 1 && !canAdvanceFromKind) || (step === 2 && kind === 'ALUGUEL' && !propertyId)}
-            className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] disabled:opacity-40 transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full text-xs font-bold text-hexxa-lime bg-hexxa-forest hover:brightness-110 disabled:opacity-40 transition-all shadow-(--elev-1) active:scale-95"
           >
             Avançar <ChevronRight className="h-4 w-4" />
           </button>
@@ -635,7 +643,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold text-[#DFFFAE] bg-[#1E3328] hover:bg-[#2F4A3C] transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold text-hexxa-lime bg-hexxa-forest hover:brightness-110 transition-all shadow-(--elev-1) active:scale-95 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             {loading ? 'Enviando...' : documentSource === 'AUTO' ? 'Gerar e Enviar para Assinatura' : 'Registrar Contrato Ativo'}

@@ -58,18 +58,18 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
         <Link href={`/contador/clientes/${id}`}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
+          className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3]">Onboarding — {comp.legalName}</h1>
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4]">Onboarding — {comp.legalName}</h1>
           <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Progresso derivado do que já está preenchido no cadastro, não de um checklist manual.</p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{doneCount} de {steps.length} etapas concluídas</p>
+          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{doneCount} de {steps.length} etapas concluídas</p>
           <p className="font-serif font-bold text-base text-[#2F4A3C] dark:text-[#DFFFAE]">{pct}%</p>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10 p-0.5">
@@ -77,7 +77,7 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
         </div>
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
         {steps.map((s) => (
           <div key={s.label} className="flex items-start gap-3.5 p-5">
             {s.done ? (
@@ -86,7 +86,7 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
               <Circle className="h-5 w-5 shrink-0 text-[#6E6A61]/40 dark:text-[#A8A49C]/40 mt-0.5" />
             )}
             <div>
-              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-[#231F20] dark:text-[#FEFDF3]' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{s.label}</p>
+              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-[#231F20] dark:text-[#F5F6F4]' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{s.label}</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{s.hint}</p>
             </div>
           </div>

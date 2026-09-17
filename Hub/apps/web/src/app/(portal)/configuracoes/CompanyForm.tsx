@@ -7,8 +7,8 @@ import type { CnpjData } from '@/app/api/cnpj/[cnpj]/route';
 import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
 const field =
-  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
+  'mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-xs font-bold text-ink-soft uppercase tracking-wide';
 
 export function CompanyForm({ company }: { company: any }) {
   const [loading, setLoading] = useState(false);
@@ -111,9 +111,9 @@ export function CompanyForm({ company }: { company: any }) {
               name="useTradeName" 
               id="useTradeName"
               defaultChecked={company.use_trade_name}
-              className="h-4 w-4 rounded accent-[#1E3328]" 
+              className="h-4 w-4 rounded accent-hexxa-forest" 
             />
-            <label htmlFor="useTradeName" className="text-xs text-[#6E6A61] dark:text-[#A8A49C] cursor-pointer">
+            <label htmlFor="useTradeName" className="text-xs text-ink-soft cursor-pointer">
               Exibir nome fantasia no menu superior
             </label>
           </div>
@@ -132,7 +132,7 @@ export function CompanyForm({ company }: { company: any }) {
             />
             <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
               {lookupStatus === 'loading' && (
-                <Loader2 className="h-4 w-4 animate-spin text-[#6E6A61]" />
+                <Loader2 className="h-4 w-4 animate-spin text-ink-soft" />
               )}
               {lookupStatus === 'found' && (
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -141,7 +141,7 @@ export function CompanyForm({ company }: { company: any }) {
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
               )}
               {lookupStatus === 'idle' && (
-                <Search className="h-4 w-4 text-[#6E6A61]/40" />
+                <Search className="h-4 w-4 text-ink-soft/40" />
               )}
             </span>
           </div>
@@ -164,7 +164,7 @@ export function CompanyForm({ company }: { company: any }) {
         </div>
       </div>
 
-      <h3 className="pt-4 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider border-t border-black/5 dark:border-white/10">Endereço da Sede</h3>
+      <h3 className="pt-4 text-xs font-bold text-ink-soft uppercase tracking-wider border-t border-black/5 dark:border-white/10">Endereço da Sede</h3>
       
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <div className="md:col-span-2">
@@ -228,13 +228,13 @@ export function CompanyForm({ company }: { company: any }) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-70"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-70"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {loading ? 'Salvando...' : 'Salvar Alterações'}
         </button>
         {message && (
-          <span className={`text-xs font-bold ${message.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+          <span className={`text-xs font-bold ${message.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
             {message.text}
           </span>
         )}
@@ -242,4 +242,3 @@ export function CompanyForm({ company }: { company: any }) {
     </form>
   );
 }
-

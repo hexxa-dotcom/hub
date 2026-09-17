@@ -18,6 +18,8 @@ export * from './nfse/dfe-distribuicao.adapter';
 export * from './econ-index/bcb.adapter';
 export * from './signature/docuseal.adapter';
 export * from './erp/nibo.adapter';
+export * from './erp/oneflow.adapter';
+export * from './llm/index';
 
 /**
  * Mock por padrão; o gov (Emissor Nacional) é montado via makeGovNfsePort.

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { Card } from '@/components/ui/Card';
 import {
   Building2,
   FileText,
@@ -27,7 +28,6 @@ import {
   MessageSquare,
   Loader2,
   Trash2,
-  Zap,
 } from 'lucide-react';
 import type { SolicitacaoRow, SolicitacaoStatus } from './actions';
 import { criarSolicitacaoAction, cancelarSolicitacaoAction } from './actions';
@@ -49,18 +49,18 @@ type Servico = {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<SolicitacaoStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  solicitado:   { label: 'Solicitado',   cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', icon: Clock },
-  em_analise:   { label: 'Em análise',   cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]', icon: Search },
-  em_andamento: { label: 'Em andamento', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300', icon: AlertTriangle },
-  concluido:    { label: 'Concluído',    cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', icon: CheckCircle2 },
-  cancelado:    { label: 'Cancelado',    cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300', icon: XCircle },
+  solicitado:   { label: 'Solicitado',   cls: 'bg-black/5 text-ink-soft dark:bg-white/10 border border-black/5 dark:border-white/10', icon: Clock },
+  em_analise:   { label: 'Em análise',   cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime border border-hexxa-forest/20', icon: Search },
+  em_andamento: { label: 'Em andamento', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20', icon: AlertTriangle },
+  concluido:    { label: 'Concluído',    cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20', icon: CheckCircle2 },
+  cancelado:    { label: 'Cancelado',    cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20', icon: XCircle },
 };
 
 const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls: string; servicos: Servico[] }[] = [
   {
     categoria: 'Alterações Empresariais',
     icon: Building2,
-    cls: 'bg-[#1E3328]/10 text-[#1E3328] dark:bg-white/10 dark:text-[#DFFFAE]',
+    cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime',
     servicos: [
       { id: 's1', nome: 'Alteração de endereço',          descricao: 'Atualização do endereço da sede ou filial junto à Receita Federal e órgãos municipais.',         prazo: '5–10 dias úteis', categoria: 'Alterações Empresariais' },
       { id: 's2', nome: 'Inclusão ou exclusão de sócio',  descricao: 'Alteração no quadro societário com elaboração de contrato social e registro na Junta Comercial.', prazo: '10–20 dias úteis', categoria: 'Alterações Empresariais' },
@@ -72,7 +72,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   {
     categoria: 'Parcelamentos e Regularização',
     icon: TrendingUp,
-    cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
     servicos: [
       { id: 's6', nome: 'Parcelamento REFIS / PERT',      descricao: 'Negociação e adesão a programas federais de parcelamento de débitos tributários.',               prazo: '3–7 dias úteis',  categoria: 'Parcelamentos e Regularização' },
       { id: 's7', nome: 'Parcelamento PGFN',               descricao: 'Renegociação de dívidas inscritas em Dívida Ativa da União com a Procuradoria-Geral.',          prazo: '5–10 dias úteis', categoria: 'Parcelamentos e Regularização' },
@@ -83,7 +83,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   {
     categoria: 'Certidões e Declarações',
     icon: FileCheck,
-    cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
     servicos: [
       { id: 's10', nome: 'Certidão Negativa Federal (CND)',  descricao: 'Obtenção de CND ou CPEND junto à Receita Federal e PGFN.',                                    prazo: '1–3 dias úteis', categoria: 'Certidões e Declarações' },
       { id: 's11', nome: 'Certidão FGTS (CRF)',             descricao: 'Certidão de Regularidade do FGTS emitida pela Caixa Econômica Federal.',                       prazo: '1–3 dias úteis', categoria: 'Certidões e Declarações' },
@@ -95,7 +95,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   {
     categoria: 'Regime Tributário',
     icon: Layers,
-    cls: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+    cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-400',
     servicos: [
       { id: 's15', nome: 'Migração para Simples Nacional',  descricao: 'Análise de elegibilidade e adesão ao Simples Nacional no período de opção.',                   prazo: 'Conforme calendário', categoria: 'Regime Tributário' },
       { id: 's16', nome: 'Migração Lucro Presumido → Real', descricao: 'Estudo comparativo e transição entre regimes com ajuste das obrigações acessórias.',           prazo: '15–30 dias úteis', categoria: 'Regime Tributário' },
@@ -106,7 +106,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   {
     categoria: 'Abertura e Encerramento',
     icon: Briefcase,
-    cls: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
+    cls: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400',
     servicos: [
       { id: 's19', nome: 'Abertura de filial',              descricao: 'Registro de estabelecimento filial com CNPJ, alvará e demais licenças necessárias.',           prazo: '15–30 dias úteis', categoria: 'Abertura e Encerramento' },
       { id: 's20', nome: 'Encerramento de empresa',         descricao: 'Distrato social, baixa do CNPJ e encerramento junto a todos os órgãos.',                       prazo: '30–90 dias úteis', categoria: 'Abertura e Encerramento' },
@@ -117,7 +117,7 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
   {
     categoria: 'Consultoria Especializada',
     icon: Users,
-    cls: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
+    cls: 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
     servicos: [
       { id: 's23', nome: 'Consultoria trabalhista',         descricao: 'Orientação sobre CLT, eSocial, rescisões, benefícios e gestão de folha.',                      prazo: 'Agendamento', categoria: 'Consultoria Especializada' },
       { id: 's24', nome: 'Reestruturação societária',       descricao: 'Reorganização do quadro social, holding familiar e proteção patrimonial.',                     prazo: '30–60 dias úteis', categoria: 'Consultoria Especializada' },
@@ -128,8 +128,8 @@ const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls
 ];
 
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-xs font-bold text-ink-soft uppercase tracking-wide';
 
 function fmtDate(iso: string) {
   return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR');
@@ -164,20 +164,20 @@ function FormSolicitacao({ servico, onClose, onSubmitted }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden">
+      <Card level={2} tone="deep" className="card-finish w-full max-w-lg shadow-(--elev-3) overflow-hidden p-0">
         <div className="flex items-start justify-between border-b border-black/5 dark:border-white/10 p-6 sm:p-8">
           <div>
-            <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">{servico.categoria}</p>
-            <h2 className="mt-1 font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{servico.nome}</h2>
+            <p className="text-xs font-bold text-ink-soft uppercase tracking-wide">{servico.categoria}</p>
+            <h2 className="mt-1 font-serif font-bold text-xl text-ink">{servico.nome}</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5">
+          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-soft hover:text-ink hover:bg-black/5 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 p-6 sm:p-8">
-          <div className="rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 text-xs text-ink-soft">
             <p>{servico.descricao}</p>
-            <p className="mt-2 font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Prazo estimado: {servico.prazo}</p>
+            <p className="mt-2 font-bold text-hexxa-forest dark:text-hexxa-lime">Prazo estimado: {servico.prazo}</p>
           </div>
           <div>
             <label className={lbl}>Descreva sua necessidade</label>
@@ -190,8 +190,10 @@ function FormSolicitacao({ servico, onClose, onSubmitted }: {
                 <button key={p} type="button" onClick={() => setPrioridade(p)}
                   className={`flex-1 rounded-full border py-2.5 text-xs font-bold transition-all ${
                     prioridade === p
-                      ? p === 'urgente' ? 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400' : 'border-[#1E3328] bg-[#1E3328] text-[#DFFFAE]'
-                      : 'border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
+                      ? p === 'urgente'
+                        ? 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400 shadow-(--elev-1)'
+                        : 'border-hexxa-forest bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
+                      : 'border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
                   }`}>
                   {p === 'urgente' ? '⚡ Urgente' : '📋 Padrão'}
                 </button>
@@ -199,15 +201,15 @@ function FormSolicitacao({ servico, onClose, onSubmitted }: {
             </div>
           </div>
           <div className="flex gap-2 pt-3">
-            <button type="submit" disabled={enviando} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-3 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60">
+            <button type="submit" disabled={enviando} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-3 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-60">
               {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {enviando ? 'Enviando...' : 'Enviar Solicitação'}
             </button>
-            <button type="button" onClick={onClose} className="rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-3 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
+            <button type="button" onClick={onClose} className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-3 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)">
               Cancelar
             </button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -233,9 +235,13 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
     <div className="space-y-6 animate-in fade-in">
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-48">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6E6A61] dark:text-[#A8A49C]" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar serviço por nome ou palavra-chave…"
-            className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] py-2.5 pl-10 pr-4 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar serviço por nome ou palavra-chave…"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
+          />
         </div>
         <SegmentedTabs
           tabs={[
@@ -250,8 +256,8 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
-          <Search className="h-10 w-10 opacity-20" />
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
+          <Search className="h-10 w-10 opacity-20 text-ink" />
           <p className="text-sm">Nenhum serviço encontrado para sua busca.</p>
         </div>
       ) : (
@@ -264,25 +270,28 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
                   <span className={`grid h-8 w-8 place-items-center rounded-xl ${cat.cls}`}>
                     <Icon className="h-4 w-4" />
                   </span>
-                  <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{cat.categoria}</h2>
+                  <h2 className="font-serif font-bold text-base text-ink">{cat.categoria}</h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {cat.servicos.map(s => (
-                    <div key={s.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 flex flex-col justify-between gap-4 shadow-sm hover:border-[#1E3328]/30 transition-all">
+                    <Card key={s.id} level={1} className="p-6 flex flex-col justify-between gap-4 group">
                       <div className="space-y-1">
-                        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{s.nome}</p>
-                        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed">{s.descricao}</p>
+                        <p className="font-serif font-bold text-base text-ink">{s.nome}</p>
+                        <p className="text-xs text-ink-soft leading-relaxed">{s.descricao}</p>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/10">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C]">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
                           <Calendar className="h-3.5 w-3.5" /> {s.prazo}
                         </span>
-                        <button type="button" onClick={() => onSolicitar(s)}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+                        <button
+                          type="button"
+                          onClick={() => onSolicitar(s)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
+                        >
                           <Plus className="h-3.5 w-3.5" /> Solicitar
                         </button>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               </div>
@@ -318,10 +327,10 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
 
   if (solicitacoes.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-20 text-center text-[#6E6A61] dark:text-[#A8A49C]">
-        <FileText className="h-12 w-12 opacity-20" />
+      <div className="flex flex-col items-center gap-4 py-20 text-center text-ink-soft">
+        <FileText className="h-12 w-12 opacity-20 text-ink" />
         <div>
-          <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nenhuma solicitação ainda</p>
+          <p className="font-serif font-bold text-base text-ink">Nenhuma solicitação ainda</p>
           <p className="mt-1 text-xs">Acesse a aba Catálogo de Serviços para solicitar um serviço contábil.</p>
         </div>
       </div>
@@ -332,58 +341,73 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
     <div className="space-y-4 animate-in fade-in">
       <div className="flex flex-wrap gap-1.5">
         {([['todas', 'Todas'], ['solicitado', 'Solicitadas'], ['em_analise', 'Em análise'], ['em_andamento', 'Em andamento'], ['concluido', 'Concluídas']] as const).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setFilter(key)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${filter === key ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm' : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'}`}>
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFilter(key)}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              filter === key
+                ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
+                : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
+            }`}
+          >
             {label} ({counts[key] ?? 0})
           </button>
         ))}
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+      <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden p-0">
         {filtered.map(s => {
           const cfg = STATUS_CONFIG[s.status];
           const StatusIcon = cfg.icon;
           const isExp = expanded === s.id;
           return (
             <div key={s.id}>
-              <button type="button" onClick={() => setExpanded(isExp ? null : s.id)}
-                className="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+              <button
+                type="button"
+                onClick={() => setExpanded(isExp ? null : s.id)}
+                className="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+              >
                 <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${cfg.cls.split(' ')[0]}`}>
                   <StatusIcon className={`h-4 w-4 ${cfg.cls.split(' ')[1]}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{s.servico}</p>
-                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Solicitado em {fmtDate(s.criadaEm)}</p>
+                  <p className="truncate text-sm font-bold text-ink">{s.servico}</p>
+                  <p className="text-xs text-ink-soft">Solicitado em {fmtDate(s.criadaEm)}</p>
                 </div>
                 <div className="hidden shrink-0 items-center gap-2 sm:flex">
                   {s.prioridade === 'urgente' && (
-                    <span className="rounded-full bg-red-500/10 px-2.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400">⚡ Urgente</span>
+                    <span className="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 dark:text-rose-400 border border-rose-500/20">⚡ Urgente</span>
                   )}
                   <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${cfg.cls}`}>
                     <StatusIcon className="h-3.5 w-3.5" />{cfg.label}
                   </span>
                 </div>
-                {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-[#6E6A61]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61]" />}
+                {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
               </button>
               {isExp && (
-                <div className="mx-6 mb-4 space-y-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-5 shadow-sm">
+                <div className="mx-6 mb-4 space-y-3 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
                   <div>
                     <p className={lbl}>Sua Solicitação</p>
-                    <p className="mt-1 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] whitespace-pre-wrap">{s.descricao}</p>
+                    <p className="mt-1 text-xs sm:text-sm text-ink whitespace-pre-wrap">{s.descricao}</p>
                   </div>
                   {s.resposta && (
-                    <div className="rounded-2xl border border-[#1E3328]/20 bg-[#EFFFD6]/50 dark:bg-[#2F4A3C]/20 p-4">
-                      <p className={`${lbl} text-[#2F4A3C] dark:text-[#DFFFAE]`}>Parecer da Contabilidade</p>
-                      <p className="mt-1 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3]">{s.resposta}</p>
+                    <div className="rounded-2xl border border-hexxa-forest/20 bg-hexxa-forest/10 p-4">
+                      <p className={`${lbl} text-hexxa-forest dark:text-hexxa-lime`}>Parecer da Contabilidade</p>
+                      <p className="mt-1 text-xs sm:text-sm text-ink">{s.resposta}</p>
                     </div>
                   )}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-[#6E6A61] dark:text-[#A8A49C] pt-2 border-t border-black/5 dark:border-white/10">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft pt-2 border-t border-black/5 dark:border-white/10">
                     <span>Criada em {fmtDate(s.criadaEm)}</span>
                     <span>•</span>
                     <span>Atualizada em {fmtDate(s.atualizadaEm)}</span>
                     {(s.status === 'solicitado' || s.status === 'em_analise') && (
-                      <button type="button" onClick={() => handleCancelar(s.id)} disabled={busyId === s.id}
-                        className="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold text-red-700 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-all">
+                      <button
+                        type="button"
+                        onClick={() => handleCancelar(s.id)}
+                        disabled={busyId === s.id}
+                        className="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 disabled:opacity-50 transition-all"
+                      >
                         {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Cancelar Solicitação
                       </button>
                     )}
@@ -393,7 +417,7 @@ function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
             </div>
           );
         })}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -423,37 +447,40 @@ export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Soli
     <div className="space-y-6">
       {/* Stats rápidos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Em Andamento</p>
-          <p className={`mt-1 font-serif text-3xl font-bold tracking-tight ${pendentes > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{pendentes}</p>
-        </div>
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Concluídas</p>
-          <p className="mt-1 font-serif text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400">{solicitacoes.filter(s => s.status === 'concluido').length}</p>
-        </div>
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Serviços no Catálogo</p>
-          <p className="mt-1 font-serif text-3xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">{CATALOGO.reduce((s, c) => s + c.servicos.length, 0)}</p>
-        </div>
+        <Card level={1} className="p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Em Andamento</p>
+          <p className={`mt-1 font-serif tabular text-3xl font-bold tracking-tight ${pendentes > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-ink'}`}>{pendentes}</p>
+        </Card>
+        <Card level={1} className="p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Concluídas</p>
+          <p className="mt-1 font-serif tabular text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400">{solicitacoes.filter(s => s.status === 'concluido').length}</p>
+        </Card>
+        <Card level={1} className="p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Serviços no Catálogo</p>
+          <p className="mt-1 font-serif tabular text-3xl font-bold tracking-tight text-ink">{CATALOGO.reduce((s, c) => s + c.servicos.length, 0)}</p>
+        </Card>
       </div>
 
       {/* Banner de contato */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 p-6 shadow-sm">
+      <Card level={2} tone="deep" className="card-finish flex flex-wrap items-center justify-between gap-4 p-6 shadow-(--elev-2)">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Precisa de um serviço sob medida?</p>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Fale diretamente com nossa consultoria pelo chat ou agende uma reunião.</p>
+            <p className="font-serif font-bold text-sm text-ink">Precisa de um serviço sob medida?</p>
+            <p className="text-xs text-ink-soft">Fale diretamente com nossa consultoria pelo chat ou agende uma reunião com seu time contábil.</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <a href="/suporte" className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all shadow-sm">
+          <a
+            href="/suporte"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
+          >
             Ir para Suporte <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
-      </div>
+      </Card>
 
       {/* Tabs */}
       <div className="flex">
@@ -482,4 +509,3 @@ export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Soli
     </div>
   );
 }
-

@@ -44,8 +44,8 @@ const DocusealBuilder = dynamic(() => import('@docuseal/react').then((m) => m.Do
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
+  'w-full rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -210,7 +210,7 @@ export function ContratosClient({
   return (
     <div className="space-y-6">
       {/* 🟢 BARRA DE ABAS PADRÃO */}
-      <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/10 pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/5 pb-4">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -218,8 +218,8 @@ export function ContratosClient({
             onClick={() => setActiveTab(t.key)}
             className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
               activeTab === t.key
-                ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
-                : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                : 'bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) border border-black/5 dark:border-white/5'
             }`}
           >
             <t.icon className="h-3.5 w-3.5" />
@@ -240,50 +240,50 @@ export function ContratosClient({
         <div className="space-y-6 animate-in fade-in">
           {/* Cards KPI */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">
                 {activeTab === 'entrada' ? 'Receita Contratual Prevista' : 'Total Pago a Fornecedores'}
               </p>
-              <p className={`mt-2 font-serif font-bold text-2xl sm:text-3xl ${activeTab === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+              <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${activeTab === 'entrada' ? 'text-status-success' : 'text-status-danger'}`}>
                 {BRL.format(activeTab === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+              <p className="mt-0.5 text-footnote text-ink-soft">
                 {activeTab === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)
               </p>
             </div>
 
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Contratos Ativos</p>
-              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Contratos Ativos</p>
+              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
                 {(activeTab === 'entrada' ? entradas : saidas).filter(c => c.status === 'ATIVO').length}
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerando lançamentos recorrentes</p>
+              <p className="mt-0.5 text-footnote text-ink-soft">Gerando lançamentos recorrentes</p>
             </div>
 
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">
                 {activeTab === 'entrada' ? 'Faturamento com Nota Emitida' : activeTab === 'saida' ? 'Provisão de Saída Comprometida' : 'Mútuos Faturados (Risco DDL)'}
               </p>
-              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#2F4A3C] dark:text-[#DFFFAE]">
+              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-hexxa-green dark:text-hexxa-lime">
                 {BRL.format(
                   (activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos)
                     .filter(c => c.lastNfseEmitted)
                     .reduce((sum, c) => sum + c.value, 0)
                 )}
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Status fiscal atualizado</p>
+              <p className="mt-0.5 text-footnote text-ink-soft">Status fiscal atualizado</p>
             </div>
           </div>
 
           {/* Botão de Adicionar Contrato */}
           <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+            <h2 className="font-serif font-bold text-base text-ink">
               {activeTab === 'entrada' ? 'Contratos de Serviços Prestados (Clientes)' : activeTab === 'saida' ? 'Contratos de Serviços Contratados (Fornecedores)' : 'Contratos de Mútuo Financeiro (Societário)'}
             </h2>
             <button
               type="button"
               onClick={() => setShowNewContractForm(v => !v)}
-              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95"
             >
               <Plus className="h-4 w-4" /> Novo Contrato de {activeTab === 'entrada' ? 'Entrada' : activeTab === 'saida' ? 'Saída' : 'Mútuo'}
             </button>
@@ -291,12 +291,12 @@ export function ContratosClient({
 
           {/* Formulário de Inclusão de Contrato */}
           {showNewContractForm && (
-            <form onSubmit={handleCreateContract} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-                <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+            <form onSubmit={handleCreateContract} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
+                <h3 className="font-serif font-bold text-base text-ink">
                   Novo Contrato de {activeTab === 'entrada' ? 'Entrada (Serviço Prestado)' : activeTab === 'saida' ? 'Saída (Prestador/Fornecedor)' : 'Mútuo (Empréstimo)'}
                 </h3>
-                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5">
+                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -358,8 +358,8 @@ export function ContratosClient({
 
                 {activeTab === 'entrada' && (
                   <div className="sm:col-span-2 flex items-center gap-2 pt-2">
-                    <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded text-[#2F4A3C] focus:ring-[#DFFFAE]" />
-                    <label htmlFor="autoEmitNfse" className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] cursor-pointer">
+                    <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded border-black/10 dark:border-white/10 text-hexxa-green focus:ring-hexxa-lime" />
+                    <label htmlFor="autoEmitNfse" className="text-xs font-bold text-ink cursor-pointer">
                       Emitir Nota Fiscal (NFSe) automaticamente no dia do vencimento
                     </label>
                   </div>
@@ -367,11 +367,11 @@ export function ContratosClient({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={savingContract} className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60">
+                <button type="submit" disabled={savingContract} className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95 disabled:opacity-60">
                   {savingContract ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   {savingContract ? 'Salvando...' : 'Salvar Contrato e Gerar Lançamentos'}
                 </button>
-                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
+                <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-5 py-2.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)">
                   Cancelar
                 </button>
               </div>
@@ -384,52 +384,52 @@ export function ContratosClient({
               <Link
                 key={c.id}
                 href={`/meu-negocio/contratos/${c.id}` as Route}
-                className="group rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-[#1E3328]/30 transition-all"
+                className="group rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 space-y-3 hover:-translate-y-0.5 transition-all card-finish"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="truncate font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{c.title}</h3>
+                      <h3 className="truncate font-serif font-bold text-base text-ink">{c.title}</h3>
                       <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${STATUS_CLASS[c.status]}`}>
                         {STATUS_LABEL[c.status]}
                       </span>
                     </div>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1 truncate">
-                      {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong>{c.partyName}</strong>
+                    <p className="text-footnote text-ink-soft mt-1 truncate">
+                      {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong className="text-ink">{c.partyName}</strong>
                     </p>
                     {c.status === 'RECUSADO' && c.refusalReason && (
-                      <p className="text-[11px] text-red-700 dark:text-red-400 mt-1">Motivo da recusa: {c.refusalReason}</p>
+                      <p className="text-caption text-status-danger mt-1">Motivo da recusa: {c.refusalReason}</p>
                     )}
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C] group-hover:translate-x-1 group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3] transition-all mt-1" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-ink-soft group-hover:translate-x-1 group-hover:text-ink transition-all mt-1" />
                 </div>
 
                 <div className="flex items-end justify-between">
-                  <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(c.value)}<span className="text-xs font-sans font-normal text-[#6E6A61] dark:text-[#A8A49C]">/mês</span></p>
-                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">vence dia {c.dueDay}</p>
+                  <p className="font-serif tabular font-bold text-xl text-ink">{BRL.format(c.value)}<span className="text-xs font-sans font-normal text-ink-soft">/mês</span></p>
+                  <p className="text-caption text-ink-soft">vence dia {c.dueDay}</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-black/5 dark:border-white/10">
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-black/5 dark:border-white/5">
                   {c.linkedOnPlatform && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] px-2.5 py-0.5 text-[10px] font-bold">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-2.5 py-0.5 text-[10px] font-bold">
                       <Link2 className="h-3 w-3" /> Sincronizado
                     </span>
                   )}
                   {c.lastNfseEmitted ? (
-                    <span className="rounded-full bg-[#EFFFD6] px-2.5 py-0.5 text-[10px] font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+                    <span className="rounded-full bg-status-success/15 px-2.5 py-0.5 text-[10px] font-bold text-status-success">
                       Faturado — NFSe {c.nfseNumber}
                     </span>
                   ) : (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                    <span className="rounded-full bg-status-warning/15 px-2.5 py-0.5 text-[10px] font-bold text-status-warning">
                       Aguardando NFSe
                     </span>
                   )}
                   {c.signingDate ? (
-                    <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                    <span className="rounded-full bg-surface-elevated px-2.5 py-0.5 text-[10px] font-bold text-ink-soft">
                       Assinado {c.signingDate}
                     </span>
                   ) : (
-                    <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                    <span className="rounded-full bg-surface-elevated px-2.5 py-0.5 text-[10px] font-bold text-ink-soft">
                       Não assinado
                     </span>
                   )}
@@ -438,7 +438,7 @@ export function ContratosClient({
             ))}
 
             {(activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos).length === 0 && (
-              <p className="sm:col-span-2 text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : activeTab === 'saida' ? 'saída' : 'mútuo'} cadastrado ainda.</p>
+              <p className="sm:col-span-2 text-sm text-ink-soft py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : activeTab === 'saida' ? 'saída' : 'mútuo'} cadastrado ainda.</p>
             )}
           </div>
         </div>
@@ -448,38 +448,38 @@ export function ContratosClient({
       {activeTab === 'repasses' && (
         <div className="space-y-6 animate-in fade-in">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Total a Pagar Este Mês</p>
-              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-red-700 dark:text-red-400">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Total a Pagar Este Mês</p>
+              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-status-danger">
                 {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesPendente + r.valorExtraMesPendente, 0))}
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Pendente, integração + extras</p>
+              <p className="mt-0.5 text-footnote text-ink-soft">Pendente, integração + extras</p>
             </div>
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Faturado Via Integração Este Mês</p>
-              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Faturado Via Integração Este Mês</p>
+              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
                 {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesTotal, 0))}
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Pago + pendente, soma de todos os prestadores</p>
+              <p className="mt-0.5 text-footnote text-ink-soft">Pago + pendente, soma de todos os prestadores</p>
             </div>
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Prestadores Vinculados</p>
-              <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Prestadores Vinculados</p>
+              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
                 {repasses.filter((r) => r.status === 'ATIVO').length}
               </p>
-              <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Com contrato ativo e repasse configurado</p>
+              <p className="mt-0.5 text-footnote text-ink-soft">Com contrato ativo e repasse configurado</p>
             </div>
           </div>
 
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Valor a Pagar por Prestador</h2>
+          <h2 className="font-serif font-bold text-base text-ink">Valor a Pagar por Prestador</h2>
 
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-sm overflow-hidden">
+          <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 card-finish overflow-hidden">
             {repasses.length === 0 ? (
-              <p className="py-12 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+              <p className="py-12 text-center text-sm text-ink-soft">
                 Nenhum contrato vinculado a repasse automático ainda. Crie um contrato de Prestação de Serviço com direção "Minha empresa contrata" e marque "Vincular a repasse automático" no wizard.
               </p>
             ) : (
-              <div className="divide-y divide-black/5 dark:divide-white/10">
+              <div className="divide-y divide-black/5 dark:divide-white/5">
                 {repasses.map((r) => (
                   <Link
                     key={r.contractId}
@@ -488,40 +488,40 @@ export function ContratosClient({
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{r.partyName}</p>
+                        <p className="text-sm font-bold text-ink">{r.partyName}</p>
                         <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                         {r.paymentFrequency !== 'MENSAL' && (
-                          <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                          <span className="rounded-full bg-surface-elevated px-2.5 py-0.5 text-[10px] font-bold text-ink-soft">
                             {r.paymentFrequency === 'QUINZENAL' ? 'Quinzenal' : 'Semanal'}
                           </span>
                         )}
                         {r.valorExtraMesPendente > 0 && (
-                          <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                          <span className="rounded-full bg-status-warning/15 px-2.5 py-0.5 text-[10px] font-bold text-status-warning">
                             + {BRL.format(r.valorExtraMesPendente)} extra
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
-                        ID na integração: <span className="font-mono">{r.externalProviderId}</span> · Repasse {r.repassePercent}%
+                      <p className="text-footnote text-ink-soft mt-0.5">
+                        ID na integração: <span className="font-mono text-ink">{r.externalProviderId}</span> · Repasse {r.repassePercent}%
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       {r.paymentFrequency === 'QUINZENAL' ? (
                         <>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">1ª quinz. <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorQuinzena1Pendente)}</span></p>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">2ª quinz. <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorQuinzena2Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">1ª quinz. <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorQuinzena1Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">2ª quinz. <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorQuinzena2Pendente)}</span></p>
                         </>
                       ) : r.paymentFrequency === 'SEMANAL' ? (
                         <>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 1 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana1Pendente)}</span></p>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 2 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana2Pendente)}</span></p>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 3 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana3Pendente)}</span></p>
-                          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem. 4 <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorSemana4Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">Sem. 1 <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorSemana1Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">Sem. 2 <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorSemana2Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">Sem. 3 <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorSemana3Pendente)}</span></p>
+                          <p className="text-caption text-ink-soft">Sem. 4 <span className="font-serif tabular font-bold text-ink">{BRL.format(r.valorSemana4Pendente)}</span></p>
                         </>
                       ) : (
                         <>
-                          <p className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(r.valorMesPendente)}</p>
-                          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">pendente este mês</p>
+                          <p className="font-serif tabular font-bold text-lg text-ink">{BRL.format(r.valorMesPendente)}</p>
+                          <p className="text-caption text-ink-soft">pendente este mês</p>
                         </>
                       )}
                     </div>
@@ -548,13 +548,13 @@ export function ContratosClient({
               }}
             />
           ) : (
-            <form onSubmit={handleUploadSignature} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
-                <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Enviar Documento Avulso para Assinatura Eletrônica</h2>
+            <form onSubmit={handleUploadSignature} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                <h2 className="font-serif font-bold text-base text-ink">Enviar Documento Avulso para Assinatura Eletrônica</h2>
                 <button
                   type="button"
                   onClick={() => setWizardMode('generate')}
-                  className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
+                  className="text-xs font-bold text-hexxa-green dark:text-hexxa-lime hover:underline"
                 >
                   ← Voltar pro Gerador Automático de Contrato
                 </button>
@@ -601,7 +601,7 @@ export function ContratosClient({
                         className={`flex-1 ${field}`}
                       />
                       {signers.length > 1 && (
-                        <button type="button" onClick={() => setSigners(sg => sg.filter((_, idx) => idx !== i))} className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600">
+                        <button type="button" onClick={() => setSigners(sg => sg.filter((_, idx) => idx !== i))} className="rounded-full p-2 text-ink-soft hover:bg-status-danger/10 hover:text-status-danger transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -611,19 +611,19 @@ export function ContratosClient({
                 <button
                   type="button"
                   onClick={() => setSigners(sg => [...sg, { name: '', email: '', role: '' }])}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-hexxa-green dark:text-hexxa-lime hover:underline"
                 >
                   <UserPlus className="h-3.5 w-3.5" /> Adicionar Signatário
                 </button>
               </div>
 
               {formError && (
-                <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
+                <p className="flex items-center gap-2 rounded-2xl bg-status-danger/10 border border-status-danger/20 p-3 text-xs font-bold text-status-danger">
                   <AlertTriangle className="h-4 w-4 shrink-0" /> {formError}
                 </p>
               )}
               {formSuccess && (
-                <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <p className="flex items-center gap-2 rounded-2xl bg-status-success/10 border border-status-success/20 p-3 text-xs font-bold text-status-success">
                   <CheckCircle2 className="h-4 w-4 shrink-0" /> Contrato enviado via DocuSeal! Os signatários receberão o link por e-mail.
                 </p>
               )}
@@ -631,7 +631,7 @@ export function ContratosClient({
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {submitting ? 'Enviando...' : 'Enviar para Assinatura Eletrônica'}
@@ -641,20 +641,20 @@ export function ContratosClient({
 
           {/* Lista de assinaturas enviadas (status via DocuSeal) */}
           {docs.length > 0 && (
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Documentos Enviados para Assinatura</h3>
-              <div className="divide-y divide-black/5 dark:divide-white/10">
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
+              <h3 className="font-serif font-bold text-base text-ink">Documentos Enviados para Assinatura</h3>
+              <div className="divide-y divide-black/5 dark:divide-white/5">
                 {docs.map(d => (
                   <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-3.5">
                     <div>
-                      <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{d.title ?? 'Documento sem título'}</p>
-                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{d.signerName ?? d.signerEmail}</p>
+                      <p className="text-sm font-bold text-ink">{d.title ?? 'Documento sem título'}</p>
+                      <p className="text-footnote text-ink-soft">{d.signerName ?? d.signerEmail}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        d.status === 'SIGNED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                        : d.status === 'REFUSED' || d.status === 'EXPIRED' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                        d.status === 'SIGNED' ? 'bg-status-success/15 text-status-success'
+                        : d.status === 'REFUSED' || d.status === 'EXPIRED' ? 'bg-status-danger/15 text-status-danger'
+                        : 'bg-status-warning/15 text-status-warning'
                       }`}>
                         {d.status}
                       </span>
@@ -662,7 +662,7 @@ export function ContratosClient({
                         type="button"
                         onClick={() => handleRefreshStatus(d.id)}
                         disabled={refreshingId === d.id}
-                        className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 disabled:opacity-50"
+                        className="rounded-full p-2 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50"
                         title="Atualizar status"
                       >
                         <RotateCw className={`h-4 w-4 ${refreshingId === d.id ? 'animate-spin' : ''}`} />
@@ -678,11 +678,11 @@ export function ContratosClient({
 
       {/* ✒️ ABA CONSTRUTOR DOCUSEAL */}
       {activeTab === 'docuseal' && (
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 animate-in fade-in space-y-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
+        <section className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 animate-in fade-in space-y-4 card-finish">
+          <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
             <div>
-              <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Construtor Interativo DocuSeal</h2>
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Monte modelos de contratos customizados com campos arrastáveis</p>
+              <h2 className="font-serif font-bold text-base text-ink">Construtor Interativo DocuSeal</h2>
+              <p className="text-footnote text-ink-soft mt-0.5">Monte modelos de contratos customizados com campos arrastáveis</p>
             </div>
           </div>
 
@@ -694,7 +694,7 @@ export function ContratosClient({
               }}
             />
           ) : (
-            <div className="text-sm text-[#6E6A61] dark:text-[#A8A49C] py-12 text-center animate-pulse">
+            <div className="text-sm text-ink-soft py-12 text-center animate-pulse">
               Carregando construtor seguro DocuSeal...
             </div>
           )}

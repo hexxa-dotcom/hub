@@ -25,7 +25,7 @@ export function EmpresaSwitcherForm({
           type="button"
           disabled={pending}
           onClick={() => select(c.id)}
-          className="flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-left text-sm font-medium text-[#FEFDF3] transition-colors hover:border-[#DFFFAE] hover:bg-white/10 disabled:opacity-50"
+          className="flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-left text-sm font-medium text-[#F5F6F4] transition-colors hover:border-[#DFFFAE] hover:bg-white/10 disabled:opacity-50"
         >
           <Buildings className="h-5 w-5 shrink-0 text-[#DFFFAE]" />
           {c.legalName}

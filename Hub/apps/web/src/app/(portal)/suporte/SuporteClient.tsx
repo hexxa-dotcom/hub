@@ -14,8 +14,8 @@ import {
   PhoneCall,
   Paperclip,
   Loader2,
-  Headphones,
 } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
 import {
   createSupportTicketAction,
   sendSupportMessageAction,
@@ -27,11 +27,11 @@ const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de atendimento da contabilidade.')}`;
 
 const STATUS_LABEL: Record<SupportTicketRow['status'], { label: string; cls: string }> = {
-  OPEN: { label: 'Aberto', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-  IN_PROGRESS: { label: 'Em atendimento', cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
-  WAITING_CLIENT: { label: 'Aguardando você', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-  RESOLVED: { label: 'Concluído', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
-  CLOSED: { label: 'Encerrado', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
+  OPEN: { label: 'Aberto', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' },
+  IN_PROGRESS: { label: 'Em atendimento', cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime border border-hexxa-forest/20' },
+  WAITING_CLIENT: { label: 'Aguardando você', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' },
+  RESOLVED: { label: 'Concluído', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' },
+  CLOSED: { label: 'Encerrado', cls: 'bg-black/5 text-ink-soft dark:bg-white/10 border border-black/5 dark:border-white/10' },
 };
 
 const QUICK_PROMPTS = [
@@ -101,44 +101,40 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/5 dark:border-white/10 pb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-              <Headphones className="h-3.5 w-3.5" />
-              Atendimento Contábil
-            </span>
+      <Card level={2} tone="deep" className="card-finish p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Chat de Suporte & Consultoria
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-ink-soft">
+              Canal direto de comunicação com seu time contábil e histórico unificado de chamados.
+            </p>
           </div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            Chat de Suporte & Consultoria
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-            Canal direto de comunicação com seu time contábil e histórico unificado de chamados.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowMeetingModal(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all shadow-sm"
-          >
-            <Calendar className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Agendar Reunião
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowMeetingModal(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
+            >
+              <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" /> Agendar Reunião
+            </button>
 
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20b858] px-5 py-2 text-xs font-bold text-white shadow-sm transition-transform hover:scale-105"
-          >
-            <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Emergencial
-          </a>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20b858] px-5 py-2 text-xs font-bold text-white shadow-(--elev-1) transition-all hover:scale-105 active:scale-95"
+            >
+              <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Emergencial
+            </a>
+          </div>
         </div>
-      </header>
+      </Card>
 
       {banner && (
-        <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-semibold animate-in fade-in">
+        <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-semibold shadow-(--elev-1) animate-in fade-in">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           {banner}
         </div>
@@ -146,36 +142,36 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-14rem)] min-h-[550px]">
         {/* COLUNA ESQUERDA: HISTÓRICO */}
-        <div className="lg:col-span-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md flex flex-col overflow-hidden shadow-sm">
+        <Card level={1} className="lg:col-span-4 flex flex-col overflow-hidden p-0">
           <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Histórico de Chamados
+              <h2 className="font-serif font-bold text-sm text-ink flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime" /> Histórico de Chamados
               </h2>
               <button
                 type="button"
                 onClick={() => setShowNewTicketModal(true)}
-                className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+                className="inline-flex items-center gap-1 rounded-full bg-hexxa-forest hover:brightness-110 px-3.5 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
               >
                 <Plus className="h-3.5 w-3.5" /> Novo Chamado
               </button>
             </div>
 
             <div className="relative">
-              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
+              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-ink-soft" />
               <input
                 type="text"
                 placeholder="Buscar por assunto..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] pl-9 pr-4 py-2 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]"
+                className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) pl-9 pr-4 py-2 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
               />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-black/5 dark:divide-white/10">
             {filteredTickets.length === 0 && (
-              <p className="p-6 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">Nenhum chamado ainda. Abra o primeiro em &quot;Novo Chamado&quot;.</p>
+              <p className="p-6 text-center text-xs text-ink-soft">Nenhum chamado ainda. Abra o primeiro em &quot;Novo Chamado&quot;.</p>
             )}
             {filteredTickets.map(t => {
               const isSelected = t.id === activeTicketId;
@@ -186,17 +182,17 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
                   type="button"
                   onClick={() => setActiveTicketId(t.id)}
                   className={`w-full text-left p-4 sm:p-5 transition-colors flex flex-col gap-1.5 ${
-                    isSelected ? 'bg-[#1E3328]/10 dark:bg-white/10 border-l-4 border-[#1E3328] dark:border-[#DFFFAE]' : 'hover:bg-black/5 dark:hover:bg-white/5'
+                    isSelected ? 'bg-hexxa-forest/10 dark:bg-white/10 border-l-4 border-hexxa-forest dark:border-hexxa-lime' : 'hover:bg-black/5 dark:hover:bg-white/5'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                  <div className="flex items-center justify-between text-[11px] text-ink-soft">
                     <span>{new Date(t.lastMessageAt).toLocaleDateString('pt-BR')}</span>
                   </div>
 
-                  <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] line-clamp-1">{t.subject}</p>
+                  <p className="text-xs font-bold text-ink line-clamp-1">{t.subject}</p>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-ink-soft bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
                       {t.category ?? 'Geral'}
                     </span>
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${st.cls}`}>{st.label}</span>
@@ -205,15 +201,19 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* COLUNA DIREITA: CHAT */}
-        <div className="lg:col-span-8 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md flex flex-col overflow-hidden shadow-sm">
+        <Card level={1} className="lg:col-span-8 flex flex-col overflow-hidden p-0">
           {!activeTicket ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-[#6E6A61] dark:text-[#A8A49C] p-8">
-              <MessageSquare className="h-10 w-10 opacity-20" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-ink-soft p-8">
+              <MessageSquare className="h-10 w-10 opacity-20 text-ink" />
               <p className="text-sm">Abra um chamado para conversar com a contabilidade.</p>
-              <button type="button" onClick={() => setShowNewTicketModal(true)} className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+              <button
+                type="button"
+                onClick={() => setShowNewTicketModal(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
+              >
                 <Plus className="h-4 w-4" /> Novo Chamado
               </button>
             </div>
@@ -221,9 +221,9 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
             <>
               <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/[0.02] dark:bg-white/[0.02]">
                 <div>
-                  <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{activeTicket.subject}</h3>
-                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5 flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                  <h3 className="font-serif font-bold text-sm text-ink">{activeTicket.subject}</h3>
+                  <p className="text-xs text-ink-soft mt-0.5 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
                     {activeTicket.category ?? 'Geral'}
                   </p>
                 </div>
@@ -234,17 +234,17 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {activeTicket.messages.length === 0 && (
-                  <p className="text-center text-xs text-[#6E6A61] dark:text-[#A8A49C] py-8">Nenhuma mensagem ainda.</p>
+                  <p className="text-center text-xs text-ink-soft py-8">Nenhuma mensagem ainda.</p>
                 )}
                 {activeTicket.messages.map(msg => (
                   <div key={msg.id} className={`flex flex-col ${msg.sender === 'client' ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] mb-1 px-1">
+                    <span className="text-[10px] text-ink-soft mb-1 px-1">
                       {msg.sender === 'client' ? 'Você' : 'Contabilidade'} · {msg.time}
                     </span>
-                    <div className={`max-w-[80%] rounded-2xl p-4 text-xs leading-relaxed shadow-sm ${
+                    <div className={`max-w-[80%] rounded-2xl p-4 text-xs leading-relaxed ${
                       msg.sender === 'client'
-                        ? 'bg-[#1E3328] text-[#FEFDF3] rounded-br-none'
-                        : 'bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3] rounded-bl-none border border-black/5 dark:border-white/10'
+                        ? 'bg-hexxa-forest text-white dark:text-hexxa-lime rounded-br-none shadow-(--elev-1)'
+                        : 'bg-surface-card text-ink rounded-bl-none border border-black/5 dark:border-white/10 shadow-(--elev-inset)'
                     }`}>
                       <p>{msg.text}</p>
                     </div>
@@ -254,13 +254,13 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               </div>
 
               <div className="px-4 py-2 border-t border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] flex items-center gap-2 overflow-x-auto">
-                <span className="text-[11px] font-bold text-[#6E6A61] dark:text-[#A8A49C] shrink-0">Atalhos:</span>
+                <span className="text-[11px] font-bold text-ink-soft shrink-0">Atalhos:</span>
                 {QUICK_PROMPTS.map((prompt, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleSendMessage(prompt)}
-                    className="whitespace-nowrap rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3 py-1 text-[11px] font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-all"
+                    className="whitespace-nowrap rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-3 py-1 text-[11px] font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
                   >
                     {prompt}
                   </button>
@@ -269,12 +269,12 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
               <form
                 onSubmit={e => { e.preventDefault(); handleSendMessage(); }}
-                className="p-3 sm:p-4 border-t border-black/5 dark:border-white/10 flex items-center gap-2 bg-[#FEFDF3] dark:bg-[#121614]"
+                className="p-3 sm:p-4 border-t border-black/5 dark:border-white/10 flex items-center gap-2 bg-surface-card"
               >
                 <button
                   type="button"
                   onClick={() => alert('Envio de anexos direto no chat em breve. Para enviar guias e extratos, use a seção Arquivos Permanentes.')}
-                  className="p-2.5 rounded-2xl border border-black/10 dark:border-white/10 text-[#6E6A61] hover:bg-black/5 transition-all"
+                  className="p-2.5 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
                   title="Anexar documento"
                 >
                   <Paperclip className="h-4 w-4" />
@@ -286,13 +286,13 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
                   onChange={e => setInputText(e.target.value)}
                   placeholder="Digite sua mensagem para a contabilidade..."
                   disabled={sending}
-                  className="flex-1 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] disabled:opacity-60"
+                  className="flex-1 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime disabled:opacity-60"
                 />
 
                 <button
                   type="submit"
                   disabled={sending}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-60"
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   Enviar
@@ -300,89 +300,92 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               </form>
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {showNewTicketModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <form onSubmit={handleCreateNewTicket} className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                Abrir Novo Chamado de Suporte
-              </h3>
-              <button type="button" onClick={() => setShowNewTicketModal(false)} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+          <Card level={2} tone="deep" className="card-finish w-full max-w-lg p-6 sm:p-8 shadow-(--elev-3)">
+            <form onSubmit={handleCreateNewTicket} className="space-y-4">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+                <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
+                  Abrir Novo Chamado de Suporte
+                </h3>
+                <button type="button" onClick={() => setShowNewTicketModal(false)} className="rounded-full p-1.5 text-ink-soft hover:text-ink hover:bg-black/5">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Assunto da Solicitação *</label>
-              <input name="subject" required placeholder="Ex.: Dúvida sobre imposto DAS ou Folha de Pagamento" className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
-            </div>
+              <div>
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Assunto da Solicitação *</label>
+                <input name="subject" required placeholder="Ex.: Dúvida sobre imposto DAS ou Folha de Pagamento" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
+              </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Categoria *</label>
-              <select name="category" className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]">
-                <option value="Fiscal / DAS">Fiscal / DAS & Impostos</option>
-                <option value="Contábil">Contábil & Balancete</option>
-                <option value="Departamento Pessoal">Gestão de Colaboradores & Pró-Labore</option>
-                <option value="Outros">Outros Assuntos</option>
-              </select>
-            </div>
+              <div>
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Categoria *</label>
+                <select name="category" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+                  <option value="Fiscal / DAS">Fiscal / DAS & Impostos</option>
+                  <option value="Contábil">Contábil & Balancete</option>
+                  <option value="Departamento Pessoal">Gestão de Colaboradores & Pró-Labore</option>
+                  <option value="Outros">Outros Assuntos</option>
+                </select>
+              </div>
 
-            <div>
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Descreva sua solicitação *</label>
-              <textarea name="initialText" required rows={4} placeholder="Digite os detalhes da sua mensagem..." className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
-            </div>
+              <div>
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Descreva sua solicitação *</label>
+                <textarea name="initialText" required rows={4} placeholder="Digite os detalhes da sua mensagem..." className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
+              </div>
 
-            <div className="flex gap-2 pt-2">
-              <button type="submit" className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-3 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
-                Abrir Chamado
-              </button>
-            </div>
-          </form>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="w-full rounded-full bg-hexxa-forest hover:brightness-110 py-3 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95">
+                  Abrir Chamado
+                </button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
 
       {showMeetingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <form onSubmit={handleScheduleMeeting} className="w-full max-w-md rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                Solicitar Reunião com o Contador
-              </h3>
-              <button type="button" onClick={() => setShowMeetingModal(false)} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5">
-                <X className="h-5 w-5" />
+          <Card level={2} tone="deep" className="card-finish w-full max-w-md p-6 sm:p-8 shadow-(--elev-3)">
+            <form onSubmit={handleScheduleMeeting} className="space-y-4">
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
+                <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
+                  Solicitar Reunião com o Contador
+                </h3>
+                <button type="button" onClick={() => setShowMeetingModal(false)} className="rounded-full p-1.5 text-ink-soft hover:text-ink hover:bg-black/5">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <p className="text-xs text-ink-soft">Sua solicitação abre um chamado com a data e horário desejados. A equipe entrará em contato para confirmar.</p>
+
+              <div>
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Pauta da Reunião *</label>
+                <input name="topic" required placeholder="Ex.: Planejamento Tributário / Revisão Fator R" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Data Desejada *</label>
+                  <input name="date" type="date" required defaultValue={new Date(Date.now() + 86400000).toISOString().split('T')[0]} className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Horário Desejado *</label>
+                  <input name="time" type="time" defaultValue="14:30" required className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full rounded-full bg-hexxa-forest hover:brightness-110 py-3 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95">
+                Enviar Solicitação
               </button>
-            </div>
-
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sua solicitação abre um chamado com a data e horário desejados. A equipe entrará em contato para confirmar.</p>
-
-            <div>
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Pauta da Reunião *</label>
-              <input name="topic" required placeholder="Ex.: Planejamento Tributário / Revisão Fator R" className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Data Desejada *</label>
-                <input name="date" type="date" required defaultValue={new Date(Date.now() + 86400000).toISOString().split('T')[0]} className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Horário Desejado *</label>
-                <input name="time" type="time" defaultValue="14:30" required className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-4 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]" />
-              </div>
-            </div>
-
-            <button type="submit" className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-3 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
-              Enviar Solicitação
-            </button>
-          </form>
+            </form>
+          </Card>
         </div>
       )}
     </div>
   );
 }
-

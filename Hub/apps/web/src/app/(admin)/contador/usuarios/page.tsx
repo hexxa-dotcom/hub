@@ -94,7 +94,7 @@ function AcessoAdminCNPJ() {
         <span className={`h-2 w-2 rounded-full shrink-0 ${
           emails.length > 0 || lista.some(c => c.noEnv && c.ativo) ? 'bg-emerald-500' : 'bg-amber-500'
         }`} />
-        <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">
+        <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">
           {carregando
             ? 'Verificando configuração…'
             : emails.length > 0 || lista.some(c => c.noEnv && c.ativo)
@@ -103,17 +103,17 @@ function AcessoAdminCNPJ() {
         </p>
       </div>
 
-      <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden bg-[#FEFDF3] dark:bg-[#121614]">
+      <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden bg-[#F5F6F4] dark:bg-[#121614]">
         {!carregando && lista.length === 0 && (
           <p className="py-5 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">Nenhum CNPJ na lista.</p>
         )}
         {lista.map(c => (
-          <div key={c.id} className="flex items-center gap-3 px-4 py-3 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div key={c.id} className="flex items-center gap-3 px-4 py-3 bg-[#F5F6F4] dark:bg-[#121614]">
             <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${c.ativo ? 'bg-[#2F4A3C]/10 text-[#2F4A3C] dark:text-[#DFFFAE]' : 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]'}`}>
               <Building2 className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-mono font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.cnpj}</p>
+              <p className="text-xs sm:text-sm font-mono font-bold text-[#231F20] dark:text-[#F5F6F4]">{c.cnpj}</p>
               <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] truncate">{c.descricao}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -139,12 +139,12 @@ function AcessoAdminCNPJ() {
         ))}
 
         {emails.map(email => (
-          <div key={email} className="flex items-center gap-3 px-4 py-3 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div key={email} className="flex items-center gap-3 px-4 py-3 bg-[#F5F6F4] dark:bg-[#121614]">
             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-400">
               <Users className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{email}</p>
+              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{email}</p>
               <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Acesso por e-mail (ADMIN_ALLOWED_EMAILS)</p>
             </div>
             <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
@@ -156,7 +156,7 @@ function AcessoAdminCNPJ() {
 
       {adicionando ? (
         <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-4 space-y-3">
-          <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Novo CNPJ</p>
+          <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">Novo CNPJ</p>
           <div>
             <label className={lb}>CNPJ</label>
             <input value={novoCNPJ}
@@ -198,7 +198,7 @@ function AcessoAdminCNPJ() {
           <p className="text-xs text-amber-800 dark:text-amber-300">
             Cole o valor abaixo no <code className="font-mono bg-amber-200/50 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">.env.local</code> (dev) ou em <strong>Environment Variables</strong> no Vercel, depois reinicie.
           </p>
-          <div className="rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-amber-500/20 overflow-hidden">
+          <div className="rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-amber-500/20 overflow-hidden">
             <div className="flex items-center justify-between px-3.5 py-2 border-b border-amber-500/10">
               <span className="text-[10px] font-mono font-bold text-[#6E6A61] dark:text-[#A8A49C]">ADMIN_ALLOWED_CNPJS</span>
               <button type="button" onClick={copiarEnv}
@@ -207,7 +207,7 @@ function AcessoAdminCNPJ() {
                 {copiado ? 'Copiado!' : 'Copiar'}
               </button>
             </div>
-            <p className="px-3.5 py-2.5 font-mono text-xs text-[#231F20] dark:text-[#FEFDF3] break-all select-all">
+            <p className="px-3.5 py-2.5 font-mono text-xs text-[#231F20] dark:text-[#F5F6F4] break-all select-all">
               {envValue || '(lista vazia)'}
             </p>
           </div>
@@ -236,7 +236,7 @@ export default function AdminUsuarios() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Usuários & Acessos</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Usuários & Acessos</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Gerenciamento de administradores e permissões de acesso ao painel</p>
       </div>
 
@@ -248,7 +248,7 @@ export default function AdminUsuarios() {
           ].map(u => (
             <div key={u.email} className="flex items-center justify-between py-3 border-b border-black/5 last:border-b-0 dark:border-white/10">
               <div>
-                <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{u.nome}</p>
+                <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{u.nome}</p>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{u.email}</p>
               </div>
               <span className="rounded-full bg-[#EFFFD6] dark:bg-[#2F4A3C] px-3 py-1 text-[10px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">

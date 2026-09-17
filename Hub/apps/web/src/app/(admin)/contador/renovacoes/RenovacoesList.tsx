@@ -58,7 +58,7 @@ export function RenovacoesList({ initial }: { initial: RiscoItem[] }) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               {urgente ? <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" /> : <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
-              <Link href={`/contador/clientes/${item.companyId}`} className="font-serif font-bold text-base text-[#231F20] hover:underline dark:text-[#FEFDF3]">
+              <Link href={`/contador/clientes/${item.companyId}`} className="font-serif font-bold text-base text-[#231F20] hover:underline dark:text-[#F5F6F4]">
                 {item.nome}
               </Link>
             </div>
@@ -111,7 +111,7 @@ export function RenovacoesList({ initial }: { initial: RiscoItem[] }) {
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Renovações em Risco</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Renovações em Risco</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Trials expirando e clientes inadimplentes que precisam de ação</p>
       </div>
 
@@ -122,9 +122,9 @@ export function RenovacoesList({ initial }: { initial: RiscoItem[] }) {
       )}
 
       {trials.length === 0 && inadimplentes.length === 0 && resolvidos.length === 0 && (
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-12 text-center shadow-sm">
+        <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-          <p className="mt-3 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nenhuma renovação em risco!</p>
+          <p className="mt-3 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Nenhuma renovação em risco!</p>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Todos os clientes estão em dia.</p>
         </div>
       )}

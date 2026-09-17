@@ -24,11 +24,11 @@ export default async function ContadorGuiasPage({ params }: { params: Promise<{ 
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
         <Link href={`/contador/clientes/${id}`}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
+          className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4] flex items-center gap-2">
             <Receipt className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
             Guias &amp; Parcelamentos — {comp.useTradeName && comp.tradeName ? comp.tradeName : comp.legalName}
           </h1>

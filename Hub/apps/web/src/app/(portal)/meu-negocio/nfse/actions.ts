@@ -45,6 +45,8 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       competenciaDate: String(formData.get('competenciaDate') ?? ''),
       retainIss: formData.get('retainIss') === 'on',
       serviceOverride: undefined as any,
+      /** Preenchido abaixo, com o perfil escolhido — ver o envio ao OneFlow. */
+      nfseServiceProfileId: undefined as string | undefined,
     };
 
     const profileId = String(formData.get('profileId') ?? '');
@@ -73,6 +75,9 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       aliquotaIss: profile.aliquotaIss ?? undefined,
       cnae: profile.cnae ?? undefined,
     };
+    // Guarda QUAL perfil emitiu — é daqui que sai o código LC 116 exigido
+    // pelo módulo fiscal do OneFlow para apurar e gerar a guia do DAS.
+    input.nfseServiceProfileId = profile.id;
 
     // --- CÁLCULO DE IMPOSTO (Integração Financeira) ---
     const taxRate = await estimateInvoiceTaxRate(ctx, cfg, profile.aliquotaIss);

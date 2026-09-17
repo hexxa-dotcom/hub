@@ -1303,7 +1303,7 @@ function CertificadoA1({ temCert }: { temCert: boolean }) {
             name="certSenha"
             autoComplete="off"
             placeholder="Senha definida ao gerar o certificado"
-            className="mt-1 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
+            className="mt-1 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-2.5 text-xs text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
           />
           <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">A senha é validada localmente antes de ser salva</p>
         </div>
@@ -1383,8 +1383,8 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
       {profiles.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {profiles.map(p => (
-            <div key={p.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 relative shadow-sm">
-              <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{p.nome}</h4>
+            <div key={p.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-4 relative shadow-sm">
+              <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">{p.nome}</h4>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Item: {p.itemListaServico}</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">CNAE: {p.cnae || '-'}</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Tributação: {p.codigoTributacaoMunicipio || '-'}</p>
@@ -1413,8 +1413,8 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 
       {/* ── Configuração técnica global ── */}
       <form action={techAction} className="mt-8 space-y-4">
-        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Emissão e Numeração</h4>
-        <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#FEFDF3] dark:bg-[#121614]">
+        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Emissão e Numeração</h4>
+        <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#F5F6F4] dark:bg-[#121614]">
           <div>
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Série da NF</label>
             <input name="serie" defaultValue={config?.serieDps ?? '00001'} placeholder="00001" className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
@@ -1434,8 +1434,8 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
         </div>
       </form>
 
-      <form id="perfil-form" onSubmit={handleSave} className="mt-8 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#FEFDF3] dark:bg-[#121614] space-y-4">
-        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">
+      <form id="perfil-form" onSubmit={handleSave} className="mt-8 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#F5F6F4] dark:bg-[#121614] space-y-4">
+        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
           {editingProfile ? 'Editar Perfil' : 'Novo Perfil'}
         </h4>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -1517,7 +1517,7 @@ export function FiscalForm({ config, temCert, profiles }: { config: NfseConfig |
       </div>
 
       {/* Conteúdo */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
         {tab === 'empresa' && <DadosEmpresa config={config} />}
         {tab === 'perfil' && <PerfisFiscais profiles={profiles ?? []} config={config} />}
         {tab === 'certificado' && <CertificadoA1 temCert={temCert} />}

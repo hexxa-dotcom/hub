@@ -9,6 +9,7 @@ import type { PartnerRow } from '../minha-contabilidade/socios/actions';
 import type { YearlyProfitSummary } from '@/lib/server/profit-distribution';
 import { createProperty, deleteProperty } from './actions';
 import { AlugueisTab } from './AlugueisTab';
+import { Card } from '@/components/ui/Card';
 import { TAXAS, valorContabilLiquido, depreciacaoAcumulada, impostoAluguel } from './lib';
 import { DistributionRequestForm } from '@/components/profit-distribution/DistributionRequestForm';
 
@@ -72,37 +73,37 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
 
   if (properties.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-black/10 dark:border-white/10 p-12 text-center">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nenhum bem cadastrado ainda.</p>
-        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Cadastre os bens da empresa e dos sócios na aba "Gestão de Ativos" para ver o patrimônio consolidado aqui.</p>
-      </div>
+      <Card level={1} className="p-12 text-center border-dashed">
+        <p className="font-serif font-bold text-base text-ink">Nenhum bem cadastrado ainda.</p>
+        <p className="text-xs text-ink-soft mt-1">Cadastre os bens da empresa e dos sócios na aba "Gestão de Ativos" para ver o patrimônio consolidado aqui.</p>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <section className="rounded-3xl border border-black/5 bg-[#1E3328] dark:bg-[#1A201C] p-6 text-[#FEFDF3] shadow-md">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]">Patrimônio Consolidado</h3>
-          <p className="mt-2 font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#DFFFAE]">{BRL0.format(total)}</p>
-          <span className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-[#DFFFAE]">Empresa + Sócios</span>
-        </section>
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Patrimônio da Empresa (PJ)</h3>
-          <p className="mt-2 font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">{BRL0.format(totalPJ)}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{ativosPJ.length} bem(ns) — valor contábil líquido</p>
-        </section>
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Patrimônio Pessoal (PF)</h3>
-          <p className="mt-2 font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">{BRL0.format(totalPF)}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{ativosPF.length} bem(ns) dos sócios</p>
-        </section>
+        <Card level={2} tone="deep" className="p-6 text-white shadow-(--elev-2) relative overflow-hidden">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Patrimônio Consolidado</h3>
+          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL0.format(total)}</p>
+          <span className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-hexxa-lime">Empresa + Sócios</span>
+        </Card>
+        <Card level={1} className="p-6">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Patrimônio da Empresa (PJ)</h3>
+          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-ink">{BRL0.format(totalPJ)}</p>
+          <p className="mt-1 text-xs text-ink-soft">{ativosPJ.length} bem(ns) — valor contábil líquido</p>
+        </Card>
+        <Card level={1} className="p-6">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Patrimônio Pessoal (PF)</h3>
+          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-ink">{BRL0.format(totalPF)}</p>
+          <p className="mt-1 text-xs text-ink-soft">{ativosPF.length} bem(ns) dos sócios</p>
+        </Card>
       </div>
 
       {ativosPJ.length > 0 && (
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição do Patrimônio da Empresa</h2>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Participação proporcional de cada bem no ativo imobilizado líquido da empresa.</p>
+        <Card level={1} className="p-6 sm:p-8 space-y-4">
+          <h2 className="font-serif font-bold text-base text-ink">Composição do Patrimônio da Empresa</h2>
+          <p className="text-xs text-ink-soft">Participação proporcional de cada bem no ativo imobilizado líquido da empresa.</p>
           <ul className="mt-4 space-y-3">
             {ativosPJ.map((a) => {
               const vc = valorContabil(a);
@@ -110,52 +111,48 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
               return (
                 <li key={a.id} className="space-y-1">
                   <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{a.name}</span>
-                    <span className="font-semibold text-[#2F4A3C] dark:text-[#DFFFAE]">
-                      {BRL0.format(vc)} <span className="text-[#6E6A61] dark:text-[#A8A49C] font-normal">· {p}%</span>
+                    <span className="font-bold text-ink">{a.name}</span>
+                    <span className="font-semibold text-hexxa-forest dark:text-hexxa-lime font-serif tabular">
+                      {BRL0.format(vc)} <span className="text-ink-soft font-normal text-xs">· {p}%</span>
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                    <div className="h-full rounded-full bg-[#1E3328] dark:bg-[#DFFFAE]" style={{ width: `${p}%` }} />
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5">
+                    <div className="h-full rounded-full bg-hexxa-forest dark:bg-hexxa-lime transition-all duration-500" style={{ width: `${p}%` }} />
                   </div>
                 </li>
               );
             })}
           </ul>
-        </section>
+        </Card>
       )}
 
       {partners.length > 0 && (
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Riqueza por Sócio</h2>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Participação societária no PJ (pelo % do contrato social) + bens pessoais (PF) cadastrados.</p>
+        <Card level={1} className="p-6 sm:p-8 space-y-4">
+          <h2 className="font-serif font-bold text-base text-ink">Riqueza por Sócio</h2>
+          <p className="text-xs text-ink-soft">Participação societária no PJ (pelo % do contrato social) + bens pessoais (PF) cadastrados.</p>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2">
             {partners.map((s) => {
               const fatiaPJ = (totalPJ * s.participacao) / 100;
               const bensPF = ativosPF.filter((a) => a.partnerId === s.id).reduce((sum, a) => sum + valorContabil(a), 0);
               return (
-                <li key={s.id} className="rounded-2xl bg-white/80 dark:bg-[#121614] border border-black/5 dark:border-white/10 p-5 shadow-sm space-y-1">
-                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">{s.nome} · {s.participacao}% do PJ</p>
-                  <p className="font-serif text-2xl font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL0.format(fatiaPJ + bensPF)}</p>
-                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                <li key={s.id} className="rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 p-5 shadow-(--elev-1) space-y-1">
+                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">{s.nome} · {s.participacao}% do PJ</p>
+                  <p className="font-serif tabular text-2xl font-bold text-ink">{BRL0.format(fatiaPJ + bensPF)}</p>
+                  <p className="text-xs text-ink-soft">
                     {BRL0.format(fatiaPJ)} de quota societária + {BRL0.format(bensPF)} de bens pessoais
                   </p>
                 </li>
               );
             })}
           </ul>
-        </section>
+        </Card>
       )}
     </div>
   );
 }
 
 // ============================================================
-// 2) Simulador de Dividendos — base real (lucro do exercício + acumulado),
-//    com pedido de distribuição validado pelas 6 travas legais reais
-//    (ProfitDistributionService, ver lib/server/profit-distribution.ts).
-//    O simulador abaixo é só uma prévia informativa — quem grava de verdade
-//    é o DistributionRequestForm (mesmo componente usado em Sócios).
+// 2) Simulador de Dividendos
 // ============================================================
 function Dividendos({
   partners,
@@ -179,28 +176,28 @@ function Dividendos({
   }, [lucro, reservas, reterPct]);
 
   const fieldCls =
-    'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
+    'mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-in fade-in">
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Parâmetros de Simulação</h2>
-        <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+      <Card level={1} className="p-6 sm:p-8 space-y-4">
+        <h2 className="font-serif font-bold text-base text-ink">Parâmetros de Simulação</h2>
+        <p className="text-xs text-ink-soft">
           Pré-preenchido com o lucro real do ano, já descontada a depreciação do período ({BRL.format(resumo.netProfit)}), e o acumulado histórico ainda não distribuído ({BRL.format(resumo.accumulatedProfit)}).
         </p>
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Lucro Contábil do Exercício</label>
+            <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Lucro Contábil do Exercício</label>
             <input type="number" value={lucro} onChange={(e) => setLucro(Number(e.target.value))} className={fieldCls} />
           </div>
           <div>
-            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Reservas de Lucros Acumuladas (Anos Anteriores)</label>
+            <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Reservas de Lucros Acumuladas (Anos Anteriores)</label>
             <input type="number" value={reservas} onChange={(e) => setReservas(Number(e.target.value))} className={fieldCls} />
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Reter para Reinvestimento / Giro</label>
-              <span className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{reterPct}%</span>
+              <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Reter para Reinvestimento / Giro</label>
+              <span className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">{reterPct}%</span>
             </div>
             <input
               type="range"
@@ -208,48 +205,48 @@ function Dividendos({
               max={50}
               value={reterPct}
               onChange={(e) => setReterPct(Number(e.target.value))}
-              className="mt-2 w-full accent-[#1E3328] dark:accent-[#DFFFAE]"
+              className="mt-2 w-full accent-hexxa-forest dark:accent-hexxa-lime"
             />
           </div>
         </div>
-        <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] pt-2">
+        <p className="text-[11px] text-ink-soft pt-2">
           Reserva legal de 5% aplicada por padrão (obrigatória por lei apenas para S.A. — Lei 6.404/76, art. 193; em LTDA é uma
           convenção prudente, salvo se o contrato social exigir o contrário). Dividendos são isentos de IR na pessoa física.
         </p>
-      </section>
+      </Card>
 
       <section className="space-y-4">
-        <div className="rounded-3xl border border-black/5 bg-[#1E3328] dark:bg-[#1A201C] p-6 text-[#FEFDF3] shadow-md">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]">Máximo Distribuível (Sem Descapitalizar)</h3>
-          <p className="mt-2 font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#DFFFAE]">{BRL.format(calc.max)}</p>
-        </div>
+        <Card level={2} tone="deep" className="p-6 text-white shadow-(--elev-2)">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Máximo Distribuível (Sem Descapitalizar)</h3>
+          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL.format(calc.max)}</p>
+        </Card>
 
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 text-sm shadow-sm space-y-1">
+        <Card level={1} className="p-6 text-sm space-y-1">
           <Row label="Lucro do exercício" value={BRL.format(lucro)} />
           <Row label="(–) Reserva legal (5%)" value={`- ${BRL.format(calc.reservaLegal)}`} />
           <Row label={`(–) Reinvestimento (${reterPct}%)`} value={`- ${BRL.format(calc.reinvest)}`} />
           <Row label="(+) Reservas acumuladas" value={`+ ${BRL.format(reservas)}`} />
-          <div className="mt-2 flex items-center justify-between border-t border-black/5 dark:border-white/10 pt-3 font-bold">
-            <span className="text-[#231F20] dark:text-[#FEFDF3]">Máximo Distribuível</span>
-            <span className="font-serif text-lg text-emerald-700 dark:text-emerald-400">{BRL.format(calc.max)}</span>
+          <div className="mt-2 flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3 font-bold">
+            <span className="text-ink">Máximo Distribuível</span>
+            <span className="font-serif tabular text-lg text-emerald-600 dark:text-emerald-400">{BRL.format(calc.max)}</span>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Prévia por Sócio (simulação, não grava nada)</h3>
+        <Card level={1} className="p-6 space-y-3">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Prévia por Sócio (simulação, não grava nada)</h3>
           {partners.length === 0 ? (
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Cadastre os sócios em Minha Contabilidade → Sócios para ver a divisão aqui.</p>
+            <p className="text-xs text-ink-soft">Cadastre os sócios em Minha Contabilidade → Sócios para ver a divisão aqui.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {partners.map((s) => (
-                <li key={s.id} className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/10 last:border-0">
-                  <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{s.nome} · <span className="font-normal text-xs text-[#6E6A61] dark:text-[#A8A49C]">{s.participacao}%</span></span>
-                  <span className="font-serif font-bold text-emerald-700 dark:text-emerald-400">{BRL.format((calc.max * s.participacao) / 100)}</span>
+                <li key={s.id} className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5 last:border-0">
+                  <span className="font-bold text-ink">{s.nome} · <span className="font-normal text-xs text-ink-soft">{s.participacao}%</span></span>
+                  <span className="font-serif tabular font-bold text-emerald-600 dark:text-emerald-400">{BRL.format((calc.max * s.participacao) / 100)}</span>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
       </section>
 
       <div className="lg:col-span-2">
@@ -266,8 +263,8 @@ function Dividendos({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1 text-xs sm:text-sm">
-      <span className="text-[#6E6A61] dark:text-[#A8A49C]">{label}</span>
-      <span className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{value}</span>
+      <span className="text-ink-soft">{label}</span>
+      <span className="font-semibold text-ink font-serif tabular">{value}</span>
     </div>
   );
 }
@@ -340,7 +337,7 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
   }
 
   const fieldCls =
-    'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
+    'mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
 
   return (
     <div className="space-y-6 animate-in fade-in">
@@ -351,41 +348,41 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
         <Mini label="IRPJ+CSLL s/ Aluguéis (a.a.)" value={BRL0.format(tot.imposto)} tone="warn" />
       </div>
 
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm overflow-x-auto">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Bens Imobilizados (Empresa e Sócios)</h2>
+      <Card level={1} className="p-6 sm:p-8 space-y-4 overflow-x-auto">
+        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+          <h2 className="font-serif font-bold text-base text-ink">Bens Imobilizados (Empresa e Sócios)</h2>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
           >
             <Plus className="h-4 w-4" /> Adicionar Bem
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleCreate} className="mb-6 rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 space-y-4 shadow-sm">
-            <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Registrar Novo Bem / Ativo</h3>
+          <form onSubmit={handleCreate} className="mb-6 rounded-3xl bg-surface-card border border-black/5 dark:border-white/5 p-6 space-y-4 shadow-(--elev-inset)">
+            <h3 className="font-serif font-bold text-sm text-ink">Registrar Novo Bem / Ativo</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Nome / Descrição</label>
+                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Nome / Descrição</label>
                 <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className={fieldCls} placeholder="Ex: Galpão Logístico" />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Tipo de Bem</label>
+                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Tipo de Bem</label>
                 <select value={tipo} onChange={e => setTipo(e.target.value)} className={fieldCls}>
                   {Object.keys(TAXAS).map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Valor de Aquisição (R$)</label>
+                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Valor de Aquisição (R$)</label>
                 <input required type="number" min={0} value={valor} onChange={e => setValor(Number(e.target.value))} className={fieldCls} />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Ano de Aquisição</label>
+                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Ano de Aquisição</label>
                 <input required type="number" min={1900} max={YEAR} value={ano} onChange={e => setAno(Number(e.target.value))} className={fieldCls} />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Titularidade</label>
+                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Titularidade</label>
                 <select value={ownerType} onChange={e => setOwnerType(e.target.value as 'PJ' | 'PF')} className={fieldCls}>
                   <option value="PJ">Da empresa (PJ)</option>
                   <option value="PF">Pessoal de um sócio (PF)</option>
@@ -393,9 +390,9 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
               </div>
               {ownerType === 'PF' && (
                 <div>
-                  <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">Sócio Proprietário</label>
+                  <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Sócio Proprietário</label>
                   {partners.length === 0 ? (
-                    <p className="mt-1 text-xs text-amber-700">Cadastre um sócio em Minha Contabilidade → Sócios primeiro.</p>
+                    <p className="mt-1 text-xs text-amber-600">Cadastre um sócio em Minha Contabilidade → Sócios primeiro.</p>
                   ) : (
                     <select value={partnerId} onChange={e => setPartnerId(e.target.value)} className={fieldCls}>
                       {partners.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -405,8 +402,8 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
               )}
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Taxa legal aplicada: <strong>{TAXAS[tipo]?.rate || 10}% a.a.</strong></p>
-              <button disabled={loading || (ownerType === 'PF' && !partnerId)} type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-50">
+              <p className="text-xs text-ink-soft">Taxa legal aplicada: <strong>{TAXAS[tipo]?.rate || 10}% a.a.</strong></p>
+              <button disabled={loading || (ownerType === 'PF' && !partnerId)} type="submit" className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-50">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {loading ? 'Salvando...' : 'Salvar Bem'}
               </button>
@@ -415,11 +412,11 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
         )}
 
         {rows.length === 0 ? (
-          <p className="py-12 text-center text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum bem cadastrado ainda.</p>
+          <p className="py-12 text-center text-xs sm:text-sm text-ink-soft">Nenhum bem cadastrado ainda.</p>
         ) : (
           <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="text-left text-[#6E6A61] dark:text-[#A8A49C] border-b border-black/5 dark:border-white/10 pb-2">
+              <tr className="text-left text-ink-soft border-b border-black/5 dark:border-white/5 pb-2">
                 <th className="py-2.5">Bem</th>
                 <th>Tipo</th>
                 <th>Dono</th>
@@ -433,17 +430,17 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
             </thead>
             <tbody className="divide-y divide-black/5 dark:divide-white/10">
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                  <td className="py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">{r.name}</td>
-                  <td className="text-[#6E6A61] dark:text-[#A8A49C]">{r.kind}</td>
-                  <td className="text-[#6E6A61] dark:text-[#A8A49C]">{r.ownerType === 'PJ' ? 'Empresa' : (r.partnerName ?? 'Sócio')}</td>
-                  <td className="text-right font-semibold">{BRL0.format(r.acq)}<br /><span className="text-[11px] font-normal text-[#6E6A61] dark:text-[#A8A49C]">{r.year}</span></td>
-                  <td className="text-right text-amber-700 dark:text-amber-400 font-semibold">{BRL0.format(r.deprAcum)}<br /><span className="text-[11px] font-normal text-[#6E6A61] dark:text-[#A8A49C]">{r.rate}% a.a. · {r.anos} ano(s)</span></td>
-                  <td className="text-right font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL0.format(r.contabil)}</td>
-                  <td className="text-right">{r.rent ? BRL0.format(r.rent) : '—'}</td>
-                  <td className="text-right">{r.imposto ? BRL0.format(r.imposto) : '—'}</td>
+                <tr key={r.id} className="hover:bg-surface-card-hover transition-colors">
+                  <td className="py-3 font-bold text-ink">{r.name}</td>
+                  <td className="text-ink-soft">{r.kind}</td>
+                  <td className="text-ink-soft">{r.ownerType === 'PJ' ? 'Empresa' : (r.partnerName ?? 'Sócio')}</td>
+                  <td className="text-right font-serif tabular font-semibold">{BRL0.format(r.acq)}<br /><span className="text-[11px] font-sans font-normal text-ink-soft">{r.year}</span></td>
+                  <td className="text-right text-amber-600 dark:text-amber-400 font-serif tabular font-semibold">{BRL0.format(r.deprAcum)}<br /><span className="text-[11px] font-sans font-normal text-ink-soft">{r.rate}% a.a. · {r.anos} ano(s)</span></td>
+                  <td className="text-right font-bold font-serif tabular text-hexxa-forest dark:text-hexxa-lime">{BRL0.format(r.contabil)}</td>
+                  <td className="text-right font-serif tabular">{r.rent ? BRL0.format(r.rent) : '—'}</td>
+                  <td className="text-right font-serif tabular">{r.imposto ? BRL0.format(r.imposto) : '—'}</td>
                   <td className="text-right">
-                    <button type="button" onClick={() => handleDelete(r.id)} disabled={busyId === r.id} className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50">
+                    <button type="button" onClick={() => handleDelete(r.id)} disabled={busyId === r.id} className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50 transition-colors">
                       {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </button>
                   </td>
@@ -452,21 +449,21 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
             </tbody>
           </table>
         )}
-        <p className="mt-3 text-[11px] text-[#6E6A61] dark:text-[#A8A49C] pt-2 border-t border-black/5 dark:border-white/10">
+        <p className="mt-3 text-[11px] text-ink-soft pt-2 border-t border-black/5 dark:border-white/10">
           Depreciação linear pelas taxas usuais (IN SRF nº 162/1998 e IN RFB nº 1700/2017). Imposto estimado pelo Lucro Presumido (base 32% sobre aluguéis,
           IRPJ 15% + CSLL 9%).
         </p>
-      </section>
+      </Card>
     </div>
   );
 }
 
 function Mini({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-      <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 font-serif text-xl sm:text-2xl font-bold tracking-tight ${tone === 'warn' ? 'text-amber-700 dark:text-amber-400' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{value}</p>
-    </div>
+    <Card level={1} className="p-5">
+      <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">{label}</p>
+      <p className={`mt-1 font-serif tabular text-xl sm:text-2xl font-bold tracking-tight ${tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{value}</p>
+    </Card>
   );
 }
 

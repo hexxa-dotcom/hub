@@ -3,3 +3,5 @@ export * from './enums';
 export * from './language';
 export * from './ports/index';
 export * from './services/index';
+export * from './accounting/index';
+export * from './agent/index';

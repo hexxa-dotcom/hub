@@ -41,6 +41,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CustomerForm } from '../meu-negocio/clientes/CustomerForm';
+import { Card } from '@/components/ui/Card';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { formatDocument, normalizeDocument } from '@hexxa/core/document-br';
 import {
@@ -85,15 +86,15 @@ type Tarefa = TarefaRow;
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
 const field =
-  'block w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-all focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
-const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';
+  'block w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none transition-all focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime';
+const lbl = 'text-caption font-bold text-ink-soft tracking-wide uppercase';
 
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 }
 
 const AVATAR_COLORS = [
-  'bg-[#1E3328]', 'bg-[#2F4A3C]', 'bg-[#4B6354]', 'bg-[#3D5A80]',
+  'bg-hexxa-forest', 'bg-[#2F4A3C]', 'bg-[#4B6354]', 'bg-[#3D5A80]',
   'bg-[#5C6B73]', 'bg-[#6D597A]', 'bg-[#B56576]', 'bg-[#E56B6F]',
 ];
 function avatarColor(name: string) {
@@ -107,10 +108,10 @@ function fmtFim(fim: string | null) {
 }
 
 const STATUS_CONFIG: Record<ContratoStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  ativo:    { label: 'Ativo',          cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', icon: CheckCircle2 },
-  renovar:  { label: 'Renovar em breve', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',    icon: AlertTriangle },
-  expirado: { label: 'Expirado',       cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300', icon: XCircle },
-  rascunho: { label: 'Futuro',         cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]',   icon: Clock },
+  ativo:    { label: 'Ativo',          cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
+  renovar:  { label: 'Renovar em breve', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',    icon: AlertTriangle },
+  expirado: { label: 'Expirado',       cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: XCircle },
+  rascunho: { label: 'Futuro',         cls: 'bg-surface-card text-ink-soft border border-black/5 dark:border-white/5',   icon: Clock },
 };
 
 const TIPOS_CONTRATO = [
@@ -124,25 +125,25 @@ const TIPOS_CONTRATO = [
 ];
 
 const TAREFA_STATUS_CONFIG: Record<TarefaStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  pendente:     { label: 'Pendente',     cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]',          icon: Clock },
-  em_andamento: { label: 'Em andamento', cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]',     icon: Target },
-  concluida:    { label: 'Concluída',    cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', icon: CheckCircle2 },
+  pendente:     { label: 'Pendente',     cls: 'bg-surface-card text-ink-soft border border-black/5 dark:border-white/5',          icon: Clock },
+  em_andamento: { label: 'Em andamento', cls: 'bg-hexxa-forest text-hexxa-lime border border-hexxa-lime/20',     icon: Target },
+  concluida:    { label: 'Concluída',    cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
 };
 
 const PRIORIDADE_CONFIG: Record<TarefaPrioridade, { label: string; cls: string }> = {
-  baixa:   { label: 'Baixa',   cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
-  normal:  { label: 'Normal',  cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' },
-  alta:    { label: 'Alta',    cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-  urgente: { label: 'Urgente', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' },
+  baixa:   { label: 'Baixa',   cls: 'bg-surface-card text-ink-soft border border-black/5 dark:border-white/5' },
+  normal:  { label: 'Normal',  cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:text-hexxa-lime' },
+  alta:    { label: 'Alta',    cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  urgente: { label: 'Urgente', cls: 'bg-red-500/10 text-red-600 dark:text-red-400' },
 };
 
 function prazoInfo(prazo: string | null): { text: string; cls: string } {
-  if (!prazo) return { text: 'Sem prazo', cls: 'text-[#6E6A61] dark:text-[#A8A49C]' };
+  if (!prazo) return { text: 'Sem prazo', cls: 'text-ink-soft' };
   const days = Math.ceil((new Date(prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   if (days < 0) return { text: `Atrasado ${Math.abs(days)}d`, cls: 'text-red-600 font-bold' };
   if (days === 0) return { text: 'Hoje', cls: 'text-amber-600 font-bold' };
   if (days === 1) return { text: 'Amanhã', cls: 'text-amber-600 font-bold' };
-  return { text: new Date(prazo).toLocaleDateString('pt-BR'), cls: 'text-[#6E6A61] dark:text-[#A8A49C]' };
+  return { text: new Date(prazo).toLocaleDateString('pt-BR'), cls: 'text-ink-soft' };
 }
 
 // ── Visão Geral ───────────────────────────────────────────────────────────────
@@ -168,83 +169,91 @@ function VisaoGeral({
         <button
           type="button"
           onClick={() => onTab('clientes')}
-          className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 text-left transition-all hover:bg-[#F4EFE4] dark:hover:bg-[#1A201C] shadow-sm group"
+          className="text-left"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Clientes</p>
-            <div className="p-2 rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-              <Users className="h-4 w-4" />
+          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover group">
+            <div className="flex items-center justify-between">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Clientes</p>
+              <div className="p-2 rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime">
+                <Users className="h-4 w-4" />
+              </div>
             </div>
-          </div>
-          <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">{customers.length}</p>
-          <p className="mt-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Ver todos →</p>
+            <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">{customers.length}</p>
+            <p className="mt-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">Ver todos →</p>
+          </Card>
         </button>
 
         <Link
           href="/meu-negocio/contratos"
-          className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 text-left transition-all hover:bg-[#F4EFE4] dark:hover:bg-[#1A201C] shadow-sm"
+          className="text-left"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Contratos Ativos</p>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <FileText className="h-4 w-4" />
+          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
+            <div className="flex items-center justify-between">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Contratos Ativos</p>
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <FileText className="h-4 w-4" />
+              </div>
             </div>
-          </div>
-          <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400">{ativos}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{expirados} expirado{expirados !== 1 ? 's' : ''}</p>
+            <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400">{ativos}</p>
+            <p className="mt-1 text-xs text-ink-soft">{expirados} expirado{expirados !== 1 ? 's' : ''}</p>
+          </Card>
         </Link>
 
         <Link
           href="/meu-negocio/contratos"
-          className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 text-left transition-all hover:bg-[#F4EFE4] dark:hover:bg-[#1A201C] shadow-sm"
+          className="text-left"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Renovar em Breve</p>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="h-4 w-4" />
+          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
+            <div className="flex items-center justify-between">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Renovar em Breve</p>
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
             </div>
-          </div>
-          <p className={`mt-3 font-serif font-bold text-2xl sm:text-3xl ${renovar > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{renovar}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">nos próximos 30 dias</p>
+            <p className={`mt-3 font-serif tabular font-bold text-2xl sm:text-3xl ${renovar > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{renovar}</p>
+            <p className="mt-1 text-xs text-ink-soft">nos próximos 30 dias</p>
+          </Card>
         </Link>
 
         <button
           type="button"
           onClick={() => onTab('assinatura')}
-          className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 text-left transition-all hover:bg-[#F4EFE4] dark:hover:bg-[#1A201C] shadow-sm"
+          className="text-left"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Aguardando Assinatura</p>
-            <div className="p-2 rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-              <FilePenLine className="h-4 w-4" />
+          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
+            <div className="flex items-center justify-between">
+              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Aguardando Assinatura</p>
+              <div className="p-2 rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime">
+                <FilePenLine className="h-4 w-4" />
+              </div>
             </div>
-          </div>
-          <p className={`mt-3 font-serif font-bold text-2xl sm:text-3xl ${pendingAssin > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{pendingAssin}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{contracts.length} documento{contracts.length !== 1 ? 's' : ''}</p>
+            <p className={`mt-3 font-serif tabular font-bold text-2xl sm:text-3xl ${pendingAssin > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{pendingAssin}</p>
+            <p className="mt-1 text-xs text-ink-soft">{contracts.length} documento{contracts.length !== 1 ? 's' : ''}</p>
+          </Card>
         </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Clientes recentes */}
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-4 shadow-sm">
+        <Card level={1} className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Clientes Recentes</h2>
-            <button type="button" onClick={() => onTab('clientes')} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">Ver todos →</button>
+            <h2 className="font-serif font-bold text-base text-ink">Clientes Recentes</h2>
+            <button type="button" onClick={() => onTab('clientes')} className="text-xs font-bold text-hexxa-forest hover:underline dark:text-hexxa-lime">Ver todos →</button>
           </div>
           {recent.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum cliente cadastrado.</p>
+            <p className="py-8 text-center text-sm text-ink-soft">Nenhum cliente cadastrado.</p>
           ) : (
             <div className="space-y-2">
               {recent.map(c => (
-                <div key={c.id} className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
-                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold text-[#DFFFAE] ${avatarColor(c.name)}`}>
+                <div key={c.id} className="flex items-center gap-3 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 shadow-(--elev-1) p-3.5 hover:bg-surface-card-hover transition-colors">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold text-hexxa-lime ${avatarColor(c.name)}`}>
                     {initials(c.name)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.name}</p>
-                    <p className="truncate text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.document ?? c.email ?? '—'}</p>
+                    <p className="truncate text-sm font-bold text-ink">{c.name}</p>
+                    <p className="truncate text-xs text-ink-soft">{c.document ?? c.email ?? '—'}</p>
                   </div>
-                  <span className={`ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${c.type === 'PF' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]'}`}>
+                  <span className={`ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${c.type === 'PF' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-forest/20'}`}>
                     {c.type ?? 'PJ'}
                   </span>
                 </div>
@@ -254,30 +263,30 @@ function VisaoGeral({
           <button
             type="button"
             onClick={() => onTab('clientes')}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
           >
             <Plus className="h-4 w-4" /> Novo Cliente
           </button>
-        </div>
+        </Card>
 
         {/* Contratos com vencimento próximo */}
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-4 shadow-sm">
+        <Card level={1} className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Contratos — Visão Rápida</h2>
-            <Link href="/meu-negocio/contratos" className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">Gerenciar →</Link>
+            <h2 className="font-serif font-bold text-base text-ink">Contratos — Visão Rápida</h2>
+            <Link href="/meu-negocio/contratos" className="text-xs font-bold text-hexxa-forest hover:underline dark:text-hexxa-lime">Gerenciar →</Link>
           </div>
           {contratos.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum contrato registrado.</p>
+            <p className="py-8 text-center text-sm text-ink-soft">Nenhum contrato registrado.</p>
           ) : (
             <div className="space-y-2">
               {contratos.slice(0, 5).map(c => {
                 const cfg = STATUS_CONFIG[c.status];
                 return (
-                  <div key={c.id} className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
-                    <FileText className="h-4 w-4 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                  <div key={c.id} className="flex items-center gap-3 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 shadow-(--elev-1) p-3.5 hover:bg-surface-card-hover transition-colors">
+                    <FileText className="h-4 w-4 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.clienteNome}</p>
-                      <p className="truncate text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.tipo} · até {fmtFim(c.fim)}</p>
+                      <p className="truncate text-sm font-bold text-ink">{c.clienteNome}</p>
+                      <p className="truncate text-xs text-ink-soft">{c.tipo} · até {fmtFim(c.fim)}</p>
                     </div>
                     <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cfg.cls}`}>{cfg.label}</span>
                   </div>
@@ -287,31 +296,31 @@ function VisaoGeral({
           )}
           <Link
             href="/meu-negocio/contratos"
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
           >
             <Plus className="h-4 w-4" /> Novo Contrato
           </Link>
-        </div>
+        </Card>
       </div>
 
       {/* Tarefas em aberto */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 space-y-4 shadow-sm">
+      <Card level={1} className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Tarefas em Aberto</h2>
-          <button type="button" onClick={() => onTab('tarefas')} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">Ver todas →</button>
+          <h2 className="font-serif font-bold text-base text-ink">Tarefas em Aberto</h2>
+          <button type="button" onClick={() => onTab('tarefas')} className="text-xs font-bold text-hexxa-forest hover:underline dark:text-hexxa-lime">Ver todas →</button>
         </div>
         {tarefas.filter(t => t.status !== 'concluida').length === 0 ? (
-          <p className="py-6 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhuma tarefa pendente no momento.</p>
+          <p className="py-6 text-center text-sm text-ink-soft">Nenhuma tarefa pendente no momento.</p>
         ) : (
           <div className="space-y-2">
             {tarefas.filter(t => t.status !== 'concluida').slice(0, 4).map(t => {
               const pri = PRIORIDADE_CONFIG[t.prioridade];
               const pz = prazoInfo(t.prazo);
               return (
-                <div key={t.id} className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+                <div key={t.id} className="flex items-center gap-3 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 shadow-(--elev-1) p-3.5 hover:bg-surface-card-hover transition-colors">
                   <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${pri.cls}`}>{pri.label}</span>
-                  <p className="min-w-0 flex-1 truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{t.titulo}</p>
-                  {t.clienteNome && <p className="hidden truncate text-xs text-[#6E6A61] dark:text-[#A8A49C] sm:block">{t.clienteNome}</p>}
+                  <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{t.titulo}</p>
+                  {t.clienteNome && <p className="hidden truncate text-xs text-ink-soft sm:block">{t.clienteNome}</p>}
                   <span className={`shrink-0 text-xs font-medium ${pz.cls}`}>{pz.text}</span>
                 </div>
               );
@@ -321,31 +330,31 @@ function VisaoGeral({
         <button
           type="button"
           onClick={() => onTab('tarefas')}
-          className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all"
+          className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
         >
           <Plus className="h-4 w-4" /> Nova Tarefa
         </button>
-      </div>
+      </Card>
 
       {/* Quick action — CNPJ */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md flex flex-wrap items-center gap-4 p-6 sm:p-8 shadow-sm">
+      <Card level={1} className="flex flex-wrap items-center gap-4 p-6 sm:p-8">
         <div className="flex items-center gap-4">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
             <Scan className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Consulta de CNPJ na Receita Federal</h3>
-            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">Valide a situação cadastral, optante pelo Simples e CNAE de qualquer cliente ou fornecedor.</p>
+            <h3 className="font-serif font-bold text-base text-ink">Consulta de CNPJ na Receita Federal</h3>
+            <p className="text-xs sm:text-sm text-ink-soft">Valide a situação cadastral, optante pelo Simples e CNAE de qualquer cliente ou fornecedor.</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => onTab('cnpj')}
-          className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+          className="ml-auto inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
         >
           <Scan className="h-4 w-4" /> Consultar CNPJ Agora
         </button>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -376,12 +385,12 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-48">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6E6A61] dark:text-[#A8A49C]" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nome, documento, e-mail…"
-            className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] py-2.5 pl-10 pr-4 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs sm:text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all"
           />
         </div>
         <div className="flex gap-1.5">
@@ -390,10 +399,10 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all shadow-(--elev-1) ${
                 filter === f
-                  ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
-                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                  ? 'bg-hexxa-forest text-hexxa-lime'
+                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink'
               }`}
             >
               {f === 'todos' ? `Todos (${clientes.length})` : f === 'PJ' ? `PJ (${clientes.filter(c=>c.type==='PJ').length})` : `PF (${clientes.filter(c=>c.type==='PF').length})`}
@@ -403,7 +412,7 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
         <button
           type="button"
           onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
         >
           <Plus className="h-4 w-4" /> Novo Cliente
         </button>
@@ -420,14 +429,14 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
           <Users className="h-10 w-10 opacity-30" />
           <p className="text-sm">{search ? 'Nenhum cliente encontrado com este filtro.' : 'Nenhum cliente cadastrado ainda.'}</p>
           {!search && (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#1E3328] px-5 py-2 text-xs font-bold text-[#DFFFAE]"
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1)"
             >
               <Plus className="h-4 w-4" /> Adicionar Primeiro Cliente
             </button>
@@ -436,27 +445,27 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(c => (
-            <div key={c.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 transition-all hover:shadow-md space-y-3">
+            <Card key={c.id} level={1} interactive className="p-5 space-y-3">
               <div className="flex items-start gap-3">
-                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-xs font-bold text-[#DFFFAE] ${avatarColor(c.name)}`}>
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-xs font-bold text-hexxa-lime ${avatarColor(c.name)}`}>
                   {initials(c.name)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-1">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{c.name}</p>
-                    <span className={`ml-1 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${c.type === 'PF' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]'}`}>
+                    <p className="truncate text-sm font-bold text-ink">{c.name}</p>
+                    <span className={`ml-1 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${c.type === 'PF' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-forest/20'}`}>
                       {c.type ?? 'PJ'}
                     </span>
                   </div>
-                  {c.document && <p className="mt-0.5 font-mono text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.document}</p>}
+                  {c.document && <p className="mt-0.5 font-mono text-xs text-ink-soft">{c.document}</p>}
                 </div>
               </div>
-              <div className="space-y-1 pt-1 border-t border-black/5 dark:border-white/10 text-xs">
-                {c.email && <p className="flex items-center gap-1.5 truncate text-[#6E6A61] dark:text-[#A8A49C]"><Mail className="h-3.5 w-3.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />{c.email}</p>}
-                {c.phone && <p className="flex items-center gap-1.5 text-[#6E6A61] dark:text-[#A8A49C]"><Phone className="h-3.5 w-3.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />{c.phone}</p>}
-                {c.address && <p className="flex items-center gap-1.5 truncate text-[#6E6A61] dark:text-[#A8A49C]"><MapPin className="h-3.5 w-3.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />{c.address}</p>}
+              <div className="space-y-1 pt-2 border-t border-black/5 dark:border-white/10 text-xs">
+                {c.email && <p className="flex items-center gap-1.5 truncate text-ink-soft"><Mail className="h-3.5 w-3.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />{c.email}</p>}
+                {c.phone && <p className="flex items-center gap-1.5 text-ink-soft"><Phone className="h-3.5 w-3.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />{c.phone}</p>}
+                {c.address && <p className="flex items-center gap-1.5 truncate text-ink-soft"><MapPin className="h-3.5 w-3.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />{c.address}</p>}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -467,11 +476,11 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
 // ── Assinatura Digital Tab (DocuSeal) ─────────────────────────────────────────
 
 const SIGNATURE_STATUS_PT: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: 'Pendente', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-  SENT: { label: 'Aguardando assinatura', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
-  SIGNED: { label: 'Assinado', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
-  REFUSED: { label: 'Recusado', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' },
-  EXPIRED: { label: 'Expirado', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' },
+  PENDING: { label: 'Pendente', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' },
+  SENT: { label: 'Aguardando assinatura', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' },
+  SIGNED: { label: 'Assinado', cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' },
+  REFUSED: { label: 'Recusado', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' },
+  EXPIRED: { label: 'Expirado', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' },
 };
 
 function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
@@ -534,19 +543,19 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+      <Card level={1} className="p-6">
         <div className="flex items-start gap-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
             <Shield className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Assinatura Eletrônica &amp; Digital</h3>
-            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+            <h3 className="font-serif font-bold text-base text-ink">Assinatura Eletrônica &amp; Digital</h3>
+            <p className="text-xs sm:text-sm text-ink-soft mt-1">
               Envie contratos e documentos para coleta de assinaturas digitais com validade jurídica e trilha de auditoria completa.
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {missingApiKey && (
         <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-5 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
@@ -557,29 +566,29 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
 
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total Enviados', val: docs.length, cls: 'text-[#231F20] dark:text-[#FEFDF3]' },
+          { label: 'Total Enviados', val: docs.length, cls: 'text-ink' },
           { label: 'Aguardando', val: pending, cls: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Concluídos', val: concluded, cls: 'text-emerald-700 dark:text-emerald-400' },
+          { label: 'Concluídos', val: concluded, cls: 'text-emerald-600 dark:text-emerald-400' },
         ].map(c => (
-          <div key={c.label} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</p>
-            <p className={`mt-2 font-serif font-bold text-2xl sm:text-3xl ${c.cls}`}>{c.val}</p>
-          </div>
+          <Card key={c.label} level={1} className="p-5">
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">{c.label}</p>
+            <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${c.cls}`}>{c.val}</p>
+          </Card>
         ))}
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
-        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo Documento para Assinatura</h2>
+      <form onSubmit={handleSubmit} className="rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) p-6 sm:p-8 space-y-4">
+        <h2 className="font-serif font-bold text-base text-ink">Novo Documento para Assinatura</h2>
         <div>
           <label className={lbl}>Nome do Documento</label>
           <input value={name} onChange={e => setName(e.target.value)} required placeholder="Ex.: Contrato de Prestação de Serviços — Cliente X" className={`mt-1.5 ${field}`} />
         </div>
         <div>
           <label className={lbl}>Arquivo PDF (máximo 5MB)</label>
-          <label className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 px-4 py-4 transition-all hover:border-[#2F4A3C] hover:bg-[#FEFDF3] dark:hover:bg-[#121614]">
-            <Upload className="h-5 w-5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-            <span className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">{file ? <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{file.name} ({(file.size/1024).toFixed(0)} KB)</span> : 'Clique para selecionar o arquivo PDF'}</span>
+          <label className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-black/15 dark:border-white/15 bg-surface-card shadow-(--elev-inset) px-4 py-4 transition-all hover:border-hexxa-forest">
+            <Upload className="h-5 w-5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
+            <span className="text-xs sm:text-sm text-ink-soft">{file ? <span className="font-bold text-ink">{file.name} ({(file.size/1024).toFixed(0)} KB)</span> : 'Clique para selecionar o arquivo PDF'}</span>
             <input type="file" accept="application/pdf" className="sr-only" onChange={e => setFile(e.target.files?.[0] ?? null)} />
           </label>
         </div>
@@ -591,23 +600,23 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
                 <input type="text" placeholder="Nome" value={s.name} onChange={e => setSigners(sg => sg.map((x,idx) => idx===i ? {...x,name:e.target.value} : x))} className={`flex-1 ${field}`} />
                 <input type="email" placeholder={`email${i+1}@empresa.com`} value={s.email} onChange={e => setSigners(sg => sg.map((x,idx) => idx===i ? {...x,email:e.target.value} : x))} className={`flex-1 ${field}`} />
                 {signers.length > 1 && (
-                  <button type="button" onClick={() => setSigners(sg => sg.filter((_,idx) => idx!==i))} className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600">
+                  <button type="button" onClick={() => setSigners(sg => sg.filter((_,idx) => idx!==i))} className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 transition-colors">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>
             ))}
           </div>
-          <button type="button" onClick={() => setSigners(sg => [...sg, {name:'',email:'',role:''}])} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">
+          <button type="button" onClick={() => setSigners(sg => [...sg, {name:'',email:'',role:''}])} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-hexxa-forest hover:underline dark:text-hexxa-lime">
             <UserPlus className="h-3.5 w-3.5" /> Adicionar Outro Signatário
           </button>
         </div>
-        {formError && <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300"><AlertTriangle className="h-4 w-4 shrink-0" />{formError}</p>}
-        {formSuccess && <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4 shrink-0" />Documento enviado com sucesso para assinatura.</p>}
+        {formError && <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-700 dark:text-red-400"><AlertTriangle className="h-4 w-4 shrink-0" />{formError}</p>}
+        {formSuccess && <p className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-400"><CheckCircle2 className="h-4 w-4 shrink-0" />Documento enviado com sucesso para assinatura.</p>}
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {submitting ? 'Enviando…' : 'Enviar para Assinatura'}
@@ -615,37 +624,37 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
       </form>
 
       {/* Lista de documentos */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
+      <Card level={1} className="p-6 sm:p-8 space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Documentos Enviados</h2>
+          <h2 className="font-serif font-bold text-base text-ink">Documentos Enviados</h2>
           <button
             type="button"
             onClick={refresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors disabled:opacity-40"
           >
             <RotateCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} /> Atualizar
           </button>
         </div>
         {docs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum documento enviado ainda.</p>
+          <p className="py-8 text-center text-sm text-ink-soft">Nenhum documento enviado ainda.</p>
         ) : (
           <div className="divide-y divide-black/5 dark:divide-white/10">
             {docs.map(doc => {
-              const statusInfo = SIGNATURE_STATUS_PT[doc.status] ?? { label: doc.status, cls: 'bg-black/5 text-[#6E6A61]' };
+              const statusInfo = SIGNATURE_STATUS_PT[doc.status] ?? { label: doc.status, cls: 'bg-surface-card text-ink-soft' };
               return (
-                <div key={doc.id} className="flex items-center gap-3 py-3.5">
-                  <FileSignature className="h-5 w-5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                <div key={doc.id} className="flex items-center gap-3 py-3.5 hover:bg-surface-card-hover transition-colors">
+                  <FileSignature className="h-5 w-5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{doc.title ?? 'Documento sem título'}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{doc.signerName ?? doc.signerEmail} · {new Date(doc.createdAt).toLocaleDateString('pt-BR')}</p>
+                    <p className="truncate text-sm font-bold text-ink">{doc.title ?? 'Documento sem título'}</p>
+                    <p className="text-xs text-ink-soft">{doc.signerName ?? doc.signerEmail} · {new Date(doc.createdAt).toLocaleDateString('pt-BR')}</p>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${statusInfo.cls}`}>{statusInfo.label}</span>
                   <button
                     type="button"
                     disabled={resending===doc.id}
                     onClick={() => handleRefreshStatus(doc.id)}
-                    className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 disabled:opacity-50"
+                    className="rounded-full p-2 text-ink-soft hover:bg-surface-card-hover disabled:opacity-50 transition-colors"
                     title="Atualizar status"
                   >
                     {resending===doc.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <RotateCw className="h-4 w-4"/>}
@@ -655,7 +664,7 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -698,8 +707,8 @@ function CnpjRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex items-start justify-between gap-4 border-b border-black/5 dark:border-white/10 py-3 last:border-0">
-      <span className="min-w-[140px] text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{label}</span>
-      <span className="flex items-center text-right text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{value}<CopyBtn text={value} /></span>
+      <span className="min-w-[140px] text-caption font-bold uppercase tracking-wider text-ink-soft">{label}</span>
+      <span className="flex items-center text-right text-xs sm:text-sm font-bold text-ink">{value}<CopyBtn text={value} /></span>
     </div>
   );
 }
@@ -727,7 +736,7 @@ function CnpjTab() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <Card level={1} className="p-6 sm:p-8">
         <label className={lbl}>Número do CNPJ</label>
         <div className="mt-2 flex flex-col sm:flex-row gap-3">
           <input
@@ -736,74 +745,74 @@ function CnpjTab() {
             placeholder="00.000.000/0001-00"
             maxLength={18}
             onKeyDown={e => e.key==='Enter' && handleSearch()}
-            className="flex-1 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
+            className="flex-1 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all"
           />
           <button
             type="button"
             onClick={handleSearch}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-60"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             {loading ? 'Consultando…' : 'Consultar CNPJ'}
           </button>
         </div>
         {error && <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400"><AlertTriangle className="h-4 w-4" />{error}</p>}
-      </div>
+      </Card>
 
       {result && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+          <Card level={1} className="p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <Building2 className="h-6 w-6 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                  <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#231F20] dark:text-[#FEFDF3]">{result.company?.name}</h2>
+                  <Building2 className="h-6 w-6 text-hexxa-forest dark:text-hexxa-lime" />
+                  <h2 className="font-serif font-bold text-xl sm:text-2xl text-ink">{result.company?.name}</h2>
                 </div>
-                {result.alias && <p className="mt-1 text-sm font-medium text-[#6E6A61] dark:text-[#A8A49C]">{result.alias}</p>}
-                <p className="mt-1 font-mono text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{formatDocument(result.taxId)}</p>
+                {result.alias && <p className="mt-1 text-sm font-medium text-ink-soft">{result.alias}</p>}
+                <p className="mt-1 font-mono text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">{formatDocument(result.taxId)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${result.status?.text==='ATIVA'?'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300':'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'}`}>
+                <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${result.status?.text==='ATIVA'?'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20':'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
                   {result.status?.text==='ATIVA'?<CheckCircle2 className="h-3.5 w-3.5"/>:<AlertTriangle className="h-3.5 w-3.5"/>}{result.status?.text ?? '—'}
                 </span>
                 {result.simples?.optant && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] px-3 py-1 text-xs font-bold text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-forest/20 px-3 py-1 text-xs font-bold">
                     <CheckCircle2 className="h-3.5 w-3.5"/>Simples Nacional
                   </span>
                 )}
                 {result.head && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/80 dark:bg-white/10 border border-black/5 px-3 py-1 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-card border border-black/5 dark:border-white/5 shadow-(--elev-1) px-3 py-1 text-xs font-bold text-ink-soft">
                     Matriz
                   </span>
                 )}
               </div>
             </div>
-          </div>
+          </Card>
           <div className="grid gap-6 md:grid-cols-2">
-            <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]"><Building2 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]"/>Identificação</h3>
+            <Card level={1} className="p-6">
+              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-ink"><Building2 className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime"/>Identificação</h3>
               <CnpjRow label="Razão Social" value={result.company?.name} />
               <CnpjRow label="Nome Fantasia" value={result.alias} />
               <CnpjRow label="CNPJ" value={formatDocument(result.taxId)} />
               <CnpjRow label="Data de Abertura" value={result.founded ?? null} />
               <CnpjRow label="Capital Social" value={result.company?.equity != null ? `R$ ${result.company.equity.toLocaleString('pt-BR',{minimumFractionDigits:2})}` : null} />
               {result.simples && <CnpjRow label="Regime Tributário" value={result.simples.optant ? `Optante Simples Nacional desde ${result.simples.since ?? '?'}` : 'Não optante'} />}
-            </section>
-            <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]"><Mail className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]"/>Contato &amp; Atividade</h3>
+            </Card>
+            <Card level={1} className="p-6">
+              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-ink"><Mail className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime"/>Contato &amp; Atividade</h3>
               {result.emails?.map((em,i) => <CnpjRow key={i} label="E-mail" value={em.address} />)}
               {result.phones?.map((ph,i) => <CnpjRow key={i} label="Telefone" value={`(${ph.area}) ${ph.number}`} />)}
               {result.mainActivity && (
                 <CnpjRow label="CNAE Principal" value={`${result.mainActivity.id} — ${result.mainActivity.text}`} />
               )}
-            </section>
-            <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm md:col-span-2">
-              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]"><MapPin className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]"/>Endereço Fiscal</h3>
+            </Card>
+            <Card level={1} className="p-6 md:col-span-2">
+              <h3 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-ink"><MapPin className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime"/>Endereço Fiscal</h3>
               <CnpjRow label="Logradouro" value={addr} />
               <CnpjRow label="CEP" value={result.address?.zip ? String(result.address.zip).replace(/(\d{5})(\d{3})/,'$1-$2') : null} />
               <CnpjRow label="Município / UF" value={result.address ? `${result.address.city} / ${result.address.state}` : null} />
-            </section>
+            </Card>
           </div>
         </div>
       )}
@@ -834,10 +843,10 @@ function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; on
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm animate-in fade-in">
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) p-6 sm:p-8 space-y-4 animate-in fade-in">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nova Tarefa</p>
-        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-4 w-4" /></button>
+        <p className="font-serif font-bold text-base text-ink">Nova Tarefa</p>
+        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1 text-ink-soft hover:bg-black/5 transition-colors"><X className="h-4 w-4" /></button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -877,14 +886,14 @@ function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; on
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Criar Tarefa
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+          className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
         >
           Cancelar
         </button>
@@ -917,14 +926,14 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-4">
         {([
-          ['Pendentes', 'pendente', 'text-[#231F20] dark:text-[#FEFDF3]'],
-          ['Em Andamento', 'em_andamento', 'text-[#2F4A3C] dark:text-[#DFFFAE]'],
-          ['Concluídas', 'concluida', 'text-emerald-700 dark:text-emerald-400'],
+          ['Pendentes', 'pendente', 'text-ink'],
+          ['Em Andamento', 'em_andamento', 'text-hexxa-forest dark:text-hexxa-lime'],
+          ['Concluídas', 'concluida', 'text-emerald-600 dark:text-emerald-400'],
         ] as const).map(([label, key, cls]) => (
-          <div key={key} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{label}</p>
-            <p className={`mt-2 font-serif font-bold text-2xl sm:text-3xl ${cls}`}>{counts[key]}</p>
-          </div>
+          <Card key={key} level={1} className="p-5">
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">{label}</p>
+            <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${cls}`}>{counts[key]}</p>
+          </Card>
         ))}
       </div>
 
@@ -936,10 +945,10 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
               key={key}
               type="button"
               onClick={() => setFilter(key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all shadow-(--elev-1) ${
                 filter === key
-                  ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
-                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                  ? 'bg-hexxa-forest text-hexxa-lime'
+                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink'
               }`}
             >
               {label} ({counts[key]})
@@ -949,7 +958,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
         <button
           type="button"
           onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
         >
           <Plus className="h-4 w-4" /> Nova Tarefa
         </button>
@@ -959,21 +968,21 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+        <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
           <ClipboardList className="h-10 w-10 opacity-30" />
           <p className="text-sm">{filter === 'todas' ? 'Nenhuma tarefa cadastrada ainda.' : 'Nenhuma tarefa neste filtro.'}</p>
           {filter === 'todas' && (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#1E3328] px-5 py-2 text-xs font-bold text-[#DFFFAE]"
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1)"
             >
               <Plus className="h-4 w-4" /> Criar Primeira Tarefa
             </button>
           )}
         </div>
       ) : (
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+        <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden p-0">
           {filtered.map(t => {
             const cfg = TAREFA_STATUS_CONFIG[t.status];
             const StatusIcon = cfg.icon;
@@ -985,25 +994,25 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                 <button
                   type="button"
                   onClick={() => setExpanded(isExp ? null : t.id)}
-                  className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  className="flex w-full items-center gap-3 px-6 py-4 text-left hover:bg-surface-card-hover transition-colors"
                 >
                   <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${cfg.cls}`}>
                     <StatusIcon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] ${t.status === 'concluida' ? 'line-through opacity-60' : ''}`}>{t.titulo}</p>
-                    <p className="truncate text-xs text-[#6E6A61] dark:text-[#A8A49C]">{t.clienteNome ?? 'Sem cliente vinculado'}</p>
+                    <p className={`truncate text-sm font-bold text-ink ${t.status === 'concluida' ? 'line-through opacity-60' : ''}`}>{t.titulo}</p>
+                    <p className="truncate text-xs text-ink-soft">{t.clienteNome ?? 'Sem cliente vinculado'}</p>
                   </div>
                   <div className="hidden shrink-0 items-center gap-2 sm:flex">
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${pri.cls}`}>{pri.label}</span>
                     <span className={`text-xs ${pz.cls}`}>{pz.text}</span>
                   </div>
                   <span className={`hidden shrink-0 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${cfg.cls}`}>{cfg.label}</span>
-                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-[#6E6A61]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61]" />}
+                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
                 </button>
                 {isExp && (
-                  <div className="mx-5 mb-4 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-5 space-y-4">
-                    {t.descricao && <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">{t.descricao}</p>}
+                  <div className="mx-6 mb-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5 space-y-4">
+                    {t.descricao && <p className="text-xs sm:text-sm text-ink-soft">{t.descricao}</p>}
                     <div className="flex flex-wrap gap-1.5 sm:hidden">
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${pri.cls}`}>{pri.label}</span>
                       <span className={`text-xs ${pz.cls}`}>{pz.text}</span>
@@ -1021,7 +1030,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                               className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                                 t.status === s
                                   ? `${c.cls} ring-2 ring-current/30`
-                                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
                               }`}
                             >
                               <c.icon className="h-3.5 w-3.5" />{c.label}
@@ -1034,7 +1043,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                       <button
                         type="button"
                         onClick={() => remove(t.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Remover Tarefa
                       </button>
@@ -1044,7 +1053,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
               </div>
             );
           })}
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
-import { getDb, eq, and, withDbTimeout } from '@hexxa/db';
+import { getDb, eq, and, withDbTimeout, agenteLigado } from '@hexxa/db';
 import { aiInsight, aiInsightConfig, aiInsightSection } from '@hexxa/db/schema';
 import { decryptSecret } from './secret-crypto';
+import { callLlm, type LlmProvider } from '@hexxa/integrations';
+import { resolverMotor } from './llm-config';
 
 /**
  * Hexxa Insights — dica contextual por IA, com cache. Só chama o modelo
@@ -28,7 +30,13 @@ function hashContext(pageKey: string, context: string) {
   return createHash('sha256').update(`${pageKey}::${context}`).digest('hex');
 }
 
-async function resolveCredentials(): Promise<{ apiKey: string; provider: AiProvider } | null> {
+/**
+ * Credenciais de IA da plataforma. Exportada porque o agente classificador usa
+ * a MESMA configuração — provedor, chave e liga/desliga ficam num lugar só, e
+ * desligar a IA em /contador/configuracoes/ia-insights desliga tudo, não só as
+ * dicas de tela.
+ */
+export async function resolveCredentials(): Promise<{ apiKey: string; provider: AiProvider } | null> {
   const db = getDb();
   const [cfg] = await withDbTimeout(db.select().from(aiInsightConfig).limit(1), 8000);
   if (!cfg?.enabled) return null;
@@ -45,49 +53,18 @@ async function isSectionEnabled(pageKey: string): Promise<boolean> {
   return row ? row.enabled : true; // sem registro = habilitado por padrão
 }
 
-async function callAnthropic(apiKey: string, context: string): Promise<string> {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: context }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
-  const json = await res.json();
-  return (json.content?.[0]?.text ?? '').trim();
-}
-
-async function callGemini(apiKey: string, context: string): Promise<string> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: context }] }],
-        generationConfig: { maxOutputTokens: 200 },
-      }),
-    },
-  );
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
-  const json = await res.json();
-  return (json.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-}
-
 export async function getContextualInsight(companyId: string, pageKey: string, context: string): Promise<string | null> {
   if (!context.trim()) return null;
 
-  const [creds, sectionOn] = await Promise.all([resolveCredentials(), isSectionEnabled(pageKey)]);
-  if (!creds || !sectionOn) return null;
+  const [creds, sectionOn, ligado] = await Promise.all([
+    resolveCredentials(),
+    isSectionEnabled(pageKey),
+    // A chave por empresa, da ficha do cliente. O switch por seção
+    // (`isSectionEnabled`) é global e continua valendo — os dois precisam
+    // estar ligados, e o mais restritivo ganha.
+    agenteLigado(getDb(), companyId, 'insights').catch(() => true),
+  ]);
+  if (!creds || !sectionOn || !ligado) return null;
 
   const contextHash = hashContext(pageKey, context);
   const db = getDb();
@@ -107,7 +84,11 @@ export async function getContextualInsight(companyId: string, pageKey: string, c
 
   let content: string;
   try {
-    content = creds.provider === 'gemini' ? await callGemini(creds.apiKey, context) : await callAnthropic(creds.apiKey, context);
+    // Uma porta só, qualquer motor. O nome do modelo vem da configuração —
+    // nunca mais fixo no meio de uma função de rede.
+    const motor = await resolverMotor(creds);
+    const r = await callLlm(motor, { system: SYSTEM_PROMPT, user: context, maxTokens: 200 });
+    content = r.text;
     if (!content) return null;
   } catch (err) {
     console.error('[ai-insight] erro ao gerar dica:', err);

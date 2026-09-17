@@ -25,7 +25,7 @@ export function EmailForm({ area, next }: { area: AuthArea; next: string }) {
           autoFocus
           placeholder="voce@empresa.com.br"
           disabled={pending}
-          className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-center text-base text-[#FEFDF3] placeholder:text-white/40 outline-none focus:border-[#DFFFAE] focus:ring-2 focus:ring-[#DFFFAE]/30 disabled:opacity-50"
+          className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-center text-base text-[#F5F6F4] placeholder:text-white/40 outline-none focus:border-[#DFFFAE] focus:ring-2 focus:ring-[#DFFFAE]/30 disabled:opacity-50"
         />
         {!state.ok && state.message && (
           <p className="text-center text-sm text-red-300">{state.message}</p>

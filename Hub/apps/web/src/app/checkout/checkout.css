@@ -1,7 +1,7 @@
 /* ══════════════════ HEXX HUB CHECKOUT STYLES ══════════════════ */
 
 .checkout-page {
-  --cream: #FEFDF3;
+  --cream: #F5F6F4;
   --ink: #231F20;
   --dark: #14120B;
   --dark-card: #1C1910;
@@ -9,8 +9,8 @@
   --lime-soft: #EFFFD6;
   --green: #2F4A3C;
   --green-dark: #1E3328;
-  --beige: #F4EFE4;
-  --beige-deep: #EAE3D3;
+  --beige: #E7EAE5;
+  --beige-deep: #D8DDD6;
   --muted: #8E8A81;
   --border-subtle: rgba(255, 255, 255, 0.1);
   --r-lg: 24px;
@@ -186,7 +186,7 @@
   gap: 12px;
   font-size: 14.5px;
   font-weight: 600;
-  color: rgba(254, 253, 243, 0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .checkout-benefit-item .ck {

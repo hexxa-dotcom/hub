@@ -17,6 +17,7 @@ import {
   Send,
   Clock,
   Receipt,
+  Sliders,
 } from 'lucide-react';
 import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
@@ -137,12 +138,12 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
       {/* Header */}
       <div className="flex items-start gap-4">
         <Link href="/contador/clientes"
-          className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
+          className="tap-target pressable focusable mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">{comp.legalName}</h1>
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">{comp.legalName}</h1>
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
               {st.label}
@@ -171,7 +172,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
+          <div key={k.label} className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-5 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">{k.label}</p>
               <k.icon className={`h-4 w-4 ${k.color}`} />
@@ -187,8 +188,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
         <div className="lg:col-span-2 space-y-6">
 
           {/* Dados da empresa */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
               <Building2 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Dados da empresa
             </h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs sm:text-sm">
@@ -204,26 +205,26 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               ].map(([k, v]) => (
                 <div key={k}>
                   <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
-                  <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{v}</p>
+                  <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{v}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Contato */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
               <User className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Contato responsável
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
                 <User className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
                 <div>
                   <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Responsável</p>
-                  <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{owner?.name ?? '—'}</p>
+                  <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{owner?.name ?? '—'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
                 <Mail className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
                 <div>
                   <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">E-mail</p>
@@ -234,19 +235,19 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
                 <Phone className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
                 <div>
                   <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Telefone</p>
-                  <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{telefone || '—'}</p>
+                  <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{telefone || '—'}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Histórico de faturas (honorários contábeis) */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-            <h2 className="mb-1 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+            <h2 className="mb-1 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
               <BarChart3 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Faturas de honorários
             </h2>
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mb-4">
@@ -258,7 +259,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                 Sem histórico — a primeira fatura aparece aqui após o fechamento mensal processar esta empresa.
               </p>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614]">
+              <div className="overflow-hidden rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614]">
                 <table className="w-full text-xs sm:text-sm">
                   <thead>
                     <tr className="bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
@@ -273,11 +274,11 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                       const ist = INVOICE_STATUS_CFG[inv.status] ?? INVOICE_STATUS_CFG.OPEN!;
                       return (
                         <tr key={inv.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-3 text-[#231F20] dark:text-[#FEFDF3] font-medium capitalize">
+                          <td className="px-4 py-3 text-[#231F20] dark:text-[#F5F6F4] font-medium capitalize">
                             {new Date(`${inv.referenceMonth}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
                           </td>
                           <td className="px-4 py-3 text-[#6E6A61] dark:text-[#A8A49C]">{fmtDate(inv.dueDate)}</td>
-                          <td className="px-4 py-3 text-right font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(Number(inv.value))}</td>
+                          <td className="px-4 py-3 text-right font-bold text-[#231F20] dark:text-[#F5F6F4]">{BRL.format(Number(inv.value))}</td>
                           <td className="px-4 py-3 text-right">
                             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${ist.cls}`}>
                               {ist.label}
@@ -304,8 +305,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
         {/* Right — sidebar */}
         <div className="space-y-6">
           {/* Plano */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+            <h2 className="mb-3 flex items-center gap-2 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
               <CreditCard className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Plano contratado
             </h2>
             {sub ? (
@@ -330,35 +331,39 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
           </div>
 
           {/* Ações rápidas */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-            <h2 className="mb-3 font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Ações rápidas</h2>
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+            <h2 className="mb-3 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Ações rápidas</h2>
             <div className="space-y-1.5">
               <Link href="/contador/solicitacoes"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <Clock className="h-4 w-4 opacity-70" /> Ver solicitações
               </Link>
               <Link href="/contador/notas"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <FileText className="h-4 w-4 opacity-70" /> Ver notas fiscais
               </Link>
               <Link href="/contador/contratos"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <FileText className="h-4 w-4 opacity-70" /> Gerar contrato
               </Link>
               <Link href={`/contador/clientes/${comp.id}/fiscal`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <BarChart3 className="h-4 w-4 opacity-70" /> Gestão fiscal (PGDAS)
               </Link>
               <Link href={`/contador/clientes/${comp.id}/guias`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <Receipt className="h-4 w-4 opacity-70" /> Guias &amp; parcelamentos
               </Link>
               <Link href={`/contador/clientes/${comp.id}/onboarding`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <CheckCircle2 className="h-4 w-4 opacity-70" /> Ver onboarding
               </Link>
+              <Link href={`/contador/clientes/${comp.id}/operacao`}
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
+                <Sliders className="h-4 w-4 opacity-70" /> Operação &amp; IA
+              </Link>
               <Link href={`/contador/clientes/${comp.id}/atividade`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors">
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <Clock className="h-4 w-4 opacity-70" /> Ver atividade
               </Link>
               {sub && (status === 'PAST_DUE' || status === 'TRIAL') && (

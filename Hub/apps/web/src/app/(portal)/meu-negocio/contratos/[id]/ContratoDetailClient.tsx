@@ -36,8 +36,8 @@ import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
+  'w-full rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 function fmtDate(iso: string | null) {
   if (!iso) return '—';
@@ -46,18 +46,18 @@ function fmtDate(iso: string | null) {
 }
 
 const PAYMENT_STATUS_CFG: Record<string, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  PENDING: { label: 'Em aberto', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300', icon: Clock },
-  PAID: { label: 'Pago', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300', icon: CheckCircle2 },
-  OVERDUE: { label: 'Vencido', cls: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300', icon: AlertTriangle },
-  CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', icon: XCircle },
+  PENDING: { label: 'Em aberto', cls: 'bg-status-warning/15 text-status-warning', icon: Clock },
+  PAID: { label: 'Pago', cls: 'bg-status-success/15 text-status-success', icon: CheckCircle2 },
+  OVERDUE: { label: 'Vencido', cls: 'bg-status-danger/15 text-status-danger', icon: AlertTriangle },
+  CANCELED: { label: 'Cancelado', cls: 'bg-surface-elevated text-ink-soft', icon: XCircle },
 };
 
 function InfoCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{label}</p>
-      <p className="mt-0.5 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{hint}</p>}
+    <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">{label}</p>
+      <p className="mt-0.5 font-serif tabular font-bold text-base text-ink">{value}</p>
+      {hint && <p className="mt-0.5 text-caption text-ink-soft">{hint}</p>}
     </div>
   );
 }
@@ -216,16 +216,16 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       )}
 
       {/* Cabeçalho / status */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm space-y-6">
+      <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-6 card-finish">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${isEntrada ? 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'}`}>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${isEntrada ? 'bg-status-success/15 text-status-success' : 'bg-status-warning/15 text-status-warning'}`}>
             {isEntrada ? 'Vínculo de Entrada (você presta o serviço)' : 'Vínculo de Saída (você contrata)'}
           </span>
           <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_CLASS[c.status]}`}>
             {STATUS_LABEL[c.status]}
           </span>
           {c.linkedOnPlatform && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3 py-1 text-xs font-bold">
+            <span className="inline-flex items-center gap-1 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-3 py-1 text-xs font-bold">
               <Link2 className="h-3 w-3" /> Sincronizado com {detail.mirrorPartyName ?? 'a contraparte'} na Hexxa
             </span>
           )}
@@ -237,12 +237,12 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
         </div>
 
         {c.status === 'RECUSADO' && c.refusalReason && (
-          <div className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 p-3 text-xs font-bold text-red-800 dark:text-red-300">
+          <div className="flex items-center gap-2 rounded-2xl bg-status-danger/10 border border-status-danger/20 p-3 text-xs font-bold text-status-danger">
             <AlertTriangle className="h-4 w-4 shrink-0" /> Motivo da recusa: {c.refusalReason}
           </div>
         )}
         {c.status === 'AGUARDANDO_ASSINATURA' && (
-          <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs font-bold text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2 rounded-2xl bg-status-warning/10 border border-status-warning/20 p-3 text-xs font-bold text-status-warning">
             <Clock className="h-4 w-4 shrink-0" /> Aguardando a assinatura da contraparte — os lançamentos financeiros só são gerados quando o contrato for assinado.
           </div>
         )}
@@ -261,22 +261,22 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
         </div>
 
         {/* Data de assinatura */}
-        <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#1E3328] dark:text-[#DFFFAE]">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
               <CalendarCheck className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Data de assinatura</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Data de assinatura</p>
               {editingSigning ? (
                 <input
                   type="date"
                   value={signingInput}
                   onChange={(e) => setSigningInput(e.target.value)}
-                  className="mt-1 rounded-xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-2.5 py-1.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]"
+                  className="mt-1 rounded-xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 px-2.5 py-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
                 />
               ) : (
-                <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+                <p className="font-serif font-bold text-base text-ink">
                   {c.signingDate ? fmtDate(c.signingDate) : 'Ainda não assinado'}
                 </p>
               )}
@@ -284,59 +284,59 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
           </div>
           {editingSigning ? (
             <div className="flex gap-2">
-              <button type="button" onClick={handleSalvarAssinatura} disabled={busy} className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] disabled:opacity-50">
+              <button type="button" onClick={handleSalvarAssinatura} disabled={busy} className="rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) disabled:opacity-50">
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Salvar'}
               </button>
-              <button type="button" onClick={() => { setEditingSigning(false); setSigningInput(c.signingDate ?? ''); }} className="rounded-full border border-black/10 dark:border-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
+              <button type="button" onClick={() => { setEditingSigning(false); setSigningInput(c.signingDate ?? ''); }} className="rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)">
                 Cancelar
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => setEditingSigning(true)} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
+            <button type="button" onClick={() => setEditingSigning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)">
               <Pencil className="h-3.5 w-3.5" /> {c.signingDate ? 'Editar' : 'Registrar'}
             </button>
           )}
         </div>
 
         {/* Ações */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/10">
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
           {c.hasPdf && (
-            <button type="button" onClick={handleVerPdf} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 mt-3">
+            <button type="button" onClick={handleVerPdf} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) disabled:opacity-50 mt-3">
               <FileText className="h-3.5 w-3.5" /> Ver PDF do Contrato
             </button>
           )}
           {c.status === 'AGUARDANDO_ASSINATURA' && (
-            <button type="button" onClick={handleReenviar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-3.5 py-1.5 text-xs font-bold mt-3 disabled:opacity-50">
+            <button type="button" onClick={handleReenviar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 px-3.5 py-1.5 text-xs font-bold mt-3 disabled:opacity-50">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Reenviar para Assinatura
             </button>
           )}
           {c.status === 'ATIVO' && isEntrada && (
             <>
-              <button type="button" onClick={() => setShowNfse(true)} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold mt-3">
+              <button type="button" onClick={() => setShowNfse(true)} className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold mt-3">
                 <FileText className="h-3.5 w-3.5" /> Marcar NFSe
               </button>
-              <button type="button" onClick={() => setShowPix(true)} className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-3.5 py-1.5 text-xs font-bold mt-3">
+              <button type="button" onClick={() => setShowPix(true)} className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 text-ink hover:bg-surface-elevated shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold mt-3">
                 <QrCode className="h-3.5 w-3.5" /> Cobrar Pix
               </button>
             </>
           )}
           {c.status === 'ATIVO' && (
             <>
-              <button type="button" onClick={() => setShowReajuste(true)} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 mt-3">
+              <button type="button" onClick={() => setShowReajuste(true)} className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) mt-3">
                 <Percent className="h-3.5 w-3.5" /> Reajustar %
               </button>
-              <button type="button" onClick={handleRenovar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 disabled:opacity-50 mt-3">
+              <button type="button" onClick={handleRenovar} disabled={busy} className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) disabled:opacity-50 mt-3">
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Renovar (+12m)
               </button>
             </>
           )}
           {c.status === 'ATIVO' && c.externalProviderId && (
-            <button type="button" onClick={() => setShowExtra(true)} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 px-3.5 py-1.5 text-xs font-bold mt-3">
+            <button type="button" onClick={() => setShowExtra(true)} className="inline-flex items-center gap-1.5 rounded-full bg-status-warning/15 text-status-warning hover:bg-status-warning/25 px-3.5 py-1.5 text-xs font-bold mt-3">
               + Pagamento Extra (Plantão etc.)
             </button>
           )}
           {(c.status === 'ATIVO' || c.status === 'AGUARDANDO_ASSINATURA') && (
-            <button type="button" onClick={handleCancelar} disabled={busy} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50 mt-3">
+            <button type="button" onClick={handleCancelar} disabled={busy} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-status-danger hover:bg-status-danger/10 disabled:opacity-50 mt-3">
               Cancelar Vínculo
             </button>
           )}
@@ -344,27 +344,27 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       </div>
 
       {/* Histórico de pagamentos */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-          <h2 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Histórico de Pagamentos</h2>
+      <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 card-finish overflow-hidden">
+        <div className="p-5 border-b border-black/5 dark:border-white/5 flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
+          <h2 className="font-serif font-bold text-sm text-ink">Histórico de Pagamentos</h2>
         </div>
         {detail.payments.length === 0 ? (
-          <p className="py-12 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">Nenhum lançamento gerado ainda para este vínculo.</p>
+          <p className="py-12 text-center text-xs text-ink-soft">Nenhum lançamento gerado ainda para este vínculo.</p>
         ) : (
-          <div className="divide-y divide-black/5 dark:divide-white/10">
+          <div className="divide-y divide-black/5 dark:divide-white/5">
             {detail.payments.map((p) => {
               const st = PAYMENT_STATUS_CFG[p.status] ?? PAYMENT_STATUS_CFG.PENDING!;
               const StIcon = st.icon;
               return (
                 <div key={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{p.description}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                    <p className="truncate text-sm font-bold text-ink">{p.description}</p>
+                    <p className="text-footnote text-ink-soft">
                       Vence {fmtDate(p.dueDate)}{p.paidAt ? ` · pago em ${fmtDate(p.paidAt)}` : ''}
                     </p>
                   </div>
-                  <span className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(p.amount)}</span>
+                  <span className="font-serif tabular font-bold text-sm text-ink">{BRL.format(p.amount)}</span>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${st.cls}`}>
                     <StIcon className="h-3 w-3" /> {st.label}
                   </span>
@@ -372,7 +372,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
                     <button
                       type="button"
                       onClick={() => handleVerComprovante(p.id)}
-                      className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-2.5 py-0.5 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
+                      className="inline-flex items-center gap-1 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-2.5 py-0.5 text-[11px] font-bold"
                     >
                       <Paperclip className="h-3 w-3" /> Comprovante
                     </button>
@@ -387,14 +387,14 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       {/* Modais */}
       {showExtra && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-3xl bg-surface-card shadow-(--elev-3) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+              <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
                 Pagamento Extra (Plantão etc.)
               </h3>
-              <button onClick={() => setShowExtra(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowExtra(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5"><X className="h-5 w-5" /></button>
             </div>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="text-xs text-ink-soft">
               Fica separado da regra automática de repasse ({c.repassePercent}%) — soma no total a pagar, mas aparece como extra.
             </p>
             <div>
@@ -415,7 +415,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               type="button"
               onClick={handleAdicionarExtra}
               disabled={busy || !extraDescricao.trim() || !extraValor.trim()}
-              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+              className="w-full rounded-full bg-hexxa-forest hover:brightness-110 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Lançar Pagamento Extra'}
             </button>
@@ -425,14 +425,14 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
 
       {showNfse && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg rounded-3xl bg-surface-card shadow-(--elev-3) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Marcar NFSe como Emitida
+              <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+                <FileText className="h-5 w-5 text-hexxa-green dark:text-hexxa-lime" /> Marcar NFSe como Emitida
               </h3>
-              <button onClick={() => setShowNfse(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowNfse(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5"><X className="h-5 w-5" /></button>
             </div>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="text-xs text-ink-soft">
               A emissão real acontece em <strong>Meu Negócio → Notas</strong>. Aqui você só informa o número da nota já emitida para vincular a este vínculo.
             </p>
             <div>
@@ -443,7 +443,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               type="button"
               onClick={handleMarcarNfse}
               disabled={busy || !nfseInput.trim()}
-              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+              className="w-full rounded-full bg-hexxa-forest hover:brightness-110 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Confirmar Vínculo'}
             </button>
@@ -457,14 +457,14 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
 
       {showReajuste && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
+          <div className="w-full max-w-md rounded-3xl bg-surface-card shadow-(--elev-3) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-                <Percent className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Reajustar Valor do Vínculo
+              <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+                <Percent className="h-5 w-5 text-hexxa-green dark:text-hexxa-lime" /> Reajustar Valor do Vínculo
               </h3>
-              <button onClick={() => setShowReajuste(false)} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowReajuste(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5"><X className="h-5 w-5" /></button>
             </div>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="text-xs text-ink-soft">
               Aplica um reajuste percentual no valor mensal{c.linkedOnPlatform ? ' (e do lado espelhado com a contraparte)' : ''}.
             </p>
             <div>
@@ -475,7 +475,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               type="button"
               onClick={handleReajustar}
               disabled={busy}
-              className="w-full rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+              className="w-full rounded-full bg-hexxa-forest hover:brightness-110 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
             >
               {busy ? 'Aplicando...' : 'Aplicar Reajuste'}
             </button>

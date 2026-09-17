@@ -35,6 +35,15 @@ export interface EmitNfseInput {
     aliquotaIss?: number;
     cnae?: string;
   };
+  /**
+   * Id do perfil fiscal que originou o `serviceOverride`.
+   *
+   * Guardado na nota porque o módulo fiscal do OneFlow exige o código LC 116
+   * para apurar — e é dele que sai a guia do DAS. O `serviceOverride` carrega
+   * o código, mas se perde depois da emissão; a referência ao perfil
+   * sobrevive e permite remontar a nota para envio.
+   */
+  nfseServiceProfileId?: string;
 }
 
 export interface EmitNfseResult {
@@ -85,6 +94,7 @@ export class ServiceInvoiceService {
       status: 'ISSUING',
       taxAmount: input.estimatedTaxAmount,
       taxRate: input.estimatedTaxRate,
+      nfseServiceProfileId: input.nfseServiceProfileId,
     });
 
     // 4. Emite no provedor (port -> adapter de packages/integrations).

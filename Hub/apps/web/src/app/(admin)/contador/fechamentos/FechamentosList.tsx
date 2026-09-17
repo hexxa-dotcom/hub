@@ -31,7 +31,7 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
     <div className="space-y-6 animate-in fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Fechamentos Mensais</h1>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Fechamentos Mensais</h1>
           <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
             Acompanhe os dados contábeis consolidados dos seus clientes.
           </p>
@@ -43,7 +43,7 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar cliente..."
-            className="w-full rounded-full border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] py-2 pl-10 pr-4 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] shadow-xs"
+            className="w-full rounded-full border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] py-2 pl-10 pr-4 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] shadow-xs"
           />
         </div>
       </div>
@@ -57,13 +57,13 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
           return (
             <section key={monthStr} className="space-y-4">
               <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-                <h2 className="font-serif font-bold text-lg capitalize text-[#231F20] dark:text-[#FEFDF3]">{monthName}</h2>
+                <h2 className="font-serif font-bold text-lg capitalize text-[#231F20] dark:text-[#F5F6F4]">{monthName}</h2>
                 <div className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] font-bold">
                   {list.length} cliente{list.length !== 1 ? 's' : ''} consolidado{list.length !== 1 ? 's' : ''} · Total <span className="text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(totalRev)}</span>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md shadow-sm overflow-hidden">
+              <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel shadow-sm overflow-hidden">
                 <table className="w-full text-left text-xs sm:text-sm">
                   <thead className="bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
                     <tr>
@@ -74,15 +74,15 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
                       <th className="px-5 py-3.5 font-bold text-[#6E6A61] dark:text-[#A8A49C] text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/5 dark:divide-white/10 bg-[#FEFDF3] dark:bg-[#121614]">
+                  <tbody className="divide-y divide-black/5 dark:divide-white/10 bg-[#F5F6F4] dark:bg-[#121614]">
                     {list.map((closure) => (
                       <tr key={closure.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                        <td className="px-5 py-4 font-bold text-[#231F20] dark:text-[#FEFDF3]">
+                        <td className="px-5 py-4 font-bold text-[#231F20] dark:text-[#F5F6F4]">
                           <Link href={`/contador/clientes/${closure.companyId}`} className="hover:text-[#2F4A3C] hover:underline dark:hover:text-[#DFFFAE]">
                             {closure.companyName || 'Empresa desconhecida'}
                           </Link>
                         </td>
-                        <td className="px-5 py-4 text-right font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(Number(closure.totalRevenue))}</td>
+                        <td className="px-5 py-4 text-right font-bold text-[#231F20] dark:text-[#F5F6F4]">{BRL.format(Number(closure.totalRevenue))}</td>
                         <td className="px-5 py-4 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(Number(closure.totalExpenses))}</td>
                         <td className="px-5 py-4 text-center">
                           {closure.defaultsCount > 0 ? (
@@ -123,7 +123,7 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
         {byMonth.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-20 text-center text-[#6E6A61] dark:text-[#A8A49C]">
             <FileText className="h-12 w-12 opacity-20" />
-            <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Nenhum fechamento registrado ainda.</p>
+            <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Nenhum fechamento registrado ainda.</p>
             <p className="text-xs">Os fechamentos rodam automaticamente todo dia 1º de cada mês.</p>
           </div>
         )}

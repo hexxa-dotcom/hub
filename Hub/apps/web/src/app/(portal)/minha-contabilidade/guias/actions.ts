@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { DrizzleTaxGuideRepository, type NewTaxGuide } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
+import { escriturar } from '@/lib/server/ledger';
 
 const repo = new DrizzleTaxGuideRepository();
 
@@ -24,6 +25,8 @@ export async function registrarGuiaAction(data: Omit<NewTaxGuide, 'fileUrl'> & {
   try {
     const ctx = await getTenantContext();
     const { id } = await repo.create(ctx, { ...data, fileUrl });
+    // Provisão do tributo: despesa contra o passivo a recolher.
+    await escriturar('guia', ctx.companyId, id, ctx.userId);
     revalidatePath('/minha-contabilidade/guias');
     return { success: true, id };
   } catch (error) {
@@ -36,6 +39,8 @@ export async function marcarGuiaPagaAction(id: string) {
   try {
     const ctx = await getTenantContext();
     await repo.markPaid(ctx, id);
+    // Baixa do passivo contra o banco.
+    await escriturar('guia', ctx.companyId, id, ctx.userId);
     revalidatePath('/minha-contabilidade/guias');
     return { success: true };
   } catch (error) {

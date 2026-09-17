@@ -164,9 +164,9 @@ export function CommandMenu({
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] shadow-2xl z-10 flex flex-col max-h-[80vh]">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] shadow-2xl z-10 flex flex-col max-h-[80vh]">
         {/* Search Header */}
-        <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/10 px-5 py-4 bg-[#F4EFE4]/50 dark:bg-white/5">
+        <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/10 px-5 py-4 bg-[#E7EAE5]/50 dark:bg-white/5">
           <Search className="h-5 w-5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           <input
             ref={inputRef}
@@ -176,7 +176,7 @@ export function CommandMenu({
               setSelectedIndex(0);
             }}
             placeholder="O que você deseja fazer ou acessar? (ex: emitir nota, DAS, clientes...)"
-            className="w-full bg-transparent text-sm sm:text-base text-[#231F20] dark:text-[#FEFDF3] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C]"
+            className="w-full bg-transparent text-sm sm:text-base text-[#231F20] dark:text-[#F5F6F4] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C]"
           />
           <span className="hidden sm:inline-flex items-center rounded-lg bg-black/5 dark:bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C]">
             ESC
@@ -208,8 +208,8 @@ export function CommandMenu({
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
                     isSelected
-                      ? 'bg-[#1E3328] text-[#FEFDF3] shadow-sm'
-                      : 'text-[#231F20] dark:text-[#FEFDF3] hover:bg-[#F4EFE4] dark:hover:bg-white/5'
+                      ? 'bg-[#1E3328] text-[#F5F6F4] shadow-sm'
+                      : 'text-[#231F20] dark:text-[#F5F6F4] hover:bg-[#E7EAE5] dark:hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -257,7 +257,7 @@ export function CommandMenu({
         </div>
 
         {/* Footer info */}
-        <div className="flex items-center justify-between border-t border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-black/20 px-5 py-2.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <div className="flex items-center justify-between border-t border-black/5 dark:border-white/10 bg-[#E7EAE5]/60 dark:bg-black/20 px-5 py-2.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
           <div className="flex items-center gap-3">
             <span>↑↓ Navegar</span>
             <span>↵ Executar</span>

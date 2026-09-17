@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { escriturarNovos } from '@/lib/server/ledger';
 import { getTenantContext } from './tenant';
 import { withTenant, eq, and, sql } from '@hexxa/db';
 import { profitDistribution, company, partner } from '@hexxa/db/schema';
@@ -280,6 +281,9 @@ export async function confirmDistributionAction(input: {
   });
 
   if (result.ok) {
+    // Reduz o PL contra a obrigação com o sócio, e baixa a obrigação contra o
+    // banco. O insert não devolve o id, então a varredura direcionada resolve.
+    await escriturarNovos(ctx.companyId, ctx.userId);
     revalidatePath('/minha-contabilidade/socios');
     revalidatePath('/patrimonial');
   }

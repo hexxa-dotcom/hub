@@ -57,8 +57,8 @@ export function PricingTeaser() {
               key={i}
               className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                 plan.featured
-                  ? 'bg-[#1C180D] text-[#FEFDF3] shadow-2xl border-2 border-[#DFFFAE] relative md:scale-[1.03]'
-                  : 'bg-[#F4EFE4] text-[#231F20] border border-black/10 hover:border-black/20 shadow-sm hover:-translate-y-1'
+                  ? 'bg-[#1C180D] text-[#F5F6F4] shadow-2xl border-2 border-[#DFFFAE] relative md:scale-[1.03]'
+                  : 'bg-[#E7EAE5] text-[#231F20] border border-black/10 hover:border-black/20 shadow-sm hover:-translate-y-1'
               }`}
             >
               {plan.featured && (
@@ -79,12 +79,12 @@ export function PricingTeaser() {
 
                 <div className="my-4">
                   <span className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">{plan.price}</span>
-                  <span className={`text-xs ml-1 font-semibold ${plan.featured ? 'text-[#FEFDF3]/70' : 'text-[#6E6A61]'}`}>
+                  <span className={`text-xs ml-1 font-semibold ${plan.featured ? 'text-[#F5F6F4]/70' : 'text-[#6E6A61]'}`}>
                     {plan.period}
                   </span>
                 </div>
 
-                <p className={`text-xs leading-relaxed mb-6 ${plan.featured ? 'text-[#FEFDF3]/80' : 'text-[#6E6A61]'}`}>
+                <p className={`text-xs leading-relaxed mb-6 ${plan.featured ? 'text-[#F5F6F4]/80' : 'text-[#6E6A61]'}`}>
                   {plan.desc}
                 </p>
 
@@ -115,7 +115,7 @@ export function PricingTeaser() {
         <div className="text-center pt-2">
           <Link
             href="/planos"
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3.5 text-xs font-bold text-[#231F20] hover:bg-[#F4EFE4] transition-all shadow-sm group"
+            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3.5 text-xs font-bold text-[#231F20] hover:bg-[#E7EAE5] transition-all shadow-sm group"
           >
             <span>Ver Matriz Comparativa Completa de Recursos &amp; Valores</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform text-[#1E3328]" />

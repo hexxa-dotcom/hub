@@ -36,7 +36,7 @@ export function CategoryDonut({ data, emptyLabel }: { data: { label: string; val
           <li key={d.label} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
             <span className="flex-1 truncate text-[#6E6A61] dark:text-[#A8A49C]">{d.label}</span>
-            <span className="shrink-0 font-bold tabular text-[#231F20] dark:text-[#FEFDF3]">
+            <span className="shrink-0 font-bold tabular text-[#231F20] dark:text-[#F5F6F4]">
               {total > 0 ? `${Math.round((d.value / total) * 100)}%` : '0%'}
             </span>
           </li>

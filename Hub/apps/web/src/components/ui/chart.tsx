@@ -119,7 +119,7 @@ export function ChartTooltipContent({
   return (
     <div
       className={cn(
-        'grid min-w-[8rem] items-start gap-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] p-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] shadow-lg',
+        'grid min-w-[8rem] items-start gap-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] p-2.5 text-xs text-[#231F20] dark:text-[#F5F6F4] shadow-lg',
         className
       )}
     >
@@ -150,7 +150,7 @@ export function ChartTooltipContent({
                   {itemConfig?.label || item.name}
                 </span>
               </div>
-              <span className="font-semibold tabular-nums text-[#231F20] dark:text-[#FEFDF3]">
+              <span className="font-semibold tabular-nums text-[#231F20] dark:text-[#F5F6F4]">
                 {formatter ? formatter(item.value, item.name, item, index, payload) : item.value}
               </span>
             </div>

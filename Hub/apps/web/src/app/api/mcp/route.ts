@@ -16,6 +16,14 @@ import {
   getPanoramaCarteira,
   getPrevisaoLucroDistribuicao,
 } from '@/lib/server/mcp-data';
+import {
+  classificarLancamento,
+  conciliarTransacao,
+  listarFilaAprovacao,
+  listarFilaRevisao,
+  historicoDoLancamento,
+  decidirAcao,
+} from '@/lib/server/agent-tools';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +37,22 @@ export const dynamic = 'force-dynamic';
  * 2. Contador/Admin (scope 'admin'): ganha a tool `buscar_clientes` e pode passar
  *    o argumento `cliente` (nome ou CNPJ) em qualquer tool financeira para consultar
  *    clientes específicos da carteira.
+ *
+ * FERRAMENTAS DE ESCRITA (scope 'write' ou 'admin') — as mãos do agente.
+ *
+ * Todas passam por `agent-tools.ts`, que por sua vez passa por `propor`: a
+ * régua de autonomia classifica a ação, a confiança é medida a partir do
+ * histórico real e a justificativa fica gravada. Nenhuma ferramenta escreve
+ * direto no domínio, mesmo quando seria mais curto.
+ *
+ * Uma escrita barrada por falta de aprovação NÃO é erro: a ferramenta devolve
+ * `situacao: "aguardando_aprovacao"` e o agente precisa contar isso ao
+ * usuário, em vez de procurar outro caminho para o mesmo efeito.
+ *
+ * Escrita só é exposta em modo de empresa única. Em `admin`, o argumento
+ * `cliente` faz a leitura saltar entre empresas da carteira — e uma escrita
+ * que salta de empresa por um parâmetro de texto é exatamente o tipo de coisa
+ * que grava na contabilidade errada.
  */
 
 function buildServer(auth: ApiTokenAuth): McpServer {
@@ -315,6 +339,180 @@ function buildServer(auth: ApiTokenAuth): McpServer {
       };
     }
   );
+
+  /* ── Escrita ──────────────────────────────────────────────────────────── */
+
+  const podeEscrever = auth.scope === 'write' || isAdmin;
+
+  if (podeEscrever) {
+    server.registerTool(
+      'classificar_lancamento',
+      {
+        title: 'Classificar um lançamento numa categoria contábil',
+        description:
+          'Atribui a categoria contábil a um lançamento financeiro. É a ação de maior valor do sistema: ' +
+          'lançamento sem categoria vai para a conta "Despesas Diversas a Classificar" no balancete e não aparece na DRE. ' +
+          'A confiança é MEDIDA pelo histórico real de classificações da empresa, não informada por você. ' +
+          'Se a ação exigir aprovação humana, a resposta virá com situacao="aguardando_aprovacao" — informe isso ao usuário.',
+        inputSchema: {
+          lancamento_id: z.string().uuid().describe('ID do lançamento (financial_entry).'),
+          categoria_id: z.string().uuid().describe('ID da categoria. Use listar_categorias para descobrir.'),
+          justificativa: z
+            .string()
+            .min(10)
+            .describe('Por que esta categoria, em linguagem que um contador leia. Fica gravado na trilha de auditoria.'),
+          autoavaliacao: z
+            .number()
+            .min(0)
+            .max(1)
+            .optional()
+            .describe('Sua própria confiança, 0 a 1. Entra como UM sinal de peso baixo entre outros — o histórico pesa mais.'),
+        },
+      },
+      async ({ lancamento_id, categoria_id, justificativa, autoavaliacao }) => {
+        const r = await classificarLancamento({
+          companyId: auth.companyId,
+          lancamentoId: lancamento_id,
+          categoriaId: categoria_id,
+          justificativa,
+          opiniaoModelo:
+            autoavaliacao === undefined
+              ? undefined
+              : { autoavaliacao, justificativa },
+          trigger: 'API',
+        });
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'listar_categorias',
+      {
+        title: 'Listar o plano de categorias da empresa',
+        description:
+          'Lista as categorias contábeis disponíveis, com o código do plano de contas (ITG 1000, Anexo 7). ' +
+          'Use antes de classificar_lancamento para escolher o id correto.',
+        inputSchema: {},
+      },
+      async () => {
+        const { getDb, eq } = await import('@hexxa/db');
+        const { category } = await import('@hexxa/db/schema');
+        const rows = await getDb()
+          .select({
+            id: category.id,
+            nome: category.name,
+            tipo: category.kind,
+            codigo_contabil: category.accountingCode,
+            grupo: category.accountingGroup,
+          })
+          .from(category)
+          .where(eq(category.companyId, auth.companyId))
+          .orderBy(category.accountingCode);
+        return { content: [{ type: 'text', text: JSON.stringify(rows, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'conciliar_transacao',
+      {
+        title: 'Conciliar transação bancária com lançamento',
+        description:
+          'Casa uma transação do extrato com um lançamento em aberto, marcando-o como pago na data do extrato. ' +
+          'A confiança cai quando vários lançamentos em aberto têm o mesmo valor — nesse caso "o valor bate" não distingue nada, ' +
+          'e a ação vai para revisão. Valor ou tipo divergente é recusado antes de chegar à régua.',
+        inputSchema: {
+          transacao_id: z.string().uuid().describe('ID da transação bancária (bank_transaction).'),
+          lancamento_id: z.string().uuid().describe('ID do lançamento a baixar (financial_entry).'),
+          justificativa: z.string().min(10).describe('Por que este pareamento. Fica gravado na trilha.'),
+        },
+      },
+      async ({ transacao_id, lancamento_id, justificativa }) => {
+        const r = await conciliarTransacao({
+          companyId: auth.companyId,
+          transacaoId: transacao_id,
+          lancamentoId: lancamento_id,
+          justificativa,
+          trigger: 'API',
+        });
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'fila_de_aprovacao',
+      {
+        title: 'Ações da IA aguardando aprovação humana',
+        description:
+          'Lista o que agentes propuseram e está travado esperando alguém aprovar — emissão de nota, pagamento de guia, ' +
+          'distribuição de lucro e tudo que move dinheiro para fora ou fala com terceiros. ' +
+          'Cada item traz a confiança medida e a evidência que a sustenta.',
+        inputSchema: {},
+      },
+      async () => {
+        const fila = await listarFilaAprovacao(auth.companyId);
+        return { content: [{ type: 'text', text: JSON.stringify(fila, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'fila_de_revisao',
+      {
+        title: 'Ações que a IA aplicou sozinha e ninguém conferiu ainda',
+        description:
+          'Lista o que foi aplicado automaticamente mas está marcado para revisão posterior. ' +
+          'É o contrapeso da autonomia: a IA não trava esperando aprovação para coisa pequena, ' +
+          'e mesmo assim nada que ela fez passa despercebido.',
+        inputSchema: {},
+      },
+      async () => {
+        const fila = await listarFilaRevisao(auth.companyId);
+        return { content: [{ type: 'text', text: JSON.stringify(fila, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'historico_do_lancamento',
+      {
+        title: 'Por que este lançamento está assim',
+        description:
+          'Mostra tudo que um agente já propôs sobre um lançamento: o que propôs, por quê, com que confiança, ' +
+          'qual evidência e quem aprovou. Responde "por que este número está aqui?".',
+        inputSchema: {
+          lancamento_id: z.string().uuid().describe('ID do lançamento (financial_entry).'),
+        },
+      },
+      async ({ lancamento_id }) => {
+        const h = await historicoDoLancamento(auth.companyId, lancamento_id);
+        return { content: [{ type: 'text', text: JSON.stringify(h, null, 2) }] };
+      }
+    );
+
+    server.registerTool(
+      'decidir_acao',
+      {
+        title: 'Aprovar ou rejeitar uma ação pendente',
+        description:
+          'Registra a decisão humana sobre uma ação que ficou aguardando aprovação. ' +
+          'Use APENAS quando o usuário disser explicitamente que aprova ou rejeita — você não pode aprovar as próprias propostas. ' +
+          'Rejeição com motivo é o que ensina o agente a não propor de novo.',
+        inputSchema: {
+          acao_id: z.string().uuid().describe('ID da ação (agent_action), vindo de fila_de_aprovacao.'),
+          decisao: z.enum(['aprovar', 'rejeitar']),
+          nota: z.string().optional().describe('Motivo da decisão. Obrigatório na prática para rejeição.'),
+        },
+      },
+      async ({ acao_id, decisao, nota }) => {
+        const r = await decidirAcao(
+          auth.companyId,
+          acao_id,
+          decisao === 'aprovar' ? 'APPROVED' : 'REJECTED',
+          null,
+          nota,
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      }
+    );
+  }
 
   return server;
 }

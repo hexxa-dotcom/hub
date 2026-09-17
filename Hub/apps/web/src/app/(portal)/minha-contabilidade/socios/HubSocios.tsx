@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { LucroCard } from './LucroCard';
+import { Card } from '@/components/ui/Card';
 import { DistributionRequestForm } from '@/components/profit-distribution/DistributionRequestForm';
 import type { PartnerRow } from './actions';
 import type { DistributionRow, YearlyProfitSummary, DistributionFrequency } from '@/lib/server/profit-distribution';
@@ -30,8 +31,8 @@ import { setDistributionFrequencyAction } from '@/lib/server/profit-distribution
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fi =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
-const lb = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lb = 'text-xs font-bold text-ink-soft tracking-wide uppercase';
 const YEAR = new Date().getFullYear();
 
 // ── Calcs (INSS/IRRF pró-labore, tabela vigente 2025) ───────────────────────────
@@ -77,12 +78,12 @@ function ModalSocio({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-8 shadow-2xl space-y-4">
+      <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-surface-card p-6 sm:p-8 shadow-(--elev-3) card-finish space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">
+          <h2 className="font-serif font-bold text-lg text-ink">
             {socio ? 'Editar Sócio' : 'Novo Sócio'}
           </h2>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+          <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -105,12 +106,12 @@ function ModalSocio({
               <input value={prol} onChange={e => setProl(e.target.value)} inputMode="decimal" required placeholder="3000" className={`mt-1.5 ${fi}`} />
             </div>
           </div>
-          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">INSS (11%) e IRRF são calculados automaticamente conforme a tabela oficial.</p>
+          <p className="text-[11px] text-ink-soft">INSS (11%) e IRRF são calculados automaticamente conforme a tabela oficial.</p>
           <div className="flex gap-2 pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 active:scale-95 py-2.5 text-xs font-bold shadow-(--elev-1) transition-all disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {saving ? 'Salvando...' : 'Salvar Sócio'}
@@ -118,7 +119,7 @@ function ModalSocio({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-black/10 dark:border-white/10 px-5 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+              className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
             >
               Cancelar
             </button>
@@ -200,60 +201,60 @@ function ProLaboreTab({
       )}
 
       {/* Recomendação de pró-labore saudável (Fator R) */}
-      <div className={`rounded-3xl border p-6 ${fatorRFavoravel ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
+      <Card level={1} className={`p-6 card-finish ${fatorRFavoravel ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
         <div className="flex items-start gap-4">
           <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${fatorRFavoravel ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
             <TrendingUp className="h-5 w-5" />
           </span>
           <div className="flex-1">
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">
+            <h3 className="font-serif font-bold text-base text-ink">
               {fatorRFavoravel ? 'Pró-labore Atual Mantém Fator R Favorável' : 'Pró-labore Atual Abaixo do Recomendado'}
             </h3>
-            <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="mt-1 text-xs sm:text-sm text-ink-soft">
               Para manter o Fator R ≥ 28% (Anexo III, menor alíquota), o pró-labore total recomendado é{' '}
-              <strong className="text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(prolaboreMinimoRecomendado)}</strong>/mês. Hoje a soma é <strong className="text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(totalBruto)}</strong>/mês.
+              <strong className="font-serif tabular text-ink">{BRL.format(prolaboreMinimoRecomendado)}</strong>/mês. Hoje a soma é <strong className="font-serif tabular text-ink">{BRL.format(totalBruto)}</strong>/mês.
             </p>
             {!fatorRFavoravel && faltaParaFatorR > 0 && (
               <p className="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400">
-                Faltam {BRL.format(faltaParaFatorR)}/mês em pró-labore para reenquadrar no Anexo III.
+                Faltam <span className="font-serif tabular">{BRL.format(faltaParaFatorR)}</span>/mês em pró-labore para reenquadrar no Anexo III.
               </p>
             )}
-            <p className="mt-2 flex items-start gap-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="mt-2 flex items-start gap-1 text-[11px] text-ink-soft">
               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               Otimize o equilíbrio entre Pró-labore (com encargos) e Distribuição de Lucros (isenta de IRPF).
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: 'Pró-labore Bruto', value: totalBruto, cls: 'text-[#231F20] dark:text-[#FEFDF3]' },
+          { label: 'Pró-labore Bruto', value: totalBruto, cls: 'text-ink' },
           { label: 'INSS (11%)', value: totalINSS, cls: 'text-amber-600 dark:text-amber-400' },
           { label: 'IRRF', value: totalIRRF, cls: 'text-red-600 dark:text-red-400' },
           { label: 'Líquido Total', value: totalLiq, cls: 'text-emerald-700 dark:text-emerald-400' },
         ].map(c => (
-          <div key={c.label} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</p>
-            <p className={`mt-2 font-serif font-bold text-xl sm:text-2xl ${c.cls}`}>{BRL.format(c.value)}</p>
-          </div>
+          <Card key={c.label} level={1} className="p-5 card-finish">
+            <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">{c.label}</p>
+            <p className={`mt-2 font-serif tabular font-bold text-xl sm:text-2xl ${c.cls}`}>{BRL.format(c.value)}</p>
+          </Card>
         ))}
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+      <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
         <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Sócios Cadastrados</h2>
+          <h2 className="font-serif font-bold text-base text-ink">Sócios Cadastrados</h2>
           <button
             type="button"
             onClick={() => setModal({ open: true, editId: null })}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold shadow-(--elev-1) transition-all"
           >
             <Plus className="h-4 w-4" /> Novo Sócio
           </button>
         </div>
 
         {socios.length === 0 && (
-          <p className="px-6 py-10 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhum sócio cadastrado ainda.</p>
+          <p className="px-6 py-10 text-center text-sm text-ink-soft">Nenhum sócio cadastrado ainda.</p>
         )}
 
         {socios.map(s => {
@@ -264,19 +265,19 @@ function ProLaboreTab({
             <div key={s.id} className="px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] text-sm font-bold">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) text-sm font-bold">
                     {initials(s.nome)}
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{s.nome}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{s.participacao}% de participação{s.cpf ? ` · ${s.cpf}` : ''}</p>
+                    <p className="font-bold text-sm text-ink">{s.nome}</p>
+                    <p className="text-xs text-ink-soft">{s.participacao}% de participação{s.cpf ? ` · ${s.cpf}` : ''}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => setModal({ open: true, editId: s.id })}
-                    className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    className="rounded-full p-2 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -284,7 +285,7 @@ function ProLaboreTab({
                     type="button"
                     onClick={() => handleDelete(s.id)}
                     disabled={busyId === s.id}
-                    className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-50"
+                    className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -292,37 +293,37 @@ function ProLaboreTab({
                     type="button"
                     onClick={() => handleLancar(s.id)}
                     disabled={busyId === s.id || s.prolabore <= 0}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:bg-[#EFFFD6] transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors disabled:opacity-50"
                   >
                     {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Lançar no Financeiro
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-4 text-xs">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 text-xs">
                 <div>
-                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Pró-labore</p>
-                  <p className="font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] mt-0.5">{BRL.format(s.prolabore)}</p>
+                  <p className="text-xs font-bold text-ink-soft">Pró-labore</p>
+                  <p className="font-serif tabular font-bold text-sm text-ink mt-0.5">{BRL.format(s.prolabore)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">INSS (11%)</p>
-                  <p className="font-bold text-sm text-amber-600 dark:text-amber-400 mt-0.5">− {BRL.format(i)}</p>
+                  <p className="text-xs font-bold text-ink-soft">INSS (11%)</p>
+                  <p className="font-serif tabular font-bold text-sm text-amber-600 dark:text-amber-400 mt-0.5">− {BRL.format(i)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">IRRF</p>
-                  <p className="font-bold text-sm text-red-600 dark:text-red-400 mt-0.5">− {BRL.format(r)}</p>
+                  <p className="text-xs font-bold text-ink-soft">IRRF</p>
+                  <p className="font-serif tabular font-bold text-sm text-red-600 dark:text-red-400 mt-0.5">− {BRL.format(r)}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Líquido a Receber</p>
-                  <p className="font-bold text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">{BRL.format(liq)}</p>
+                  <p className="text-xs font-bold text-ink-soft">Líquido a Receber</p>
+                  <p className="font-serif tabular font-bold text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">{BRL.format(liq)}</p>
                 </div>
               </div>
             </div>
           );
         })}
-      </div>
+      </Card>
 
-      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] px-1">
+      <p className="text-xs text-ink-soft px-1">
         INSS: 11% sobre o pró-labore (teto R$ 856,47). IRRF calculado sobre a base deduzida do INSS conforme tabela progressiva vigente.
       </p>
 
@@ -370,43 +371,43 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
   }
 
   return (
-    <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-6 shadow-sm">
+    <Card level={1} className="p-6 sm:p-8 space-y-6 card-finish">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
             <Landmark className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Lucro Acumulado em {yearlyProfit.year}</h2>
-            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">Faturamento líquido de despesas no ano corrente.</p>
+            <h2 className="font-serif font-bold text-base text-ink">Lucro Acumulado em {yearlyProfit.year}</h2>
+            <p className="text-xs sm:text-sm text-ink-soft">Faturamento líquido de despesas no ano corrente.</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Lucro Líquido do Ano</p>
-          <p className="mt-1 font-serif font-bold text-xl sm:text-2xl text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(yearlyProfit.netProfit)}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Lucro Líquido do Ano</p>
+          <p className="mt-1 font-serif tabular font-bold text-xl sm:text-2xl text-ink">{BRL.format(yearlyProfit.netProfit)}</p>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Já Distribuído em {yearlyProfit.year}</p>
-          <p className="mt-1 font-serif font-bold text-xl sm:text-2xl text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(yearlyProfit.distributedThisYear)}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Já Distribuído em {yearlyProfit.year}</p>
+          <p className="mt-1 font-serif tabular font-bold text-xl sm:text-2xl text-ink-soft">{BRL.format(yearlyProfit.distributedThisYear)}</p>
         </div>
-        <div className="col-span-2 rounded-2xl bg-[#EFFFD6] dark:bg-[#2F4A3C]/40 border border-[#2F4A3C]/10 px-5 py-3 sm:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE]">Disponível para Distribuir</p>
-          <p className="mt-0.5 font-serif font-bold text-2xl text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(yearlyProfit.availableToDistribute)}</p>
+        <div className="col-span-2 rounded-2xl bg-hexxa-forest text-hexxa-lime border border-white/5 px-5 py-3 sm:col-span-2 shadow-(--elev-inset)">
+          <p className="text-xs font-bold uppercase tracking-wider text-hexxa-lime/80">Disponível para Distribuir</p>
+          <p className="mt-0.5 font-serif tabular font-bold text-2xl text-hexxa-lime">{BRL.format(yearlyProfit.availableToDistribute)}</p>
         </div>
       </div>
 
       <div className="border-t border-black/5 dark:border-white/10 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Periodicidade de Distribuição</p>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-              <Calendar className="h-3.5 w-3.5" /> Próxima sugerida: <strong className="text-[#231F20] dark:text-[#FEFDF3]">{fmtDateShort(yearlyProfit.nextSuggestedDate)}</strong>
+            <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Periodicidade de Distribuição</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
+              <Calendar className="h-3.5 w-3.5" /> Próxima sugerida: <strong className="font-serif tabular text-ink">{fmtDateShort(yearlyProfit.nextSuggestedDate)}</strong>
             </p>
           </div>
-          <div className="flex gap-1 rounded-full bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 p-1">
+          <div className="flex gap-1 rounded-full bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-1">
             {FREQUENCIAS.map(f => (
               <button
                 key={f.id}
@@ -414,7 +415,7 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
                 disabled={saving}
                 onClick={() => handleFrequency(f.id)}
                 className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all disabled:opacity-50 ${
-                  frequency === f.id ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm' : 'text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20]'
+                  frequency === f.id ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'
                 }`}
               >
                 {f.label}
@@ -423,7 +424,7 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
           </div>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -449,26 +450,26 @@ function DistribuicaoTab({
       <LucroCard />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <section className="rounded-3xl bg-[#1E3328] p-6 sm:p-8 text-[#FEFDF3] shadow-md">
+        <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]">Total Distribuído em {YEAR}</h3>
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/15 text-[#DFFFAE]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-hexxa-lime">Total Distribuído em {YEAR}</h3>
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-hexxa-lime shadow-(--elev-inset)">
               <Coins className="h-5 w-5" />
             </span>
           </div>
-          <p className="mt-3 font-serif font-bold text-3xl sm:text-4xl text-[#FEFDF3]">{BRL.format(total)}</p>
-          <p className="mt-1 text-xs text-[#DFFFAE]/80">{distribuicoes.length} lançamento(s) registrado(s)</p>
-        </section>
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+          <p className="mt-3 font-serif tabular font-bold text-3xl sm:text-4xl text-hexxa-sand">{BRL.format(total)}</p>
+          <p className="mt-1 text-xs text-hexxa-lime/80">{distribuicoes.length} lançamento(s) registrado(s)</p>
+        </Card>
+        <Card level={1} className="p-6 sm:p-8 card-finish">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Sócios Contemplados</h3>
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sócios Contemplados</h3>
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
               <Users className="h-5 w-5" />
             </span>
           </div>
-          <p className="mt-3 font-serif font-bold text-3xl sm:text-4xl text-[#231F20] dark:text-[#FEFDF3]">{partnersCount}</p>
-          <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">no histórico anual</p>
-        </section>
+          <p className="mt-3 font-serif tabular font-bold text-3xl sm:text-4xl text-ink">{partnersCount}</p>
+          <p className="mt-1 text-xs text-ink-soft">no histórico anual</p>
+        </Card>
       </div>
 
       <DistributionRequestForm
@@ -477,15 +478,15 @@ function DistribuicaoTab({
         onConfirmed={onConfirmed}
       />
 
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Histórico de Distribuições</h2>
+      <Card level={1} className="p-6 sm:p-8 card-finish">
+        <h2 className="font-serif font-bold text-base text-ink">Histórico de Distribuições</h2>
         {distribuicoes.length === 0 ? (
-          <p className="mt-4 text-sm text-[#6E6A61] dark:text-[#A8A49C]">Nenhuma distribuição lançada ainda.</p>
+          <p className="mt-4 text-sm text-ink-soft">Nenhuma distribuição lançada ainda.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] border-b border-black/5 dark:border-white/10">
+                <tr className="text-left text-xs font-bold uppercase tracking-wider text-ink-soft border-b border-black/5 dark:border-white/10">
                   <th className="pb-3">Data</th>
                   <th className="pb-3">Sócio</th>
                   <th className="hidden sm:table-cell pb-3">Observação</th>
@@ -495,26 +496,26 @@ function DistribuicaoTab({
               <tbody className="divide-y divide-black/5 dark:divide-white/10">
                 {distribuicoes.map(d => (
                   <tr key={d.id}>
-                    <td className="py-3 font-medium whitespace-nowrap text-[#6E6A61] dark:text-[#A8A49C]">{fmtDate(d.distributedAt)}</td>
-                    <td className="py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">{d.partnerName}</td>
-                    <td className="hidden sm:table-cell py-3 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{d.notes ?? '—'}</td>
-                    <td className="text-right py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(d.amount)}</td>
+                    <td className="py-3 font-medium whitespace-nowrap text-ink-soft">{fmtDate(d.distributedAt)}</td>
+                    <td className="py-3 font-bold text-ink">{d.partnerName}</td>
+                    <td className="hidden sm:table-cell py-3 text-xs text-ink-soft">{d.notes ?? '—'}</td>
+                    <td className="text-right py-3 font-serif tabular font-bold text-ink">{BRL.format(d.amount)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t border-black/10 dark:border-white/10 font-bold">
-                  <td className="pt-3" colSpan={3}>Total Geral</td>
-                  <td className="text-right pt-3 font-serif text-base text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(total)}</td>
+                  <td className="pt-3 text-ink" colSpan={3}>Total Geral</td>
+                  <td className="text-right pt-3 font-serif tabular font-bold text-base text-ink">{BRL.format(total)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
         )}
-        <p className="mt-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <p className="mt-4 text-xs text-ink-soft">
           Lançamentos integrados ao fechamento contábil e à DIME/DEFIS automaticamente.
         </p>
-      </section>
+      </Card>
     </>
   );
 }

@@ -1,20 +1,29 @@
 import 'server-only';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { callLlm } from '@hexxa/integrations';
+import { resolverMotor, credencialDoAmbiente } from './llm-config';
 
 /**
  * Sugestão de texto por IA pra campos de preenchimento livre (ex.: descrição
  * de serviço, forma de pagamento) — independente do painel de "Hexxa
  * Insights" (apps/web/src/lib/server/ai-insight.ts), que tem um switch do
- * contador que pode estar desligado; aqui é uma ferramenta de digitação, não
- * uma dica proativa, então usa direto a GEMINI_API_KEY do ambiente.
+ * contador que pode estar desligado.
+ *
+ * A independência é deliberada: aqui é ferramenta de digitação, disparada pelo
+ * usuário no momento em que ele quer. Desligá-la junto com as dicas proativas
+ * quebraria um botão que a pessoa acabou de apertar, por uma configuração que
+ * trata de outra coisa. Por isso usa a credencial do ambiente, não a do banco.
  */
 export async function draftContractField(prompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('Sugestão por IA indisponível: GEMINI_API_KEY não configurada.');
+  const cred = credencialDoAmbiente();
+  if (!cred) {
+    throw new Error('Sugestão por IA indisponível: nenhuma chave de modelo configurada no ambiente.');
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-  const result = await model.generateContent(prompt);
-  return result.response.text().trim();
+
+  const motor = await resolverMotor(cred);
+  const r = await callLlm(motor, {
+    system: 'Você redige textos curtos e diretos em português do Brasil, sem preâmbulo.',
+    user: prompt,
+    maxTokens: 500,
+  });
+  return r.text.trim();
 }

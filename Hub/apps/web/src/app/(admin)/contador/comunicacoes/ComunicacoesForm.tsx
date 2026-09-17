@@ -22,7 +22,7 @@ const DEST_LABELS: Record<Destinatario, string> = {
   cliente: 'Cliente específico',
 };
 
-const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C]';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none transition-colors focus:border-[#2F4A3C]';
 
 function destinatarios(clientes: ClienteContato[], dest: Destinatario, clienteId: string): ClienteContato[] {
   if (dest === 'todos') return clientes;
@@ -57,7 +57,7 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Comunicações</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Comunicações</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Monta o e-mail com os destinatários reais e abre no seu cliente de e-mail para enviar.</p>
       </div>
 
@@ -70,8 +70,8 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
         </p>
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm space-y-4">
-        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Nova mensagem</h2>
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm space-y-4">
+        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Nova mensagem</h2>
 
         {/* Templates */}
         <div className="relative">
@@ -80,11 +80,11 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
             Usar template <ChevronDown className="h-3.5 w-3.5" />
           </button>
           {templateOpen && (
-            <div className="absolute left-0 top-11 z-10 w-72 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="absolute left-0 top-11 z-10 w-72 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
               {TEMPLATES.map((t) => (
                 <button key={t.id} type="button" onClick={() => aplicarTemplate(t)}
                   className="flex w-full flex-col px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 border-b border-black/5 last:border-0 dark:border-white/10 transition-colors">
-                  <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{t.nome}</p>
+                  <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{t.nome}</p>
                   <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] truncate">{t.assunto}</p>
                 </button>
               ))}

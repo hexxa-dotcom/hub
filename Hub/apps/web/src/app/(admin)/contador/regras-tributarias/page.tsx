@@ -21,7 +21,7 @@ export default async function RegrasTributariasPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 animate-in fade-in">
       <div className="flex flex-col gap-2">
-        <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
+        <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4] flex items-center gap-2">
           Motor Tributário Hexx
         </h1>
         <p className="text-sm text-[#6E6A61] dark:text-[#A8A49C]">
@@ -32,7 +32,7 @@ export default async function RegrasTributariasPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Sidebar Tabs */}
         <div className="md:col-span-1 space-y-2">
-          <Link href="#tabelas" className="flex items-center gap-3 p-3 bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl font-medium text-sm text-[#231F20] dark:text-[#FEFDF3] shadow-sm">
+          <Link href="#tabelas" className="flex items-center gap-3 p-3 bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl font-medium text-sm text-[#231F20] dark:text-[#F5F6F4] shadow-sm">
             <Calculator className="h-4 w-4" /> Tabelas (Anexos)
           </Link>
           <Link href="#parametros" className="flex items-center gap-3 p-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium text-sm text-[#6E6A61] dark:text-[#A8A49C] transition-colors">
@@ -50,19 +50,19 @@ export default async function RegrasTributariasPage() {
         <div className="md:col-span-3 space-y-8">
           
           {/* Section: Tabelas */}
-          <section id="tabelas" className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-            <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3] mb-4 flex items-center gap-2">
+          <section id="tabelas" className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+            <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4] mb-4 flex items-center gap-2">
               <Calculator className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
               Tabelas Oficiais da Legislação
             </h2>
-            <div className="bg-[#FEFDF3] dark:bg-[#121614] rounded-2xl border border-black/5 dark:border-white/10 overflow-hidden">
+            <div className="bg-[#F5F6F4] dark:bg-[#121614] rounded-2xl border border-black/5 dark:border-white/10 overflow-hidden">
               <table className="w-full text-sm text-left">
                 <thead className="bg-black/5 dark:bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">Anexo</th>
-                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">Faixa (RBT12)</th>
-                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">Alíquota Nominal</th>
-                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#FEFDF3]">Dedução</th>
+                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#F5F6F4]">Anexo</th>
+                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#F5F6F4]">Faixa (RBT12)</th>
+                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#F5F6F4]">Alíquota Nominal</th>
+                    <th className="px-4 py-3 font-bold text-[#231F20] dark:text-[#F5F6F4]">Dedução</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -92,8 +92,8 @@ export default async function RegrasTributariasPage() {
           </section>
 
           {/* Section: Simulador */}
-          <section id="simulador" className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-            <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3] mb-4 flex items-center gap-2">
+          <section id="simulador" className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+            <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4] mb-4 flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
               Auditor e Simulador de Impostos
             </h2>

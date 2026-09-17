@@ -4,6 +4,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, eq, and, sql, type DbHandle } from '@hexxa/db';
 import { category, recurringExpense, businessPartner, costCenter } from '@hexxa/db/schema';
 import { revalidatePath } from 'next/cache';
+import { escriturar, escriturarNovos } from '@/lib/server/ledger';
 
 const MAX_RECEIPT_BYTES = 4 * 1024 * 1024; // 4MB — guarda base64 direto no banco, sem storage externo.
 
@@ -40,6 +41,7 @@ export async function getLancamentos() {
         f.interest,
         f.discount,
         f.due_date as vencimento,
+        f.paid_at,
         f.status,
         c.name as category,
         bp.name as partner_name,
@@ -67,7 +69,14 @@ export async function getLancamentos() {
     interest: row.interest ? Number(row.interest) : null,
     discount: row.discount ? Number(row.discount) : null,
     vencimento: new Date(row.vencimento).toISOString().split('T')[0]!,
-    pago_em: row.status === 'PAID' ? new Date(row.vencimento).toISOString().split('T')[0]! : null,
+    /* Antes isto devolvia a data de VENCIMENTO para todo lançamento pago — a
+       tela dizia "pago em 05/09" para algo quitado no dia 20. Agora usa a data
+       real; o fallback para o vencimento cobre só os registros antigos,
+       gravados enquanto paid_at não estava sendo preenchido. */
+    pago_em:
+      row.status === 'PAID'
+        ? new Date(row.paid_at ?? row.vencimento).toISOString().split('T')[0]!
+        : null,
     categoria: row.category || 'Outros',
     partnerName: row.partner_name as string | null,
     costCenterName: row.cost_center_name as string | null,
@@ -248,6 +257,10 @@ export async function createLancamento(data: {
     }
   });
 
+  // As parcelas são inseridas por SQL cru num laço, sem um id único para
+  // enganchar. A varredura direcionada pega exatamente o que acabou de nascer.
+  await escriturarNovos(ctx.companyId);
+
   revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/cliente');
 }
@@ -257,10 +270,20 @@ export async function updateLancamentoStatus(id: string, newStatus: 'PENDING' | 
   await withTenant(ctx.companyId, async (tx) => {
     await tx.execute(sql`
       UPDATE financial_entry
-      SET status = ${newStatus}
+      SET status = ${newStatus},
+          -- A data do pagamento não estava sendo gravada: marcar como pago
+          -- deixava paid_at nulo, e o sistema ficava sabendo QUE pagou sem
+          -- saber QUANDO. Isso desloca a baixa contábil para a data de
+          -- vencimento e distorce qualquer leitura de fluxo de caixa.
+          paid_at = ${newStatus === 'PAID' ? sql`COALESCE(paid_at, CURRENT_DATE)` : sql`NULL`}
       WHERE id = ${id} AND company_id = ${ctx.companyId}
     `);
   });
+
+  // Escritura a baixa (ou o estorno dela). Best-effort: a varredura de
+  // pendências recupera o que falhar aqui.
+  await escriturar('lancamento', ctx.companyId, id, ctx.userId);
+
   revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/cliente');
 }

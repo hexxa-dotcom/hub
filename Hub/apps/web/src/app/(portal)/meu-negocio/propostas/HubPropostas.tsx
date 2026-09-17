@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
+import { Card } from '@/components/ui/Card';
 import type { PropostaRow } from './actions';
 import { savePropostaAction, setPropostaStatusAction, deletePropostaAction } from './actions';
 
@@ -36,17 +37,17 @@ type Proposta = PropostaRow;
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<PropStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  rascunho:  { label: 'Rascunho',  cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', icon: Pencil },
-  enviada:   { label: 'Enviada',   cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]', icon: Send },
-  aprovada:  { label: 'Aprovada',  cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300', icon: CheckCircle2 },
-  rejeitada: { label: 'Rejeitada', cls: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300', icon: XCircle },
-  expirada:  { label: 'Expirada',  cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300', icon: Clock },
+  rascunho:  { label: 'Rascunho',  cls: 'bg-black/5 text-ink-soft dark:bg-white/10 border border-black/5 dark:border-white/10', icon: Pencil },
+  enviada:   { label: 'Enviada',   cls: 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)', icon: Send },
+  aprovada:  { label: 'Aprovada',  cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
+  rejeitada: { label: 'Rejeitada', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: XCircle },
+  expirada:  { label: 'Expirada',  cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20', icon: Clock },
 };
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fi =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lb = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lb = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -104,11 +105,11 @@ function ModalProposta({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
-      <div className="my-8 w-full max-w-2xl rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in">
+      <div className="my-8 w-full max-w-2xl rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card p-6 sm:p-8 shadow-(--elev-3) card-finish space-y-5 animate-in fade-in">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">{proposta ? 'Editar Proposta' : 'Nova Proposta Comercial'}</h2>
+          <h2 className="font-serif font-bold text-lg text-ink">{proposta ? 'Editar Proposta' : 'Nova Proposta Comercial'}</h2>
           <button type="button" onClick={onClose}
-            className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+            className="tap-target pressable focusable rounded-full p-1.5 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -133,7 +134,7 @@ function ModalProposta({
             <div className="flex items-center justify-between">
               <label className={lb}>Itens / Serviços</label>
               <button type="button" onClick={addItem}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline">
+                className="inline-flex items-center gap-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline">
                 <Plus className="h-3.5 w-3.5" /> Adicionar Item
               </button>
             </div>
@@ -143,18 +144,18 @@ function ModalProposta({
                   <input value={item.descricao} onChange={e => updateItem(item.id, 'descricao', e.target.value)}
                     placeholder={`Item ${idx + 1}`} className={fi} />
                   <input value={item.qtd} onChange={e => updateItem(item.id, 'qtd', Number(e.target.value))}
-                    type="number" min="1" className="w-16 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3 py-2.5 text-sm outline-none focus:border-[#2F4A3C]" />
+                    type="number" min="1" className="w-16 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
                   <input value={item.valor || ''} onChange={e => updateItem(item.id, 'valor', Number(e.target.value.replace(',', '.')))}
-                    inputMode="decimal" placeholder="R$" className="w-28 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3 py-2.5 text-sm outline-none focus:border-[#2F4A3C]" />
+                    inputMode="decimal" placeholder="R$" className="w-28 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
                   <button type="button" onClick={() => removeItem(item.id)} disabled={itens.length === 1}
-                    className="rounded-full p-2 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-30">
+                    className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-30">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               ))}
             </div>
             <div className="mt-3 flex justify-end">
-              <p className="font-serif font-bold text-base text-[#2F4A3C] dark:text-[#DFFFAE]">Total: {BRL.format(total)}</p>
+              <p className="font-serif font-bold text-base text-ink tabular">Total: {BRL.format(total)}</p>
             </div>
           </div>
 
@@ -166,11 +167,11 @@ function ModalProposta({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 rounded-full border border-black/10 dark:border-white/10 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-colors">
+              className="flex-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) py-2.5 text-xs font-bold transition-colors">
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105 disabled:opacity-60">
+              className="flex-1 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 py-2.5 text-xs font-bold transition-all disabled:opacity-60">
               {saving ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-4 w-4 animate-spin"/> Salvando...</span> : proposta ? 'Salvar Alterações' : 'Criar Proposta'}
             </button>
           </div>
@@ -241,28 +242,28 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
     <div className="space-y-6">
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Total de Propostas</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">{propostas.length}</p>
-        </div>
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Aprovadas</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400">{aprovadas.length}</p>
-          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(valorAprovado)}</p>
-        </div>
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Em Negociação</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#2F4A3C] dark:text-[#DFFFAE]">{emNeg.length}</p>
-          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(valorNeg)}</p>
-        </div>
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Taxa de Conversão</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3]">
+        <Card level={1} className="card-finish p-5">
+          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Total de Propostas</p>
+          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-ink tabular">{propostas.length}</p>
+        </Card>
+        <Card level={1} className="card-finish p-5">
+          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Aprovadas</p>
+          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 tabular">{aprovadas.length}</p>
+          <p className="mt-0.5 text-caption text-ink-soft tabular">{BRL.format(valorAprovado)}</p>
+        </Card>
+        <Card level={1} className="card-finish p-5">
+          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Em Negociação</p>
+          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-hexxa-green dark:text-hexxa-lime tabular">{emNeg.length}</p>
+          <p className="mt-0.5 text-caption text-ink-soft tabular">{BRL.format(valorNeg)}</p>
+        </Card>
+        <Card level={1} className="card-finish p-5">
+          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Taxa de Conversão</p>
+          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-ink tabular">
             {propostas.filter(p => p.status !== 'rascunho').length > 0
               ? `${Math.round((aprovadas.length / propostas.filter(p => p.status !== 'rascunho').length) * 100)}%`
               : '—'}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Filters + new */}
@@ -277,7 +278,7 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
         <button
           type="button"
           onClick={() => setModal({ open: true, editId: null })}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold transition-all"
         >
           <Plus className="h-4 w-4" /> Nova Proposta
         </button>
@@ -285,12 +286,12 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+        <div className="flex flex-col items-center gap-2 py-16 text-center text-ink-soft">
           <FileText className="h-10 w-10 opacity-30" />
           <p className="text-sm">Nenhuma proposta encontrada com este filtro.</p>
         </div>
       ) : (
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md divide-y divide-black/5 dark:divide-white/10 overflow-hidden shadow-sm">
+        <div className="rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) card-finish divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
           {filtered.map(p => {
             const st = STATUS_CONFIG[p.status];
             const StatusIcon = st.icon;
@@ -307,33 +308,33 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono font-bold text-[#6E6A61] dark:text-[#A8A49C]">{p.numero}</span>
+                      <span className="text-xs font-mono font-bold text-ink-soft">{p.numero}</span>
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${st.cls}`}>
                         <StatusIcon className="h-3 w-3" />{st.label}
                       </span>
                       {expirado && p.status === 'enviada' && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                           <Clock className="h-3 w-3" /> Validade expirada
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{p.titulo}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{p.cliente} · válida até {fmtDate(p.validade)}</p>
+                    <p className="mt-1 font-serif font-bold text-sm text-ink">{p.titulo}</p>
+                    <p className="text-xs text-ink-soft">{p.cliente} · válida até {fmtDate(p.validade)}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="font-serif font-bold text-sm sm:text-base text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(total)}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{p.itens.length} item(ns)</p>
+                    <p className="font-serif font-bold text-sm sm:text-base text-ink tabular">{BRL.format(total)}</p>
+                    <p className="text-xs text-ink-soft tabular">{p.itens.length} item(ns)</p>
                   </div>
-                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-[#6E6A61]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#6E6A61]" />}
+                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
                 </button>
 
                 {isExp && (
-                  <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-5">
+                  <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
                     {/* Items table */}
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs sm:text-sm">
                         <thead>
-                          <tr className="text-left text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">
+                          <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wider">
                             <th className="pb-2">Descrição</th>
                             <th className="pb-2 text-center w-12">Qtd</th>
                             <th className="pb-2 text-right w-28">Unitário</th>
@@ -343,30 +344,30 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                         <tbody className="divide-y divide-black/5 dark:divide-white/10">
                           {p.itens.map(i => (
                             <tr key={i.id}>
-                              <td className="py-2.5 font-medium">{i.descricao}</td>
-                              <td className="py-2.5 text-center text-[#6E6A61] dark:text-[#A8A49C]">{i.qtd}</td>
-                              <td className="py-2.5 text-right text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(i.valor)}</td>
-                              <td className="py-2.5 text-right font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(i.qtd * i.valor)}</td>
+                              <td className="py-2.5 font-medium text-ink">{i.descricao}</td>
+                              <td className="py-2.5 text-center text-ink-soft tabular">{i.qtd}</td>
+                              <td className="py-2.5 text-right text-ink-soft tabular">{BRL.format(i.valor)}</td>
+                              <td className="py-2.5 text-right font-bold text-ink tabular">{BRL.format(i.qtd * i.valor)}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-black/10 dark:border-white/10 font-bold">
-                            <td colSpan={3} className="pt-3 uppercase text-xs tracking-wider text-[#6E6A61]">Total da Proposta</td>
-                            <td className="pt-3 text-right font-serif text-base text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(total)}</td>
+                            <td colSpan={3} className="pt-3 uppercase text-caption tracking-wider text-ink-soft">Total da Proposta</td>
+                            <td className="pt-3 text-right font-serif text-base text-ink tabular">{BRL.format(total)}</td>
                           </tr>
                         </tfoot>
                       </table>
                     </div>
 
-                    {p.obs && <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] italic">"{p.obs}"</p>}
+                    {p.obs && <p className="text-xs text-ink-soft italic">"{p.obs}"</p>}
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-black/5 dark:border-white/10">
                       <button
                         type="button"
                         onClick={() => setModal({ open: true, editId: p.id })}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-1.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </button>
@@ -374,7 +375,7 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                         <button
                           type="button"
                           onClick={() => setStatus(p.id, 'enviada')}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-4 py-1.5 text-xs font-bold"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all"
                         >
                           <Send className="h-3.5 w-3.5" /> Marcar como Enviada
                         </button>
@@ -384,14 +385,14 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                           <button
                             type="button"
                             onClick={() => setStatus(p.id, 'aprovada')}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-4 py-1.5 text-xs font-bold"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-4 py-1.5 text-xs font-bold"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Aprovada
                           </button>
                           <button
                             type="button"
                             onClick={() => setStatus(p.id, 'rejeitada')}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-4 py-1.5 text-xs font-bold"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-4 py-1.5 text-xs font-bold"
                           >
                             <XCircle className="h-3.5 w-3.5" /> Rejeitada
                           </button>
@@ -401,14 +402,14 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                         <>
                           <a
                             href="/meu-negocio/fiscal"
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-4 py-1.5 text-xs font-bold hover:bg-[#2F4A3C]"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all"
                           >
                             <ArrowRight className="h-3.5 w-3.5" /> Emitir NF
                           </a>
                           <button
                             type="button"
                             onClick={() => setPixModal({ open: true, propostaId: p.id })}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE] px-4 py-1.5 text-xs font-bold"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-4 py-1.5 text-xs font-bold"
                           >
                             <QrCode className="h-3.5 w-3.5" /> Cobrança PIX
                           </button>
@@ -417,7 +418,7 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                       <button
                         type="button"
                         onClick={() => deleteProposta(p.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 ml-auto"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 ml-auto transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Excluir
                       </button>

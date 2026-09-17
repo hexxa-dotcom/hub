@@ -82,7 +82,7 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
         className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200 ${
           active
             ? 'bg-[#DFFFAE] text-[#1E3328] font-bold shadow-sm'
-            : 'text-[#FEFDF3]/75 hover:bg-white/10 hover:text-[#FEFDF3]'
+            : 'text-[#F5F6F4]/75 hover:bg-white/10 hover:text-[#F5F6F4]'
         } ${collapsed ? 'justify-center px-0' : ''}`}
       >
         <Icon className="h-4 w-4 shrink-0" />
@@ -97,7 +97,7 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
         ) : null}
       </Link>
       {collapsed && (
-        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-[#1E3328] border border-[#2F4A3C] px-3 py-1.5 text-xs text-[#FEFDF3] opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-[#1E3328] border border-[#2F4A3C] px-3 py-1.5 text-xs text-[#F5F6F4] opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
           {item.label}
         </span>
       )}
@@ -126,7 +126,7 @@ export function ContadorShell({
   const navGroups = buildNavGroups(openTicketsCount);
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={`flex h-full flex-col bg-[#1E3328]/95 dark:bg-[#141A16]/95 backdrop-blur-2xl text-[#FEFDF3] border border-[#2F4A3C]/60 ${mobile ? 'p-4 border-r' : 'py-5 px-3 rounded-[26px] shadow-[0_16px_40px_rgba(0,0,0,0.22)]'}`}>
+    <div className={`flex h-full flex-col bg-[#1E3328]/95 dark:bg-[#141A16]/95 backdrop-blur-2xl text-[#F5F6F4] border border-[#2F4A3C]/60 ${mobile ? 'p-4 border-r' : 'py-5 px-3 rounded-[26px] shadow-[0_16px_40px_rgba(0,0,0,0.22)]'}`}>
       {/* Brand */}
       <div className={`flex items-center gap-3 pb-5 border-b border-[#2F4A3C]/40 ${collapsed && !mobile ? 'justify-center px-0' : 'px-2'}`}>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#2F4A3C] text-[#DFFFAE] border border-[#DFFFAE]/30 text-sm font-bold shadow-sm">
@@ -134,14 +134,14 @@ export function ContadorShell({
         </span>
         {(!collapsed || mobile) && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-serif font-bold text-[#FEFDF3] leading-tight">Hexxa Hub</p>
+            <p className="truncate text-sm font-serif font-bold text-[#F5F6F4] leading-tight">Hexxa Hub</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#DFFFAE]">Área do Contador</p>
           </div>
         )}
         {!mobile && (
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="ml-auto rounded-xl p-1.5 text-[#FEFDF3]/60 hover:bg-white/10 hover:text-white transition-colors"
+            className="ml-auto rounded-xl p-1.5 text-[#F5F6F4]/60 hover:bg-white/10 hover:text-white transition-colors"
             aria-label={collapsed ? 'Expandir' : 'Recolher'}
           >
             <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`} />
@@ -174,7 +174,7 @@ export function ContadorShell({
       <div className={`border-t border-[#2F4A3C]/40 pt-4 space-y-1.5 ${collapsed && !mobile ? 'px-0' : ''}`}>
         <Link
           href="/cliente"
-          className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#FEFDF3]/70 hover:bg-white/10 hover:text-[#FEFDF3] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-medium text-[#F5F6F4]/70 hover:bg-white/10 hover:text-[#F5F6F4] transition-colors ${collapsed && !mobile ? 'justify-center px-0' : ''}`}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />
           {(!collapsed || mobile) && <span>Voltar ao Portal</span>}
@@ -184,7 +184,7 @@ export function ContadorShell({
   );
 
   return (
-    <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
+    <div className="flex min-h-screen bg-[#F5F6F4] dark:bg-[#121614] text-[#231F20] dark:text-[#F5F6F4]">
       {/* Sidebar desktop */}
       <aside className={`sticky top-4 hidden h-[calc(100vh-32px)] shrink-0 transition-all duration-300 ease-out lg:block z-40 ml-4 my-4 ${collapsed ? 'w-[76px]' : 'w-64'}`}>
         <Sidebar />
@@ -201,7 +201,7 @@ export function ContadorShell({
       {/* Main container */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-6 lg:px-8 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-black/5 dark:border-white/10 bg-[#F5F6F4]/85 dark:bg-[#121614]/85 px-6 lg:px-8 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <button onClick={() => setMobileOpen(true)} className="rounded-xl p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 lg:hidden">
               <Menu className="h-5 w-5" />
@@ -215,7 +215,7 @@ export function ContadorShell({
             <Link
               href="/contador/solicitacoes"
               title="Solicitações abertas"
-              className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20] transition-colors"
+              className="tap-target pressable focusable relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-[#DFFFAE] hover:text-[#231F20] transition-colors"
             >
               <Bell className="h-4 w-4" />
               {openTicketsCount > 0 && (
@@ -227,7 +227,7 @@ export function ContadorShell({
 
             <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
               <div className="hidden xl:flex flex-col items-end text-right">
-                <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
+                <span className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] leading-tight truncate max-w-[130px]">
                   {userName || 'Contador'}
                 </span>
                 <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
@@ -238,7 +238,7 @@ export function ContadorShell({
                 type="button"
                 onClick={sair}
                 title="Sair"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors"
+                className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors"
               >
                 <LogOut className="h-4 w-4" />
               </button>

@@ -54,7 +54,7 @@ export function CodigoForm({ area, next }: { area: AccessArea; next: string }) {
               maxLength={1}
               disabled={pending}
               autoFocus={i === 0}
-              className="h-16 w-14 rounded-2xl border border-white/15 bg-white/5 text-center text-2xl font-bold text-[#FEFDF3] outline-none focus:border-[#DFFFAE] focus:ring-2 focus:ring-[#DFFFAE]/30 disabled:opacity-50"
+              className="h-16 w-14 rounded-2xl border border-white/15 bg-white/5 text-center text-2xl font-bold text-[#F5F6F4] outline-none focus:border-[#DFFFAE] focus:ring-2 focus:ring-[#DFFFAE]/30 disabled:opacity-50"
             />
           ))}
         </div>

@@ -227,6 +227,15 @@ export const serviceInvoice = pgTable('service_invoice', {
    */
   providerMode: text('provider_mode'),
   pdfUrl: text('pdf_url'),
+  /**
+   * Perfil fiscal usado na emissão.
+   *
+   * Guardado porque é a origem do código LC 116/2003, exigido para mandar a
+   * nota ao módulo fiscal do OneFlow. Antes era usado na montagem do XML e
+   * descartado — e sem ele o envio teria de adivinhar o item da lista de
+   * serviços, o que produziria ISS errado na apuração.
+   */
+  nfseServiceProfileId: uuid('nfse_service_profile_id').references(() => nfseServiceProfile.id),
   /** Imposto estimado desta nota (R$), calculado na emissão — ver TaxThermometerService. */
   taxAmount: numeric('tax_amount', { precision: 14, scale: 2 }),
   /** Alíquota efetiva usada no cálculo acima (%), pra exibir junto do valor. */

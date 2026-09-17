@@ -29,14 +29,14 @@ export function CoreBenefits() {
   ];
 
   return (
-    <section className="py-20 bg-[#FEFDF3] dark:bg-[#121614] border-t border-black/5 dark:border-white/5" id="beneficios">
+    <section className="py-20 bg-[#F5F6F4] dark:bg-[#121614] border-t border-black/5 dark:border-white/5" id="beneficios">
       <div className="landing-wrap max-w-6xl mx-auto px-4">
         {/* Cabeçalho da Seção */}
         <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 px-3.5 py-1 text-xs font-bold text-[#1E3328] dark:text-[#DFFFAE]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 px-3.5 py-1 text-xs font-bold text-[#1E3328] dark:text-[#DFFFAE]">
             <Sparkles className="h-3.5 w-3.5" /> Como a Hexx simplifica sua vida
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#231F20] dark:text-[#F5F6F4]">
             Tudo o que você precisa para operar sem dor de cabeça.
           </h2>
           <p className="text-sm text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed">
@@ -49,7 +49,7 @@ export function CoreBenefits() {
           {benefits.map((b, i) => (
             <div
               key={i}
-              className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 p-7 flex flex-col justify-between hover:shadow-md hover:border-black/20 transition-all group"
+              className="rounded-3xl bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 p-7 flex flex-col justify-between hover:shadow-md hover:border-black/20 transition-all group"
             >
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -61,7 +61,7 @@ export function CoreBenefits() {
                   </span>
                 </div>
 
-                <h3 className="font-serif text-xl font-bold text-[#231F20] dark:text-[#FEFDF3] mb-2.5">
+                <h3 className="font-serif text-xl font-bold text-[#231F20] dark:text-[#F5F6F4] mb-2.5">
                   {b.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed mb-6">

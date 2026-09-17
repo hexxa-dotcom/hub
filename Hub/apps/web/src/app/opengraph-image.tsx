@@ -20,13 +20,13 @@ export default async function Image() {
           justifyContent: 'space-between',
           padding: '60px 80px',
           fontFamily: 'sans-serif',
-          color: '#FEFDF3',
+          color: '#F5F6F4',
         }}
       >
         {/* Header Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '38px' }}>
-            <span style={{ fontWeight: 900, color: '#FEFDF3' }}>hexx</span>
+            <span style={{ fontWeight: 900, color: '#F5F6F4' }}>hexx</span>
             <span
               style={{
                 display: 'flex',
@@ -72,13 +72,13 @@ export default async function Image() {
 
         {/* Bottom Highlights Bar */}
         <div style={{ display: 'flex', gap: '30px', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#FEFDF3', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#F5F6F4', fontWeight: 600 }}>
             <span style={{ color: '#DFFFAE', fontWeight: 800 }}>[✓]</span> Contabilidade em Realtime
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#FEFDF3', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#F5F6F4', fontWeight: 600 }}>
             <span style={{ color: '#DFFFAE', fontWeight: 800 }}>[✓]</span> Emissão de NFSe com 1 Clique
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#FEFDF3', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', color: '#F5F6F4', fontWeight: 600 }}>
             <span style={{ color: '#DFFFAE', fontWeight: 800 }}>[✓]</span> Assinaturas com Validade Jurídica
           </div>
         </div>

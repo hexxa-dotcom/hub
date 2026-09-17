@@ -55,9 +55,9 @@ function FaturamentoChart({ data }: { data: MonthPoint[] }) {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
+    <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
       <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">{label}</p>
-      <p className={`mt-1.5 font-serif font-bold text-2xl ${color ?? 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{value}</p>
+      <p className={`mt-1.5 font-serif font-bold text-2xl ${color ?? 'text-[#231F20] dark:text-[#F5F6F4]'}`}>{value}</p>
       {sub && <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{sub}</p>}
     </div>
   );
@@ -82,7 +82,7 @@ export function RelatoriosView({
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Relatórios</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Relatórios</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Situação atual das assinaturas e faturamento real de honorários</p>
       </div>
 
@@ -95,9 +95,9 @@ export function RelatoriosView({
       </div>
 
       {/* Faturamento real por mês */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Faturas de honorários — por mês</h2>
+          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Faturas de honorários — por mês</h2>
           <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Gerado pelo fechamento mensal</span>
         </div>
         {faturamento.length === 0 ? (
@@ -107,7 +107,7 @@ export function RelatoriosView({
           </div>
         ) : (
           <>
-            <div className="text-[#231F20] dark:text-[#FEFDF3]">
+            <div className="text-[#231F20] dark:text-[#F5F6F4]">
               <FaturamentoChart data={faturamento} />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-black/5 dark:border-white/10 pt-4">
@@ -116,7 +116,7 @@ export function RelatoriosView({
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Total pago no período</p>
               </div>
               <div className="text-center">
-                <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">{totalNovosPeriodo}</p>
+                <p className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">{totalNovosPeriodo}</p>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Novas empresas cadastradas no período</p>
               </div>
             </div>
@@ -125,8 +125,8 @@ export function RelatoriosView({
       </div>
 
       {/* Distribuição por plano */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-        <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Receita por plano</h2>
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+        <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Receita por plano</h2>
         <div className="space-y-4">
           {planos.map((p) => {
             const receita = p.clientes * p.valor;
@@ -137,12 +137,12 @@ export function RelatoriosView({
                 <div className="flex items-center justify-between mb-1.5 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: cor }} />
-                    <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{p.nome}</span>
+                    <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{p.nome}</span>
                     <span className="text-[#6E6A61] dark:text-[#A8A49C]">({p.clientes} cliente{p.clientes !== 1 ? 's' : ''})</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">{pct.toFixed(0)}%</span>
-                    <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(receita)}/mês</span>
+                    <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{BRL.format(receita)}/mês</span>
                   </div>
                 </div>
                 <div className="h-2.5 rounded-full bg-black/10 dark:bg-white/10 p-0.5 overflow-hidden">

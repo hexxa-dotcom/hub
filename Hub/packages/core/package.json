@@ -10,7 +10,9 @@
     "./ports": "./src/ports/index.ts",
     "./services": "./src/services/index.ts",
     "./language": "./src/language.ts",
-    "./document-br": "./src/document-br.ts"
+    "./document-br": "./src/document-br.ts",
+    "./accounting": "./src/accounting/index.ts",
+    "./agent": "./src/agent/index.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",

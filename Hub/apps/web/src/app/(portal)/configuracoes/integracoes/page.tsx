@@ -5,6 +5,7 @@ import { withTenant, eq, and } from '@hexxa/db';
 import { integrationCredential, emailAccount } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 import { IntegrationStatusBlock } from './IntegrationStatusBlock';
+import { Card } from '@/components/ui/Card';
 
 export const metadata = {
   title: 'Integrações Financeiras | Hexxa Hub',
@@ -71,74 +72,70 @@ export default async function IntegracoesPage() {
   const emailConnected = emailAcc?.isActive ?? false;
 
   return (
-    <div className="mx-auto w-full space-y-8 animate-in fade-in">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="mx-auto w-full space-y-6 animate-in fade-in">
+      {/* Header bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-              <Plug className="h-3.5 w-3.5" />
-              Integrações
-            </span>
-          </div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            Integrações
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] max-w-2xl">
-            Conecte o gateway de pagamento e o assistente de IA pra centralizar cobranças e consultas financeiras sem sair do Hub.
+          <h2 className="font-serif font-bold text-lg sm:text-xl text-ink tracking-tight">
+            Catálogo de Conexões
+          </h2>
+          <p className="mt-0.5 text-xs text-ink-soft max-w-2xl">
+            Conecte o gateway de pagamento, assistente de IA e serviços externos para centralizar rotinas contábeis.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <Link href="/suporte" className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-all shadow-sm">
+          <Link
+            href="/suporte"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
+          >
             Solicitar nova conexão <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </header>
+      </div>
 
       {/* Assistente de IA (MCP) */}
-      <Link
-        href={'/configuracoes/integracoes/mcp' as Route}
-        className="block rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] p-6 shadow-sm relative overflow-hidden group hover:scale-[1.005] transition-transform"
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#DFFFAE]/15 text-[#DFFFAE]">
-            <Sparkles className="h-6 w-6" />
+      <Link href={'/configuracoes/integracoes/mcp' as Route} className="block group">
+        <Card level={2} tone="deep" className="card-finish p-6 relative overflow-hidden transition-all group-hover:brightness-105">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-hexxa-forest/20 text-hexxa-forest dark:bg-hexxa-lime/20 dark:text-hexxa-lime">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-serif font-bold text-base text-ink">Assistente de IA & API Externa (MCP)</h3>
+              <p className="text-xs text-ink-soft mt-0.5">
+                Conecte o Claude, ChatGPT ou sistemas externos para consultar relatórios e realizar lançamentos financeiros com tokens seguros.
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime shrink-0 transition-transform group-hover:translate-x-1" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-serif font-bold text-base text-[#FEFDF3]">Assistente de IA & API</h3>
-            <p className="text-xs text-[#DFFFAE]/70 mt-0.5">
-              Conecte o Claude, ChatGPT ou um sistema externo pra consultar — e, com um token de escrita, lançar — dados financeiros por fora do Hub.
-            </p>
-          </div>
-          <ArrowRight className="h-5 w-5 text-[#DFFFAE] shrink-0 transition-transform group-hover:translate-x-1" />
-        </div>
+        </Card>
       </Link>
 
       {/* Grid de Integrações */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {ERPS.map((erp) => (
-          <div key={erp.id} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-[#1E3328]/30 transition-all">
+          <Card key={erp.id} level={1} className="p-6 flex flex-col justify-between relative overflow-hidden group">
             {/* Decoração superior */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 opacity-80" style={{ backgroundColor: erp.color }} />
+            <div className="absolute top-0 left-0 right-0 h-1 opacity-80" style={{ backgroundColor: erp.color }} />
             
             <div>
               <div className="flex items-start justify-between mb-4 mt-1">
                 <div className="flex items-center gap-3">
                   <div 
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white font-serif font-black text-xl shadow-md transition-transform group-hover:scale-105"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white font-serif font-black text-xl shadow-(--elev-1) transition-transform group-hover:scale-105"
                     style={{ backgroundColor: erp.color }}
                   >
                     {erp.logo}
                   </div>
                   <div>
-                    <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] leading-tight">{erp.name}</h3>
-                    <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{erp.sub}</p>
+                    <h3 className="font-serif font-bold text-base text-ink leading-tight">{erp.name}</h3>
+                    <p className="text-[11px] text-ink-soft">{erp.sub}</p>
                     {erp.connected ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Conectado
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft mt-1">
                         <XCircle className="h-3.5 w-3.5" /> Não configurado
                       </span>
                     )}
@@ -146,7 +143,7 @@ export default async function IntegracoesPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed mb-6">
+              <p className="text-xs text-ink-soft leading-relaxed mb-6">
                 {erp.desc}
               </p>
             </div>
@@ -155,72 +152,77 @@ export default async function IntegracoesPage() {
               <IntegrationStatusBlock providerId={erp.id} />
             ) : (
               <div className="pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
-                <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Via API Segura</span>
-                <Link href={`/configuracoes/integracoes/${erp.id}` as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+                <span className="text-[11px] text-ink-soft">Via API Segura</span>
+                <Link
+                  href={`/configuracoes/integracoes/${erp.id}` as Route}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
+                >
                   Configurar <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             )}
-          </div>
+          </Card>
         ))}
 
-        {/* E-mail (IMAP/SMTP) — fora do grid de ERPS porque não usa API key/OAuth, é conta de e-mail. */}
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm hover:border-[#1E3328]/30 transition-all">
-          <div className="absolute top-0 left-0 right-0 h-1.5 opacity-80 bg-[#1E3328]" />
+        {/* E-mail (IMAP/SMTP) */}
+        <Card level={1} className="p-6 flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 opacity-80 bg-hexxa-forest" />
           <div>
             <div className="flex items-start justify-between mb-4 mt-1">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1E3328] text-[#DFFFAE] shadow-md transition-transform group-hover:scale-105">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) transition-transform group-hover:scale-105">
                   <Mail className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] leading-tight">E-mail (NFSe)</h3>
-                  <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Envio automático por e-mail</p>
+                  <h3 className="font-serif font-bold text-base text-ink leading-tight">E-mail (NFS-e)</h3>
+                  <p className="text-[11px] text-ink-soft">Envio automático por e-mail</p>
                   {emailConnected ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Conectado
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] mt-1">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft mt-1">
                       <XCircle className="h-3.5 w-3.5" /> Não configurado
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] leading-relaxed mb-6">
-              Conecte a caixa de e-mail (IMAP/SMTP) que o Hub usa pra mandar a NFSe automaticamente pro cliente assim que ela é emitida.
+            <p className="text-xs text-ink-soft leading-relaxed mb-6">
+              Conecte a caixa de e-mail (IMAP/SMTP) que o Hub usa para encaminhar a NFS-e automaticamente para o tomador assim que ela for autorizada.
             </p>
           </div>
           <div className="pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
-            <span className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">IMAP / SMTP</span>
-            <Link href={'/configuracoes/integracoes/email' as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105">
+            <span className="text-[11px] text-ink-soft">IMAP / SMTP</span>
+            <Link
+              href={'/configuracoes/integracoes/email' as Route}
+              className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
+            >
               {emailConnected ? 'Gerenciar' : 'Configurar'} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Seção Explicativa / Como funciona */}
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
+      <Card level={1} className="p-6 sm:p-8">
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1">
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2 mb-2">
-              <ArrowLeftRight className="h-5 w-5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+            <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2 mb-2">
+              <ArrowLeftRight className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
               Como Funciona a Integração
             </h3>
-            <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mb-4 leading-relaxed">
-              Conectar seu sistema aqui armazena suas credenciais com criptografia ponta a ponta (via OAuth2 ou tokens seguros de API). A comunicação é feita de forma estritamente segura para leitura de faturamento e baixa de conciliação.
+            <p className="text-xs sm:text-sm text-ink-soft mb-4 leading-relaxed">
+              Conectar seus sistemas aqui armazena suas credenciais com criptografia de ponta a ponta. A comunicação é realizada de forma estritamente segura para leitura de faturamento e baixa automática de conciliação.
             </p>
-            <ul className="text-xs sm:text-sm space-y-2 text-[#6E6A61] dark:text-[#A8A49C]">
+            <ul className="text-xs sm:text-sm space-y-2 text-ink-soft">
               <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Credenciais armazenadas com segurança via Vault</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Webhook de baixa automática de pagamentos Asaas</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Assistente de IA e API externa com token revogável e escopo leitura/escrita</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Assistente de IA e API externa com tokens revogáveis e escopos granulares</li>
             </ul>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
-

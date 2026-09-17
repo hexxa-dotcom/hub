@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { confiancaConciliacao } from '../agent/confidence';
 
 export interface RawBankTransaction {
   id: string; // ID da transação no extrato/Open Finance
@@ -125,9 +126,14 @@ export class AIReconciliationService {
       // podiam ser casadas com a errada.
       let matchedEntry: PendingFinancialEntry | undefined;
       let bestDiffDays = Infinity;
+      // Quantos candidatos têm exatamente este valor. É o sinal que faltava:
+      // com três aluguéis de R$ 1.500 em aberto, "o valor bate" não distingue
+      // nada — e era justamente aí que a confiança fixa de 0,95 mentia.
+      let candidatosMesmoValor = 0;
       for (const entry of pendingEntries) {
         if (usedPendingEntries.has(entry.id) || entry.type !== txType) continue;
         if (Math.abs(entry.amount - absAmount) >= 0.01) continue;
+        candidatosMesmoValor++;
         const entryDate = new Date(entry.dueDate).getTime();
         if (Number.isNaN(entryDate) || Number.isNaN(txDate)) continue;
         const diffDays = Math.abs(entryDate - txDate) / DAY_MS;
@@ -139,19 +145,37 @@ export class AIReconciliationService {
 
       if (matchedEntry) {
         usedPendingEntries.add(matchedEntry.id);
+        // Confiança MEDIDA a partir do pareamento, não escrita na mão. Os
+        // valores fixos que havia aqui (0,95 e 0,85) não mudavam quando o
+        // mundo mudava: davam a mesma certeza para um pareamento único e para
+        // um entre cinco candidatos idênticos.
+        const conf = confiancaConciliacao({
+          diferencaValor: Math.abs(matchedEntry.amount - absAmount),
+          diferencaDias: bestDiffDays,
+          candidatosMesmoValor,
+        });
         results.push({
           transactionId: tx.id,
           suggestedCategoryId: aiCat.suggestedCategoryId,
-          confidenceScore: 0.95, // Alto, pois bateu o valor e a IA classificou
+          confidenceScore: conf.score,
           action: 'MATCH_EXISTING',
           matchedEntryId: matchedEntry.id,
-          justification: `${aiCat.justification}. Encontrado lançamento pendente com valor exato.`
+          justification: `${aiCat.justification}. ${conf.resumo}.`
         });
       } else {
+        // Sem lançamento correspondente, o único sinal é a classificação do
+        // modelo — e o modelo opinando sobre si mesmo pesa pouco. Criar um
+        // lançamento novo a partir do extrato merece revisão humana, e uma
+        // confiança honestamente baixa é o que garante isso.
+        const conf = confiancaConciliacao({
+          diferencaValor: absAmount,
+          diferencaDias: 0,
+          candidatosMesmoValor: 0,
+        });
         results.push({
           transactionId: tx.id,
           suggestedCategoryId: aiCat.suggestedCategoryId,
-          confidenceScore: 0.85, // Médio, nova despesa
+          confidenceScore: conf.score,
           action: 'CREATE_NEW',
           justification: `${aiCat.justification}. Nenhum lançamento pendente compatível encontrado, será criado um novo registro pago.`
         });

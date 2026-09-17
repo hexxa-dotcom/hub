@@ -5,15 +5,15 @@
 
 /* ============================================================
    Hexxa Hub — Design System Editorial Fintech
-   Paleta: Cream, Warm Beige, Deep Forest Green, Lime, Olive.
+   Paleta: cinza de sopro verde, verde floresta profundo, lima, oliva.
    Tipografia: Source Serif 4 + Nunito Sans.
    ============================================================ */
 
 @theme {
   /* Marca & Acentos */
-  --color-hexxa-cream: #FEFDF3;
-  --color-hexxa-beige: #F4EFE4;
-  --color-hexxa-beige-deep: #EAE3D3;
+  --color-hexxa-cream: #F5F6F4;
+  --color-hexxa-beige: #E7EAE5;
+  --color-hexxa-beige-deep: #D8DDD6;
   --color-hexxa-ink: #231F20;
   --color-hexxa-dark: #1C180D;
   --color-hexxa-lime: #DFFFAE;
@@ -51,76 +51,379 @@
   --color-ok: #2F4A3C;
   --color-warn: #c27803;
   --color-critical: #e11d48;
+  /* Saída de caixa não é erro: despesa programada precisa de cor própria,
+     senão todo pagamento normal lê como alarme. */
+  --color-expense: #C85A32;
 
   --radius-card: 1.5rem;
   --radius-pill: 9999px;
 
   --font-serif: var(--font-serif), 'Source Serif 4', Georgia, Cambria, 'Times New Roman', serif;
   --font-sans: var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ----------------------------------------------------------
+     Escala tipográfica — tamanho, peso, entrelinha e tracking
+     andam juntos. Tracking é específico por tamanho: negativo
+     no texto grande (letras "abrem" ao crescer), ~0 no corpo,
+     positivo no texto pequeno (legibilidade). Entrelinha é
+     inversa ao tamanho: apertada no título, folgada no corpo.
+     ---------------------------------------------------------- */
+  /* Topo da escala, reservado ao número principal da tela. Existe um por
+     tela — se dois elementos usam `hero`, nenhum é o principal. */
+  --text-hero: 3rem;
+  --text-hero--line-height: 1;
+  --text-hero--letter-spacing: -0.03em;
+  --text-hero--font-weight: 600;
+
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.022em;
+  --text-display--font-weight: 600;
+
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 600;
+
+  --text-title2: 1.375rem;
+  --text-title2--line-height: 1.2;
+  --text-title2--letter-spacing: -0.015em;
+  --text-title2--font-weight: 600;
+
+  --text-heading: 1.0625rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.01em;
+  --text-heading--font-weight: 600;
+
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: 0em;
+  --text-body--font-weight: 400;
+
+  --text-callout: 0.9375rem;
+  --text-callout--line-height: 1.45;
+  --text-callout--letter-spacing: 0em;
+  --text-callout--font-weight: 400;
+
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.4;
+  --text-footnote--letter-spacing: 0.006em;
+  --text-footnote--font-weight: 400;
+
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1.35;
+  --text-caption--letter-spacing: 0.012em;
+  --text-caption--font-weight: 500;
 }
 
 :root {
   color-scheme: light;
 
-  --cream: #FEFDF3;
+  /* `--cream` e `--beige` mantêm o nome por terem 71 usos espalhados, mas já
+     não são creme nem bege: o valor é cinza. Renomear é varredura separada. */
+  --cream: #F5F6F4;
   --ink: #231F20;
   --dark: #1C180D;
   --lime: #DFFFAE;
   --lime-soft: #EFFFD6;
   --green: #2F4A3C;
   --green-dark: #1E3328;
-  --beige: #F4EFE4;
-  --beige-deep: #EAE3D3;
+  --beige: #E7EAE5;
+  --beige-deep: #D8DDD6;
   --blue: #A2C1CD;
   --olive: #5F6E46;
   --muted: #6E6A61;
 
-  --color-surface-val: #FEFDF3;
-  --color-surface-card-val: #F4EFE4;
+  /* Superfície única: página e card têm a MESMA cor. No neumorfismo a forma
+     nasce só do par de sombras opostas — se o card tiver cor própria, a sombra
+     clara vira um halo solto em vez de luz batendo na peça. */
+  --color-surface-val: #D8D9D5;
+  --color-surface-card-val: #D8D9D5;
   --color-ink-val: #231F20;
-  --color-ink-soft-val: #6E6A61;
-  --color-line-val: rgba(35, 31, 32, 0.08);
+  --color-ink-soft-val: #5A5751;
+  --color-line-val: rgba(255, 255, 255, 0.55);
 
-  --glass-bg: rgba(244, 239, 228, 0.85);
+  --glass-bg: rgba(231, 234, 229, 0.85);
   --glass-border: rgba(35, 31, 32, 0.08);
   --glass-blur: blur(20px) saturate(140%);
 
-  --rail-bg: #1E3328;
-  --sidebar-panel: #1E3328;
+  /* Painel de conteúdo. Hoje translúcido só para preservar o visual atual.
+     Material translúcido deveria ser exceção (chrome que flutua sobre o
+     conteúdo); quando todo card é vidro, vidro deixa de sinalizar camada.
+     Para tornar o app inteiro opaco: --panel-blur: none e --panel-bg sólido.
+     Uma linha, sem tocar em nenhuma tela. */
+  --panel-bg: rgba(231, 234, 229, 0.6);
+  --panel-blur: blur(12px);
+
+  /* Gráfico: um matiz só, dois passos. O destaque marca o mês corrente
+     (propriedade da entidade), nunca a barra mais alta — colorir por
+     ranking faz a cor mudar de significado a cada atualização de dado.
+     #5F7A6A tem contraste >=3:1 nas duas superfícies, então serve aos
+     dois temas sem troca. */
+  /* ----------------------------------------------------------
+     Controle segmentado (pílula de troca de vista).
+
+     A trilha é rebaixada e o botão ativo é elevado — duas camadas
+     opostas. É isso que faz o olho ver a peça TROCANDO DE LUGAR em
+     vez de só mudar de cor: a sombra interna afunda o fundo, a
+     sombra externa levanta o polegar, e a quina clara no topo dele
+     simula luz batendo na aresta. Só cor não dá essa leitura.
+     ---------------------------------------------------------- */
+  --segmented-track: #C6C7C2;
+  --segmented-track-inset: var(--elev-inset);
+  --segmented-thumb: #D8D9D5;
+  --segmented-thumb-shadow: var(--elev-2);
+
+  /* Card principal: cimento — cinza neutro puxando quente, industrial. Não é
+     chumbo (que puxa azul) nem grafite (escuro demais). Mais claro que isso
+     derruba o texto de 13px abaixo de 4,5:1, então esse é o teto. */
+  /* Card principal com um toque de verde da marca — o bastante para se
+     distinguir da superfície neutra sem virar bloco colorido.
+     A SOMBRA dele continua vindo da escada normal (--elev-3), derivada da
+     superfície cinza: a sombra nasce no fundo que a recebe, não na cor da
+     peça. Derivar do verde deixava o lado claro quase igual ao fundo, e o
+     relevo desaparecia. */
+  --hero-from: #CCD8CC;
+  --hero-to: #C0CCC0;
+
+  --chart-bar: #5F7A6A;
+  --chart-bar-current: #1E3328;
+
+  /* Rampas de categoria: 4 passos, não 5. Com 5 passos de um matiz só, o par
+     adjacente mais próximo fica em ΔE ~8 — indistinguível mesmo para quem
+     enxerga todas as cores. Com 4, o pior par vai a ΔE 16,7 e passa. Por isso
+     as listas mostram 3 categorias + "Outros" em vez de 5. */
+  /* Grão compartilhado pelos dois temas; o que muda é a opacidade. */
+  --card-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  --card-grain-opacity: 0;
+  --card-sheen: none;
+
+  --chart-rev-1: #1E3328;
+  --chart-rev-2: #4F7A62;
+  --chart-rev-3: #8CAF9C;
+  --chart-rev-4: #CFDED6;
+
+  --chart-exp-1: #6E2F14;
+  --chart-exp-2: #C85A32;
+  --chart-exp-3: #E4A97F;
+  --chart-exp-4: #F7E4D6;
+
+  /* Banho de cor do fundo da página. Existe para o material ter o que
+     refratar: painel translúcido sobre cor chapada devolve a mesma cor
+     chapada — o blur só vira material quando há variação atrás dele.
+     Estático e ancorado na viewport (fundo de tela inteira em movimento
+     é desconforto vestibular, não sofisticação). */
+  --page-wash:
+    radial-gradient(60rem 42rem at 12% 6%, rgba(223, 255, 174, 0.42), transparent 62%),
+    radial-gradient(52rem 38rem at 88% 12%, rgba(162, 193, 205, 0.3), transparent 64%),
+    radial-gradient(56rem 46rem at 64% 94%, rgba(95, 110, 70, 0.14), transparent 66%);
+
+  /* Moldura do aplicativo: a casca escura em que a trilha de ícones vive e
+     sobre a qual o painel de conteúdo flutua. A separação é o ponto — antes a
+     sidebar tinha a mesma cor da página, então não descolava de nada. */
+  --shell-frame: #141412;
+  /* O painel flutua sobre a MOLDURA, não sobre a superfície cinza. Usar aqui a
+     sombra do neumorfismo põe luz cinza-clara (#E6E7E3) sobre preto — é o
+     fantasma na borda. Sombra escura resolve: some contra o preto (onde os
+     13:1 de contraste já separam) e aparece contra a moldura clara do tema
+     escuro, servindo aos dois sem troca. */
+  --panel-float: 0 12px 40px -8px rgba(0, 0, 0, 0.45);
+
+  /* ----------------------------------------------------------
+     Sidebar: sempre o oposto do conteúdo. Preta no tema claro,
+     cinza no escuro.
+
+     Tem escala de relevo PRÓPRIA porque as sombras do
+     neumorfismo saem da superfície em que a peça vive — usar as
+     do conteúdo aqui poria luz cinza-clara sobre preto, que é
+     exatamente o halo vazando que a gente corrigiu.
+     ---------------------------------------------------------- */
+  /* Mescla de cinza e preto: o topo puxa o cinza, a base funde com a moldura.
+     Superfície chapada num painel alto não tem para onde a luz ir. */
+  --sidebar-bg: linear-gradient(180deg, #2A2A27, #131311);
+  --sidebar-ink: #E8E8E5;
+  --sidebar-ink-soft: #9A9A95;
+  --sidebar-elev-1:
+    -2px -2px 5px #282826,
+    3px 3px 7px #0C0C0A;
+  --sidebar-elev-inset:
+    inset -4px -4px 9px #282826,
+    inset 4px 4px 9px #0C0C0A;
 
   --shadow-soft: 0 8px 24px -8px rgba(35, 31, 32, 0.08);
   --shadow-glass: 0 10px 30px -10px rgba(35, 31, 32, 0.06);
   --shadow-highlight: 0 16px 36px -12px rgba(30, 51, 40, 0.25);
+
+  /* ----------------------------------------------------------
+     Escada de elevação. Profundidade vem de hierarquia
+     consistente, não de sombra ad-hoc: superfície maior lê como
+     mais espessa (sombra mais larga e mais funda). Cada degrau
+     combina um contato curto e fechado com um halo largo e
+     difuso — uma sombra só lê como adesivo recortado.
+     ---------------------------------------------------------- */
+  /* ----------------------------------------------------------
+     Relevo neumórfico. Duas sombras opostas derivadas da própria
+     superfície: clara em cima e à esquerda, escura embaixo e à
+     direita. O nível muda só a distância e o desfoque — a peça
+     parece extrudada do mesmo material, não pousada sobre ele.
+
+     Sem `inset` de bisel aqui: com a peça e o fundo na MESMA cor,
+     o par de sombras externas já é a única coisa que desenha a
+     forma. Bisel por cima disso vira contorno duplo.
+     ---------------------------------------------------------- */
+  /* Luz e sombra a MESMA distância absoluta da superfície (±14 por canal).
+     Antes a luz subia 13% rumo ao branco e a sombra descia 20% multiplicando —
+     o que parece simétrico escrito, mas não é: o lado claro ficava quase o
+     dobro do escuro, e o excesso lia como luz vazando em vez de relevo. */
+  --elev-1:
+    -2px -2px 5px #E6E7E3,
+    3px 3px 7px #CACBC7;
+  --elev-2:
+    -5px -5px 12px #E6E7E3,
+    6px 6px 14px #CACBC7;
+  --elev-3:
+    -8px -8px 20px #E6E7E3,
+    10px 10px 26px #CACBC7;
+  /* Rebaixado: as mesmas sombras, por dentro. */
+  --elev-inset:
+    inset -4px -4px 9px #E6E7E3,
+    inset 4px 4px 9px #CACBC7;
+
+  /* Escala de espessura de borda, como a referência anota. */
+  --border-hair: 1px;
+  --border-thin: 1.5px;
+  --border-thick: 2px;
+
+  /* Anel de foco único para o app inteiro. */
+  --focus-ring: 0 0 0 2px var(--color-surface-val), 0 0 0 4px rgba(47, 74, 60, 0.55);
+
+  /* Faces do botão em relevo. */
+  --relief-top: #FFFFFF;
+  --relief-top-hover: #FFFFFF;
+  --relief-bottom: #E4E7E2;
+  --relief-border: rgba(35, 31, 32, 0.1);
 }
 
 .dark {
   color-scheme: dark;
 
-  --color-surface-val: #121614;
-  --color-surface-card-val: #1a201c;
-  --color-ink-val: #FEFDF3;
+  /* Superfície única também no escuro — mesma premissa do claro. */
+  --color-surface-val: #242826;
+  --color-surface-card-val: #242826;
+  --color-ink-val: #F5F6F4;
   --color-ink-soft-val: #a8a49c;
-  --color-line-val: rgba(254, 253, 243, 0.1);
+  --color-line-val: rgba(255, 255, 255, 0.1);
 
   --glass-bg: rgba(26, 32, 28, 0.85);
-  --glass-border: rgba(254, 253, 243, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.12);
   --glass-blur: blur(20px) saturate(140%);
 
-  --rail-bg: #0f1411;
-  --sidebar-panel: #141a16;
+  --panel-bg: rgba(26, 32, 28, 0.6);
+  --panel-blur: blur(12px);
+
+  /* No escuro a trilha afunda por transparência (preto sobre escuro some) e o
+     polegar sobe por ser MAIS CLARO que o fundo, não por sombra. */
+  --segmented-track: #1C201E;
+  --segmented-track-inset: var(--elev-inset);
+  --segmented-thumb: #242826;
+  --segmented-thumb-shadow: var(--elev-2);
+
+  --hero-from: #26332B;
+  --hero-to: #1E2A23;
+
+  --chart-bar: #5F7A6A;
+  --chart-bar-current: #DFFFAE;
+
+  /* A rampa do escuro é escolhida contra a superfície escura, não é a do claro
+     invertida: o passo mais escuro do tema claro some no card escuro. */
+  /* No escuro o grão precisa de mais presença (ruído claro sobre fundo escuro
+     some antes) e o brilho vem de cima, não da diagonal inteira. */
+  --card-grain-opacity: 0;
+  --card-sheen: none;
+
+  --chart-rev-1: #DFFFAE;
+  --chart-rev-2: #9CC19A;
+  --chart-rev-3: #527D64;
+  --chart-rev-4: #2A4736;
+
+  --chart-exp-1: #FBEFE2;
+  --chart-exp-2: #E0A075;
+  --chart-exp-3: #BF5026;
+  --chart-exp-4: #6B2D12;
+
+  /* No escuro o banho é mais contido: a mesma intensidade do tema claro
+     vira mancha luminosa contra o fundo quase preto. */
+  --page-wash:
+    radial-gradient(60rem 42rem at 12% 6%, rgba(223, 255, 174, 0.1), transparent 62%),
+    radial-gradient(52rem 38rem at 88% 12%, rgba(162, 193, 205, 0.08), transparent 64%),
+    radial-gradient(56rem 46rem at 64% 94%, rgba(47, 74, 60, 0.22), transparent 66%);
+
+  /* No escuro a moldura precisa ser MAIS escura que o painel, senão não há
+     separação — é o inverso do claro, onde ela é mais escura que a página. */
+  --shell-frame: #D8D9D5;
+  --panel-float: 0 12px 40px -8px rgba(0, 0, 0, 0.45);
+
+  /* Mesma relação do tema claro: o topo sobe 22 níveis acima da moldura e a
+     base FUNDE com ela. Antes a base ficava 9 níveis mais escura que a
+     moldura, criando uma aresta que fazia a barra parecer peça solta. */
+  --sidebar-bg: linear-gradient(180deg, #EEEFEB, #D8D9D5);
+  --sidebar-ink: #231F20;
+  --sidebar-ink-soft: #5A5751;
+  --sidebar-elev-1:
+    -2px -2px 5px #F1F2EE,
+    3px 3px 7px #D5D6D2;
+  --sidebar-elev-inset:
+    inset -4px -4px 9px #F1F2EE,
+    inset 4px 4px 9px #D5D6D2;
 
   --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.5);
   --shadow-highlight: 0 16px 36px rgba(0, 0, 0, 0.6);
 
+  /* No escuro a sombra some contra o fundo: a elevação passa a ser
+     sinalizada por uma borda superior clara (luz batendo na quina)
+     somada a uma sombra mais funda. */
+  /* No escuro o bisel carrega quase toda a leitura de volume: a sombra some
+     contra o fundo, então a quina clara em cima e a linha escura embaixo são
+     o que resta pra peça não parecer um recorte chapado. */
+  /* Mesma lógica do claro (±12 por canal). A luz é um cinza levemente mais
+     claro que a superfície, NUNCA branco: branco sobre fundo escuro não lê
+     como luz rasante, lê como furo. */
+  /* Grafite: delta de ±16 (contra ±14 do claro). Superfície escura precisa de
+     mais separação para a mesma leitura de profundidade — o olho distingue
+     pior entre tons escuros do que entre claros. */
+  --elev-1:
+    -2px -2px 5px #343836,
+    3px 3px 7px #141816;
+  --elev-2:
+    -5px -5px 12px #343836,
+    6px 6px 14px #141816;
+  --elev-3:
+    -8px -8px 20px #343836,
+    10px 10px 26px #141816;
+  --elev-inset:
+    inset -4px -4px 9px #343836,
+    inset 4px 4px 9px #141816;
+
+  --focus-ring: 0 0 0 2px var(--color-surface-val), 0 0 0 4px rgba(223, 255, 174, 0.6);
+
+  --relief-top: #333935;
+  --relief-top-hover: #3B423D;
+  --relief-bottom: #232825;
+  --relief-border: rgba(255, 255, 255, 0.08);
+
   --color-ok: #DFFFAE;
   --color-warn: #fbbf24;
   --color-critical: #fb7185;
+  --color-expense: #E57850;
 }
 
 /* Fundo da Aplicação e Tipografia Sóbria */
 body {
   background-color: var(--color-surface-val);
+  background-image: var(--page-wash);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--color-ink-val);
   font-family: var(--font-sans);
   letter-spacing: -0.011em;
@@ -156,6 +459,111 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-glass);
 }
 
+/* ------------------------------------------------------------
+   Superfície do card principal.
+
+   Precisa dos próprios valores de acabamento porque ela é escura nos DOIS
+   temas, enquanto `--card-sheen` e `--card-grain-opacity` são definidos por
+   tema. No modo claro o card escuro estava herdando o brilho do modo claro —
+   um gradiente branco a 55% na diagonal — que lavava a peça e cortava o
+   número no meio.
+
+   Direção vertical, e não diagonal: luz de cima é o que o olho espera, e a
+   diagonal criava uma faixa atravessando justamente onde o valor fica.
+   ------------------------------------------------------------ */
+@utility hero-surface {
+  background: linear-gradient(180deg, var(--hero-from), var(--hero-to));
+
+  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%);
+  --card-grain-opacity: 0.03;
+}
+
+/* ------------------------------------------------------------
+   Botão com relevo.
+
+   Três coisas juntas, e é a soma que convence: gradiente vertical
+   (topo mais claro = luz de cima), bisel na aresta, e sombra
+   externa. No pressionado tudo INVERTE — o gradiente vira, a
+   sombra externa some e entra sombra interna. A peça afunda de
+   verdade em vez de só escurecer, que é a diferença entre parecer
+   um botão e parecer uma imagem de botão.
+   ------------------------------------------------------------ */
+@utility btn-relief {
+  background: linear-gradient(180deg, var(--relief-top), var(--relief-bottom));
+  border: var(--border-hair) solid var(--relief-border);
+  box-shadow: var(--elev-2);
+  transition: box-shadow 140ms ease-out, background 140ms ease-out;
+
+  &:hover {
+    background: linear-gradient(180deg, var(--relief-top-hover), var(--relief-bottom));
+  }
+
+  &:active {
+    background: linear-gradient(180deg, var(--relief-bottom), var(--relief-top));
+    box-shadow:
+      inset 0 2px 4px rgba(35, 31, 32, 0.16),
+      inset 0 0 0 1px rgba(35, 31, 32, 0.05);
+  }
+}
+
+/* ------------------------------------------------------------
+   Foco e desabilitado — dois estados que a referência trata como
+   parte do sistema, e que aqui estavam ad-hoc: 42 anéis de foco em
+   três larguras diferentes, e três opacidades distintas de
+   desabilitado.
+
+   `:focus-visible` e não `:focus`: com `:focus` o anel acende
+   também no clique de mouse, o que polui sem ajudar ninguém.
+   Ele aparece para quem navega por teclado, que é quem precisa.
+   ------------------------------------------------------------ */
+@utility focusable {
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+/* Desabilitado tira contraste E sombra: peça inerte não flutua. */
+@utility disabled-flat {
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.45;
+    box-shadow: none;
+    pointer-events: none;
+  }
+}
+
+/* Trilha rebaixada do controle segmentado.
+   O rótulo não selecionado usa tinta própria, mais escura que `ink-soft`:
+   sobre a trilha rebaixada o cinza normal cai a 4,1:1, abaixo do mínimo de
+   4,5:1 para 13px. Texto sobre fundo mais escuro precisa compensar. */
+@utility segmented-track {
+  background: var(--segmented-track);
+  box-shadow: var(--segmented-track-inset);
+
+  --color-segmented-idle: #615D55;
+}
+
+.dark .segmented-track {
+  --color-segmented-idle: #B4B0A8;
+}
+
+@utility segmented-idle {
+  color: var(--color-segmented-idle, var(--color-ink-soft-val));
+}
+
+/* Peça elevada que marca a seleção. */
+@utility segmented-thumb {
+  background: var(--segmented-thumb);
+  box-shadow: var(--segmented-thumb-shadow);
+}
+
+@utility surface-panel {
+  background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+}
+
 @utility glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -163,15 +571,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-glass);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-}
-
-/* Sidebar utilities */
-@utility sidebar-rail {
-  background: var(--rail-bg);
-}
-
-@utility sidebar-panel {
-  background: var(--sidebar-panel);
 }
 
 /* Botões Estilo Landing */
@@ -185,14 +584,17 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   border-radius: 9999px;
   padding: 0.625rem 1.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.12), var(--elev-2);
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
 
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 24px -8px rgba(223, 255, 174, 0.6);
   }
+  /* Pressionado afunda: sombra externa some, entra interna. */
   &:active {
-    transform: scale(0.98);
+    transform: translateY(1px) scale(0.985);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.28);
   }
 }
 
@@ -202,18 +604,21 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   gap: 0.5rem;
   background-color: #231F20;
-  color: #FEFDF3;
+  color: #F5F6F4;
   font-weight: 600;
   border-radius: 9999px;
   padding: 0.625rem 1.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.12), var(--elev-2);
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
 
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 24px -8px rgba(35, 31, 32, 0.4);
   }
+  /* Pressionado afunda: sombra externa some, entra interna. */
   &:active {
-    transform: scale(0.98);
+    transform: translateY(1px) scale(0.985);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.28);
   }
 }
 
@@ -223,19 +628,22 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   gap: 0.5rem;
   background-color: #2F4A3C;
-  color: #FEFDF3;
+  color: #F5F6F4;
   font-weight: 600;
   border-radius: 9999px;
   padding: 0.625rem 1.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.12), var(--elev-2);
+  transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
 
   &:hover {
     transform: translateY(-1px);
     background-color: #1E3328;
     box-shadow: 0 10px 24px -8px rgba(47, 74, 60, 0.4);
   }
+  /* Pressionado afunda: sombra externa some, entra interna. */
   &:active {
-    transform: scale(0.98);
+    transform: translateY(1px) scale(0.985);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.28);
   }
 }
 
@@ -263,5 +671,175 @@ h1, h2, h3, h4, h5, h6 {
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   Resposta ao toque. Acontece no pressionar (`:active`), não no soltar:
+   esperar o clique completar para dar sinal é o que faz interface parecer
+   morta. 100ms porque acima disso já se percebe atraso.
+
+   Só afeta ponteiro fino (mouse/trackpad) no hover; o afundar vale para
+   qualquer entrada.
+   ------------------------------------------------------------ */
+@utility pressable {
+  transition: transform 100ms ease-out, box-shadow 160ms ease-out;
+
+  &:active {
+    transform: scale(0.985);
+  }
+}
+
+/* Card clicável sobe um degrau no hover. Card que não leva a lugar nenhum não
+   ganha isso — movimento sem destino é ruído. */
+@utility liftable {
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--elev-3);
+    }
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.995);
+  }
+}
+
+/* ------------------------------------------------------------
+   Acabamento dos cards principais.
+
+   Três camadas, e cada uma resolve um problema real, não é enfeite:
+
+   1. Gradiente diagonal sutil — superfície de cor chapada não tem direção;
+      com um sentido de luz ela lê como material, e a leitura vai do canto
+      claro para o escuro, que é onde o número principal fica.
+   2. Grão fino — gradiente em área grande produz banding (as faixas que
+      aparecem em degradê suave de 8 bits). O ruído quebra a faixa. É o
+      mesmo truque de impressão, e é por isso que superfície "premium"
+      quase sempre tem textura: sem ela o degradê denuncia o gradiente.
+   3. Quina superior clara — luz batendo na aresta. É o que faz a peça
+      parecer ter espessura em vez de ser um retângulo pintado.
+   ------------------------------------------------------------ */
+@utility card-finish {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--card-sheen);
+  }
+
+  /* O grão é máscara de ruído, não imagem: sem requisição de rede e
+     escala em qualquer tamanho de card. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: var(--card-grain-opacity);
+    background-image: var(--card-grain);
+    background-size: 180px 180px;
+    pointer-events: none;
+  }
+}
+
+/* Quem pediu menos transparência/mais contraste não deve pagar por acabamento:
+   o gradiente reduz a diferença entre fundo e texto na pior região. */
+@media (prefers-contrast: more) {
+  .card-finish::before,
+  .card-finish::after {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   Área de toque mínima de 44x44 sem alterar o tamanho visual:
+   o pseudo-elemento cresce a região clicável por baixo do ícone.
+   Use em botão de ícone pequeno (p-1, p-1.5, h-8, h-9).
+   ------------------------------------------------------------ */
+@utility tap-target {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    min-width: 44px;
+    min-height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ------------------------------------------------------------
+   Acessibilidade de movimento e transparência.
+   Movimento reduzido não é "sem feedback" — é feedback sem
+   deslocamento vestibular: mantém opacidade/cor, corta
+   translação, escala e mola.
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-up {
+    animation: none;
+  }
+
+  /* Elevação por hover vira só mudança de sombra, sem deslocar. */
+  .btn-lime:hover,
+  .btn-dark:hover,
+  .btn-forest:hover {
+    transform: none;
+  }
+}
+
+/* Transparência reduzida: o material vira sólido e perde o blur —
+   o custo de legibilidade do vidro não se paga pra quem pediu isso. */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  .dark {
+    --glass-bg: var(--color-surface-card-val);
+    --glass-blur: none;
+    --panel-bg: var(--color-surface-card-val);
+    --panel-blur: none;
+  }
+
+  .glass,
+  .surface-panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Contraste alto: fundo sólido e borda definida. */
+@media (prefers-contrast: more) {
+  :root {
+    --glass-bg: var(--color-surface-card-val);
+    --glass-border: var(--color-ink-val);
+    --color-line-val: rgba(35, 31, 32, 0.4);
+    /* O banho de cor tira contraste do texto sobre o fundo — quem pediu
+       contraste alto não paga esse preço por estética. */
+    --page-wash: none;
+    --panel-bg: var(--color-surface-card-val);
+    --panel-blur: none;
+  }
+
+  .dark {
+    --color-line-val: rgba(255, 255, 255, 0.4);
   }
 }

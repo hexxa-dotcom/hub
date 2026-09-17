@@ -3,42 +3,17 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { ChevronDown, Menu, X, Bell, MessageCircle, Search, Pin } from 'lucide-react';
 import {
-  LayoutDashboard,
+  SquaresFour,
+  Notebook,
+  ArrowsDownUp,
   Handshake,
-  FileText,
-  FileSignature,
-  TrendingUp,
-  TrendingDown,
-  Scale,
-  Plug,
-  Receipt,
-  UsersRound,
-  ClipboardList,
-  FolderArchive,
-  Users,
-  Landmark,
-  Layers,
-  LifeBuoy,
-  CreditCard,
-  Settings,
-  ChevronDown,
-  Menu,
-  X,
-  Bell,
-  MessageCircle,
-  Briefcase,
-  Wallet,
-  Folder,
-  Compass,
-  Sparkles,
-  Search,
-  Sun,
-  Calendar,
-  Pin,
-  PieChart,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+  IdentificationBadge,
+  Buildings,
+  ChatCircleDots,
+  type Icon as PhosphorIcon,
+} from '@phosphor-icons/react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
 import { LogOut } from 'lucide-react';
@@ -46,40 +21,14 @@ import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
 
-const ICONS: Record<string, LucideIcon> = {
-  '/cliente': LayoutDashboard,
-  '/cliente/resumo-mes': Calendar,
-  '/meu-negocio/notas': Receipt,
-  '/meu-negocio/contas-a-pagar': TrendingDown,
-  '/meu-negocio/contas-a-receber': TrendingUp,
-  '/meu-negocio/conciliacao': Scale,
-  '/meu-negocio/hub-financeiro': TrendingUp,
-  '/relacionamento': Handshake,
-  '/meu-negocio/contratos': FileSignature,
-  '/meu-negocio/propostas': ClipboardList,
-  '/minha-contabilidade/guias': Receipt,
-  '/minha-contabilidade/termometro-tributario': Compass,
-  '/minha-contabilidade/socios': UsersRound,
-  '/minha-contabilidade/departamento-pessoal': Users,
-  '/meu-negocio/relatorios/balanco': PieChart,
-  '/meu-negocio/relatorios/fechamento': FileText,
-  '/patrimonial': Landmark,
-  '/minha-contabilidade/arquivos': FolderArchive,
-  '/suporte': LifeBuoy,
-  '/meu-plano': CreditCard,
-  '/mais/servicos': Layers,
-  '/configuracoes': Settings,
-  '/configuracoes/integracoes': Plug,
-};
-
-const GROUP_ICONS: Record<string, LucideIcon> = {
-  'Início': LayoutDashboard,
-  'Contabilidade': FileText,
-  'Financeiro': Wallet,
+const GROUP_ICONS: Record<string, PhosphorIcon> = {
+  'Início': SquaresFour,
+  'Contabilidade': Notebook,
+  'Financeiro': ArrowsDownUp,
   'Relacionamento': Handshake,
-  'Gestão de Pessoas': Users,
-  'Gestão do Patrimônio': Landmark,
-  'Suporte': Settings,
+  'Gestão de Pessoas': IdentificationBadge,
+  'Gestão do Patrimônio': Buildings,
+  'Suporte': ChatCircleDots,
 };
 
 const STORAGE_KEY = 'hexxa.sidebar.collapsed';
@@ -95,15 +44,29 @@ function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
+/**
+ * Abacate entra só no item ativo, nunca como fundo do menu.
+ *
+ * Medindo as alternativas: abacate sobre branco dá 1,1:1 (ícone precisa de 3:1,
+ * então é ilegível), e um painel abacate sobre a superfície cinza dá 1,3:1 —
+ * recriaria o painel colorido flutuando que o relevo veio resolver. Como
+ * acento, ele vira a única cor saturada da tela e o item ativo salta sem
+ * precisar de peso, tamanho ou borda.
+ */
 function itemClass(active: boolean, isDarkOverlay: boolean = false) {
-  const base = 'flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-all duration-200 w-full overflow-hidden';
+  const base =
+    'flex w-full items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-sm transition-all duration-200';
   if (active) {
-    return `${base} font-bold bg-[#DFFFAE] text-[#1E3328] shadow-sm`;
+    // A página em que você está fica AFUNDADA na superfície. Usa o relevo que
+    // o sistema já tem, em vez de gastar cor: cor guardada rende mais quando
+    // aparece uma vez só — aqui ela fica reservada para marcar a SEÇÃO.
+    return `${base} font-bold text-(--sidebar-ink) shadow-(--sidebar-elev-inset)`;
   }
   if (isDarkOverlay) {
-    return `${base} font-medium text-[#FEFDF3]/75 hover:bg-white/10 hover:text-[#FEFDF3]`;
+    return `${base} font-medium text-[#F5F6F4]/75 hover:bg-white/10 hover:text-[#F5F6F4]`;
   }
-  return `${base} font-medium text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3]`;
+  // Hover afunda em vez de pintar: é a mesma gramática do resto do sistema.
+  return `${base} font-medium text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:shadow-(--sidebar-elev-inset)`;
 }
 
 function NavList({
@@ -132,14 +95,14 @@ function NavList({
             <Link
               href={i.href as never}
               onClick={onNavigate}
-              className={`${itemClass(active, isDark)} pl-[46px]`}
+              className={`${itemClass(active, isDark)} ml-[30px] w-auto`}
               prefetch={false}
               title={collapsed ? i.label : undefined}
             >
               {!collapsed && <span className="truncate flex-1 text-left">{i.label}</span>}
               {!collapsed && i.badge && (
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                  isDark ? 'bg-white/10 text-[#FEFDF3]' : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
+                  isDark ? 'bg-white/10 text-[#F5F6F4]' : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
                 }`}>
                   {i.badge}
                 </span>
@@ -221,40 +184,51 @@ function AppShellInner({
 
   const sair = useSignOut('cliente');
 
-  const hour = new Date().getHours();
-  let saudacao = 'Olá';
-  if (hour >= 5 && hour < 12) saudacao = 'Bom dia';
-  else if (hour >= 12 && hour < 18) saudacao = 'Boa tarde';
-  else saudacao = 'Boa noite';
-  const primeiroNome = userName?.split(' ')[0];
-  const greeting = primeiroNome ? `${saudacao}, ${primeiroNome}` : saudacao;
+  // Título da barra de topo derivado da própria navegação: evita uma segunda
+  // lista de nomes de página para manter em sincronia com o menu.
+  const breadcrumb = (() => {
+    for (const s of sections) {
+      const item = s.items.find(
+        (i) => pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`)),
+      );
+      if (item) return { section: s.title === item.label ? null : s.title, page: item.label };
+    }
+    return { section: null, page: null };
+  })();
 
   const isCollapsed = !isPinned && !isHovered;
 
+  // Aplicativo emoldurado: a casca escura é o "fora", e o conteúdo é um painel
+  // claro arredondado flutuando dentro dela. A trilha de ícones vive sobre a
+  // casca, não sobre a página — era isso que faltava para ela descolar: antes
+  // tinha exatamente a mesma cor do fundo.
+  //
+  // No celular a moldura some (`lg:`): margem sobrando é espaço que a tela
+  // pequena não tem para dar.
   return (
-    <div className="flex min-h-screen bg-[#FEFDF3] dark:bg-[#121614] text-[#231F20] dark:text-[#FEFDF3]">
+    <div className="flex h-screen bg-surface text-ink lg:bg-(--shell-frame)">
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
       {/* Desktop Sidebar (Nibo Style - Secondary Panel Only) */}
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`hidden lg:flex flex-col shrink-0 sticky top-0 h-screen bg-[#FEFDF3] dark:bg-[#1A201C] transition-all duration-300 ease-in-out z-40 ${
-          isCollapsed ? 'w-[80px]' : 'w-[280px]'
+        className={`z-40 hidden h-full shrink-0 flex-col overflow-hidden bg-(image:--sidebar-bg) text-(--sidebar-ink) transition-all duration-300 ease-in-out lg:flex ${
+          isCollapsed ? 'w-[72px]' : 'w-[264px]'
         }`}
       >
         {/* Header / Brand & Company */}
-        <div className="h-[68px] flex items-center justify-between px-4 border-b border-black/5 dark:border-white/10 shrink-0 overflow-hidden">
-          <div className={`flex items-center justify-between rounded-xl p-2 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 transition-all ${isCollapsed ? 'w-12 justify-center' : 'w-[248px]'}`}>
+        <div className="h-[68px] flex items-center justify-between px-3 shrink-0 overflow-hidden">
+          <div className={`flex items-center justify-between rounded-xl p-2 shadow-(--sidebar-elev-1) transition-all ${isCollapsed ? 'w-12 justify-center' : 'w-[232px]'}`}>
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1E3328] text-[#DFFFAE] font-bold text-xs shadow-sm">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-hexxa-lime text-hexxa-green-dark font-bold text-xs">
                 {company
                   ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
                   : 'H'}
               </div>
               {!isCollapsed && (
                 <div className="flex flex-col items-start overflow-hidden text-left w-[140px]">
-                  <span className="w-full truncate text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight">
+                  <span className="w-full truncate text-xs font-bold leading-tight text-(--sidebar-ink)">
                     {company
                       ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
                       : 'Hexxa Solutions'}
@@ -286,19 +260,34 @@ function AppShellInner({
 
         {/* Navigation Sections */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-4 pt-[120px] pb-20 w-full flex flex-col">
-          <div className={`space-y-2 transition-all ${isCollapsed ? 'w-12' : 'w-[248px]'}`}>
+          {/* `w-full`, não largura fixa: 248px dentro de 232px de espaço útil
+                 fazia a seleção vazar para fora da barra. */}
+          <div className={`space-y-2 transition-all ${isCollapsed ? 'w-12' : 'w-full'}`}>
             {sections.map(s => {
               const isExpanded = expandedSections[s.title] ?? (s.title === activeGroup); // Default to active group
-              const GroupIcon = GROUP_ICONS[s.title] || LayoutDashboard;
+              const GroupIcon = GROUP_ICONS[s.title] ?? SquaresFour;
+              const isActiveGroup = s.title === activeGroup;
               
               return (
                 <div key={s.title} className="flex flex-col">
                   <button
                     onClick={() => toggleSection(s.title)}
                     title={isCollapsed ? s.title : undefined}
-                    className="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/10 hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-all w-full mb-1 group overflow-hidden"
+                    className={`tap-target pressable focusable mb-1 group flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-bold transition-all hover:shadow-(--sidebar-elev-inset) ${
+                      isActiveGroup
+                        ? 'text-(--sidebar-ink)'
+                        : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
+                    }`}
                   >
-                    <GroupIcon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    {/* O abacate marca só a seção em que você está. É o que
+                        responde "onde estou" com o menu recolhido, quando o
+                        ícone é a única coisa visível. */}
+                    <GroupIcon
+                      weight="duotone"
+                      className={`h-6 w-6 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                        isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
+                      }`}
+                    />
                     {!isCollapsed && (
                       <>
                         <span className="flex-1 text-left truncate uppercase tracking-wider text-[10px]">
@@ -312,7 +301,7 @@ function AppShellInner({
                   <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="w-full relative">
                       {!isCollapsed && (
-                        <div className="absolute left-[23px] top-0 bottom-2 w-px bg-black/10 dark:bg-white/10" />
+                        <div className="absolute left-[22px] top-0 bottom-2 w-px bg-current opacity-10" />
                       )}
                       <NavList items={s.items} pathname={pathname} collapsed={isCollapsed} />
                     </div>
@@ -329,7 +318,7 @@ function AppShellInner({
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm" onClick={() => setMobileOpen(false)} aria-hidden />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#FEFDF3] dark:bg-[#1A201C] border-r border-black/10 dark:border-white/10 transition-transform duration-300 ease-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-surface shadow-(--elev-3) transition-transform duration-300 ease-out lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -358,14 +347,27 @@ function AppShellInner({
         </div>
       </aside>
 
-      {/* Coluna de conteúdo principal */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Painel de conteúdo: a peça clara que flutua dentro da moldura.
+          É ELE que rola, não a página — por isso `overflow-hidden` aqui e
+          `overflow-y-auto` no `main`. Assim os cantos arredondados cortam o
+          conteúdo de verdade e a barra de topo fica fixa sem depender de
+          `sticky` (que quebraria dentro de um ancestral com overflow). */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface lg:m-2 lg:rounded-[1.75rem] lg:shadow-(--panel-float)">
         {/* Top bar desktop */}
-        <header className="sticky top-0 z-30 hidden items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-8 py-3.5 backdrop-blur-xl lg:flex gap-4">
-          {/* Lado Esquerdo: Saudação do Usuário */}
-          <div className="flex items-center gap-3 shrink-0">
-            <h2 className="text-base font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
-              {greeting}
+        <header className="z-30 hidden shrink-0 items-center justify-between gap-4 border-b border-line px-8 py-3.5 lg:flex">
+          {/* Esquerda: onde você está. A empresa não entra aqui porque a
+              sidebar já a exibe no próprio cabeçalho — repetir seria gastar a
+              posição de leitura primária com informação que já está na tela.
+              "Onde estou" era justamente o que faltava. */}
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {breadcrumb.section && (
+              <>
+                <span className="text-footnote text-ink-soft">{breadcrumb.section}</span>
+                <span className="text-footnote text-ink-soft opacity-40">/</span>
+              </>
+            )}
+            <h2 className="truncate text-callout font-semibold text-ink">
+              {breadcrumb.page ?? 'Hexxa Hub'}
             </h2>
           </div>
 
@@ -374,10 +376,10 @@ function AppShellInner({
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs text-[#6E6A61] dark:text-[#A8A49C] shadow-sm hover:border-[#2F4A3C] dark:hover:border-[#DFFFAE] transition-all w-full justify-between group"
+              className="group flex w-full items-center justify-between gap-2.5 rounded-full bg-surface px-4 py-2 text-footnote text-ink-soft shadow-(--elev-inset) transition-colors hover:text-ink"
             >
               <div className="flex items-center gap-2 truncate">
-                <Search className="h-3.5 w-3.5 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#FEFDF3] shrink-0" />
+                <Search className="h-3.5 w-3.5 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#F5F6F4] shrink-0" />
                 <span className="truncate">Buscar comandos, clientes ou páginas...</span>
               </div>
               <kbd className="hidden sm:inline-flex items-center rounded-md bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] shrink-0">
@@ -386,27 +388,27 @@ function AppShellInner({
             </button>
           </div>
 
-          {/* Lado Direito: Itens ordenados (da direita para a esquerda) */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* 5º (da dir p/ esq): Botão de Nova Ação */}
+          {/* Direita, na ordem em que se usa: ação principal → o que pede
+              atenção → preferência → conta. A conta fica no extremo porque é
+              onde todo produto a coloca, e previsibilidade vale mais que
+              originalidade em barra de topo. */}
+          <div className="flex items-center gap-2 shrink-0">
             <QuickActionsMenu />
 
-            {/* 4º (da dir p/ esq): Alternar Modo Escuro / Claro */}
-            <ThemeToggle collapsed />
-
-            {/* 3º (da dir p/ esq): Notificações */}
             <div className="relative group">
               <button
                 aria-label="Notificações"
-                className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] transition-all hover:bg-[#DFFFAE] hover:text-[#231F20]"
+                className="tap-target pressable focusable relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-ink-soft shadow-(--elev-1) transition-all hover:text-ink active:shadow-(--elev-inset)"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e11d48]" />
+                {/* Sem bolinha de não-lido: era fixa no código e acendia mesmo
+                    com a lista vazia. Marcador que sempre acende ensina a
+                    ignorar o marcador. Volta quando houver contagem real. */}
               </button>
               
-              <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-4">
+              <div className="invisible absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-3xl bg-surface p-4 opacity-0 shadow-(--elev-3) transition-all group-hover:visible group-hover:opacity-100">
                 <div className="border-b border-black/5 dark:border-white/5 pb-2 mb-2 flex items-center justify-between">
-                  <span className="font-bold text-xs text-[#231F20] dark:text-[#FEFDF3]">Notificações</span>
+                  <span className="font-bold text-xs text-[#231F20] dark:text-[#F5F6F4]">Notificações</span>
                   <span className="text-[11px] text-[#2F4A3C] dark:text-[#DFFFAE] font-bold cursor-pointer hover:underline">Marcar lidas</span>
                 </div>
                 <div className="text-center py-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
@@ -415,39 +417,20 @@ function AppShellInner({
               </div>
             </div>
 
-            {/* 2º (da dir p/ esq): Nome da Empresa acessada */}
-            {company?.legalName && (
-              <div className="flex items-center pl-1 border-l border-black/10 dark:border-white/10">
-                {hasMultipleCompanies ? (
-                  <Link
-                    href={'/auth/empresa?next=/cliente' as never}
-                    className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:bg-black/5 dark:hover:bg-white/5 transition-all max-w-[170px] truncate"
-                  >
-                    {company.legalName}
-                  </Link>
-                ) : (
-                  <span className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-3.5 py-1.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] shadow-sm max-w-[170px] truncate">
-                    {company.legalName}
-                  </span>
-                )}
-              </div>
-            )}
+            <ThemeToggle collapsed />
 
-            {/* 1º (da dir p/ esq): Nome do Usuário */}
-            <div className="flex items-center gap-2 pl-2 border-l border-black/10 dark:border-white/10">
-              <div className="hidden xl:flex flex-col items-end text-right">
-                <span className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] leading-tight truncate max-w-[130px]">
-                  {userName || 'Minha Conta'}
-                </span>
-                <span className="text-[10px] font-medium text-[#6E6A61] dark:text-[#A8A49C] truncate max-w-[130px]">
-                  {userEmail || 'Ativo'}
-                </span>
-              </div>
+            {/* Conta: só o nome. O e-mail embaixo, a 10px, era ruído — quem
+                está logado já sabe o próprio e-mail, e ele reaparece inteiro
+                em Configurações. Um filete separa a conta do resto. */}
+            <div className="ml-1 flex items-center gap-2 border-l border-line pl-3">
+              <span className="hidden max-w-[150px] truncate text-footnote text-ink-soft xl:block">
+                {userName || 'Minha conta'}
+              </span>
               <button
                 type="button"
                 onClick={sair}
                 title="Sair"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#FEFDF3] transition-colors"
+                className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/10"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -456,7 +439,7 @@ function AppShellInner({
         </header>
 
         {/* Top bar mobile */}
-        <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-black/5 dark:border-white/10 bg-[#FEFDF3]/85 dark:bg-[#121614]/85 px-4 backdrop-blur-xl lg:hidden">
+        <header className="z-30 flex h-[68px] shrink-0 items-center justify-between border-b border-line px-4 lg:hidden">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMobileOpen(true)}
@@ -471,7 +454,7 @@ function AppShellInner({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCommandOpen(true)}
-              className="grid h-9 w-9 place-items-center rounded-full bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/10 text-[#6E6A61]"
+              className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink-soft shadow-(--elev-1)"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -480,7 +463,7 @@ function AppShellInner({
               type="button"
               onClick={sair}
               title="Sair"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors"
+              className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -493,7 +476,7 @@ function AppShellInner({
             <button onClick={() => setAvisoAdmin(false)} className="shrink-0 text-orange-500 hover:text-orange-700">✕</button>
           </div>
         )}
-        <main className="flex-1 p-4 sm:p-5 lg:p-8 max-w-[1600px] w-full mx-auto overflow-x-hidden">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5 lg:p-8">{children}</main>
       </div>
 
       {/* Atendimento rápido via WhatsApp */}

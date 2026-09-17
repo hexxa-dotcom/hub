@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { Landmark } from 'lucide-react';
 import { getProperties, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
 import { getAvailableProfitAction } from '@/lib/server/profit-distribution';
@@ -7,6 +6,8 @@ import { PatrimonioApp } from './PatrimonioApp';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
+
+import { Card } from '@/components/ui/Card';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,22 +39,19 @@ export default async function Page() {
       <Suspense fallback={null}>
         <PatrimonialInsight companyId={ctx.companyId} insightContext={insightContext} />
       </Suspense>
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
-              <Landmark className="h-3.5 w-3.5" />
-              Gestão Patrimonial
-            </span>
+
+      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-serif font-bold text-display text-ink tracking-tight">
+              Gestão de Patrimônio & Ativos
+            </h1>
+            <p className="mt-1 text-body-sm text-ink-soft">
+              Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos.
+            </p>
           </div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-            Gestão de Patrimônio & Ativos
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-            Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos.
-          </p>
         </div>
-      </header>
+      </Card>
 
       <PatrimonioApp initialProperties={properties} partners={partners} resumo={resumo} initialLeases={leases} />
     </div>

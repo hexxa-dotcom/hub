@@ -81,13 +81,13 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
   return (
     <div className="w-full space-y-7 animate-fade-up">
       {/* Header */}
-      <div className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
+      <div className="rounded-3xl bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm mb-3">
               <Sparkles className="h-3.5 w-3.5" /> Central de Atendimento
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#F5F6F4]">
               Solicitações dos Clientes
             </h1>
             <p className="mt-1 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
@@ -106,7 +106,7 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
             className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
               filterStatus === k
                 ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
-                : 'border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                : 'border border-black/10 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
             }`}
           >
             {l} ({k === 'todas' ? items.length : items.filter(i => i.status === k).length})
@@ -121,7 +121,7 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
           const isExp = expanded === s.id;
 
           return (
-            <div key={s.id} className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
+            <div key={s.id} className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] shadow-sm">
               <button
                 type="button"
                 onClick={() => setExpanded(isExp ? null : s.id)}
@@ -136,7 +136,7 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                       <StIcon className="h-3 w-3" /> {stCfg.label}
                     </span>
                   </div>
-                  <p className="font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{s.titulo}</p>
+                  <p className="font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">{s.titulo}</p>
                   <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{s.cliente} · Aberta em {s.criada.split('-').reverse().join('/')}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -158,8 +158,8 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                           key={i}
                           className={`rounded-2xl p-4 ${
                             r.autor === 'Admin'
-                              ? 'bg-[#1E3328] text-[#FEFDF3] ml-4 sm:ml-8 border border-[#2F4A3C]'
-                              : 'bg-[#F4EFE4] dark:bg-[#1A201C] mr-4 sm:mr-8 border border-black/5 text-[#231F20] dark:text-[#FEFDF3]'
+                              ? 'bg-[#1E3328] text-[#F5F6F4] ml-4 sm:ml-8 border border-[#2F4A3C]'
+                              : 'bg-[#E7EAE5] dark:bg-[#1A201C] mr-4 sm:mr-8 border border-black/5 text-[#231F20] dark:text-[#F5F6F4]'
                           }`}
                         >
                           <p className={`text-[10px] font-bold uppercase tracking-wider ${r.autor === 'Admin' ? 'text-[#DFFFAE]' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
@@ -178,7 +178,7 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                         onChange={e => setReply(r => ({ ...r, [s.id]: e.target.value }))}
                         rows={3}
                         placeholder="Digite sua resposta técnica ou orientação para o cliente…"
-                        className="w-full resize-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] p-4 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
+                        className="w-full resize-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] p-4 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
                       />
                       <div className="flex flex-wrap gap-2.5">
                         <button

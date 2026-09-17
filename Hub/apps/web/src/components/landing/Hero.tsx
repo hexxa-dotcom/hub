@@ -52,7 +52,7 @@ export function Hero() {
           </svg>
         </div>
         <div className="chip-card sq">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#FEFDF3" strokeWidth="1.6" strokeLinecap="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F5F6F4" strokeWidth="1.6" strokeLinecap="round">
             <rect x="3" y="5" width="18" height="12" rx="2" />
             <path d="M8 21h8M12 17v4" />
           </svg>

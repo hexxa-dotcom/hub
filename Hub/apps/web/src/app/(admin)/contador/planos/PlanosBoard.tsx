@@ -23,7 +23,7 @@ const COR_MAP: Record<string, { badge: string }> = {
   amber: { badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400' },
 };
 
-const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C]';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none transition-colors focus:border-[#2F4A3C]';
 
 function EditModal({ plano, saving, onSave, onClose }: { plano: Plano; saving: boolean; onSave: (p: Plano) => void; onClose: () => void }) {
   const [form, setForm] = useState(plano);
@@ -40,10 +40,10 @@ function EditModal({ plano, saving, onSave, onClose }: { plano: Plano; saving: b
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
-      <div className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl">
+      <div className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl">
         <div className="flex items-center justify-between mb-5 border-b border-black/5 dark:border-white/10 pb-4">
-          <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Editar plano: {plano.nome}</h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10"><X className="h-4 w-4" /></button>
+          <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4]">Editar plano: {plano.nome}</h2>
+          <button onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -65,7 +65,7 @@ function EditModal({ plano, saving, onSave, onClose }: { plano: Plano; saving: b
             <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-2">Recursos incluídos</p>
             <ul className="space-y-2 mb-3 max-h-40 overflow-y-auto">
               {form.recursos.map((r, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] bg-black/5 dark:bg-white/5 p-2 rounded-xl">
+                <li key={i} className="flex items-center gap-2 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] bg-black/5 dark:bg-white/5 p-2 rounded-xl">
                   <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
                   <span className="flex-1 font-medium">{r}</span>
                   <button onClick={() => removeRecurso(i)} className="text-[#6E6A61] hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
@@ -84,7 +84,7 @@ function EditModal({ plano, saving, onSave, onClose }: { plano: Plano; saving: b
           <label className="flex items-center gap-2.5 cursor-pointer pt-1">
             <input type="checkbox" checked={form.ativo} onChange={e => setForm(f => ({ ...f, ativo: e.target.checked }))}
               className="h-4 w-4 rounded accent-[#1E3328]" />
-            <span className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Plano ativo (visível para novos clientes)</span>
+            <span className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Plano ativo (visível para novos clientes)</span>
           </label>
         </div>
         <div className="mt-6 flex gap-3 pt-2">
@@ -129,7 +129,7 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Planos</h1>
+          <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Planos</h1>
           <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">MRR total: <span className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(mrrTotal)}</span></p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
         {planos.map(p => {
           const cor = (COR_MAP[p.cor] ?? COR_MAP.brand)!;
           return (
-            <div key={p.id} className={`relative rounded-3xl border bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm transition-all hover:shadow-md ${!p.ativo ? 'opacity-60 border-dashed border-black/20 dark:border-white/20' : 'border-black/5 dark:border-white/10'}`}>
+            <div key={p.id} className={`relative rounded-3xl border surface-panel p-6 shadow-sm transition-all hover:shadow-md ${!p.ativo ? 'opacity-60 border-dashed border-black/20 dark:border-white/20' : 'border-black/5 dark:border-white/10'}`}>
               {!p.ativo && (
                 <span className="absolute right-4 top-4 rounded-full bg-black/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]">Inativo</span>
               )}
@@ -150,7 +150,7 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
                 </button>
               </div>
 
-              <p className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3]">
+              <p className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4]">
                 {BRL.format(p.preco)}
                 <span className="text-xs font-normal text-[#6E6A61] dark:text-[#A8A49C]"> /mês</span>
               </p>
@@ -160,7 +160,7 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
 
               <ul className="space-y-2.5">
                 {p.recursos.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3]">
+                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4]">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
                     <span>{r}</span>
                   </li>
@@ -168,9 +168,9 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
                 {p.recursos.length === 0 && <li className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Nenhum recurso listado.</li>}
               </ul>
 
-              <div className="mt-6 flex items-center justify-between rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 px-4 py-2.5">
+              <div className="mt-6 flex items-center justify-between rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 px-4 py-2.5">
                 <span className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Clientes ativos</span>
-                <span className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{p.clientes}</span>
+                <span className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">{p.clientes}</span>
               </div>
             </div>
           );

@@ -25,21 +25,21 @@ export function EquipeClient({ members }: { members: Member[] }) {
     <div className="space-y-6">
       <form action={formAction} className="flex flex-col sm:flex-row gap-3 items-end">
         <div className="flex-1 w-full">
-          <label className="mb-1.5 block text-xs font-medium text-[#6E6A61] dark:text-[#A8A49C]">E-mail do convidado</label>
+          <label className="mb-1.5 block text-xs font-bold text-ink-soft uppercase tracking-wide">E-mail do convidado</label>
           <input
             type="email"
             name="email"
             required
             placeholder="pessoa@empresa.com.br"
-            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#1E3328] dark:focus:border-[#DFFFAE]"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
           />
         </div>
         <div className="w-full sm:w-48">
-          <label className="mb-1.5 block text-xs font-medium text-[#6E6A61] dark:text-[#A8A49C]">Papel</label>
+          <label className="mb-1.5 block text-xs font-bold text-ink-soft uppercase tracking-wide">Papel</label>
           <select
             name="role"
             defaultValue="VIEWER"
-            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#1E3328] dark:focus:border-[#DFFFAE]"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
           >
             {Object.entries(ROLE_LABEL).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -49,41 +49,45 @@ export function EquipeClient({ members }: { members: Member[] }) {
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all disabled:opacity-50 shrink-0"
+          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-50 shrink-0"
         >
           <UserPlus className="h-4 w-4" /> {pending ? 'Convidando…' : 'Convidar'}
         </button>
       </form>
 
       {state.message && (
-        <p className={`text-sm ${state.ok ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-600 dark:text-red-400'}`}>
+        <p className={`text-sm font-semibold ${state.ok ? 'text-hexxa-forest dark:text-hexxa-lime' : 'text-rose-600 dark:text-rose-400'}`}>
           {state.message}
         </p>
       )}
 
-      <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+      <div className="rounded-2xl border border-black/5 dark:border-white/10 overflow-hidden shadow-(--elev-inset)">
         <table className="w-full text-sm">
-          <thead className="bg-black/5 dark:bg-white/5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <thead className="bg-black/5 dark:bg-white/5 text-xs text-ink-soft">
             <tr>
-              <th className="text-left font-medium px-4 py-2.5">Nome</th>
-              <th className="text-left font-medium px-4 py-2.5">E-mail</th>
-              <th className="text-left font-medium px-4 py-2.5">Papel</th>
-              <th className="px-4 py-2.5" />
+              <th className="text-left font-semibold px-4 py-3">Nome</th>
+              <th className="text-left font-semibold px-4 py-3">E-mail</th>
+              <th className="text-left font-semibold px-4 py-3">Papel</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-surface-card">
             {members.map((m) => (
-              <tr key={m.membershipId} className="border-t border-black/5 dark:border-white/5">
-                <td className="px-4 py-2.5 text-[#231F20] dark:text-[#FEFDF3] font-medium">{m.name}</td>
-                <td className="px-4 py-2.5 text-[#6E6A61] dark:text-[#A8A49C]">{m.email}</td>
-                <td className="px-4 py-2.5 text-[#231F20] dark:text-[#FEFDF3]">{ROLE_LABEL[m.role] ?? m.role}</td>
-                <td className="px-4 py-2.5 text-right">
+              <tr key={m.membershipId} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
+                <td className="px-4 py-3 text-ink font-semibold">{m.name}</td>
+                <td className="px-4 py-3 text-ink-soft">{m.email}</td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-black/5 dark:bg-white/10 text-ink">
+                    {ROLE_LABEL[m.role] ?? m.role}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
                   {m.role !== 'OWNER' && (
                     <button
                       type="button"
                       disabled={removing}
                       onClick={() => startRemoving(() => removeMemberAction(m.membershipId))}
-                      className="text-[#6E6A61] hover:text-red-600 dark:text-[#A8A49C] dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-lg text-ink-soft hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
                       title="Remover acesso"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -94,7 +98,7 @@ export function EquipeClient({ members }: { members: Member[] }) {
             ))}
             {members.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+                <td colSpan={4} className="px-4 py-8 text-center text-xs text-ink-soft">
                   Nenhum membro encontrado.
                 </td>
               </tr>

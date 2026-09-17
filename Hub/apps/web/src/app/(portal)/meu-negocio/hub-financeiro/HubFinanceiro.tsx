@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { Card, CardHeader, Metric } from '@/components/ui/Card';
+import { twMerge } from 'tailwind-merge';
 import {
   Plus,
   Trash2,
@@ -93,7 +95,7 @@ const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] px-3.5 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+  'w-full rounded-2xl bg-surface-card shadow-(--elev-inset) px-3.5 py-2 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
 
 const fmtDate = (d: string) => {
   const [y, m, day] = d.split('-');
@@ -286,13 +288,13 @@ function LancamentoForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-[#DFFFAE] bg-[#EFFFD6]/50 dark:bg-[#1E3328]/30 p-5 space-y-4 shadow-sm animate-fade-up">
+    <form onSubmit={handleSubmit} className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4 animate-fade-up">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[#1E3328] dark:text-[#DFFFAE] flex items-center gap-1.5 font-serif">
-          <Sparkles className="h-4 w-4" />
+        <p className="text-sm font-bold text-ink flex items-center gap-1.5 font-serif">
+          <Sparkles className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
           {tipo === 'PAGAR' ? 'Novo Lançamento de Conta a Pagar' : 'Novo Lançamento de Conta a Receber'}
         </p>
-        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -492,22 +494,34 @@ function MesStatCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`w-full flex items-center justify-between gap-4 rounded-3xl border p-5 text-left shadow-sm transition-all ${
+      className={twMerge(
+        'w-full flex items-center justify-between gap-4 rounded-3xl p-5 text-left transition-all',
+        'bg-surface-card text-ink',
         active
-          ? 'bg-[#1E3328] border-[#1E3328] text-[#FEFDF3]'
-          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'
-      } ${!onClick ? 'cursor-default' : ''}`}
+          ? 'shadow-(--elev-inset) ring-2 ring-hexxa-green dark:ring-hexxa-lime'
+          : 'shadow-(--elev-1) hover:shadow-(--elev-2) cursor-pointer',
+        !onClick && 'cursor-default hover:shadow-(--elev-1)',
+      )}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${active ? 'bg-[#DFFFAE]/20' : tone === 'warn' ? 'bg-amber-100 dark:bg-amber-950/60' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
-          <Icon className={`h-5 w-5 ${active ? 'text-[#DFFFAE]' : tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
+        <div
+          className={twMerge(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors',
+            active
+              ? 'bg-hexxa-green text-surface-card dark:bg-hexxa-lime dark:text-hexxa-forest'
+              : tone === 'warn'
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime',
+          )}
+        >
+          <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className={`truncate text-xs font-bold uppercase tracking-wider ${active ? 'text-[#DFFFAE]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{label}</p>
-          <p className={`truncate text-[11px] ${active ? 'text-[#DFFFAE]/70' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>{hint}</p>
+          <p className="truncate text-caption uppercase text-ink-soft font-bold">{label}</p>
+          <p className="truncate text-[11px] text-ink-soft opacity-75">{hint}</p>
         </div>
       </div>
-      <p className={`font-serif text-2xl font-bold tabular shrink-0 ${active ? 'text-[#FEFDF3]' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>{fmt(value)}</p>
+      <p className="font-serif text-2xl font-bold tabular shrink-0 text-ink">{fmt(value)}</p>
     </button>
   );
 }
@@ -526,18 +540,18 @@ function CategoriaBreakdownRow({ items: rawItems, periodo = 'neste mês' }: { it
   const items = tailTotal > 0 ? [...top, { label: 'Outros', total: tailTotal }] : top;
 
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-4 shadow-sm">
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+    <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-4">
+      <p className="mb-3 text-caption font-bold uppercase tracking-wider text-ink-soft">
         Por categoria — {periodo}
       </p>
       <div className="flex flex-wrap gap-2">
         {items.map((g) => (
           <span
             key={g.label}
-            className="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 px-3.5 py-2 text-xs"
+            className="inline-flex items-center gap-2 rounded-full bg-surface-card shadow-(--elev-inset) px-3.5 py-1.5 text-xs"
           >
-            <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{g.label}</span>
-            <span className="font-serif font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{fmt(g.total)}</span>
+            <span className="font-bold text-ink">{g.label}</span>
+            <span className="font-serif font-bold tabular text-hexxa-green dark:text-hexxa-lime">{fmt(g.total)}</span>
           </span>
         ))}
       </div>
@@ -562,26 +576,35 @@ function DespesasFixasCard({ active, onClick }: { active: boolean; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center justify-between gap-4 rounded-3xl border p-5 text-left shadow-sm transition-all ${
+      className={twMerge(
+        'w-full flex items-center justify-between gap-4 rounded-3xl p-5 text-left transition-all',
+        'bg-surface-card text-ink',
         active
-          ? 'bg-[#1E3328] border-[#1E3328] text-[#FEFDF3]'
-          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'
-      }`}
+          ? 'shadow-(--elev-inset) ring-2 ring-hexxa-green dark:ring-hexxa-lime'
+          : 'shadow-(--elev-1) hover:shadow-(--elev-2) cursor-pointer',
+      )}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${active ? 'bg-[#DFFFAE]/20' : 'bg-[#EFFFD6] dark:bg-[#1E3328]'}`}>
-          <Repeat className={`h-5 w-5 ${active ? 'text-[#DFFFAE]' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`} />
+        <div
+          className={twMerge(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors',
+            active
+              ? 'bg-hexxa-green text-surface-card dark:bg-hexxa-lime dark:text-hexxa-forest'
+              : 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime',
+          )}
+        >
+          <Repeat className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className={`truncate text-xs font-bold uppercase tracking-wider ${active ? 'text-[#DFFFAE]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
+          <p className="truncate text-caption uppercase text-ink-soft font-bold">
             Despesas Fixas
           </p>
-          <p className={`truncate text-[11px] ${active ? 'text-[#DFFFAE]/70' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
+          <p className="truncate text-[11px] text-ink-soft opacity-75">
             {items === null ? 'Carregando…' : `${ativos.length} ativa${ativos.length === 1 ? '' : 's'} · todo mês`}
           </p>
         </div>
       </div>
-      <p className={`font-serif text-2xl font-bold tabular shrink-0 ${active ? 'text-[#DFFFAE]' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+      <p className="font-serif text-2xl font-bold tabular shrink-0 text-ink">
         {items === null ? '—' : fmt(total)}
       </p>
     </button>
@@ -673,37 +696,37 @@ function DespesasFixasPanel({
   }
 
   return (
-    <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 space-y-4 shadow-sm animate-fade-up">
+    <div className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4 animate-fade-up">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-1.5 font-serif">
-          <Repeat className="h-4 w-4" />
+        <p className="text-sm font-bold text-ink flex items-center gap-1.5 font-serif">
+          <Repeat className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
           Despesas Fixas Mensais
         </p>
-        <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
         </button>
       </div>
-      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+      <p className="text-xs text-ink-soft">
         Aluguel, softwares, mensalidades — cadastre uma vez e o sistema lança automaticamente todo mês, sem precisar recriar.
       </p>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-6 text-[#6E6A61]">
+        <div className="flex items-center justify-center gap-2 py-6 text-ink-soft">
           <Loader2 className="h-4 w-4 animate-spin" /> <span className="text-xs font-bold">Carregando…</span>
         </div>
       ) : (
         <div className="space-y-2">
           {items.length === 0 && !showForm && (
-            <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] italic py-2">Nenhuma despesa fixa cadastrada ainda.</p>
+            <p className="text-xs text-ink-soft italic py-2">Nenhuma despesa fixa cadastrada ainda.</p>
           )}
           {items.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 p-3 ${!item.active ? 'opacity-50' : ''}`}
+              className={`flex items-center justify-between gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) p-3 ${!item.active ? 'opacity-50' : ''}`}
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{item.description}</p>
-                <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                <p className="truncate text-sm font-bold text-ink">{item.description}</p>
+                <p className="text-[11px] text-ink-soft">
                   {fmt(item.amount)} · todo dia {item.dueDay}
                   {item.categoryName ? ` · ${item.categoryName}` : ''}
                   {!item.active ? ' · Pausada' : ''}
@@ -715,7 +738,7 @@ function DespesasFixasPanel({
                   title={item.active ? 'Pausar' : 'Reativar'}
                   onClick={() => toggleActive(item)}
                   disabled={busyId === item.id}
-                  className="rounded-full p-2 text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] transition-colors disabled:opacity-40"
+                  className="rounded-full p-2 text-ink-soft hover:bg-black/5 hover:text-ink transition-colors disabled:opacity-40"
                 >
                   {item.active ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
                 </button>
@@ -724,7 +747,7 @@ function DespesasFixasPanel({
                   title="Excluir"
                   onClick={() => handleDelete(item.id)}
                   disabled={busyId === item.id}
-                  className="rounded-full p-2 text-[#6E6A61] hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-40"
+                  className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-expense transition-colors disabled:opacity-40"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -993,8 +1016,8 @@ function LancamentosTab({
               onClick={() => setFilter(f.key as FilterTab)}
               className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                 filter === f.key
-                  ? 'bg-[#1E3328] text-[#DFFFAE] shadow-sm'
-                  : 'border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                  : 'bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) text-ink-soft hover:text-ink'
               }`}
             >
               {f.label}
@@ -1006,7 +1029,7 @@ function LancamentosTab({
             <button
               type="button"
               onClick={() => setShowFixas((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-all"
             >
               <Repeat className="h-4 w-4" />
               Despesas Fixas
@@ -1015,7 +1038,7 @@ function LancamentosTab({
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-105"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.02]"
           >
             <Plus className="h-4 w-4" />
             Nova conta a {label}
@@ -1041,13 +1064,13 @@ function LancamentosTab({
 
       {/* Tabela de Lançamentos */}
       {list.length === 0 ? (
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-12 text-center text-[#6E6A61] dark:text-[#A8A49C]">
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-12 text-center text-ink-soft">
           <DollarSign className="h-8 w-8 mx-auto opacity-30 mb-2" />
           <p className="text-sm font-semibold">Nenhum lançamento encontrado neste filtro.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] shadow-sm">
-          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] sm:grid">
+        <div className="overflow-hidden rounded-3xl bg-surface-card shadow-(--elev-1)">
+          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 border-b border-black/5 dark:border-white/5 bg-surface-card/60 px-5 py-3 text-caption font-bold uppercase tracking-wider text-ink-soft sm:grid">
             <span>Descrição</span>
             <span className="w-28 text-right">Vencimento</span>
             <span className="w-32 text-right">Valor</span>
@@ -1074,11 +1097,11 @@ function LancamentosTab({
                         <ArrowUpRight className="h-4 w-4 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
+                        <p className="truncate text-sm font-bold text-ink">{l.descricao}</p>
                       {(l.categoria || l.temComprovante || l.isFixa) && (
-                        <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+                        <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-soft">
                           {l.isFixa && (
-                            <span className="inline-flex items-center gap-1 font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">
+                            <span className="inline-flex items-center gap-1 font-bold text-hexxa-green dark:text-hexxa-lime">
                               <Repeat className="h-3 w-3" />
                               Fixa
                             </span>
@@ -1097,18 +1120,18 @@ function LancamentosTab({
                           )}
                         </span>
                       )}
-                      <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C] sm:hidden">
+                      <p className="mt-0.5 text-xs text-ink-soft sm:hidden">
                         {fmtDate(l.vencimento)} · <strong>{fmt(l.valor)}</strong>
                       </p>
                     </div>
                   </div>
 
-                    <span className="hidden w-28 text-right text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] sm:block">
+                    <span className="hidden w-28 text-right text-xs sm:text-sm text-ink-soft sm:block">
                       {fmtDate(l.vencimento)}
                     </span>
                       <span
                       className={`hidden w-32 text-right font-serif text-sm sm:text-base font-bold tabular sm:block ${
-                        l.tipo === 'PAGAR' ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'
+                        l.tipo === 'PAGAR' ? 'text-expense' : 'text-hexxa-green dark:text-hexxa-lime'
                       }`}
                     >
                       {fmt(l.valor)}
@@ -1123,7 +1146,7 @@ function LancamentosTab({
                           type="button"
                           title="Gerar Cobrança Pix"
                           onClick={() => setSelectedPixLancamento(l)}
-                          className="inline-flex items-center gap-1 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-2.5 py-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
+                          className="inline-flex items-center gap-1 rounded-full bg-surface-card shadow-(--elev-inset) px-2.5 py-1 text-xs font-bold text-hexxa-green dark:text-hexxa-lime border border-(--color-line)"
                         >
                           <QrCode className="h-3 w-3" /> Pix
                         </button>
@@ -1135,8 +1158,8 @@ function LancamentosTab({
                         disabled={marking === l.id}
                         className={`rounded-full p-2 transition-colors ${
                           l.pago_em
-                            ? 'bg-[#EFFFD6] text-[#2F4A3C]'
-                            : 'text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20]'
+                            ? 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime'
+                            : 'text-ink-soft hover:bg-black/5 hover:text-ink'
                         } disabled:opacity-40`}
                       >
                         {marking === l.id ? (
@@ -1242,13 +1265,13 @@ function buildComposicao(itens: Lancamento[]) {
 /** Mini-composição por origem (receitas ou despesas) — barra empilhada + lista. */
 function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: ReturnType<typeof buildComposicao>; emptyLabel: string }) {
   return (
-    <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 sm:p-6 shadow-sm">
-      <p className="mb-4 font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{title}</p>
+    <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-5 sm:p-6">
+      <p className="mb-4 font-serif font-bold text-sm text-ink">{title}</p>
       {items.length === 0 ? (
-        <p className="py-6 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">{emptyLabel}</p>
+        <p className="py-6 text-center text-xs text-ink-soft">{emptyLabel}</p>
       ) : (
         <div className="space-y-3.5">
-          <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
+          <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-full bg-surface-card shadow-(--elev-inset)">
             {items.map((c) => (
               <div
                 key={c.label}
@@ -1262,8 +1285,8 @@ function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: Re
             {items.map((c) => (
               <li key={c.label} className="flex items-center gap-2.5">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
-                <span className="flex-1 truncate text-[#6E6A61] dark:text-[#A8A49C]">{c.label}</span>
-                <span className="tabular font-bold text-[#231F20] dark:text-[#FEFDF3]">{fmt(c.value)}</span>
+                <span className="flex-1 truncate text-ink-soft">{c.label}</span>
+                <span className="font-serif tabular font-bold text-ink">{fmt(c.value)}</span>
               </li>
             ))}
           </ul>
@@ -1338,43 +1361,43 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
         <button
           type="button"
           onClick={() => onNavigate('pagar')}
-          className="text-left rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm hover:border-black/10 dark:hover:border-white/20 hover:-translate-y-0.5 transition-all"
+          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 transition-all cursor-pointer liftable"
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Pagar (Aberto)</p>
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">A Pagar (Aberto)</p>
+            <TrendingDown className="h-4 w-4 text-expense" />
           </div>
-          <p className="mt-2 font-serif text-2xl font-bold text-red-700 dark:text-red-400 tabular">{fmt(totalPagar)}</p>
+          <p className="mt-2 font-serif text-2xl font-bold text-expense tabular">{fmt(totalPagar)}</p>
         </button>
 
         <button
           type="button"
           onClick={() => onNavigate('receber')}
-          className="text-left rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-5 shadow-sm hover:border-black/10 dark:hover:border-white/20 hover:-translate-y-0.5 transition-all"
+          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 transition-all cursor-pointer liftable"
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">A Receber (Aberto)</p>
-            <TrendingUp className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">A Receber (Aberto)</p>
+            <TrendingUp className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
           </div>
-          <p className="mt-2 font-serif text-2xl font-bold text-[#2F4A3C] dark:text-[#DFFFAE] tabular">{fmt(totalReceber)}</p>
+          <p className="mt-2 font-serif text-2xl font-bold text-hexxa-green dark:text-hexxa-lime tabular">{fmt(totalReceber)}</p>
         </button>
 
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#1E3328] text-[#FEFDF3] p-5 shadow-sm">
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-2) card-finish p-5 text-ink">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#DFFFAE]/80">Saldo Projetado</p>
-            <Wallet className="h-4 w-4 text-[#DFFFAE]" />
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Saldo Projetado</p>
+            <Wallet className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
           </div>
-          <p className={`mt-2 font-serif text-2xl font-bold tabular ${saldo >= 0 ? 'text-[#DFFFAE]' : 'text-red-300'}`}>
+          <p className={`mt-2 font-serif text-2xl font-bold tabular ${saldo >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'}`}>
             {fmt(saldo)}
           </p>
         </div>
 
-        <div className={`rounded-3xl border p-5 shadow-sm ${vencidos.length > 0 ? 'border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900/40' : 'border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C]'}`}>
+        <div className={`rounded-3xl p-5 shadow-(--elev-1) ${vencidos.length > 0 ? 'bg-red-500/10 shadow-(--elev-inset)' : 'bg-surface-card'}`}>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Vencidos</p>
-            <AlertTriangle className={`h-4 w-4 ${vencidos.length > 0 ? 'text-red-600' : 'text-[#6E6A61]'}`} />
+            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Vencidos</p>
+            <AlertTriangle className={`h-4 w-4 ${vencidos.length > 0 ? 'text-expense' : 'text-ink-soft'}`} />
           </div>
-          <p className={`mt-2 font-serif text-2xl font-bold ${vencidos.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+          <p className={`mt-2 font-serif text-2xl font-bold tabular ${vencidos.length > 0 ? 'text-expense' : 'text-ink'}`}>
             {vencidos.length}
           </p>
         </div>
@@ -1384,11 +1407,11 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
       <div>
         <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <h3 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Composição · {mesLabel(selectedMonth)}</h3>
+            <h3 className="font-serif font-bold text-base text-ink">Composição · {mesLabel(selectedMonth)}</h3>
             <button
               type="button"
               onClick={() => setShowDre(true)}
-              className="flex items-center gap-2 rounded-2xl bg-[#1E3328] px-3 py-1.5 text-xs font-bold text-[#DFFFAE] hover:bg-[#2F4A3C] transition-colors shadow-sm"
+              className="flex items-center gap-2 rounded-full bg-hexxa-forest px-3.5 py-1.5 text-xs font-bold text-hexxa-lime hover:bg-hexxa-green transition-colors shadow-(--elev-1)"
             >
               <FileText className="h-3.5 w-3.5" />
               Visualizar DRE
@@ -1397,11 +1420,11 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
           <button
             type="button"
             onClick={() => onNavigate('pagar')}
-            className="flex items-center gap-2 rounded-2xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-2 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-all"
           >
-            <Repeat className="h-3.5 w-3.5 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+            <Repeat className="h-3.5 w-3.5 text-hexxa-green dark:text-hexxa-lime" />
             Despesas Fixas
-            <span className="font-serif font-bold tabular text-[#231F20] dark:text-[#FEFDF3]">{fmt(totalFixas)}</span>
+            <span className="font-serif font-bold tabular text-ink">{fmt(totalFixas)}</span>
           </button>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -1412,25 +1435,25 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Próximos 7 dias */}
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 shadow-sm">
-          <p className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Vencimentos nos Próximos 7 Dias</p>
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6">
+          <p className="mb-4 font-serif font-bold text-base text-ink">Vencimentos nos Próximos 7 Dias</p>
           {proximos.length === 0 ? (
-            <p className="py-8 text-center text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">Nenhum vencimento pendente nos próximos 7 dias. Tudo em dia!</p>
+            <p className="py-8 text-center text-xs font-bold text-hexxa-green dark:text-hexxa-lime">Nenhum vencimento pendente nos próximos 7 dias. Tudo em dia!</p>
           ) : (
             <div className="space-y-2.5">
               {proximos.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 p-3">
+                <div key={l.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{l.descricao}</p>
-                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{fmtDate(l.vencimento)}</p>
+                    <p className="truncate text-sm font-bold text-ink">{l.descricao}</p>
+                    <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {l.tipo === 'PAGAR' ? (
-                      <ArrowDownRight className="h-4 w-4 text-red-600" />
+                      <ArrowDownRight className="h-4 w-4 text-expense" />
                     ) : (
-                      <ArrowUpRight className="h-4 w-4 text-[#2F4A3C]" />
+                      <ArrowUpRight className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
                     )}
-                    <span className={`text-sm font-bold tabular ${l.tipo === 'PAGAR' ? 'text-red-700 dark:text-red-400' : 'text-[#2F4A3C] dark:text-[#DFFFAE]'}`}>
+                    <span className={`text-sm font-serif font-bold tabular ${l.tipo === 'PAGAR' ? 'text-expense' : 'text-hexxa-green dark:text-hexxa-lime'}`}>
                       {fmt(l.valor)}
                     </span>
                   </div>
@@ -1441,8 +1464,8 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
         </div>
 
         {/* Fluxo previsto 4 semanas */}
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 shadow-sm">
-          <p className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Fluxo Previsto (Próximas 4 Semanas)</p>
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6">
+          <p className="mb-4 font-serif font-bold text-base text-ink">Fluxo Previsto (Próximas 4 Semanas)</p>
           <div className="flex items-end gap-3 h-36 pt-4">
             {weeks.map((w) => (
               <div key={w.label} className="flex flex-1 flex-col items-center gap-1.5">
@@ -1454,15 +1477,15 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
                   />
                   <div
                     title={`A receber: ${fmt(w.receber)}`}
-                    className="flex-1 rounded-t-xl bg-[#2F4A3C] dark:bg-[#DFFFAE] transition-all"
+                    className="flex-1 rounded-t-xl bg-hexxa-green dark:bg-hexxa-lime transition-all"
                     style={{ height: `${w.receber ? (w.receber / maxWeek) * 100 : 0}%` }}
                   />
                 </div>
-                <p className="text-[11px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">{w.label}</p>
+                <p className="text-[11px] font-bold text-ink-soft">{w.label}</p>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <div className="mt-4 flex justify-center gap-6 text-xs text-ink-soft">
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-red-400 inline-block" /> A pagar
             </span>
@@ -1498,14 +1521,14 @@ function MonthDropdown({ months, selected, onChange }: { months: string[]; selec
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2.5 text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] hover:border-black/20 dark:hover:border-white/20 transition-colors capitalize"
+        className="flex items-center gap-2 rounded-2xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-sm font-bold text-ink transition-all capitalize cursor-pointer"
       >
-        <Calendar className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />
+        <Calendar className="h-4 w-4 text-ink-soft" />
         {mesLabel(selected)}
-        <ChevronDown className={`h-3.5 w-3.5 text-[#6E6A61] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-3.5 w-3.5 text-ink-soft transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-56 max-h-72 overflow-y-auto rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] shadow-lg p-1.5">
+        <div className="absolute right-0 z-20 mt-2 w-56 max-h-72 overflow-y-auto rounded-2xl bg-surface-card shadow-(--elev-2) p-1.5">
           {options.map((m) => (
             <button
               key={m}
@@ -1516,8 +1539,8 @@ function MonthDropdown({ months, selected, onChange }: { months: string[]; selec
               }}
               className={`w-full text-left rounded-xl px-3.5 py-2 text-sm font-semibold capitalize transition-colors ${
                 selected === m
-                  ? 'bg-[#1E3328] text-[#DFFFAE]'
-                  : 'text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5 dark:hover:bg-white/5'
+                  ? 'bg-hexxa-forest text-hexxa-lime'
+                  : 'text-ink hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
               {mesLabel(m)}
@@ -1562,59 +1585,59 @@ function DreModal({ data, selectedMonth, onClose }: { data: Lancamento[]; select
   const lucroLiquido = ebitda; 
 
   const row = "flex justify-between items-center py-2.5 border-b border-black/5 dark:border-white/5 last:border-0";
-  const label = "text-sm text-[#6E6A61] dark:text-[#A8A49C]";
-  const val = "text-sm font-bold tabular text-[#231F20] dark:text-[#FEFDF3]";
+  const label = "text-sm text-ink-soft";
+  const val = "text-sm font-bold tabular text-ink";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
-      <div className="bg-[#F4EFE4] dark:bg-[#1A201C] w-full max-w-lg rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
+      <div className="bg-surface-card w-full max-w-lg rounded-3xl shadow-(--elev-3) card-finish overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/5 bg-surface-card/60">
           <div className="flex items-center gap-2.5">
-            <div className="bg-[#1E3328] text-[#DFFFAE] p-2 rounded-2xl shadow-sm">
+            <div className="bg-hexxa-forest text-hexxa-lime p-2 rounded-2xl shadow-(--elev-1)">
               <FileText className="h-5 w-5" />
             </div>
-            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">
+            <h2 className="text-base sm:text-lg font-serif font-bold text-ink">
               DRE Gerencial · {mesLabel(selectedMonth)}
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:bg-black/5 rounded-full transition-colors">
+          <button onClick={onClose} className="tap-target pressable focusable p-2 text-ink-soft hover:text-ink rounded-full transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="p-6">
-          <div className="bg-white/80 dark:bg-black/40 rounded-2xl border border-black/5 dark:border-white/10 p-5 shadow-sm space-y-1">
+          <div className="bg-surface-card shadow-(--elev-inset) rounded-2xl p-5 space-y-1">
             <div className={row}>
-              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Receita Bruta (Faturamento)</span>
-              <span className="text-sm font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{fmt(receitas)}</span>
+              <span className="text-sm font-bold text-ink">Receita Bruta (Faturamento)</span>
+              <span className="text-sm font-bold tabular text-hexxa-green dark:text-hexxa-lime">{fmt(receitas)}</span>
             </div>
             <div className={row}>
               <span className={label}>(-) Impostos Incorridos</span>
-              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(impostos)}</span>
+              <span className="text-sm tabular text-expense">{fmt(impostos)}</span>
             </div>
             <div className={`${row} bg-black/5 dark:bg-white/5 -mx-5 px-5`}>
-              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">(=) Receita Líquida</span>
+              <span className="text-sm font-bold text-ink">(=) Receita Líquida</span>
               <span className={val}>{fmt(receitaLiquida)}</span>
             </div>
             <div className={row}>
               <span className={label}>(-) Despesas Operacionais Fixas</span>
-              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(despesasFixas)}</span>
+              <span className="text-sm tabular text-expense">{fmt(despesasFixas)}</span>
             </div>
             <div className={row}>
               <span className={label}>(-) Despesas Operacionais Variáveis</span>
-              <span className="text-sm tabular text-red-600 dark:text-red-400">{fmt(despesasVariaveis)}</span>
+              <span className="text-sm tabular text-expense">{fmt(despesasVariaveis)}</span>
             </div>
             <div className={`${row} bg-black/5 dark:bg-white/5 -mx-5 px-5`}>
-              <span className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">(=) Lucro Operacional (EBITDA)</span>
-              <span className={`text-sm font-bold tabular ${ebitda >= 0 ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-600 dark:text-red-400'}`}>{fmt(ebitda)}</span>
+              <span className="text-sm font-bold text-ink">(=) Lucro Operacional (EBITDA)</span>
+              <span className={`text-sm font-bold tabular ${ebitda >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'}`}>{fmt(ebitda)}</span>
             </div>
             <div className={`${row} border-t-2 border-black/10 dark:border-white/20 mt-2`}>
-              <span className="text-base font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">Lucro Líquido Distribuível</span>
-              <span className={`text-base font-serif font-bold tabular ${lucroLiquido >= 0 ? 'text-[#2F4A3C] dark:text-[#DFFFAE]' : 'text-red-600 dark:text-red-400'}`}>{fmt(lucroLiquido)}</span>
+              <span className="text-base font-serif font-bold text-ink">Lucro Líquido Distribuível</span>
+              <span className={`text-base font-serif font-bold tabular ${lucroLiquido >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'}`}>{fmt(lucroLiquido)}</span>
             </div>
           </div>
           
-          <p className="mt-4 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <p className="mt-4 text-center text-xs text-ink-soft">
             O DRE Gerencial demonstra o resultado econômico da empresa baseado no regime de competência/caixa simulado pelo mês atual.
           </p>
         </div>
@@ -1695,7 +1718,7 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
           onClick={refresh}
           disabled={refreshing || loading}
           title="Atualizar"
-          className="rounded-full border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-2.5 text-[#6E6A61] hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-colors"
+          className="tap-target pressable focusable rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-2.5 text-ink-soft hover:text-ink transition-all cursor-pointer"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
@@ -1704,8 +1727,8 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
       {/* Período em foco — título claro do mês atual + dropdown pra trocar, sem poluir a tela com uma pílula por mês. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">Você está visualizando</p>
-          <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3] capitalize">{mesLabel(selectedMonth)}</h2>
+          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Você está visualizando</p>
+          <h2 className="font-serif font-bold text-title2 text-ink capitalize">{mesLabel(selectedMonth)}</h2>
         </div>
         <MonthDropdown months={allMonths} selected={selectedMonth} onChange={setSelectedMonth} />
       </div>

@@ -65,19 +65,19 @@ export function UploadPGDASForm({ companyId }: { companyId: string }) {
           <div className="h-12 w-12 rounded-2xl bg-[#EFFFD6] dark:bg-[#2F4A3C]/40 flex items-center justify-center mb-3">
             <UploadCloud className="h-6 w-6 text-[#2F4A3C] dark:text-[#DFFFAE]" />
           </div>
-          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">
+          <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
             Clique para selecionar ou arraste o PDF
           </p>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Somente arquivos .pdf do PGDAS</p>
         </div>
       ) : (
-        <div className="border border-black/10 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between bg-[#FEFDF3] dark:bg-[#121614]">
+        <div className="border border-black/10 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between bg-[#F5F6F4] dark:bg-[#121614]">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-[#EFFFD6] dark:bg-[#2F4A3C]/40 text-[#2F4A3C] dark:text-[#DFFFAE] rounded-xl flex items-center justify-center">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] truncate max-w-[200px]">
+              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4] truncate max-w-[200px]">
                 {file.name}
               </p>
               <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">{(file.size / 1024).toFixed(1)} KB</p>

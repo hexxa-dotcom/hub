@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Loader2, Trash2, Copy, CheckCircle2, X, KeyRound, AlertTriangle, Eye, PencilLine, ShieldCheck } from 'lucide-react';
 import { listApiTokens, createApiToken, revokeApiToken, type ApiTokenRow, type ApiTokenScope } from './actions';
+import { Card } from '@/components/ui/Card';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] px-3.5 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-2 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
 
 function NewTokenModal({ token, onClose }: { token: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -20,36 +21,36 @@ function NewTokenModal({ token, onClose }: { token: string; onClose: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <div className="bg-[#F4EFE4] dark:bg-[#1A201C] w-full max-w-lg rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
-          <h2 className="text-base font-serif font-bold text-[#231F20] dark:text-[#FEFDF3] flex items-center gap-2">
-            <KeyRound className="h-5 w-5" /> Token criado
+      <Card level={2} tone="deep" className="card-finish w-full max-w-lg shadow-(--elev-3) overflow-hidden p-0">
+        <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10">
+          <h2 className="text-base font-serif font-bold text-ink flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" /> Token criado
           </h2>
-          <button onClick={onClose} className="p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 rounded-full">
+          <button onClick={onClose} className="p-2 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="flex items-center gap-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/40 p-3 text-xs font-bold text-amber-800 dark:text-amber-300">
+          <p className="flex items-center gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-xs font-bold text-amber-800 dark:text-amber-300">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            Copie agora — por segurança, esse valor não fica salvo em nenhum lugar e não aparece de novo.
+            Copie agora — por segurança, esse valor não fica salvo em nenhum lugar e não será exibido novamente.
           </p>
-          <div className="flex items-center gap-2 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-black/30 p-3.5 font-mono text-xs break-all text-[#231F20] dark:text-[#FEFDF3]">
+          <div className="flex items-center gap-2 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-3.5 font-mono text-xs break-all text-ink">
             {token}
           </div>
           <button
             type="button"
             onClick={handleCopy}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
           >
             {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copiado!' : 'Copiar token'}
           </button>
-          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+          <p className="text-[11px] text-ink-soft">
             Cole esse valor como Bearer token na configuração do MCP no Claude Desktop, ChatGPT ou outro cliente MCP.
           </p>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -112,11 +113,11 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
   }
 
   return (
-    <div className="space-y-6">
+    <Card level={1} className="p-6 sm:p-8 space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">Tokens ativos</h2>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <h2 className="text-base font-serif font-bold text-ink">Tokens Ativos</h2>
+          <p className="text-xs text-ink-soft">
             Chaves de autenticação do MCP e da API REST.
           </p>
         </div>
@@ -124,9 +125,9 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-3.5 py-1.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 px-3.5 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
           >
-            <Plus className="h-4 w-4" /> Novo token
+            <Plus className="h-4 w-4" /> Novo Token
           </button>
         )}
       </div>
@@ -134,80 +135,84 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl bg-white/70 dark:bg-black/30 border border-black/5 dark:border-white/5 p-4"
+          className="space-y-4 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 p-4 shadow-(--elev-inset)"
         >
           <div>
-            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Nome do token</label>
+            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Nome do Token</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex.: Claude Desktop, Sistema de faturamento X…"
-              className={`mt-1 ${field}`}
+              className={`mt-1.5 ${field}`}
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Permissão</label>
-            <div className={`mt-1 grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
+            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Permissão</label>
+            <div className={`mt-1.5 grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
               <button
                 type="button"
                 onClick={() => setScope('read')}
-                className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-colors ${
+                className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-all ${
                   scope === 'read'
-                    ? 'border-[#1E3328] bg-[#EFFFD6] dark:bg-[#1E3328]'
-                    : 'border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] hover:bg-black/5'
+                    ? 'border-hexxa-forest bg-hexxa-forest/10 dark:border-hexxa-lime dark:bg-hexxa-lime/10'
+                    : 'border-black/5 dark:border-white/5 bg-surface-card hover:bg-black/5'
                 }`}
               >
-                <Eye className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                <Eye className="h-4 w-4 mt-0.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
                 <span>
-                  <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Só leitura</span>
-                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Consulta apenas esta empresa</span>
+                  <span className="block text-xs font-bold text-ink">Só leitura</span>
+                  <span className="block text-[11px] text-ink-soft">Consulta apenas esta empresa</span>
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => setScope('write')}
-                className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-colors ${
+                className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-all ${
                   scope === 'write'
-                    ? 'border-[#1E3328] bg-[#EFFFD6] dark:bg-[#1E3328]'
-                    : 'border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] hover:bg-black/5'
+                    ? 'border-hexxa-forest bg-hexxa-forest/10 dark:border-hexxa-lime dark:bg-hexxa-lime/10'
+                    : 'border-black/5 dark:border-white/5 bg-surface-card hover:bg-black/5'
                 }`}
               >
-                <PencilLine className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                <PencilLine className="h-4 w-4 mt-0.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
                 <span>
-                  <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Leitura e escrita</span>
-                  <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Integração externa — lança dados</span>
+                  <span className="block text-xs font-bold text-ink">Leitura e escrita</span>
+                  <span className="block text-[11px] text-ink-soft">Integração externa — lança dados</span>
                 </span>
               </button>
               {isAdmin && (
                 <button
                   type="button"
                   onClick={() => setScope('admin')}
-                  className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-colors ${
+                  className={`flex items-start gap-2 rounded-2xl border p-3 text-left transition-all ${
                     scope === 'admin'
-                      ? 'border-[#1E3328] bg-[#EFFFD6] dark:bg-[#1E3328]'
-                      : 'border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#1A201C] hover:bg-black/5'
+                      ? 'border-hexxa-forest bg-hexxa-forest/10 dark:border-hexxa-lime dark:bg-hexxa-lime/10'
+                      : 'border-black/5 dark:border-white/5 bg-surface-card hover:bg-black/5'
                   }`}
                 >
-                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
+                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-hexxa-forest dark:text-hexxa-lime" />
                   <span>
-                    <span className="block text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Contador (Multi-empresa)</span>
-                    <span className="block text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">IA pode consultar qualquer cliente</span>
+                    <span className="block text-xs font-bold text-ink">Contador (Multi)</span>
+                    <span className="block text-[11px] text-ink-soft">IA pode consultar qualquer cliente</span>
                   </span>
                 </button>
               )}
             </div>
           </div>
-          {err && <p className="text-xs font-bold text-red-700">{err}</p>}
-          <div className="flex gap-2">
+          {err && <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{err}</p>}
+          <div className="flex gap-2 pt-1">
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-sm disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) active:scale-95 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Criar
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61]">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)"
+            >
               Cancelar
             </button>
           </div>
@@ -215,11 +220,11 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[#6E6A61]">
+        <div className="flex items-center justify-center gap-2 py-8 text-ink-soft">
           <Loader2 className="h-4 w-4 animate-spin" /> <span className="text-xs font-bold">Carregando…</span>
         </div>
       ) : tokens.length === 0 ? (
-        <p className="rounded-2xl bg-[#F4EFE4] dark:bg-[#1A201C] p-6 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <p className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-6 text-center text-xs text-ink-soft">
           Nenhum token criado ainda.
         </p>
       ) : (
@@ -227,18 +232,18 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
           {tokens.map((t) => (
             <div
               key={t.id}
-              className={`flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/5 p-3.5 ${t.revoked ? 'opacity-50' : ''}`}
+              className={`flex items-center justify-between gap-3 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 shadow-(--elev-1) p-3.5 ${t.revoked ? 'opacity-50' : ''}`}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{t.name}</p>
+                  <p className="truncate text-sm font-bold text-ink">{t.name}</p>
                   <span
                     className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                       t.scope === 'admin'
-                        ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300'
+                        ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
                         : t.scope === 'write'
-                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                        : 'bg-[#EFFFD6] dark:bg-[#1E3328] text-[#2F4A3C] dark:text-[#DFFFAE]'
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                        : 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime border border-hexxa-forest/20'
                     }`}
                   >
                     {t.scope === 'admin' ? (
@@ -248,10 +253,10 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
                     ) : (
                       <Eye className="h-2.5 w-2.5" />
                     )}
-                    {t.scope === 'admin' ? 'Contador (Multi-empresa)' : t.scope === 'write' ? 'Leitura e escrita' : 'Só leitura'}
+                    {t.scope === 'admin' ? 'Contador (Multi)' : t.scope === 'write' ? 'Leitura e escrita' : 'Só leitura'}
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-[#6E6A61] dark:text-[#A8A49C]">
+                <p className="text-[11px] font-mono text-ink-soft">
                   {t.tokenPrefix}… · criado em {fmtDate(t.createdAt)}
                   {t.lastUsedAt ? ` · usado em ${fmtDate(t.lastUsedAt)}` : ' · nunca usado'}
                   {t.revoked ? ' · revogado' : ''}
@@ -263,7 +268,7 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
                   title="Revogar"
                   onClick={() => handleRevoke(t.id)}
                   disabled={busyId === t.id}
-                  className="rounded-full p-2 text-[#6E6A61] hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-40"
+                  className="rounded-full p-2 text-ink-soft hover:bg-rose-500/10 hover:text-rose-600 transition-colors disabled:opacity-40"
                 >
                   {busyId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
@@ -274,6 +279,6 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
       )}
 
       {newToken && <NewTokenModal token={newToken} onClose={() => setNewToken(null)} />}
-    </div>
+    </Card>
   );
 }

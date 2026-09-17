@@ -1,15 +1,15 @@
 /* ══════════════════ HEXX HUB DESIGN SYSTEM TOKENS ══════════════════ */
 
 .landing-page {
-  --cream: #FEFDF3;
+  --cream: #F5F6F4;
   --ink: #231F20;
   --dark: #1C180D;
   --lime: #DFFFAE;
   --lime-soft: #EFFFD6;
   --green: #2F4A3C;
   --green-dark: #1E3328;
-  --beige: #F4EFE4;
-  --beige-deep: #EAE3D3;
+  --beige: #E7EAE5;
+  --beige-deep: #D8DDD6;
   --blue: #A2C1CD;
   --olive: #5F6E46;
   --muted: #6E6A61;
@@ -155,7 +155,7 @@
 }
 
 .landing-header.scrolled {
-  background: rgba(254, 253, 243, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 1px 0 rgba(35, 31, 32, 0.07);
@@ -585,7 +585,7 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 700;
-  color: rgba(254, 253, 243, 0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 @keyframes floaty {
@@ -603,7 +603,7 @@
   bottom: 28px;
   transform: translateX(-50%);
   z-index: 3;
-  color: rgba(254, 253, 243, 0.55);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -618,7 +618,7 @@
   content: '';
   width: 1px;
   height: 34px;
-  background: linear-gradient(rgba(254, 253, 243, 0.6), transparent);
+  background: linear-gradient(rgba(255, 255, 255, 0.6), transparent);
   animation: drip 2s ease-in-out infinite;
 }
 
@@ -1687,18 +1687,18 @@
 }
 
 .pill {
-  border: 1px solid rgba(254, 253, 243, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 100px;
   padding: 12px 24px;
   font-size: 14.5px;
   font-weight: 700;
-  color: rgba(254, 253, 243, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   transition: background 0.25s, border-color 0.25s, transform 0.25s;
 }
 
 .pill:hover {
-  background: rgba(254, 253, 243, 0.08);
-  border-color: rgba(254, 253, 243, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: translateY(-2px);
 }
 
@@ -1767,8 +1767,8 @@
 
 .badge-card {
   position: relative;
-  background: rgba(254, 253, 243, 0.06);
-  border: 1px solid rgba(254, 253, 243, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 44px 48px;
@@ -2279,7 +2279,7 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid rgba(254, 253, 243, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2322,7 +2322,7 @@
 }
 
 .foot-legal {
-  border-top: 1px solid rgba(254, 253, 243, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   padding-top: 36px;
   font-size: 12.5px;
   font-weight: 600;

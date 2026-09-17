@@ -26,12 +26,12 @@ export function InsightCard({ pageKey, insight }: { pageKey: string; insight: st
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1E3328] text-[#DFFFAE]">
         <Sparkles className="h-3.5 w-3.5" />
       </span>
-      <p className="flex-1 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] pt-0.5">{insight}</p>
+      <p className="flex-1 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] pt-0.5">{insight}</p>
       <button
         type="button"
         onClick={handleDismiss}
         aria-label="Dispensar dica"
-        className="shrink-0 rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 dark:text-[#A8A49C]"
+        className="tap-target pressable focusable shrink-0 rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 dark:text-[#A8A49C]"
       >
         <X className="h-3.5 w-3.5" />
       </button>

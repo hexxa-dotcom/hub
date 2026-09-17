@@ -60,7 +60,7 @@ export function OneflowSetupForm({ companyId, connected }: { companyId: string; 
               value={token}
               onChange={(e) => setToken(e.target.value)}
               placeholder="Cole o Bearer token gerado no Oneflow pra este CNPJ"
-              className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] transition-colors"
+              className="mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-3.5 py-2.5 text-xs text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] transition-colors"
             />
             <p className="mt-1.5 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
               Cada empresa tem seu próprio token no Oneflow — pegue no painel deles, no cadastro específico deste CNPJ.

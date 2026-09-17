@@ -44,8 +44,8 @@ export function ManualAuthorization() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 z-50 w-80 rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-          <h3 className="mb-1 text-sm font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">Liberar Acesso sem Pagamento</h3>
+        <div className="absolute right-0 top-12 z-50 w-80 rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <h3 className="mb-1 text-sm font-serif font-bold text-[#231F20] dark:text-[#F5F6F4]">Liberar Acesso sem Pagamento</h3>
           <p className="mb-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
             Digite o CNPJ da empresa que já se cadastrou no sistema (via /onboarding) para liberar o acesso ao painel imediatamente.
           </p>
@@ -64,7 +64,7 @@ export function ManualAuthorization() {
                 placeholder="00.000.000/0001-00"
                 value={cnpj}
                 onChange={(e) => setCnpj(e.target.value)}
-                className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 px-3.5 py-2 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] transition-colors"
+                className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#E7EAE5]/60 dark:bg-[#1A201C]/60 px-3.5 py-2 text-xs text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] transition-colors"
                 required
               />
             </div>

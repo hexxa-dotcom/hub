@@ -27,6 +27,7 @@ export class DrizzleServiceInvoiceRepository implements ServiceInvoiceRepository
           status: data.status,
           taxAmount: data.taxAmount != null ? String(data.taxAmount) : undefined,
           taxRate: data.taxRate != null ? String(data.taxRate) : undefined,
+          nfseServiceProfileId: data.nfseServiceProfileId,
         })
         .returning({ id: serviceInvoice.id });
       return { id: inserted[0]!.id };

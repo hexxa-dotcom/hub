@@ -20,8 +20,9 @@ export const NAV: NavSection[] = [
   {
     title: 'Início',
     items: [
+      // Início, Panorama e Fechamento viraram vistas de /cliente (`?v=`), então
+      // o menu aponta para a tela; a troca entre elas acontece no cabeçalho.
       { label: 'Início', href: '/cliente' },
-      { label: 'Resumo do Mês', href: '/cliente/resumo-mes' },
     ],
   },
   {
@@ -31,6 +32,10 @@ export const NAV: NavSection[] = [
       { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
       { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
+      // Fila de decisões sobre o que a IA fez ou quer fazer. Sem tela, as
+      // tabelas de trilha existiriam e ninguém veria — e o ciclo de
+      // aprendizado não fecharia.
+      { label: 'O que a IA fez', href: '/mais/ia' },
     ],
   },
   {
@@ -45,6 +50,10 @@ export const NAV: NavSection[] = [
       { label: 'Financeiro', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
       { label: 'Conciliação', href: '/meu-negocio/conciliacao' },
+      // Sem adaptador ainda: a porta existe, nenhum implementador. O item fica
+      // visível com o selo para o empresário saber que a lacuna tem solução
+      // prevista, em vez de descobrir sozinho que o extrato não chega.
+      { label: 'Open Finance', href: '/meu-negocio/open-finance', badge: 'Em breve' },
       { label: 'Relatórios', href: '/meu-negocio/relatorios' },
     ],
   },

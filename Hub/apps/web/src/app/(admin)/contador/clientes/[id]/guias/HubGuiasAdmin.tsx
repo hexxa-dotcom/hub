@@ -39,7 +39,7 @@ function fmtDate(iso: string) {
 }
 
 const field =
-  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
+  'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-colors';
 const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] tracking-wide uppercase';
 
 function EnviarGuiaForm({ companyId, onClose, onDone }: { companyId: string; onClose: () => void; onDone: () => void }) {
@@ -75,10 +75,10 @@ function EnviarGuiaForm({ companyId, onClose, onDone }: { companyId: string; onC
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Enviar Guia pro Cliente</p>
-        <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Enviar Guia pro Cliente</p>
+        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -157,10 +157,10 @@ function NovoParcelamentoForm({ companyId, onClose, onDone }: { companyId: strin
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Cadastrar Novo Parcelamento</p>
-        <button type="button" onClick={onClose} className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Cadastrar Novo Parcelamento</p>
+        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -246,7 +246,7 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
         <button
           type="button"
           onClick={() => { setShowPlanoForm((v) => !v); setShowGuiaForm(false); }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5 transition-all"
+          className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5 transition-all"
         >
           <Layers className="h-4 w-4" /> Cadastrar Parcelamento
         </button>
@@ -256,11 +256,11 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
       {showPlanoForm && <NovoParcelamentoForm companyId={companyId} onClose={() => setShowPlanoForm(false)} onDone={refetch} />}
 
       <div className="space-y-3">
-        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Guias Avulsas ({avulsas.length})</h3>
+        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Guias Avulsas ({avulsas.length})</h3>
         {avulsas.length === 0 ? (
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] py-4">Nenhuma guia avulsa enviada ainda.</p>
         ) : (
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
+          <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5]/60 dark:bg-[#1A201C]/60 divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
             {avulsas.map((g) => {
               const st = STATUS_CONFIG[g.status];
               const StatusIcon = st.icon;
@@ -270,7 +270,7 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
                     {CAT_CONFIG[categoriaDe(g.taxName)]}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{g.taxName}</p>
+                    <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{g.taxName}</p>
                     <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Vence {fmtDate(g.dueDate)} · {BRL.format(g.amount)}</p>
                   </div>
                   <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
@@ -293,7 +293,7 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
       </div>
 
       <div className="space-y-3">
-        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Parcelamentos ({planos.size})</h3>
+        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Parcelamentos ({planos.size})</h3>
         {planos.size === 0 ? (
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] py-4">Nenhum parcelamento cadastrado ainda.</p>
         ) : (
@@ -305,10 +305,10 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
               const totalValor = ordered.reduce((s, p) => s + p.amount, 0);
               const desc = ordered[0]?.taxName.replace(/\s*\(\d+\/\d+\)$/, '') ?? 'Parcelamento';
               return (
-                <div key={groupId} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 overflow-hidden">
+                <div key={groupId} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5]/60 dark:bg-[#1A201C]/60 overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-black/5 dark:border-white/10">
                     <div>
-                      <p className="font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">{desc}</p>
+                      <p className="font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">{desc}</p>
                       <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{pagas}/{total} parcelas pagas · total {BRL.format(totalValor)}</p>
                     </div>
                     <div className="h-2 w-32 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">

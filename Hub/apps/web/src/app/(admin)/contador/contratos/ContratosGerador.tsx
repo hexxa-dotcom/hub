@@ -34,7 +34,7 @@ type Contrato = {
 
 export type ContratoGerado = Contrato;
 
-const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C]';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-3.5 py-2.5 text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none transition-colors focus:border-[#2F4A3C]';
 
 function gerarContratoHTML(dados: {
   cliente: ClienteOpcao; plano: string; valor: number;
@@ -199,14 +199,14 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div>
-        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#FEFDF3]">Contratos</h1>
+        <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">Contratos</h1>
         <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-1">Gere contratos de prestação de serviço em PDF</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Form */}
-        <div className="lg:col-span-3 space-y-4 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 shadow-sm">
-          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Novo contrato</h2>
+        <div className="lg:col-span-3 space-y-4 rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+          <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Novo contrato</h2>
 
           <div>
             <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Cliente *</label>
@@ -246,7 +246,7 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
                 <label key={s} className="flex cursor-pointer items-start gap-2.5 rounded-2xl p-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                   <input type="checkbox" checked={servicos.includes(s)} onChange={() => toggleServico(s)}
                     className="mt-0.5 h-4 w-4 rounded accent-[#1E3328] shrink-0" />
-                  <span className="text-xs sm:text-sm text-[#231F20] dark:text-[#FEFDF3]">{s}</span>
+                  <span className="text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4]">{s}</span>
                 </label>
               ))}
             </div>
@@ -272,17 +272,17 @@ export default function AdminContratos({ clientes, planos, historicoInicial }: {
         </div>
 
         {/* Histórico */}
-        <div className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 shadow-sm">
-          <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Contratos gerados</h2>
+        <div className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+          <h2 className="mb-4 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Contratos gerados</h2>
           {contratos.length === 0 ? (
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] text-center py-8">Nenhum contrato gerado ainda.</p>
           ) : (
             <div className="space-y-3">
               {contratos.map(c => (
-                <div key={c.id} className="rounded-2xl bg-[#FEFDF3] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+                <div key={c.id} className="rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] truncate">{c.cliente}</p>
+                      <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4] truncate">{c.cliente}</p>
                       <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.plano} · {BRL.format(c.valor)}/mês</p>
                       <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Início: {c.inicio.split('-').reverse().join('/')}</p>
                       <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{c.geradoEm}</p>

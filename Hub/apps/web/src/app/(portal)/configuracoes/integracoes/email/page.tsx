@@ -20,24 +20,24 @@ export default async function EmailIntegracaoPage() {
   });
 
   return (
-    <div className="mx-auto w-full space-y-8 animate-in fade-in">
+    <div className="mx-auto w-full space-y-6 animate-in fade-in">
       <header className="flex flex-col gap-4">
         <Link
           href="/configuracoes/integracoes"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] dark:hover:text-[#FEFDF3] transition-colors w-fit"
+          className="inline-flex items-center gap-2 text-xs font-bold text-ink-soft hover:text-ink transition-colors w-fit"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar para Integrações
         </Link>
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-[#1E3328] text-[#DFFFAE] shadow-md">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)">
             <Mail className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#231F20] dark:text-[#FEFDF3] tracking-tight">
-              E-mail (envio de NFSe)
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              E-mail (Envio de NFS-e)
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-              Conecte a conta de e-mail que o Hub usa pra mandar a NFSe automaticamente pro cliente assim que ela é emitida.
+            <p className="mt-1 text-xs sm:text-sm text-ink-soft">
+              Conecte a conta de e-mail que o Hub usa para encaminhar a NFS-e automaticamente para o tomador assim que for autorizada.
             </p>
           </div>
         </div>

@@ -50,7 +50,7 @@ const STATUS_PAY: Record<string, { label: string; cls: string }> = {
   CANCELED: { label: 'Cancelado', cls: 'text-[#6E6A61] dark:text-[#A8A49C]' },
 };
 
-const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-3.5 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none transition-colors focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
+const fi = 'w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-3.5 py-2.5 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none transition-colors focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]';
 
 function fmtDate(iso: string) {
   return iso?.split('-').reverse().join('/') ?? '—';
@@ -90,7 +90,7 @@ function StepVincular({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
+      <div className="space-y-2 rounded-2xl bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
         <Row label="Empresa" value={cliente.razao} />
         <Row label="CNPJ" value={cliente.cnpj} />
         <Row label="E-mail" value={cliente.email} />
@@ -239,20 +239,20 @@ function StepAssinatura({
   return (
     <div className="space-y-4">
       {/* Status da assinatura */}
-      <div className="flex items-center justify-between rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 px-4 py-3">
+      <div className="flex items-center justify-between rounded-2xl bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 px-4 py-3">
         <div>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Assinatura Asaas</p>
-          <p className="font-mono text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{sub.id}</p>
+          <p className="font-mono text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{sub.id}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${stSub.cls}`}>{stSub.label}</span>
-          <button onClick={load} title="Atualizar" className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+          <button onClick={load} title="Atualizar" className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
             <RotateCw className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="space-y-2 rounded-2xl bg-[#F4EFE4]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
+      <div className="space-y-2 rounded-2xl bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
         <Row label="Plano" value={sub.description.replace('Hexx Hub Digital — ', '')} />
         <Row label="Valor" value={BRL.format(sub.value)} />
         <Row label="Forma de pag." value={BILLING_LABELS[sub.billingType]} />
@@ -284,7 +284,7 @@ function StepAssinatura({
         </div>
       ) : (
         <button onClick={() => setChangingPlan(true)}
-          className="w-full rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 py-2.5 text-xs font-bold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3] hover:bg-black/5 transition-all">
+          className="w-full rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 py-2.5 text-xs font-bold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#F5F6F4] hover:bg-black/5 transition-all">
           Trocar plano
         </button>
       )}
@@ -293,7 +293,7 @@ function StepAssinatura({
       {payments && payments.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Últimas cobranças</p>
-          <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] overflow-hidden">
+          <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] overflow-hidden">
             {payments.slice(0, 6).map(pay => {
               const stPay = STATUS_PAY[pay.status] ?? { label: pay.status, cls: 'text-[#6E6A61]' };
               const link = pay.invoiceUrl ?? pay.bankSlipUrl;
@@ -304,10 +304,10 @@ function StepAssinatura({
                     <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Venc. {fmtDate(pay.dueDate)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">{BRL.format(pay.netValue)}</p>
+                    <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{BRL.format(pay.netValue)}</p>
                     {link && (
                       <a href={link} target="_blank" rel="noopener noreferrer"
-                        className="rounded-full p-1.5 text-[#6E6A61] hover:text-[#2F4A3C] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:text-[#2F4A3C] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
@@ -343,7 +343,7 @@ function StepSucesso({ subscriptionId }: { subscriptionId: string }) {
     <div className="flex flex-col items-center gap-3 py-6 text-center">
       <CheckCircle2 className="h-12 w-12 text-emerald-600" />
       <div>
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">Assinatura criada com sucesso!</p>
+        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Assinatura criada com sucesso!</p>
         <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
           O cliente receberá o link de pagamento por e-mail.
         </p>
@@ -359,7 +359,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-xs">
       <span className="text-[#6E6A61] dark:text-[#A8A49C]">{label}</span>
-      <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{value}</span>
+      <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{value}</span>
     </div>
   );
 }
@@ -379,17 +379,17 @@ export function AsaasModal({ cliente, onClose, onLinked, onCanceled }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-black/40 backdrop-blur-md">
-      <div className="my-8 w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl">
+      <div className="my-8 w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-6 sm:p-8 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 border-b border-black/5 dark:border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C] dark:text-[#DFFFAE]">
               <CreditCard className="h-4 w-4" />
             </span>
-            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#FEFDF3]">{title}</h2>
+            <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">{title}</h2>
           </div>
           <button onClick={onClose}
-            className="rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+            className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>

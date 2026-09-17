@@ -65,16 +65,16 @@ export default async function AdminAtividadePage({ params }: { params: Promise<{
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
         <Link href={`/contador/clientes/${id}`}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
+          className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#FEFDF3]">Atividade — {comp.legalName}</h1>
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4]">Atividade — {comp.legalName}</h1>
           <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Linha do tempo real: notas emitidas, solicitações, fechamentos e PGDAS processados.</p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-2 sm:p-4 shadow-sm">
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-2 sm:p-4 shadow-sm">
         {events.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center text-[#6E6A61] dark:text-[#A8A49C]">
             <Activity className="h-10 w-10 opacity-20" />
@@ -90,7 +90,7 @@ export default async function AdminAtividadePage({ params }: { params: Promise<{
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{e.title}</p>
+                    <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{e.title}</p>
                     {e.detail && <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5 truncate">{e.detail}</p>}
                   </div>
                   <span className="shrink-0 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] whitespace-nowrap bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded-full">

@@ -9,7 +9,9 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
     "./schema": "./src/schema/index.ts",
-    "./schema/tenancy": "./src/schema/tenancy.ts"
+    "./schema/tenancy": "./src/schema/tenancy.ts",
+    "./ledger": "./src/ledger/index.ts",
+    "./agent": "./src/agent/index.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",

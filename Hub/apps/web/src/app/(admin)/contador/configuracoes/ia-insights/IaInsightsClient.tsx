@@ -105,9 +105,9 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
         desc="Dicas contextuais geradas por IA nas telas do sistema — contábil, fiscal, financeiro e legal."
         fullWidth
       >
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-4">
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-4">
           <div>
-            <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Habilitar Hexxa Insights</p>
+            <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Habilitar Hexxa Insights</p>
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Liga a feature pra toda a plataforma. Cada seção abaixo pode ser desligada individualmente.</p>
           </div>
           <MasterToggle enabled={enabled} disabled={busyMaster} onChange={handleToggleMaster} />
@@ -116,7 +116,7 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
         <div className="mt-5 space-y-3">
           <div className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-            <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Chave da API</p>
+            <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Chave da API</p>
           </div>
 
           {hasApiKey ? (
@@ -183,7 +183,7 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
         <div className="divide-y divide-black/5 dark:divide-white/10">
           {sections.map((s) => (
             <div key={s.key} className="flex items-center justify-between py-3">
-              <span className="text-sm font-medium text-[#231F20] dark:text-[#FEFDF3]">{s.label}</span>
+              <span className="text-sm font-medium text-[#231F20] dark:text-[#F5F6F4]">{s.label}</span>
               <MasterToggle enabled={s.enabled} disabled={busySection === s.key} onChange={(v) => handleToggleSection(s.key, v)} />
             </div>
           ))}

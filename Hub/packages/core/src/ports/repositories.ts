@@ -30,6 +30,14 @@ export interface NewServiceInvoice {
   taxAmount?: number;
   /** Alíquota efetiva usada no cálculo acima (%). */
   taxRate?: number;
+  /**
+   * Perfil fiscal usado na emissão — origem do código LC 116/2003.
+   *
+   * Exigido para mandar a nota ao módulo fiscal do OneFlow, que é quem apura
+   * o Simples e gera a guia. Sem ele o envio teria de adivinhar o item da
+   * lista de serviços, e item errado dá ISS errado na apuração.
+   */
+  nfseServiceProfileId?: string;
 }
 
 export interface ServiceInvoicePatch {

@@ -30,7 +30,7 @@ export function AuthLayout({
     // estilo pro widget do Clerk. Aqui é só Tailwind + inline style, isolado.
     <div
       className="font-sans min-h-screen flex flex-col justify-between relative overflow-hidden"
-      style={{ backgroundColor: '#121008', color: '#FEFDF3' }}
+      style={{ backgroundColor: '#121008', color: '#F5F6F4' }}
     >
       {/* Glow de fundo */}
       <div className="pointer-events-none absolute inset-0 z-0">
@@ -61,10 +61,10 @@ export function AuthLayout({
       <main className="relative z-10 my-auto py-12 sm:py-16 px-4 sm:px-6 w-full max-w-lg mx-auto flex flex-col items-center animate-fade-up">
         {/* Cabeçalho da Página */}
         <div className="text-center space-y-2 mb-8 max-w-md">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#FEFDF3]">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#F5F6F4]">
             {title || defaultTitle}
           </h1>
-          <p className="text-sm sm:text-base text-[#FEFDF3]/70 leading-relaxed">
+          <p className="text-sm sm:text-base text-[#F5F6F4]/70 leading-relaxed">
             {subtitle || defaultSubtitle}
           </p>
         </div>

@@ -52,7 +52,7 @@ export function QuickActionDrawer({ actionId, onClose }: { actionId: QuickAction
         onClick={onClose}
       />
       <div
-        className={`absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden bg-[#FEFDF3] shadow-2xl transition-transform duration-300 ease-out dark:bg-[#121614] sm:inset-y-3 sm:right-3 sm:w-[440px] sm:rounded-3xl ${
+        className={`absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden bg-[#F5F6F4] shadow-2xl transition-transform duration-300 ease-out dark:bg-[#121614] sm:inset-y-3 sm:right-3 sm:w-[440px] sm:rounded-3xl ${
           show ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -61,14 +61,14 @@ export function QuickActionDrawer({ actionId, onClose }: { actionId: QuickAction
             <p className="text-[11px] font-bold uppercase tracking-widest text-[#6E6A61] dark:text-[#A8A49C]">
               Ação Rápida
             </p>
-            <h2 className="mt-0.5 font-serif text-xl font-bold leading-tight text-[#231F20] dark:text-[#FEFDF3]">
+            <h2 className="mt-0.5 font-serif text-xl font-bold leading-tight text-[#231F20] dark:text-[#F5F6F4]">
               {meta?.label}
             </h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-xl p-2 text-[#6E6A61] transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+            className="tap-target pressable focusable rounded-xl p-2 text-[#6E6A61] transition-colors hover:bg-black/5 dark:hover:bg-white/10"
           >
             <X className="h-5 w-5" />
           </button>

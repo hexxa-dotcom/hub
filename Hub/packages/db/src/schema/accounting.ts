@@ -187,6 +187,23 @@ export const monthlyClosure = pgTable('monthly_closure', {
   totalExpenses: numeric('total_expenses', { precision: 14, scale: 2 }).notNull().default('0'),
   newContractsCount: integer('new_contracts_count').notNull().default(0),
   defaultsCount: integer('defaults_count').notNull().default(0),
-  status: text('status').notNull().default('CLOSED'), // CLOSED, APURADO
+  status: text('status').notNull().default('CLOSED'), // legado: CLOSED, APURADO
+  /**
+   * Estágio do fechamento em dois tempos (migration 0054):
+   * ABERTO → FECHADO (IA tranca o cliente) → CONFERIDO (contador libera) →
+   * ENVIADO (entregue ao contábil). REABERTO destrava com motivo.
+   *
+   * Substitui `status`, que colapsava "a IA apurou" e "o contador liberou"
+   * num campo só. São fatos diferentes, com donos diferentes.
+   */
+  stage: text('stage').notNull().default('ABERTO'),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+  closedByRunId: uuid('closed_by_run_id'),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewedByUserId: uuid('reviewed_by_user_id'),
+  reviewNote: text('review_note'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  /** Parecer da conferência: ocorrências, o que a IA resolveu, o que sobrou. */
+  parecer: jsonb('parecer'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

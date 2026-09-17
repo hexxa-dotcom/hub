@@ -9,8 +9,8 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 const pctFmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const field =
-  'mt-1 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
-const lbl = 'text-xs font-bold text-[#6E6A61] uppercase tracking-wider dark:text-[#A8A49C]';
+  'mt-1 w-full rounded-2xl bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 const emitInitial: EmitState = { ok: false, message: '' };
 
@@ -87,17 +87,17 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-[#6E6A61] dark:text-[#A8A49C]">
-        <Loader2 className="h-5 w-5 animate-spin" />
+      <div className="flex items-center justify-center py-16 text-ink-soft">
+        <Loader2 className="h-5 w-5 animate-spin text-hexxa-green dark:text-hexxa-lime" />
       </div>
     );
   }
 
   if (customers.length === 0) {
     return (
-      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 text-center text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+      <div className="rounded-2xl bg-surface-card shadow-(--elev-1) p-6 text-center text-sm text-ink-soft">
         Cadastre um cliente primeiro em{' '}
-        <a href="/relacionamento" className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE] underline">
+        <a href="/relacionamento" className="font-bold text-hexxa-green dark:text-hexxa-lime underline">
           Relacionamento
         </a>{' '}
         pra emitir por aqui.
@@ -108,11 +108,11 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
   if (submitted) {
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl bg-[#EFFFD6] dark:bg-[#1E3328] border border-[#DFFFAE] p-5 text-center">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-[#2F4A3C] dark:text-[#DFFFAE] mb-2" />
-          <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{state.message}</p>
+        <div className="rounded-2xl bg-surface-card shadow-(--elev-1) p-5 text-center">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-hexxa-green dark:text-hexxa-lime mb-2" />
+          <p className="text-sm font-bold text-ink">{state.message}</p>
           {state.taxAmount != null && state.taxAmount > 0 && (
-            <p className="mt-2 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="mt-2 text-xs text-ink-soft">
               Imposto estimado{state.taxRate != null ? ` (${pctFmt(state.taxRate)}%)` : ''}: <strong>{fmt(state.taxAmount)}</strong> · Líquido: <strong>{fmt(state.netAmount ?? 0)}</strong>
             </p>
           )}
@@ -123,7 +123,7 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
               href={`/meu-negocio/notas/${state.invoiceId}/danfse`}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2.5 text-xs font-bold text-[#DFFFAE]"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-4 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
             >
               <FileText className="h-3.5 w-3.5" /> PDF (DANFSe)
             </a>
@@ -131,7 +131,7 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
               href={`/api/nfse/${state.invoiceId}/xml`}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-xs font-bold text-ink transition-all"
             >
               <Download className="h-3.5 w-3.5" /> XML
             </a>
@@ -142,7 +142,7 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={() => window.location.assign('/meu-negocio/notas')}
-            className="flex-1 rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5"
+            className="flex-1 rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5"
           >
             Ver todas as notas
           </button>
@@ -238,7 +238,7 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
             value={amount || ''}
             onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
             placeholder="0,00"
-            className={`${field} font-serif text-lg font-bold text-[#1E3328] dark:text-[#DFFFAE]`}
+            className={`${field} font-serif text-lg font-bold tabular text-hexxa-forest dark:text-hexxa-lime`}
           />
         </div>
         <div>
@@ -254,13 +254,13 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       {amount > 0 && taxRatePercent > 0 && (
-        <p className="-mt-2 text-[11px] text-amber-700 dark:text-amber-400">
+        <p className="-mt-2 text-[11px] text-amber-600 dark:text-amber-400">
           Imposto estimado ({pctFmt(taxRatePercent)}%): <strong>{fmt(previewTax)}</strong> · Líquido: <strong>{fmt(previewNet)}</strong>
         </p>
       )}
 
       {state.message && !submitted && (
-        <p className="flex items-center gap-2 rounded-2xl bg-red-100 dark:bg-red-950/30 px-4 py-3 text-xs font-bold text-red-800 dark:text-red-300">
+        <p className="flex items-center gap-2 rounded-2xl bg-red-500/10 shadow-(--elev-inset) px-4 py-3 text-xs font-bold text-red-700 dark:text-red-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {state.message}
         </p>
@@ -269,7 +269,7 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
       <button
         type="submit"
         disabled={pending || !selectedId || (profiles.length > 0 && !profileId)}
-        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-3 text-sm font-bold text-[#DFFFAE] shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-6 py-3 text-sm font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.01] disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
         {pending ? 'Emitindo…' : 'Emitir NFSe'}

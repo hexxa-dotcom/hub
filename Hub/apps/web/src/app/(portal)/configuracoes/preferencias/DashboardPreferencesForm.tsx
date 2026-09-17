@@ -55,16 +55,16 @@ export function DashboardPreferencesForm() {
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {savedSuccess && (
-        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
+        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs text-emerald-800 dark:text-emerald-300 font-bold shadow-(--elev-1)">
           ✓ Preferências salvas com sucesso. A tela inicial foi atualizada.
         </div>
       )}
 
       {/* Período do Gráfico */}
-      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-5 space-y-3 shadow-sm">
+      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-inset) p-5 space-y-3">
         <div>
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Período do Gráfico de Faturamento</h3>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Quantidade de meses exibidos no histórico da tela inicial.</p>
+          <h3 className="font-serif font-bold text-sm text-ink">Período do Gráfico de Faturamento</h3>
+          <p className="text-xs text-ink-soft">Quantidade de meses exibidos no histórico da tela inicial.</p>
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1">
@@ -75,8 +75,8 @@ export function DashboardPreferencesForm() {
               onClick={() => setConfig(prev => ({ ...prev, chartMonths: months }))}
               className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                 config.chartMonths === months
-                  ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-sm'
-                  : 'border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5'
+                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
+                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
               }`}
             >
               {months} Meses
@@ -86,24 +86,24 @@ export function DashboardPreferencesForm() {
       </div>
 
       {/* Opções da Tela Inicial */}
-      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] p-5 space-y-4 shadow-sm">
+      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-inset) p-5 space-y-4">
         <div>
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Componentes da Tela Inicial</h3>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Marque quais informações devem ser exibidas no seu painel.</p>
+          <h3 className="font-serif font-bold text-sm text-ink">Componentes da Tela Inicial</h3>
+          <p className="text-xs text-ink-soft">Marque quais informações devem ser exibidas no seu painel.</p>
         </div>
 
-        <div className="divide-y divide-black/5 dark:divide-white/10 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden">
+        <div className="divide-y divide-black/5 dark:divide-white/10 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden bg-surface-card shadow-(--elev-inset)">
           {/* Gráfico de Faturamento */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Gráfico Histórico de Faturamento</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Evolução dos recebimentos nos últimos meses.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Gráfico Histórico de Faturamento</p>
+              <p className="text-[11px] text-ink-soft">Evolução dos recebimentos nos últimos meses.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showRevenueChart')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showRevenueChart ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showRevenueChart ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -113,16 +113,16 @@ export function DashboardPreferencesForm() {
           </div>
 
           {/* Receita por Categoria */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Distribuição de Receita por Categoria</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Composição percentual dos recebimentos do mês.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Distribuição de Receita por Categoria</p>
+              <p className="text-[11px] text-ink-soft">Composição percentual dos recebimentos do mês.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showCategoryChart')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showCategoryChart ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showCategoryChart ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -132,16 +132,16 @@ export function DashboardPreferencesForm() {
           </div>
 
           {/* Margem de Lucro Real */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Margem de Lucro Real</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Cálculo de sobra líquida do faturamento após despesas.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Margem de Lucro Real</p>
+              <p className="text-[11px] text-ink-soft">Cálculo de sobra líquida do faturamento após despesas.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showProfitMargin')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showProfitMargin ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showProfitMargin ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -151,16 +151,16 @@ export function DashboardPreferencesForm() {
           </div>
 
           {/* Quanto Pago de Imposto */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Bússola Tributária (Fator R)</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Enquadramento da faixa tributária e indicador do Fator R.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Bússola Tributária (Fator R)</p>
+              <p className="text-[11px] text-ink-soft">Enquadramento da faixa tributária e indicador do Fator R.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showTaxThermometer')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showTaxThermometer ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showTaxThermometer ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -170,16 +170,16 @@ export function DashboardPreferencesForm() {
           </div>
 
           {/* Contratos Pendentes */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Contratos Pendentes & A Vencer</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Resumo de contratos aguardando assinatura ou renovação.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Contratos Pendentes & A Vencer</p>
+              <p className="text-[11px] text-ink-soft">Resumo de contratos aguardando assinatura ou renovação.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showPendingContracts')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showPendingContracts ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showPendingContracts ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -189,16 +189,16 @@ export function DashboardPreferencesForm() {
           </div>
 
           {/* Contas a Pagar na Semana */}
-          <div className="flex items-center justify-between p-4 bg-[#FEFDF3] dark:bg-[#121614]">
+          <div className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs sm:text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Contas a Pagar nos Próximos 7 Dias</p>
-              <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Lista de contas com vencimento na semana corrente.</p>
+              <p className="text-xs sm:text-sm font-bold text-ink">Contas a Pagar nos Próximos 7 Dias</p>
+              <p className="text-[11px] text-ink-soft">Lista de contas com vencimento na semana corrente.</p>
             </div>
             <button
               type="button"
               onClick={() => toggleWidget('showWeeklyPayables')}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                config.showWeeklyPayables ? 'bg-[#1E3328] dark:bg-[#2F4A3C]' : 'bg-black/10 dark:bg-white/10'
+                config.showWeeklyPayables ? 'bg-hexxa-forest' : 'bg-black/10 dark:bg-white/10'
               }`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -212,7 +212,7 @@ export function DashboardPreferencesForm() {
       <div className="pt-2">
         <button
           type="submit"
-          className="rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-6 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
+          className="rounded-full bg-hexxa-forest hover:brightness-110 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
         >
           Salvar Preferências
         </button>
@@ -220,4 +220,3 @@ export function DashboardPreferencesForm() {
     </form>
   );
 }
-

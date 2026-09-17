@@ -68,25 +68,25 @@ export function GeneratePixModal({
   }
 
   const field =
-    'w-full bg-[#FEFDF3] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+    'w-full bg-[#F5F6F4] dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
   const lbl = 'block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1.5';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
-      <div className="bg-[#F4EFE4] dark:bg-[#1A201C] w-full max-w-md rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
+      <div className="bg-[#E7EAE5] dark:bg-[#1A201C] w-full max-w-md rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
           <div className="flex items-center gap-2.5">
             <div className="bg-[#1E3328] text-[#DFFFAE] p-2 rounded-2xl shadow-sm">
               <QrCode className="h-5 w-5" />
             </div>
-            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#FEFDF3]">
+            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#F5F6F4]">
               Gerar Cobrança Pix
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:text-[#FEFDF3] hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+            className="tap-target pressable focusable p-2 text-[#6E6A61] hover:text-[#231F20] dark:hover:text-[#F5F6F4] hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -106,7 +106,7 @@ export function GeneratePixModal({
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Pix Gerado com Sucesso!</h3>
+                <h3 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">Pix Gerado com Sucesso!</h3>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
                   Apresente o QR Code ou compartilhe o código copia e cola com o cliente.
                 </p>
@@ -119,7 +119,7 @@ export function GeneratePixModal({
               <button
                 type="button"
                 onClick={handleCopy}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 hover:bg-black/5 transition-colors text-[#231F20] dark:text-[#FEFDF3] font-bold text-xs shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 hover:bg-black/5 transition-colors text-[#231F20] dark:text-[#F5F6F4] font-bold text-xs shadow-sm"
               >
                 <Copy className="h-4 w-4" /> Copiar Código Pix Copia e Cola
               </button>

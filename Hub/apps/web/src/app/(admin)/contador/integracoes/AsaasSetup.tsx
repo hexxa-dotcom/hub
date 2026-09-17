@@ -107,14 +107,14 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
       {/* Steps */}
       <ol className="space-y-2.5">
         {steps.map(s => (
-          <li key={s.id} className={`flex gap-3 rounded-2xl p-3.5 border ${s.done ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-black/5 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614]'}`}>
+          <li key={s.id} className={`flex gap-3 rounded-2xl p-3.5 border ${s.done ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614]'}`}>
             <span className="mt-0.5 shrink-0">
               {s.done
                 ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 : <Circle className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C]" />}
             </span>
             <div className="min-w-0">
-              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+              <p className={`text-xs sm:text-sm font-bold ${s.done ? 'text-emerald-700 dark:text-emerald-400 line-through' : 'text-[#231F20] dark:text-[#F5F6F4]'}`}>
                 {s.id}. {s.label}
               </p>
               {!s.done && <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">{s.detail}</p>}
@@ -159,7 +159,7 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
             className={`${fi} pr-10`}
           />
           <button type="button" onClick={() => setShow(s => !s)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#FEFDF3]">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-[#F5F6F4]">
             {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
@@ -169,7 +169,7 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
       {/* Webhook URL */}
       <div>
         <label className={lb}>URL do Webhook (cole no Asaas)</label>
-        <p className="mt-1.5 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-xs font-mono text-[#231F20] dark:text-[#FEFDF3] break-all">{webhookUrl}</p>
+        <p className="mt-1.5 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-2.5 text-xs font-mono text-[#231F20] dark:text-[#F5F6F4] break-all">{webhookUrl}</p>
       </div>
 
       {/* Webhook Token */}

@@ -40,24 +40,24 @@ export function ReportToolbar({
       <div className="flex items-center gap-2">
         <a
           href={downloadHref}
-          className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink hover:text-ink-soft transition-colors"
         >
           <Download className="h-3.5 w-3.5" /> Baixar PDF
         </a>
         <button
           type="button"
           onClick={() => setShowSignForm((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-2 text-xs font-bold transition-all"
         >
           <PenTool className="h-3.5 w-3.5" /> Enviar para Assinatura
         </button>
       </div>
 
       {showSignForm && (
-        <div className="w-72 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-4 shadow-lg space-y-2.5">
+        <div className="w-72 rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card p-5 shadow-(--elev-3) card-finish space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-[#231F20] dark:text-[#FEFDF3]">Enviar {documentTitle} para assinatura</p>
-            <button type="button" onClick={() => setShowSignForm(false)} className="text-[#6E6A61] hover:text-[#231F20]">
+            <p className="text-xs font-bold text-ink">Enviar {documentTitle} para assinatura</p>
+            <button type="button" onClick={() => setShowSignForm(false)} className="text-ink-soft hover:text-ink transition-colors">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -66,20 +66,20 @@ export function ReportToolbar({
             placeholder="Nome do signatário"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#121614] px-3 py-2 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-2 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
           />
           <input
             type="email"
             placeholder="E-mail do signatário"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#121614] px-3 py-2 text-xs text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C]"
+            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-2 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={isPending}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#1E3328] hover:bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] transition-colors disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-2 text-xs font-bold transition-all disabled:opacity-60"
           >
             {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Enviar

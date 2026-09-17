@@ -34,8 +34,8 @@ function KPICard({
     <div
       className={`rounded-3xl p-6 transition-all duration-300 ${
         highlight
-          ? 'bg-[#1E3328] text-[#FEFDF3] border border-[#2F4A3C] shadow-lg'
-          : 'bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#FEFDF3] shadow-sm hover:border-black/10'
+          ? 'bg-[#1E3328] text-[#F5F6F4] border border-[#2F4A3C] shadow-lg'
+          : 'bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#F5F6F4] shadow-sm hover:border-black/10'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -52,7 +52,7 @@ function KPICard({
       </div>
       <p className="mt-4 text-3xl sm:text-4xl font-serif font-bold tracking-tight tabular">{value}</p>
       {sub && (
-        <p className={`mt-1.5 text-xs font-medium ${highlight ? 'text-[#FEFDF3]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
+        <p className={`mt-1.5 text-xs font-medium ${highlight ? 'text-[#F5F6F4]/80' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
           {sub}
         </p>
       )}
@@ -142,13 +142,13 @@ export default async function AdminDashboard() {
   return (
     <div className="w-full space-y-8 animate-fade-up">
       {/* Header Banner */}
-      <div className="rounded-3xl bg-[#F4EFE4] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 md:p-8 shadow-sm">
+      <div className="rounded-3xl bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 p-6 md:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] text-[#DFFFAE] px-3.5 py-1 text-xs font-bold shadow-sm mb-3">
               <Sparkles className="h-3.5 w-3.5" /> Painel de Controle Operacional
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3]">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#231F20] dark:text-[#F5F6F4]">
               Visão Geral do Escritório
             </h1>
             <p className="mt-1 text-sm text-[#6E6A61] dark:text-[#A8A49C] max-w-2xl">
@@ -196,11 +196,11 @@ export default async function AdminDashboard() {
       {/* Two Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Solicitações abertas */}
-        <section className="lg:col-span-3 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+        <section className="lg:col-span-3 rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4 mb-4">
               <div>
-                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Solicitações Abertas</h2>
+                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">Solicitações Abertas</h2>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Atendimentos e dúvidas pendentes dos clientes</p>
               </div>
               <Link href="/contador/solicitacoes" className="flex items-center gap-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline">
@@ -224,7 +224,7 @@ export default async function AdminDashboard() {
                         </span>
                         <span className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{new Date(t.createdAt).toLocaleDateString('pt-BR')}</span>
                       </div>
-                      <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3] truncate">
+                      <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4] truncate">
                         {t.companyUseTrade && t.companyTradeName ? t.companyTradeName : t.companyName}
                       </p>
                       <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] line-clamp-1">{t.subject}</p>
@@ -243,11 +243,11 @@ export default async function AdminDashboard() {
         </section>
 
         {/* Últimos clientes */}
-        <section className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
+        <section className="lg:col-span-2 rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-4 mb-4">
               <div>
-                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Carteira Ativa</h2>
+                <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">Carteira Ativa</h2>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Últimas empresas registradas</p>
               </div>
               <Link href="/contador/clientes" className="flex items-center gap-1 text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE] hover:underline">
@@ -267,7 +267,7 @@ export default async function AdminDashboard() {
                         {name.slice(0, 2).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">{name}</p>
+                        <p className="truncate text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">{name}</p>
                         <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{c.planName}</p>
                       </div>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${STATUS_CLS[c.status]}`}>
@@ -283,9 +283,9 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Distribuição de planos */}
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm">
+      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] p-6 sm:p-7 shadow-sm">
         <div className="mb-5">
-          <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#FEFDF3]">Distribuição por Plano de Assinatura</h2>
+          <h2 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">Distribuição por Plano de Assinatura</h2>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Volume de clientes e receita mensal por modalidade contratada</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -300,7 +300,7 @@ export default async function AdminDashboard() {
                   style={{ backgroundColor: PLAN_COLORS[i % PLAN_COLORS.length] }}
                 />
                 <div className="min-w-0">
-                  <p className="font-bold text-sm text-[#231F20] dark:text-[#FEFDF3] truncate">{nome}</p>
+                  <p className="font-bold text-sm text-[#231F20] dark:text-[#F5F6F4] truncate">{nome}</p>
                   <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{BRL.format(info.monthlyValue)}/mês</p>
                 </div>
               </div>

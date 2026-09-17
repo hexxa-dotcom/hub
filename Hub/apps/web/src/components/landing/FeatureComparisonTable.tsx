@@ -97,7 +97,7 @@ export function FeatureComparisonTable() {
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(254, 253, 243, 0.5)', marginBottom: '14px', fontWeight: 600 }}>
+          <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '14px', fontWeight: 600 }}>
             ← Arraste para o lado para ver todos os planos →
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '660px' }}>
@@ -157,7 +157,7 @@ export function FeatureComparisonTable() {
                         transition: 'background 0.2s',
                       }}
                     >
-                      <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 600, color: 'rgba(254, 253, 243, 0.9)' }}>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)' }}>
                         {row.name}
                       </td>
                       <td style={{ textAlign: 'center', padding: '14px 16px' }}>{renderValue(row.gestao)}</td>

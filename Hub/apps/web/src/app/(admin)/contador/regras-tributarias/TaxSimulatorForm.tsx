@@ -34,7 +34,7 @@ export function TaxSimulatorForm() {
   };
 
   return (
-    <div className="bg-[#FEFDF3] dark:bg-[#121614] rounded-2xl border border-black/5 dark:border-white/10 p-5 sm:p-6 shadow-xs">
+    <div className="bg-[#F5F6F4] dark:bg-[#121614] rounded-2xl border border-black/5 dark:border-white/10 p-5 sm:p-6 shadow-xs">
       <form onSubmit={handleSimulate} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div>
           <label className="block text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1">
@@ -44,7 +44,7 @@ export function TaxSimulatorForm() {
             type="number" 
             value={rba12}
             onChange={(e) => setRba12(e.target.value)}
-            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
+            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
           />
         </div>
         <div>
@@ -55,7 +55,7 @@ export function TaxSimulatorForm() {
             type="number" 
             value={folha12}
             onChange={(e) => setFolha12(e.target.value)}
-            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
+            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
           />
         </div>
         <div>
@@ -66,7 +66,7 @@ export function TaxSimulatorForm() {
             type="number" 
             value={faturamentoMes}
             onChange={(e) => setFaturamentoMes(e.target.value)}
-            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
+            className="w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE]" 
           />
         </div>
         <div className="flex items-end">
@@ -81,25 +81,25 @@ export function TaxSimulatorForm() {
         <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 space-y-4 animate-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 text-[#2F4A3C] dark:text-[#DFFFAE] mb-2">
             <CheckCircle2 className="h-5 w-5" />
-            <h3 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Resultado Auditado</h3>
+            <h3 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4]">Resultado Auditado</h3>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#F4EFE4]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
+            <div className="bg-[#E7EAE5]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
               <p className="text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase">Fator R</p>
-              <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{result.fatorR}%</p>
+              <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{result.fatorR}%</p>
             </div>
-            <div className="bg-[#F4EFE4]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
+            <div className="bg-[#E7EAE5]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
               <p className="text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase">Anexo Aplicado</p>
-              <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">Anexo {result.appliedAnnex}</p>
+              <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">Anexo {result.appliedAnnex}</p>
             </div>
-            <div className="bg-[#F4EFE4]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
+            <div className="bg-[#E7EAE5]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
               <p className="text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase">Imposto Previsto</p>
-              <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">R$ {result.mockValue}</p>
+              <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">R$ {result.mockValue}</p>
             </div>
-            <div className="bg-[#F4EFE4]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
+            <div className="bg-[#E7EAE5]/60 dark:bg-[#2F4A3C]/20 rounded-xl p-3 border border-black/5 dark:border-[#DFFFAE]/20">
               <p className="text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase">ID Trace</p>
-              <p className="font-mono text-xs text-[#231F20] dark:text-[#FEFDF3] mt-1">{result.traceId}</p>
+              <p className="font-mono text-xs text-[#231F20] dark:text-[#F5F6F4] mt-1">{result.traceId}</p>
             </div>
           </div>
           

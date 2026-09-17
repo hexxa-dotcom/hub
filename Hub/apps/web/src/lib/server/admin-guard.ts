@@ -51,3 +51,33 @@ export async function requireAdmin(): Promise<void> {
     throw new Error('Não autorizado.');
   }
 }
+
+/**
+ * Id do `app_user` do contador logado, para atribuir autoria de mudanças
+ * administrativas.
+ *
+ * Devolve `null` quando não dá para resolver — em desenvolvimento com
+ * `DEV_SKIP_AUTH`, ou se o e-mail do login não tem `app_user` correspondente.
+ * Quem chama trata o nulo como "autoria desconhecida" em vez de falhar: bloquear
+ * a configuração por não saber quem a fez seria pior que registrá-la sem nome.
+ */
+export async function adminUserId(): Promise<string | null> {
+  if (DEV_SKIP_AUTH || SKIP_AUTH_TEMP) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) return null;
+
+    const { getDb, eq } = await import('@hexxa/db');
+    const { appUser } = await import('@hexxa/db/schema');
+    const [row] = await getDb()
+      .select({ id: appUser.id })
+      .from(appUser)
+      .where(eq(appUser.email, user.email));
+    return row?.id ?? null;
+  } catch {
+    return null;
+  }
+}

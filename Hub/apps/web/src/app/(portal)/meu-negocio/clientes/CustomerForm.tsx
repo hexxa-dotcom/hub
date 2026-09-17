@@ -8,7 +8,7 @@ import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/co
 
 const initial: CustomerState = { ok: false, message: '' };
 const field =
-  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
+  'mt-1.5 w-full rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-2.5 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE] transition-all';
 const lbl = 'text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wide';
 
 type LookupStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'error';
@@ -88,11 +88,11 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
   }
 
   return (
-    <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 backdrop-blur-md p-6 sm:p-8 space-y-4 shadow-sm">
+    <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 space-y-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">Adicionar Novo Cliente</h2>
+        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4]">Adicionar Novo Cliente</h2>
         {onClose && (
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
+          <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -214,7 +214,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
         </div>
 
         <div className="md:col-span-2 pt-3 border-t border-black/5 dark:border-white/10">
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#FEFDF3]">Cobrança e Contrato (Opcional)</h3>
+          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Cobrança e Contrato (Opcional)</h3>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Preencha se desejar criar uma assinatura recorrente no Asaas automaticamente.</p>
         </div>
 
@@ -254,7 +254,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
         </div>
 
         {/* Emissão automática de NFSe */}
-        <div className="md:col-span-2 flex items-start gap-2.5 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FEFDF3] dark:bg-[#121614] px-4 py-3">
+        <div className="md:col-span-2 flex items-start gap-2.5 rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] px-4 py-3">
           <input
             id="autoEmitNfse"
             name="autoEmitNfse"
@@ -263,7 +263,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
             className="mt-0.5 h-4 w-4 rounded border-black/20 accent-[#2F4A3C]"
           />
           <label htmlFor="autoEmitNfse" className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-            <span className="font-bold text-[#231F20] dark:text-[#FEFDF3]">Emitir a nota fiscal automaticamente todo mês</span>
+            <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">Emitir a nota fiscal automaticamente todo mês</span>
             <br />
             Sem contrato assinado, sem lançar nada na mão — o Hub emite a NFSe no dia de vencimento
             acima usando o valor e a descrição do serviço informados. Precisa do CNPJ e do

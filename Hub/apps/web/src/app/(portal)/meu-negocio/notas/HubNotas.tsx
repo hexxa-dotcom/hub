@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useActionState } from 'react';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import {
   FileText,
   AlertTriangle,
@@ -163,14 +164,14 @@ function Dashboard({
       {/* Navegação de Meses & Ações */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
-          {allMonths.map(m => (
+          {allMonths.map((m) => (
             <button
               key={m}
               onClick={() => setSelectedMonth(m)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                 selectedMonth === m
-                  ? 'bg-[#231F20] text-[#FEFDF3] dark:bg-[#FEFDF3] dark:text-[#231F20]'
-                  : 'bg-black/5 text-[#6E6A61] hover:bg-black/10 dark:bg-white/5 dark:text-[#A8A49C] dark:hover:bg-white/10'
+                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                  : 'bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) text-ink-soft hover:text-ink'
               }`}
             >
               {m === currentMonth ? 'Este Mês' : m}
@@ -181,43 +182,38 @@ function Dashboard({
         {/* CTA Nova Nota Slim */}
         <button
           onClick={() => onEmitir()}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] dark:bg-[#DFFFAE] px-6 py-2.5 text-sm font-bold text-[#DFFFAE] dark:text-[#1E3328] hover:scale-105 transition-transform shadow-sm"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-6 py-2.5 text-sm font-bold text-hexxa-lime shadow-(--elev-1) transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Nova Nota Fiscal
         </button>
       </div>
 
       {/* Hero: Faturamento em Destaque */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#231F20] dark:bg-[#1A201C] text-[#FEFDF3] border border-black/10 dark:border-white/10 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="relative z-10 flex-1">
-          <div className="flex items-center gap-2 text-[#6E6A61] dark:text-[#A8A49C] text-xs font-bold uppercase tracking-wider mb-2">
-            <FileText className="h-4 w-4" />
-            <span>Faturamento • {selectedMonth}</span>
-          </div>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#FEFDF3]">
-            {fmt(totalThisMonth)}
-          </h2>
+      <Card level={3} tone="deep" className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="min-w-0 flex-1">
+          <CardHeader label={`Faturamento • ${selectedMonth}`} icon={FileText} />
+          <Metric value={fmt(totalThisMonth)} size="hero" className="mt-4 text-ink" />
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-3 text-xs sm:text-sm font-bold">
-          <div className="bg-white/10 dark:bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-[#FEFDF3]">
-            <span className="text-[10px] text-white/50 uppercase tracking-wider block mb-1">Emitidas</span>
-            <span className="text-xl font-bold">{issuedThisMonth.length} notas</span>
+        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-bold">
+          <div className="bg-surface-card shadow-(--elev-inset) rounded-2xl px-5 py-3 text-ink">
+            <span className="text-caption text-ink-soft uppercase tracking-wider block mb-1">Emitidas</span>
+            <span className="text-xl font-serif font-bold tabular">{issuedThisMonth.length} notas</span>
           </div>
           
-          <div className="bg-amber-900/40 border border-amber-500/20 rounded-2xl px-5 py-3 text-amber-100" title="Imposto acumulado no mês">
-            <span className="text-[10px] text-amber-500/80 uppercase tracking-wider block mb-1">Imposto</span>
-            <span className="text-xl font-bold">{fmt(taxThisMonth)}</span>
+          <div className="bg-amber-500/10 shadow-(--elev-inset) rounded-2xl px-5 py-3 text-amber-700 dark:text-amber-300" title="Imposto acumulado no mês">
+            <span className="text-caption text-amber-600/80 dark:text-amber-400 uppercase tracking-wider block mb-1">Imposto</span>
+            <span className="text-xl font-serif font-bold tabular">{fmt(taxThisMonth)}</span>
           </div>
           
           {(inProgress.length > 0 || withError.length > 0) && (
-            <div className="bg-red-900/40 border border-red-500/30 rounded-2xl px-5 py-3 text-red-100">
-              <span className="text-[10px] text-red-400 uppercase tracking-wider block mb-1">Pendentes</span>
-              <span className="text-xl font-bold">{inProgress.length + withError.length} notas</span>
+            <div className="bg-red-500/10 shadow-(--elev-inset) rounded-2xl px-5 py-3 text-red-700 dark:text-red-300">
+              <span className="text-caption text-red-600/80 dark:text-red-400 uppercase tracking-wider block mb-1">Pendentes</span>
+              <span className="text-xl font-serif font-bold tabular">{inProgress.length + withError.length} notas</span>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       <DfeNacionalCard />
 
@@ -225,16 +221,16 @@ function Dashboard({
         {/* Coluna Esquerda: Notas Recentes */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h3 className="font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">
+            <h3 className="font-serif font-bold text-title2 text-ink">
               Histórico • {selectedMonth}
             </h3>
-            <span className="text-xs font-semibold text-[#6E6A61] dark:text-[#A8A49C]">{monthNotes.length} registros</span>
+            <span className="text-footnote text-ink-soft">{monthNotes.length} registros</span>
           </div>
 
           {monthNotes.length === 0 ? (
-            <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] p-12 text-center shadow-sm">
-              <FileText className="h-8 w-8 mx-auto text-[#6E6A61] dark:text-[#A8A49C] opacity-40 mb-4" />
-              <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Nenhuma nota neste mês.</p>
+            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-12 text-center">
+              <FileText className="h-8 w-8 mx-auto text-ink-soft opacity-40 mb-4" />
+              <p className="text-sm font-bold text-ink">Nenhuma nota neste mês.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -247,7 +243,7 @@ function Dashboard({
                 return (
                   <div
                     key={n.id}
-                    className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] shadow-sm transition-shadow hover:shadow-md"
+                    className="overflow-hidden rounded-2xl bg-surface-card shadow-(--elev-1) transition-shadow hover:shadow-(--elev-2)"
                   >
                     {/* Linha Header do Card */}
                     <div
@@ -256,22 +252,22 @@ function Dashboard({
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="hidden sm:flex shrink-0 w-16 items-center justify-center">
-                          <span className="text-xs font-mono font-bold text-[#6E6A61] dark:text-[#A8A49C] bg-black/5 dark:bg-white/5 py-1 px-2 rounded-md">
+                          <span className="text-xs font-mono font-bold text-ink-soft bg-surface-card shadow-(--elev-inset) py-1 px-2 rounded-md">
                             {displayNum}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <p className={`font-bold text-sm truncate ${isCanceled ? 'text-[#6E6A61] line-through' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+                            <p className={`font-bold text-sm truncate ${isCanceled ? 'text-ink-soft line-through' : 'text-ink'}`}>
                               {n.customer?.name ?? 'Cliente Avulso'}
                             </p>
                             {n.providerMode === 'mock' && (
-                              <span title="Nota de teste" className="hidden sm:inline-block rounded-md bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:text-amber-300">
+                              <span title="Nota de teste" className="hidden sm:inline-block rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:text-amber-300">
                                 Teste
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] truncate mt-0.5">
+                          <p className="text-[11px] text-ink-soft truncate mt-0.5">
                             {n.serviceDescription}
                           </p>
                         </div>
@@ -282,11 +278,11 @@ function Dashboard({
                           <StatusBadge status={n.status} />
                         </div>
                         <div className="text-right w-24">
-                          <p className={`font-bold text-sm sm:text-base tabular ${isCanceled ? 'text-[#6E6A61] line-through' : 'text-[#231F20] dark:text-[#FEFDF3]'}`}>
+                          <p className={`font-serif font-bold text-sm sm:text-base tabular ${isCanceled ? 'text-ink-soft line-through' : 'text-ink'}`}>
                             {fmt(n.amount)}
                           </p>
                         </div>
-                        <button className="text-[#6E6A61] hover:text-[#231F20] p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <button className="tap-target pressable focusable text-ink-soft hover:text-ink p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </button>
                       </div>
@@ -294,41 +290,43 @@ function Dashboard({
 
                     {/* Detalhes Expansíveis */}
                     {isExpanded && (
-                      <div className="border-t border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-4 sm:p-5 space-y-4">
+                      <div className="border-t border-black/5 dark:border-white/5 bg-surface-card/40 p-4 sm:p-5 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-1">Tomador</p>
-                            <p className="font-semibold text-[#231F20] dark:text-[#FEFDF3]">{n.customer?.name}</p>
-                            {n.customer?.document && <p className="text-[#6E6A61] dark:text-[#A8A49C] text-xs mt-0.5">{n.customer.document}</p>}
+                            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Tomador</p>
+                            <p className="font-semibold text-ink">{n.customer?.name}</p>
+                            {n.customer?.document && <p className="text-ink-soft text-xs mt-0.5">{n.customer.document}</p>}
                           </div>
                           <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-1">Descrição</p>
-                            <p className="text-[#231F20] dark:text-[#FEFDF3] leading-relaxed whitespace-pre-wrap">{n.serviceDescription}</p>
+                            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Descrição</p>
+                            <p className="text-ink leading-relaxed whitespace-pre-wrap">{n.serviceDescription}</p>
                           </div>
                         </div>
 
                         {n.taxAmount != null && n.taxAmount > 0 && (
-                          <div className="grid grid-cols-3 gap-3 rounded-2xl bg-white dark:bg-black/20 border border-black/5 dark:border-white/5 p-3.5 text-sm shadow-sm">
+                          <div className="grid grid-cols-3 gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) p-3.5 text-sm">
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-1">Valor da nota</p>
-                              <p className="font-bold text-[#231F20] dark:text-[#FEFDF3]">{fmt(n.amount)}</p>
+                              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Valor da nota</p>
+                              <p className="font-serif font-bold tabular text-ink">{fmt(n.amount)}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">
+                              <p className="text-caption font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">
                                 Imposto {n.taxRate != null ? `(${pctFmt(n.taxRate)}%)` : ''}
                               </p>
-                              <p className="font-bold text-amber-700 dark:text-amber-300">{fmt(n.taxAmount)}</p>
+                              <p className="font-serif font-bold tabular text-amber-700 dark:text-amber-300">{fmt(n.taxAmount)}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE] mb-1">Líquido</p>
-                              <p className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{fmt(n.amount - n.taxAmount)}</p>
+                              <p className="text-caption font-bold uppercase tracking-wider text-hexxa-green dark:text-hexxa-lime mb-1">Valor líquido</p>
+                              <p className="font-serif font-bold tabular text-hexxa-green dark:text-hexxa-lime">
+                                {fmt(n.amount - n.taxAmount)}
+                              </p>
                             </div>
                           </div>
                         )}
 
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-1">Chave / Protocolo</p>
-                          <code className="text-xs font-mono text-[#6E6A61] bg-black/5 dark:bg-white/5 p-2 rounded-lg block break-all select-all">
+                        <div className="border-t border-black/5 dark:border-white/5 pt-3">
+                          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Chave / Protocolo</p>
+                          <code className="text-xs font-mono text-ink-soft bg-surface-card shadow-(--elev-inset) p-2 rounded-lg block break-all select-all">
                             {n.providerProtocol ?? 'Aguardando retorno da Sefin...'}
                           </code>
                         </div>
@@ -341,7 +339,7 @@ function Dashboard({
                                 href={`/meu-negocio/notas/${n.id}/danfse`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] dark:bg-[#FEFDF3] hover:opacity-90 px-4 py-2 text-xs font-bold text-[#DFFFAE] dark:text-[#231F20] shadow-sm transition-transform hover:scale-[1.02]"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
                               >
                                 <FileText className="h-3.5 w-3.5" /> PDF
                               </a>
@@ -349,13 +347,13 @@ function Dashboard({
                                 href={`/api/nfse/${n.id}/xml`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-xs font-bold text-[#231F20] dark:text-[#FEFDF3] hover:bg-black/5 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink transition-all"
                               >
                                 <Download className="h-3.5 w-3.5" /> XML
                               </a>
                               <button
                                 onClick={() => onCancel(n.id, n.providerProtocol!)}
-                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 ml-auto transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-expense hover:bg-red-500/10 ml-auto transition-colors"
                               >
                                 <XCircle className="h-3.5 w-3.5" /> Cancelar
                               </button>
@@ -374,34 +372,34 @@ function Dashboard({
         {/* Coluna Direita: Faturamento Pendente */}
         <div className="space-y-4">
           <div className="px-2">
-            <h3 className="font-bold text-lg text-[#231F20] dark:text-[#FEFDF3]">
+            <h3 className="font-serif font-bold text-title2 text-ink">
               Pendentes • {selectedMonth}
             </h3>
           </div>
 
-          <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] p-5 shadow-sm space-y-4">
+          <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-5 space-y-4">
             {clientesSemNota.length > 0 ? (
               <>
                 <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
-                  <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
                     <Clock className="h-4 w-4" /> {clientesSemNota.length} aguardando
                   </p>
                 </div>
                 <div className="space-y-2">
                   {clientesSemNota.slice(0, 5).map((c) => (
-                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#F4EFE4] dark:bg-white/5 border border-black/5 dark:border-white/5">
-                      <p className="text-sm font-semibold truncate text-[#231F20] dark:text-[#FEFDF3]">{c.name}</p>
+                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-card shadow-(--elev-inset)">
+                      <p className="text-sm font-semibold truncate text-ink">{c.name}</p>
                       
                       <button
                         onClick={() => onEmitir(c.name, c.document ?? undefined)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] dark:bg-[#FEFDF3] dark:hover:bg-white text-[#DFFFAE] dark:text-[#231F20] px-4 py-1.5 text-[11px] font-bold shadow-sm transition-transform hover:scale-105"
+                        className="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-hexxa-forest hover:bg-hexxa-green text-hexxa-lime px-4 py-1.5 text-caption font-bold shadow-(--elev-1) transition-all cursor-pointer"
                       >
                         Emitir →
                       </button>
                     </div>
                   ))}
                   {clientesSemNota.length > 5 && (
-                    <p className="text-xs text-center font-medium text-[#6E6A61] pt-2">
+                    <p className="text-xs text-center font-medium text-ink-soft pt-2">
                       + {clientesSemNota.length - 5} clientes
                     </p>
                   )}
@@ -410,7 +408,7 @@ function Dashboard({
             ) : (
               <div className="text-center py-8">
                 <CheckCircle2 className="h-10 w-10 text-[#2F4A3C] dark:text-[#DFFFAE] mx-auto mb-3" />
-                <p className="text-sm font-bold text-[#231F20] dark:text-[#FEFDF3]">Tudo em dia!</p>
+                <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Tudo em dia!</p>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-2 leading-relaxed">
                   Todos os clientes já possuem<br />nota neste mês.
                 </p>
@@ -526,18 +524,18 @@ function EmitirNota({
   const canSubmit = !pending && (destMode !== 'cliente' || Boolean(selectedId));
 
   const field =
-    'mt-1.5 w-full bg-white dark:bg-[#1A201C] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3.5 text-sm text-[#231F20] dark:text-[#FEFDF3] outline-none focus:border-[#2F4A3C] dark:focus:border-[#DFFFAE] focus:ring-1 focus:ring-[#2F4A3C]/20 dark:focus:ring-[#DFFFAE]/20 transition-all placeholder:text-[#6E6A61]/40 shadow-sm';
-  const lbl = 'text-[11px] font-bold text-[#6E6A61] uppercase tracking-wider dark:text-[#A8A49C] ml-1 block';
+    'mt-1.5 w-full bg-surface-card shadow-(--elev-inset) rounded-2xl px-4 py-3.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all placeholder:text-ink-soft/40';
+  const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider ml-1 block';
 
   return (
     <div className="space-y-6 w-full max-w-4xl animate-fade-up">
       {mode === 'gov' ? (
-        <div className="flex items-center gap-2.5 rounded-3xl bg-[#EFFFD6] border border-[#DFFFAE] p-4 text-xs font-bold text-[#2F4A3C]">
+        <div className="flex items-center gap-2.5 rounded-3xl bg-hexxa-forest/10 border border-hexxa-green/20 p-4 text-xs font-bold text-hexxa-green dark:text-hexxa-lime">
           <ShieldCheck className="h-5 w-5 shrink-0" />
           Emitindo no Emissor Nacional — ambiente de produção real
         </div>
       ) : (
-        <div className="flex items-center gap-2.5 rounded-3xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 p-4 text-xs font-bold text-amber-900 dark:text-amber-200">
+        <div className="flex items-center gap-2.5 rounded-3xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs font-bold text-amber-700 dark:text-amber-300">
           <FlaskConical className="h-5 w-5 shrink-0" />
           Modo de teste — a nota será gravada no banco local para simulação.
         </div>
@@ -545,14 +543,14 @@ function EmitirNota({
 
       <form action={action} className="space-y-6">
         {/* Card 1: Valor */}
-        <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#1A201C] p-6 sm:p-8 shadow-sm">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-6 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-[10px]">1</span>
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-6 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-card shadow-(--elev-inset) text-[10px]">1</span>
             Qual o valor faturado?
           </h3>
           
           <div className="flex items-center gap-3">
-            <span className="text-4xl sm:text-6xl font-light text-[#6E6A61]/30 dark:text-[#A8A49C]/30 select-none">R$</span>
+            <span className="text-4xl sm:text-6xl font-light text-ink-soft/40 select-none">R$</span>
             <input
               name="amount"
               type="number"
@@ -562,28 +560,28 @@ function EmitirNota({
               placeholder="0,00"
               value={amount || ''}
               onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-              className="w-full bg-transparent text-5xl sm:text-7xl font-bold tracking-tight text-[#231F20] dark:text-[#FEFDF3] outline-none placeholder:text-[#6E6A61]/20 dark:placeholder:text-[#A8A49C]/20"
+              className="w-full bg-transparent font-serif tabular text-5xl sm:text-7xl font-bold tracking-tight text-ink outline-none placeholder:text-ink-soft/20"
             />
           </div>
           
           {amount > 0 && taxRatePercent > 0 && (
             <div className="mt-6 flex flex-wrap gap-4 text-sm font-bold">
-              <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 px-5 py-3 text-amber-800 dark:text-amber-400">
-                <span className="text-[10px] uppercase tracking-wider block mb-1 opacity-80">Imposto Estimado ({pctFmt(taxRatePercent)}%)</span>
-                {fmt(previewTax)}
+              <div className="rounded-2xl bg-amber-500/10 shadow-(--elev-inset) px-5 py-3 text-amber-700 dark:text-amber-300">
+                <span className="text-caption uppercase tracking-wider block mb-1 opacity-80">Imposto Estimado ({pctFmt(taxRatePercent)}%)</span>
+                <span className="font-serif tabular">{fmt(previewTax)}</span>
               </div>
-              <div className="rounded-2xl bg-black/5 dark:bg-white/5 px-5 py-3 text-[#231F20] dark:text-[#FEFDF3]">
-                <span className="text-[10px] uppercase tracking-wider block mb-1 opacity-60">Valor Líquido</span>
-                {fmt(previewNet)}
+              <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) px-5 py-3 text-ink">
+                <span className="text-caption uppercase tracking-wider block mb-1 opacity-60">Valor Líquido</span>
+                <span className="font-serif tabular">{fmt(previewNet)}</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Card 2: Serviço e Competência */}
-        <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 p-6 sm:p-8 shadow-sm">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] mb-6 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-[10px]">2</span>
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
+          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-6 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-card shadow-(--elev-inset) text-[10px]">2</span>
             Detalhes do Serviço
           </h3>
           
@@ -615,13 +613,13 @@ function EmitirNota({
               ) : profiles && profiles.length === 1 ? (
                 <>
                   <input type="hidden" name="profileId" value={profiles[0]!.id} />
-                  <p className={`${field} bg-black/5 dark:bg-white/5 text-[#6E6A61] dark:text-[#A8A49C]`}>
+                  <p className={`${field} text-ink-soft`}>
                     {profiles[0]!.nome} — item {profiles[0]!.itemListaServico}
                     {profiles[0]!.aliquotaIss != null ? ` · ISS ${profiles[0]!.aliquotaIss}%` : ''}
                   </p>
                 </>
               ) : (
-                <p className="text-xs font-bold text-red-600">
+                <p className="text-xs font-bold text-expense">
                   Nenhum perfil fiscal cadastrado — <Link href="/configuracoes/fiscal" className="underline">cadastre um</Link> antes de emitir.
                 </p>
               )}
@@ -630,7 +628,7 @@ function EmitirNota({
         </div>
 
         {/* Card 3: Destinatário */}
-        <div className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#F4EFE4]/60 dark:bg-[#1A201C]/60 p-6 sm:p-8 shadow-sm">
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-[10px]">3</span>
@@ -646,8 +644,8 @@ function EmitirNota({
                     onClick={() => handleModeChange(t.key)}
                     className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold transition-all ${
                       destMode === t.key
-                        ? 'bg-white dark:bg-[#231F20] text-[#231F20] dark:text-[#FEFDF3] shadow-sm'
-                        : 'bg-transparent text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] dark:hover:text-[#FEFDF3]'
+                        ? 'bg-white dark:bg-[#231F20] text-[#231F20] dark:text-[#F5F6F4] shadow-sm'
+                        : 'bg-transparent text-[#6E6A61] dark:text-[#A8A49C] hover:text-[#231F20] dark:hover:text-[#F5F6F4]'
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -744,15 +742,15 @@ function EmitirNota({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#1E3328] dark:bg-[#DFFFAE] hover:bg-[#2F4A3C] dark:hover:bg-white px-10 py-4 text-base font-bold text-[#DFFFAE] dark:text-[#1E3328] shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-10 py-4 text-base font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.01] disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
             {pending ? 'Processando Emissão...' : 'Emitir Nota Fiscal (NFSe)'}
           </button>
 
           {state.message && (
-            <div className={`w-full rounded-3xl p-5 text-sm font-bold ${
-              state.ok ? 'bg-[#EFFFD6] text-[#2F4A3C] border border-[#DFFFAE]' : 'bg-red-50 text-red-800 border border-red-200'
+            <div className={`w-full rounded-3xl p-5 text-sm font-bold shadow-(--elev-1) ${
+              state.ok ? 'bg-surface-card text-hexxa-green dark:text-hexxa-lime' : 'bg-red-500/10 text-expense shadow-(--elev-inset)'
             }`}>
               <p className="flex items-center gap-2">
                 {state.ok ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertTriangle className="h-5 w-5 shrink-0" />}

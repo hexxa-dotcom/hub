@@ -1,11 +1,44 @@
 {
   "framework": "nextjs",
-  "regions": ["gru1"],
+  "regions": [
+    "gru1"
+  ],
   "crons": [
-    { "path": "/api/cron/cobranca", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/despesas-fixas", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/fechamento", "schedule": "0 5 1 * *" },
-    { "path": "/api/cron/nfse-status", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/nibo-sync", "schedule": "0 8 * * *" }
+    {
+      "path": "/api/cron/cobranca",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/despesas-fixas",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/fechamento",
+      "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/nfse-status",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/nibo-sync",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/escrituracao",
+      "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/fechamento-conferido",
+      "schedule": "0 6 1 * *"
+    },
+    {
+      "path": "/api/cron/classificacao",
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/retorno-oneflow",
+      "schedule": "0 9 10 * *"
+    }
   ]
 }
