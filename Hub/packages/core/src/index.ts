@@ -5,3 +5,4 @@ export * from './ports/index';
 export * from './services/index';
 export * from './accounting/index';
 export * from './agent/index';
+export * from './banking/index';

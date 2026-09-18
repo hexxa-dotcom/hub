@@ -9,3 +9,4 @@ export * from './oneflow-client';
 export * from './retorno-oneflow';
 export * from './envio-nfse-oneflow';
 export * from './abertura';
+export * from './importar-extrato';
