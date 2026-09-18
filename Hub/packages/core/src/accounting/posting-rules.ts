@@ -495,6 +495,65 @@ export function settlePayslip(doc: PayslipDoc): JournalDraft {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   Movimento bancário sem par no financeiro
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export interface MovimentoBancarioDoc {
+  id: string;
+  data: string;
+  /** Positivo entrou na conta; negativo saiu. */
+  valor: number;
+  descricao: string;
+  /**
+   * Conta de resultado, quando a classificação encontrou uma.
+   *
+   * `null` manda para a transitória — e é o único lugar do sistema onde não
+   * ter conta ainda assim lança. Ver o comentário da regra.
+   */
+  resultAccountCode?: string | null;
+  cashAccountCode?: string | null;
+}
+
+/**
+ * Lança um movimento bancário que não casou com nenhum lançamento financeiro.
+ *
+ * ── Por que este caso lança SEM classificação, e a nota não ─────────────
+ *
+ * Documento sem classificação não é escriturado: fica pendente, e a regra é
+ * essa porque a competência pode esperar. O extrato é o oposto — o dinheiro
+ * JÁ saiu da conta. Não lançar faria o saldo do razão divergir do saldo real
+ * do banco, e é justamente essa igualdade que dá sentido à conciliação.
+ *
+ * Então lança-se contra a transitória: o caixa bate, a pendência fica visível
+ * numa conta com nome próprio, e o fechamento do mês trava enquanto ela tiver
+ * saldo. Fila com alarme, não balde.
+ */
+export function accrueBankTransaction(doc: MovimentoBancarioDoc): JournalDraft {
+  const caixa = doc.cashAccountCode ?? ACCOUNTS.BANCOS;
+  const contrapartida = doc.resultAccountCode ?? ACCOUNTS.VALORES_A_CLASSIFICAR;
+  const valor = Math.abs(doc.valor);
+  const entrou = doc.valor > 0;
+
+  return assertBalanced({
+    entryDate: doc.data,
+    referenceMonth: monthOf(doc.data),
+    memo: doc.descricao.slice(0, 255),
+    source: 'BANK_TRANSACTION',
+    sourceId: doc.id,
+    event: 'SETTLEMENT',
+    lines: entrou
+      ? [
+          { accountCode: caixa, direction: 'DEBIT', amount: valor },
+          { accountCode: contrapartida, direction: 'CREDIT', amount: valor },
+        ]
+      : [
+          { accountCode: contrapartida, direction: 'DEBIT', amount: valor },
+          { accountCode: caixa, direction: 'CREDIT', amount: valor },
+        ],
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Saldos de abertura — a empresa que chega no meio do caminho
    ══════════════════════════════════════════════════════════════════════════ */
 

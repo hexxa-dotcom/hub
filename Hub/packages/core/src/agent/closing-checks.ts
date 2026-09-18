@@ -95,6 +95,15 @@ export interface DadosDoMes {
   saldoBanco: { peloRazao: number; peloCadastro: number | null; temFeed: boolean };
   /** Total de lançamentos no mês — zero é suspeito, não é "mês tranquilo". */
   totalLancamentos: number;
+  /**
+   * Saldo da conta transitória do extrato bancário.
+   *
+   * Movimento que entrou no razão sem se saber o que é. Diferente das outras
+   * pendências, esta NÃO pode acompanhar o mês fechado: a transitória não
+   * existe na ITG 1000, e entregar um balanço com saldo nela seria entregar
+   * um balanço com uma linha que não significa nada.
+   */
+  transitoria: { saldo: number; quantidade: number };
   /** Despesa total do mês, para medir o PESO do que está sem classificação. */
   despesaTotal: number;
 }

@@ -146,6 +146,25 @@ export async function coletarDadosDoMes(
     FROM bank_account b WHERE b.company_id = ${companyId}
   `)) as unknown as Record<string, unknown>[];
 
+  /**
+   * Saldo da transitória do extrato — o que trava o fechamento.
+   *
+   * Até a data do fim do mês, e não do mês inteiro: um movimento de setembro
+   * não deve impedir o fechamento de agosto.
+   */
+  const [transitoria] = (await tx.execute(sql`
+    SELECT COALESCE(SUM(CASE WHEN l.direction = 'DEBIT' THEN l.amount ELSE -l.amount END), 0)::float AS saldo,
+           count(*)::int AS quantidade
+      FROM ledger_line l
+      JOIN journal_entry j ON j.id = l.journal_entry_id
+      JOIN chart_of_account a ON a.id = l.account_id
+     WHERE l.company_id = ${companyId}
+       AND a.code = '1.1.09.001'
+       AND j.status = 'POSTED'
+       AND j.reversed_by IS NULL
+       AND j.entry_date <= (${referenceMonth}::date + '1 month'::interval - '1 day'::interval)
+  `)) as unknown as Record<string, unknown>[];
+
   const receita = Number(totais?.receita ?? 0);
 
   return {
@@ -155,6 +174,10 @@ export async function coletarDadosDoMes(
       quantidade: Number(classif?.quantidade ?? 0),
       valor: Number(classif?.valor ?? 0),
       documentos: (classif?.documentos as string[]) ?? [],
+    },
+    transitoria: {
+      saldo: Number(transitoria?.saldo ?? 0),
+      quantidade: Number(transitoria?.quantidade ?? 0),
     },
     extratoPendente: {
       quantidade: Number(extrato?.quantidade ?? 0),

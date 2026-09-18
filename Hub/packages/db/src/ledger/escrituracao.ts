@@ -161,17 +161,36 @@ async function escriturarLinhaFinanceira(
     source: e.source,
   };
 
-  const drafts: DraftThunk[] = [
-    { documento: `financial_entry/${e.id}`, montar: () => accrueFinancialEntry(doc) },
-  ];
-  if (e.status === 'PAID') {
-    drafts.push({
-      documento: `financial_entry/${e.id}#baixa`,
-      montar: () => settleFinancialEntry(doc),
-    });
-  }
+  const reconhecimento = await gravarLote(
+    tx, companyId,
+    [{ documento: `financial_entry/${e.id}`, montar: () => accrueFinancialEntry(doc) }],
+    opts,
+  );
 
-  return gravarLote(tx, companyId, drafts, opts);
+  /**
+   * A baixa só vai se o reconhecimento foi.
+   *
+   * `gravarLote` isola a falha de cada rascunho, e isso é certo para um lote
+   * de documentos independentes — mas reconhecimento e baixa do MESMO
+   * lançamento não são independentes. Gravar a baixa sozinha debita
+   * Fornecedores que nunca foi creditado, e o passivo fica com saldo devedor:
+   * um número que não existe no mundo e que o razão aceita, porque cada
+   * partida fecha isoladamente.
+   *
+   * Aparecia quando o lançamento não tinha categoria: o reconhecimento era
+   * recusado por falta de conta contábil — corretamente — e a baixa passava
+   * assim mesmo. Ficou raro enquanto a baixa era manual; virou rotina quando
+   * o extrato bancário passou a baixar sozinho o que casa.
+   */
+  if (reconhecimento.erros.length) return reconhecimento;
+  if (e.status !== 'PAID') return reconhecimento;
+
+  const baixa = await gravarLote(
+    tx, companyId,
+    [{ documento: `financial_entry/${e.id}#baixa`, montar: () => settleFinancialEntry(doc) }],
+    opts,
+  );
+  return somar(reconhecimento, baixa);
 }
 
 /* ── Guias de imposto ──────────────────────────────────────────────────── */

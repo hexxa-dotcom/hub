@@ -54,6 +54,20 @@ export const ACCOUNTS = {
   CLIENTES: '1.1.02.001',
   ADIANTAMENTO_FORNECEDOR: '1.1.03.001',
   IMPOSTOS_A_RECUPERAR: '1.1.04.001',
+  /**
+   * TRANSITÓRIA do extrato bancário. Tem que estar zerada no fechamento.
+   *
+   * Movimento bancário que ainda não se sabe o que é. Diferente de uma nota
+   * sem classificação — que pode esperar, porque é competência —, o dinheiro
+   * do extrato JÁ saiu da conta: não lançar faria o saldo do razão divergir do
+   * saldo real do banco, e a conciliação inteira perderia o sentido.
+   *
+   * Então lança-se aqui, o caixa bate, e o mês NÃO FECHA enquanto sobrar
+   * saldo. É uma fila com alarme, não um balde: a ITG 1000 não tem conta "a
+   * classificar", e deixá-la com saldo num balanço entregue seria esconder o
+   * problema em vez de mostrá-lo.
+   */
+  VALORES_A_CLASSIFICAR: '1.1.09.001',
 
   FORNECEDORES: '2.1.01.001',
   SALARIOS_A_PAGAR: '2.1.02.001',
@@ -150,6 +164,8 @@ export const DEFAULT_CHART: AccountSeed[] = [
   { code: '1.1.04', name: 'Tributos a Recuperar', type: 'ATIVO', analytical: false },
   { code: ACCOUNTS.IMPOSTOS_A_RECUPERAR, name: 'Impostos a Recuperar', type: 'ATIVO', analytical: true },
 
+  { code: '1.1.09', name: 'Contas Transitórias', type: 'ATIVO', analytical: false },
+  { code: ACCOUNTS.VALORES_A_CLASSIFICAR, name: 'Valores a Classificar (transitória)', type: 'ATIVO', analytical: true },
   { code: '1.1.05', name: 'Estoques', type: 'ATIVO', analytical: false },
   { code: '1.1.05.001', name: 'Mercadorias para Revenda', type: 'ATIVO', analytical: true },
 

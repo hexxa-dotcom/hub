@@ -7,6 +7,7 @@ const mesLimpo = (): DadosDoMes => ({
   razao: { debito: 100_000, credito: 100_000 },
   aClassificar: { quantidade: 0, valor: 0, documentos: [] },
   extratoPendente: { quantidade: 0, valor: 0 },
+  transitoria: { saldo: 0, quantidade: 0 },
   receita: 50_000,
   receitaComNota: 50_000,
   receitaSemNota: { quantidade: 0, valor: 0, documentos: [] },
