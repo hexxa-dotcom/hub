@@ -245,7 +245,7 @@ export class OneflowAdapter {
    * válido, alguém precisa fazer login de novo — e o erro precisa dizer isso,
    * em vez de falhar como "não autorizado" genérico.
    */
-  private async tokenDoUsuario(): Promise<string> {
+  private async tokenDoUsuario(forcarRenovacao = false): Promise<string> {
     const atual = await this.store.ler('USER', null);
     if (!atual) {
       throw new OneflowError(
@@ -255,7 +255,7 @@ export class OneflowAdapter {
           'abra /api/portal/users/me/token/ para obter o par token + refresh_token.',
       );
     }
-    if (!expirado(atual)) return atual.token;
+    if (!forcarRenovacao && !expirado(atual)) return atual.token;
 
     if (!atual.refreshToken) {
       throw new OneflowError(
@@ -280,6 +280,44 @@ export class OneflowAdapter {
     return novo.token;
   }
 
+  /**
+   * Executa algo que depende do token do usuário, renovando se o portal
+   * recusar.
+   *
+   * ── Por que a validade guardada não basta ───────────────────────────────
+   *
+   * Nós não sabemos quando o token do usuário expira: a documentação diz 24h,
+   * e guardamos 23 para ter margem. Mas é um PALPITE — e um palpite sobre o
+   * relógio de outro sistema.
+   *
+   * Observado em 18/09/2026: o token estava marcado como válido por mais onze
+   * horas e o portal já respondia 403. Como o adaptador confiava na validade
+   * guardada, ele não renovava; e como não renovava, TODA chamada que precisa
+   * do portal falhava — durante as onze horas inteiras, sem nada no sistema
+   * indicando o motivo. É exatamente o modo de falha silenciosa que a cadeia
+   * de tokens existe para evitar.
+   *
+   * Então a renovação passa a ter dois gatilhos: a validade (barata, evita o
+   * erro) e a RECUSA (correta, não depende de adivinhar o relógio deles).
+   */
+  private async comRenovacao<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      const auth = err instanceof OneflowError && (err.status === 401 || err.status === 403);
+      if (!auth) throw err;
+
+      await this.tokenDoUsuario(true);
+      // Os tokens de app derivam do token do usuário: se ele era inválido,
+      // os que nasceram dele também são.
+      this.appHashEscritorio = null;
+      return fn();
+    }
+  }
+
+  /** Cache do hash do escritório dentro da instância — muda a cada renovação. */
+  private appHashEscritorio: string | null = null;
+
   /** Token de um app (escritório ou empresa), pedido pelo `app_hash`. */
   private async tokenDoApp(appHash: string, scope: 'APP' | 'COMPANY', chave: string): Promise<string> {
     const atual = await this.store.ler(scope, chave);
@@ -287,8 +325,10 @@ export class OneflowAdapter {
 
     // O portal emite token de app a partir do token do usuário. Renovar por
     // aqui é mais simples que pelo refresh do app e tem o mesmo efeito.
-    const usuario = await this.tokenDoUsuario();
-    const r = await this.pedir<RespostaToken>(`${PORTAL}/apps/${appHash}/token/`, { token: usuario });
+    const r = await this.comRenovacao(async () => {
+      const usuario = await this.tokenDoUsuario();
+      return this.pedir<RespostaToken>(`${PORTAL}/apps/${appHash}/token/`, { token: usuario });
+    });
     if (!r.token) throw new OneflowError(null, `token do app ${appHash}`, 'resposta sem token');
 
     const novo: TokenDuplo = {
@@ -313,10 +353,12 @@ export class OneflowAdapter {
 
   /** Apps da conta. É aqui que se descobre o `app_hash` do OneflOW do escritório. */
   async listarApps(): Promise<{ app_hash: string; app_type: string; nome?: string }[]> {
-    const usuario = await this.tokenDoUsuario();
-    const r = await this.pedir<unknown>(`${PORTAL}/apps/`, { token: usuario });
-    const lista = Array.isArray(r) ? r : ((r as Record<string, unknown>).results as unknown[]) ?? [];
-    return lista as { app_hash: string; app_type: string; nome?: string }[];
+    return this.comRenovacao(async () => {
+      const usuario = await this.tokenDoUsuario();
+      const r = await this.pedir<unknown>(`${PORTAL}/apps/`, { token: usuario });
+      const lista = Array.isArray(r) ? r : ((r as Record<string, unknown>).results as unknown[]) ?? [];
+      return lista as { app_hash: string; app_type: string; nome?: string }[];
+    });
   }
 
   /** `app_hash` do OneFlow do escritório, descoberto pelo `app_type`. */
@@ -645,12 +687,7 @@ export class OneflowAdapter {
     companyId: string,
     appHash: string,
   ): Promise<Record<string, string>> {
-    const token = await this.tokenDaEmpresa(companyId, appHash);
-    const r = await this.pedir<Record<string, unknown>>(
-      `${API}/oneflow/empresa/geral/dadosbasicos`,
-      { token },
-    );
-    const res = (r.result ?? r) as Record<string, unknown>;
+    const res = await this.dadosBasicosDaEmpresa(companyId, appHash);
     const modulos = Array.isArray(res.modulos) ? (res.modulos as Record<string, unknown>[]) : [];
 
     const out: Record<string, string> = {};
@@ -661,6 +698,25 @@ export class OneflowAdapter {
       if (ok) out[String(m.modulo ?? '')] = `${ok[2]}-${ok[1]}`;
     }
     return out;
+  }
+
+  /**
+   * Cadastro da empresa no OneFlow: razão, fantasia, endereço, módulos.
+   *
+   * É a fonte do cadastro no Hub. Os dados já foram conferidos por alguém ao
+   * abrir a empresa lá — pedir ao cliente que os digite de novo só cria uma
+   * segunda versão da verdade, com erros próprios.
+   */
+  async dadosBasicosDaEmpresa(
+    companyId: string,
+    appHash: string,
+  ): Promise<Record<string, unknown>> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    const r = await this.pedir<Record<string, unknown>>(
+      `${API}/oneflow/empresa/geral/dadosbasicos`,
+      { token },
+    );
+    return (r.result ?? r) as Record<string, unknown>;
   }
 
   /** Quadro societário cadastrado lá — confere contra os sócios do Hub. */

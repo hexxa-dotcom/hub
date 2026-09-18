@@ -21,34 +21,34 @@ export default async function FaturamentoPorClientePage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre Faturamento por Cliente"
+            description="Quanto cada cliente representou no faturamento da empresa no ano fiscal selecionado."
+          />
+
+          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
               Faturamento por Cliente · {ano}
             </h1>
-            <SectionInfo
-              title="Sobre Faturamento por Cliente"
-              description="Quanto cada cliente representou no faturamento da empresa no ano fiscal selecionado."
-            />
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <form method="get" className="flex items-center gap-2">
-              <select name="ano" defaultValue={ano} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
-                {anos.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-              <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
-                Ver
-              </button>
-            </form>
-            <ReportToolbar
-              reportType="faturamento-por-cliente"
-              query={{ ano }}
-              documentTitle={`Faturamento por Cliente — ${ano}`}
-            />
+            <div className="flex items-center gap-2">
+              <form method="get" className="flex items-center gap-2">
+                <select name="ano" defaultValue={ano} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+                  {anos.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
+                  Ver
+                </button>
+              </form>
+              <ReportToolbar
+                reportType="faturamento-por-cliente"
+                query={{ ano }}
+                documentTitle={`Faturamento por Cliente — ${ano}`}
+              />
+            </div>
           </div>
         </div>
       </Card>

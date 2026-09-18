@@ -102,35 +102,35 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <Card level={2} tone="deep" className="relative z-30 card-finish p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre Suporte & Consultoria"
+            description="Canal direto de comunicação com seu time contábil e histórico unificado de chamados."
+          />
+
+          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
               Chat de Suporte &amp; Consultoria
             </h1>
-            <SectionInfo
-              title="Sobre Suporte & Consultoria"
-              description="Canal direto de comunicação com seu time contábil e histórico unificado de chamados."
-            />
-          </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMeetingModal(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
+              >
+                <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" /> Agendar Reunião
+              </button>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowMeetingModal(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
-            >
-              <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" /> Agendar Reunião
-            </button>
-
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20b858] px-5 py-2 text-xs font-bold text-white shadow-(--elev-1) transition-all hover:scale-105 active:scale-95"
-            >
-              <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Emergencial
-            </a>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20b858] px-5 py-2 text-xs font-bold text-white shadow-(--elev-1) transition-all hover:scale-105 active:scale-95"
+              >
+                <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Emergencial
+              </a>
+            </div>
           </div>
         </div>
       </Card>

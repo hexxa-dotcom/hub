@@ -64,44 +64,44 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
       {/* Header com botões */}
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight capitalize">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre o Fechamento Mensal"
+            description="Dados consolidados e enviados para a rotina contábil mensal."
+          />
+
+          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right capitalize">
               Relatório de Fechamento — {monthName}
             </h1>
-            <SectionInfo
-              title="Sobre o Fechamento Mensal"
-              description="Dados consolidados e enviados para a rotina contábil mensal."
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <select 
-                className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
-                defaultValue={closure.reference_month}
-                onChange={(e) => {
-                  if (typeof window !== 'undefined') {
-                    window.location.href = `/meu-negocio/relatorios/fechamento?month=${e.target.value}`;
-                  }
-                }}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <select 
+                  className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
+                  defaultValue={closure.reference_month}
+                  onChange={(e) => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = `/meu-negocio/relatorios/fechamento?month=${e.target.value}`;
+                    }
+                  }}
+                >
+                  {closures.map(c => {
+                    const [y, m] = c.reference_month.split('-');
+                    const n = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                    return <option key={c.reference_month} value={c.reference_month}>{n}</option>;
+                  })}
+                </select>
+              </div>
+              
+              <button 
+                onClick={() => { if (typeof window !== 'undefined') window.print(); }}
+                className="flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-colors cursor-pointer"
               >
-                {closures.map(c => {
-                  const [y, m] = c.reference_month.split('-');
-                  const n = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-                  return <option key={c.reference_month} value={c.reference_month}>{n}</option>;
-                })}
-              </select>
+                <Printer className="h-4 w-4" />
+                Imprimir
+              </button>
             </div>
-            
-            <button 
-              onClick={() => { if (typeof window !== 'undefined') window.print(); }}
-              className="flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir
-            </button>
           </div>
         </div>
       </Card>

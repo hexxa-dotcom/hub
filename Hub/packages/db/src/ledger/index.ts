@@ -11,3 +11,4 @@ export * from './envio-nfse-oneflow';
 export * from './abertura';
 export * from './importar-extrato';
 export * from './conciliar-extrato';
+export * from './cadastro-oneflow';

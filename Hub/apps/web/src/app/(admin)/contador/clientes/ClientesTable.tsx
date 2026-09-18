@@ -15,6 +15,7 @@ import {
   FileText,
   RefreshCw,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 import { AsaasModal } from '@/components/contador/AsaasModal';
 import { ManualAuthorization } from './ManualAuthorization';
@@ -116,6 +117,12 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/contador/clientes/nova"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] transition-transform active:scale-95 dark:bg-[#DFFFAE] dark:text-[#231F20]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo cliente
+            </Link>
             <ManualAuthorization />
           </div>
         </div>

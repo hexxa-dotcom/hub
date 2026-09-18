@@ -10,16 +10,16 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6 animate-in fade-in">
-      <Card level={2} tone="deep" className="relative z-30 card-finish p-6 sm:p-7">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
+        <div className="flex items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre Serviços Adicionais & Alterações"
+            description="Solicite serviços extras, alterações cadastrais, parcelamentos fiscais e certidões negativas com acompanhamento em tempo real."
+          />
+          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
               Serviços Adicionais &amp; Alterações
             </h1>
-            <SectionInfo
-              title="Sobre Serviços Adicionais & Alterações"
-              description="Solicite serviços extras, alterações cadastrais, parcelamentos fiscais e certidões negativas com acompanhamento em tempo real."
-            />
           </div>
         </div>
       </Card>
