@@ -64,6 +64,15 @@ export async function GET(request: Request) {
      */
     let orcamento = await cotaRestante(db);
 
+    /**
+     * O relógio limita antes da cota.
+     *
+     * Com 1,1s entre chamadas, os 300s de `maxDuration` cabem ~272 chamadas.
+     * Parar pelo prazo evita ser morto no meio de uma importação, o que
+     * deixaria uma guia gravada sem o PDF e um razão pela metade.
+     */
+    const prazo = Date.now() + 300_000 - 40_000;
+
     for (const empresa of ligadas) {
       const [dados] = (await db.execute(sql`
         SELECT cnpj FROM company WHERE id = ${empresa.id}
@@ -92,7 +101,8 @@ export async function GET(request: Request) {
         continue;
       }
 
-      if (orcamento <= 0) { interrompido = empresa.nome; break; }
+      if (orcamento <= 0) { interrompido = `${empresa.nome} (cota)`; break; }
+      if (Date.now() > prazo) { interrompido = `${empresa.nome} (tempo)`; break; }
 
       /**
        * Sondagem barata antes de gastar a importação inteira.

@@ -191,6 +191,8 @@ export interface ResultadoEnvioRazao {
   restantes: number;
   bloqueadas: number;
   cotaAcabou: boolean;
+  /** Parou pelo relógio, não pela cota — o resto vai na próxima execução. */
+  tempoAcabou: boolean;
 }
 
 /**
@@ -217,6 +219,8 @@ export async function enviarRazao(
   cliente: {
     enviarLancamento: (c: string, a: string, l: LancamentoOneflow) => Promise<{ id: string | null }>;
   },
+  /** Instante (epoch ms) em que esta execução precisa ter terminado. */
+  prazo?: number,
 ): Promise<ResultadoEnvioRazao> {
   const ensaio = await ensaiarEnvio(tx, companyId, referenceMonth, cnpjDaEmpresa);
   const out: ResultadoEnvioRazao = {
@@ -226,11 +230,31 @@ export async function enviarRazao(
     restantes: 0,
     bloqueadas: ensaio.bloqueadas.length,
     cotaAcabou: false,
+    tempoAcabou: false,
   };
 
   for (const [i, p] of ensaio.prontas.entries()) {
     if (out.enviadas >= limite) {
       out.restantes = ensaio.prontas.length - i;
+      break;
+    }
+
+    /**
+     * Para ANTES do prazo, não quando ele chega.
+     *
+     * O espaçamento obrigatório de 1,1s entre chamadas impõe um teto de ~272
+     * chamadas numa função de 300s. Ser morto no meio não seria só perder o
+     * resto do lote: se a execução terminar ENTRE o OneFlow aceitar o
+     * lançamento e nós registrarmos o envio, a partida existe lá e não consta
+     * aqui — e amanhã ela vai de novo, duplicada na contabilidade oficial.
+     *
+     * Duplicata lá não tem desfazer automático: some só por exclusão manual,
+     * e a listagem do razão deles não devolve ids. Por isso a margem é
+     * generosa: parar cedo custa um dia; parar tarde custa uma correção à mão.
+     */
+    if (prazo && Date.now() > prazo) {
+      out.restantes = ensaio.prontas.length - i;
+      out.tempoAcabou = true;
       break;
     }
     try {

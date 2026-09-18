@@ -40,6 +40,20 @@ export const maxDuration = 300;
  */
 const RESERVA_PARA_A_VOLTA = 120;
 
+/**
+ * Teto por execução imposto pelo RELÓGIO, não pela cota.
+ *
+ * O espaçamento obrigatório de 1,1s entre chamadas (limite de 60/min) faz
+ * 272 chamadas ocuparem os 300s de `maxDuration`. Pedir mais que isso não
+ * manda mais: manda o mesmo e morre no fim, com o risco de a morte cair entre
+ * o OneFlow aceitar um lançamento e nós registrarmos que ele foi.
+ *
+ * A margem de 40s é para a consulta de implantação, o ensaio de cada mês e a
+ * variação de latência da rede.
+ */
+const MARGEM_DE_SEGURANCA_MS = 40_000;
+const TETO_POR_EXECUCAO = 220;
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -51,9 +65,11 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const pedido = url.searchParams.get('limite');
-    const orcamento = pedido
-      ? Number(pedido)
-      : await cotaRestante(db, RESERVA_PARA_A_VOLTA);
+    const prazo = Date.now() + 300_000 - MARGEM_DE_SEGURANCA_MS;
+    const orcamento = Math.min(
+      pedido ? Number(pedido) : await cotaRestante(db, RESERVA_PARA_A_VOLTA),
+      TETO_POR_EXECUCAO,
+    );
 
     if (orcamento <= 0) {
       return NextResponse.json({
@@ -131,9 +147,10 @@ export async function GET(request: Request) {
         if (mes.slice(0, 7) < inicioContabil) continue;
 
         const r = await enviarRazao(
-          db, empresa.id, appHash, dados.cnpj, mes, restante, cliente,
+          db, empresa.id, appHash, dados.cnpj, mes, restante, cliente, prazo,
         );
         restante -= r.enviadas;
+        if (r.tempoAcabou) { interrompido = `${empresa.nome} (tempo da execução)`; break; }
 
         if (r.enviadas || r.erros.length || r.bloqueadas) {
           relatorio.push({
