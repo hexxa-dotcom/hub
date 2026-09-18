@@ -6,6 +6,7 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,17 +40,15 @@ export default async function Page() {
       <Suspense fallback={null}>
         <HubFinanceiroInsight />
       </Suspense>
-      <Card level={2} tone="deep" className="p-6 sm:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-display font-serif text-ink">
-              Hub Financeiro
-            </h1>
-            <p className="mt-1 text-footnote text-ink-soft max-w-xl">
-              Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade.
-              O Balanço e o DRE ficam na aba Contabilidade.
-            </p>
-          </div>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4 w-full">
+          <SectionInfo
+            title="Sobre o Hub Financeiro"
+            description="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
+          />
+          <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight text-right shrink-0">
+            Hub Financeiro
+          </h1>
         </div>
       </Card>
 

@@ -27,7 +27,7 @@ export default async function McpSetupPage() {
             <Sparkles className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-ink">Assistente de IA & API</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">Assistente de IA & API</h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">
               Conecte o Claude, o ChatGPT ou um sistema externo para consultar e lançar dados financeiros da sua empresa com segurança.
             </p>

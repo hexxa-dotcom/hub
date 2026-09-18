@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
@@ -60,14 +61,17 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="card-finish">
-        <div>
-          <h1 className="text-display font-serif text-ink tracking-tight">
-            Gestão de Contratos de Serviços
-          </h1>
-          <p className="mt-1 text-footnote text-ink-soft">
-            Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais.
-          </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Gestão de Contratos de Serviços
+            </h1>
+            <SectionInfo
+              title="Sobre a Gestão de Contratos"
+              description="Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais."
+            />
+          </div>
         </div>
       </Card>
 

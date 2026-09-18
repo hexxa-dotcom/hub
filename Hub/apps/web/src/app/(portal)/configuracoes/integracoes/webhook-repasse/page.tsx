@@ -37,7 +37,7 @@ export default async function WebhookRepassePage() {
             WR
           </div>
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               Faturamento do SaaS do Cliente
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">

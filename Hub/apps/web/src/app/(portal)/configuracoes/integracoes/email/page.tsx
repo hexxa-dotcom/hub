@@ -33,7 +33,7 @@ export default async function EmailIntegracaoPage() {
             <Mail className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               E-mail (Envio de NFS-e)
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">

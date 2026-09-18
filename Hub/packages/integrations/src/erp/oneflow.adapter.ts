@@ -300,8 +300,24 @@ export class OneflowAdapter {
       `${API}/oneflow/escritorio/empresas/listar?pagina=${pagina}`,
       { token },
     );
-    const lista = Array.isArray(r) ? r : ((r as Record<string, unknown>).empresas as unknown[]) ?? [];
-    return lista as EmpresaOneflow[];
+    /**
+     * A lista vem em `result.empresas`, e as chaves são MINÚSCULAS:
+     * `apphash`, `cnpj`, `razao`. A primeira versão lia `empresas` na raiz e
+     * `appHash`/`razaoSocial` em cada item — e por isso devolvia lista vazia
+     * ou objetos sem hash, silenciosamente. Silenciosamente é o problema:
+     * quem chamava concluía "empresa não existe no OneFlow" quando o que
+     * havia era um nome de campo errado.
+     */
+    const env = r as Record<string, unknown>;
+    const res = (env.result ?? env) as Record<string, unknown>;
+    const lista = (Array.isArray(r) ? r : (res.empresas as unknown[])) ?? [];
+
+    return (lista as Record<string, unknown>[]).map((e) => ({
+      appHash: String(e.apphash ?? e.appHash ?? ''),
+      cnpj: String(e.cnpj ?? ''),
+      razaoSocial: String(e.razao ?? e.razaoSocial ?? ''),
+      ...e,
+    }));
   }
 
   /**

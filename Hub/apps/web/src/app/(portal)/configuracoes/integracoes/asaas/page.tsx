@@ -46,7 +46,7 @@ export default async function AsaasSetupPage() {
             AS
           </div>
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">Configurar Asaas (Gateway)</h1>
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">Configurar Asaas (Gateway)</h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">
               Gere cobranças via PIX e Boleto e controle recebimentos de forma automática.
             </p>

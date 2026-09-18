@@ -3,6 +3,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getInformeDeRendimentos } from '@/lib/server/informe-rendimentos';
 import { Info, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { PrintButton } from './PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function InformeRendimentosPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-10">
-      <Card level={2} tone="deep" className="card-finish print:hidden">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <Link 
@@ -41,10 +42,13 @@ export default async function InformeRendimentosPage({
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Relatórios
             </Link>
-            <h1 className="text-display font-serif text-ink tracking-tight mt-3">Lucros e Rendimentos</h1>
-            <p className="text-footnote text-ink-soft mt-1">
-              Lucros distribuídos aos sócios em {informe.ano}.
-            </p>
+            <div className="flex items-center gap-2.5 mt-3">
+              <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">Lucros e Rendimentos</h1>
+              <SectionInfo
+                title="Sobre Lucros e Rendimentos"
+                description={`Lucros distribuídos aos sócios em ${informe.ano}. O documento que o sócio usa na sua declaração de IRPF.`}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {informe.anosDisponiveis.length > 1 && (

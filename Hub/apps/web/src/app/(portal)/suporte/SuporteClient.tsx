@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import {
   createSupportTicketAction,
   sendSupportMessageAction,
@@ -101,15 +102,16 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <Card level={2} tone="deep" className="card-finish p-6 sm:p-8">
+      <Card level={2} tone="deep" className="relative z-30 card-finish p-6 sm:p-7">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
-              Chat de Suporte & Consultoria
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Chat de Suporte &amp; Consultoria
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-ink-soft">
-              Canal direto de comunicação com seu time contábil e histórico unificado de chamados.
-            </p>
+            <SectionInfo
+              title="Sobre Suporte & Consultoria"
+              description="Canal direto de comunicação com seu time contábil e histórico unificado de chamados."
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

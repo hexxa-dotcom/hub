@@ -244,9 +244,10 @@ async function importarGuias(
      * cota é o recurso mais escasso desta integração.
      */
     const completa = Boolean(existente?.fileUrl && existente?.pixCode);
-    const arquivo = completa
-      ? { fileUrl: null, pixCode: null }
-      : await buscarArquivoDaGuia(of, companyId, appHash, competencia, codigo, out);
+    const arquivo: { fileUrl: string | null; pixCode: string | null; vencimento: string | null } =
+      completa
+        ? { fileUrl: null, pixCode: null, vencimento: null }
+        : await buscarArquivoDaGuia(of, companyId, appHash, competencia, codigo, out);
 
     if (!existente) {
       const [nova] = await tx
@@ -256,7 +257,10 @@ async function importarGuias(
           taxName,
           referenceMonth,
           amount: valor.toFixed(2),
-          dueDate: vencimentoPadrao(competencia),
+          // O vencimento do anexo é o real, já deslocado para dia útil pelo
+          // OneFlow. `vencimentoPadrao` só entra quando a guia ainda não foi
+          // gerada lá e não há anexo de onde tirá-lo.
+          dueDate: arquivo.vencimento ?? vencimentoPadrao(competencia),
           status: 'OPEN',
           fileUrl: arquivo.fileUrl,
           pixCode: arquivo.pixCode,
@@ -282,9 +286,13 @@ async function importarGuias(
      * Só preenche o que está VAZIO: um Pix colado à mão pelo contador vale
      * mais que o nosso palpite, e sobrescrevê-lo seria perder trabalho dele.
      */
-    const preencher: { fileUrl?: string; pixCode?: string } = {};
+    const preencher: { fileUrl?: string; pixCode?: string; dueDate?: string } = {};
     if (!existente.fileUrl && arquivo.fileUrl) preencher.fileUrl = arquivo.fileUrl;
     if (!existente.pixCode && arquivo.pixCode) preencher.pixCode = arquivo.pixCode;
+    // O vencimento real chega junto com o anexo, depois da guia já existir.
+    if (arquivo.vencimento && existente.dueDate !== arquivo.vencimento) {
+      preencher.dueDate = arquivo.vencimento;
+    }
     if (Object.keys(preencher).length) {
       await tx.update(taxGuide).set(preencher).where(eq(taxGuide.id, existente.id));
     }
@@ -524,24 +532,25 @@ async function lerFatorR(
 /* ── Arquivo da guia ────────────────────────────────────────────────────── */
 
 /**
- * Busca o anexo da obrigação e extrai dele o que serve para PAGAR.
+ * Busca o anexo da obrigação e traz o PDF da guia.
  *
- * ── Por que este parser é defensivo a este ponto ────────────────────────
+ * ── O formato, verificado contra guia real ──────────────────────────────
  *
- * A especificação do OneFlow documenta os parâmetros deste endpoint mas
- * **não documenta o corpo da resposta**, e a única resposta real que
- * observei foi a vazia (`{"obrigacoes":[]}`), porque a HEXX ainda não tem
- * guia gerada lá. Então os nomes de campo abaixo são hipóteses, não fatos.
+ * Confirmado em 18/09/2026 com a guia do DAS de 08/2026 da SIMED PREV:
  *
- * Duas regras decorrem disso, e as duas importam mais que acertar de
- * primeira:
+ *   { arquivo: "<base64>", dataGeracao, horaGeracao, dataVencimento, valor }
  *
- *   1. Nada é inventado. Se nenhuma hipótese casar, a guia fica sem arquivo
- *      e a tela do cliente diz que ele ainda não saiu — que é a verdade.
+ * O campo `arquivo` NÃO é o PDF em base64 — é uma **URL em base64**. Decodificada,
+ * aponta para o CDN da Omie e devolve `application/pdf` de verdade (159 KB no
+ * caso observado).
  *
- *   2. O formato não reconhecido é RELATADO, com as chaves que vieram. É o
- *      que transforma a primeira guia real num diagnóstico em vez de num
- *      silêncio, sem precisar de nova sondagem manual.
+ * ── E ela expira em 24 horas ────────────────────────────────────────────
+ *
+ * A URL vem assinada, com `Expires` no próprio endereço. Guardá-la em
+ * `file_url` daria ao cliente um botão "Baixar Guia" que funciona hoje e
+ * morre amanhã — e ele só descobriria na hora de pagar. Por isso o PDF é
+ * BAIXADO e guardado como `data:` URI, do mesmo jeito que o sistema já faz
+ * com comprovante anexado.
  */
 async function buscarArquivoDaGuia(
   of: ReturnType<typeof clienteOneflow>,
@@ -550,8 +559,8 @@ async function buscarArquivoDaGuia(
   competencia: string,
   imposto: string,
   out: RetornoResult,
-): Promise<{ fileUrl: string | null; pixCode: string | null }> {
-  const vazio = { fileUrl: null, pixCode: null };
+): Promise<{ fileUrl: string | null; pixCode: string | null; vencimento: string | null }> {
+  const vazio = { fileUrl: null, pixCode: null, vencimento: null };
 
   const codigo = OBRIGACAO_DO_IMPOSTO[imposto];
   if (!codigo) return vazio;
@@ -576,27 +585,64 @@ async function buscarArquivoDaGuia(
     return null;
   };
 
-  const url = texto('url', 'link', 'urlArquivo', 'urlAnexo', 'caminho', 'download');
-  const base64 = texto('arquivo', 'anexo', 'conteudo', 'base64', 'file');
+  // `dataVencimento` vem no formato DD/MM/AAAA e é o vencimento REAL, já
+  // deslocado para dia útil. Vale mais que o dia 20 que calculamos sem
+  // calendário de feriados.
+  const venc = texto('dataVencimento');
+  const vencimento = venc && /^\d{2}\/\d{2}\/\d{4}$/.test(venc)
+    ? `${venc.slice(6, 10)}-${venc.slice(3, 5)}-${venc.slice(0, 2)}`
+    : null;
+
   const pix = texto('pix', 'pixCode', 'copiaECola', 'linhaDigitavel', 'codigoBarras');
+  const bruto = texto('arquivo', 'anexo', 'conteudo', 'base64', 'file');
 
-  let fileUrl: string | null = url;
-  if (!fileUrl && base64 && base64.length > 256) {
-    // Base64 vira data: URI — o `href` do botão "Baixar Guia" funciona com
-    // ele igual, e o Hub não tem storage externo para arquivo de guia.
-    const nome = texto('nomeArquivo', 'nome', 'filename') ?? '';
-    const tipo = /\.xml$/i.test(nome) ? 'application/xml' : 'application/pdf';
-    fileUrl = `data:${tipo};base64,${base64}`;
-  }
-
-  if (!fileUrl && !pix) {
+  if (!bruto) {
     out.avisos.push(
-      `Arquivo da guia (${codigo}): o OneFlow devolveu anexo, mas em formato não reconhecido. ` +
+      `Arquivo da guia (${codigo}): anexo sem campo de arquivo. ` +
         `Chaves recebidas: ${Object.keys(a).join(', ')}.`,
     );
+    return { ...vazio, pixCode: pix, vencimento };
   }
 
-  return { fileUrl, pixCode: pix };
+  let decodificado: string;
+  try {
+    decodificado = Buffer.from(bruto, 'base64').toString('utf-8');
+  } catch {
+    decodificado = '';
+  }
+
+  // Caminho conhecido: base64 de uma URL assinada.
+  if (/^https?:\/\//.test(decodificado)) {
+    try {
+      const res = await fetch(decodificado);
+      if (!res.ok) throw new Error(`CDN respondeu ${res.status}`);
+      const bytes = Buffer.from(await res.arrayBuffer());
+      const tipo = res.headers.get('content-type')?.split(';')[0] ?? 'application/pdf';
+      return {
+        fileUrl: `data:${tipo};base64,${bytes.toString('base64')}`,
+        pixCode: pix,
+        vencimento,
+      };
+    } catch (err) {
+      out.avisos.push(
+        `Arquivo da guia (${codigo}): a URL veio, mas o download falhou (${msg(err)}). ` +
+          'A guia fica sem arquivo e a próxima rodada tenta de novo.',
+      );
+      return { ...vazio, pixCode: pix, vencimento };
+    }
+  }
+
+  // Caminho alternativo: o próprio PDF em base64. Não observado até aqui,
+  // mas barato de aceitar — e melhor que recusar um formato plausível.
+  if (bruto.length > 1024) {
+    return { fileUrl: `data:application/pdf;base64,${bruto}`, pixCode: pix, vencimento };
+  }
+
+  out.avisos.push(
+    `Arquivo da guia (${codigo}): conteúdo não reconhecido como URL nem como PDF. ` +
+      `Chaves recebidas: ${Object.keys(a).join(', ')}.`,
+  );
+  return { ...vazio, pixCode: pix, vencimento };
 }
 
 function msg(err: unknown): string {

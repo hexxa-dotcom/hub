@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { listDocumentsAction } from './actions';
 import { ArquivosClient } from './ArquivosClient';
 
@@ -9,13 +10,18 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
-        <h1 className="font-serif font-bold text-display text-ink tracking-tight">
-          Documentos da Empresa
-        </h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Repositório centralizado do cartão CNPJ, contrato social, alvarás, documentos dos sócios e certidões negativas (CNDs).
-        </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Documentos da Empresa
+            </h1>
+            <SectionInfo
+              title="Sobre os Documentos da Empresa"
+              description="Repositório centralizado do cartão CNPJ, contrato social, alvarás, documentos dos sócios e certidões negativas (CNDs)."
+            />
+          </div>
+        </div>
       </Card>
 
       <ArquivosClient initialDocs={docs} />

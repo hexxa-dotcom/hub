@@ -8,6 +8,7 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,15 +41,16 @@ export default async function Page() {
         <PatrimonialInsight companyId={ctx.companyId} insightContext={insightContext} />
       </Suspense>
 
-      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-bold text-display text-ink tracking-tight">
-              Gestão de Patrimônio & Ativos
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Gestão de Patrimônio &amp; Ativos
             </h1>
-            <p className="mt-1 text-body-sm text-ink-soft">
-              Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos.
-            </p>
+            <SectionInfo
+              title="Sobre Gestão de Patrimônio & Ativos"
+              description="Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos."
+            />
           </div>
         </div>
       </Card>

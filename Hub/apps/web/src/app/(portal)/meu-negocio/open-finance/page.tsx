@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { Bank, ShieldCheck, ArrowsClockwise, Sparkle, ArrowRight } from '@phosphor-icons/react/dist/ssr';
 
 export const metadata: Metadata = { title: 'Open Finance · Hexxa Hub' };
@@ -46,17 +47,20 @@ const RECURSOS = [
 export default function OpenFinancePage() {
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-display font-serif text-ink">Open Finance</h1>
-          <p className="text-footnote text-ink-soft mt-2">
-            Conexão direta com as contas bancárias da empresa.
-          </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">Open Finance</h1>
+            <SectionInfo
+              title="Sobre Open Finance"
+              description="Conexão direta com as contas bancárias da empresa para conciliação automática e extratos em tempo real."
+            />
+          </div>
+          <span className="rounded-full bg-hexxa-forest/10 dark:bg-hexxa-lime/10 border border-hexxa-forest/20 dark:border-hexxa-lime/20 px-3.5 py-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">
+            Em breve
+          </span>
         </div>
-        <span className="rounded-full bg-hexxa-green-dark px-4 py-1.5 text-caption font-bold uppercase tracking-wide text-hexxa-cream">
-          Em breve
-        </span>
-      </div>
+      </Card>
 
       <Card level={3} tone="deep" className="flex flex-col gap-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">

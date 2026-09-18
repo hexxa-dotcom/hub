@@ -10,3 +10,6 @@ node_modules
 # Certificado digital da empresa e arquivos de teste locais (não são código)
 Arquivos Hexx/
 *.pfx
+
+# Cache incremental do TypeScript — artefato de build, muda a cada compilação
+*.tsbuildinfo

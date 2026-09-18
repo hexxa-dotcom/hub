@@ -125,7 +125,7 @@ export async function appHashPorCnpj(
     const empresas = await of.listarEmpresas(pagina);
     if (empresas.length === 0) return null;
     const achou = empresas.find((e) => so(String(e.cnpj ?? '')) === alvo);
-    if (achou) return achou.appHash ?? (achou.app_hash as string) ?? null;
+    if (achou) return achou.appHash || null;
   }
   return null;
 }

@@ -77,6 +77,7 @@ async function getBusinessContracts() {
 }
 
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export default async function Page() {
   const ctx = await getTenantContext();
@@ -89,15 +90,16 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif font-bold text-display text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               Relacionamento &amp; CRM
             </h1>
-            <p className="mt-1 text-body-sm text-ink-soft">
-              Gestão unificada de clientes, pipeline de tarefas, contratos e consultas à Receita Federal.
-            </p>
+            <SectionInfo
+              title="Sobre Relacionamento & CRM"
+              description="Gestão unificada de clientes, pipeline de tarefas, contratos e consultas à Receita Federal."
+            />
           </div>
         </div>
       </Card>

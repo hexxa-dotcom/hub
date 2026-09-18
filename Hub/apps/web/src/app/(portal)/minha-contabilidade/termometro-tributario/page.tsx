@@ -3,6 +3,7 @@ import { getSimplesInputs, getCurrentMinimumWage } from '@/lib/server/fiscal';
 import { TaxThermometerService, ProlaboreAutopilotService } from '@hexxa/core';
 import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -34,13 +35,18 @@ export default async function TermometroTributarioPage() {
 
   return (
     <div className="space-y-6">
-      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
-        <h1 className="font-serif font-bold text-display text-ink tracking-tight">
-          Bússola Tributária
-        </h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Acompanhamento em tempo real da alíquota efetiva do Simples Nacional, sublimite e enquadramento do Fator R.
-        </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Bússola Tributária
+            </h1>
+            <SectionInfo
+              title="Sobre a Bússola Tributária"
+              description="Acompanhamento em tempo real da alíquota efetiva do Simples Nacional, sublimite e enquadramento do Fator R."
+            />
+          </div>
+        </div>
       </Card>
 
       {rbt12 === 0 ? (

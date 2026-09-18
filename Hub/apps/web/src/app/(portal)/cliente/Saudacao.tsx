@@ -37,7 +37,7 @@ export async function Saudacao() {
   }
 
   return (
-    <h1 className="text-display font-serif text-ink">
+    <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
       {periodoDoDia()}
       {primeiroNome ? `, ${primeiroNome}` : ''}
     </h1>

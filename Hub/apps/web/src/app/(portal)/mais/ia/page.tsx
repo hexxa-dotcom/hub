@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { listarFilas } from './actions';
 import { FilasClient } from './FilasClient';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const metadata: Metadata = { title: 'O que a IA fez · Hexxa Hub' };
 export const dynamic = 'force-dynamic';
@@ -16,14 +17,17 @@ export default async function IaPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <Card level={2} tone="deep" className="card-finish p-6 sm:p-8">
-        <div>
-          <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">
-            O que a IA fez
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-ink-soft">
-            Tudo o que os agentes inteligentes propuseram ou aplicaram, com a evidência detalhada que sustenta cada decisão contábil.
-          </p>
+      <Card level={2} tone="deep" className="relative z-30 card-finish p-6 sm:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              O que a IA fez
+            </h1>
+            <SectionInfo
+              title="Sobre O que a IA fez"
+              description="Tudo o que os agentes inteligentes propuseram ou aplicaram, com a evidência detalhada que sustenta cada decisão contábil."
+            />
+          </div>
         </div>
       </Card>
 

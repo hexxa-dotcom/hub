@@ -8,6 +8,7 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,15 +89,16 @@ export default async function Page() {
           <NotasInsight companyId={companyId} insightContext={insightContext} />
         </Suspense>
       )}
-      <Card level={2} tone="deep" className="p-6 sm:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-display font-serif text-ink">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               Notas Fiscais de Serviço
             </h1>
-            <p className="mt-1 text-footnote text-ink-soft max-w-xl">
-              Emissão simplificada, acompanhamento no Emissor Nacional e gestão de tomadores.
-            </p>
+            <SectionInfo
+              title="Sobre as Notas Fiscais"
+              description="Emissão simplificada, acompanhamento no Emissor Nacional e gestão de tomadores."
+            />
           </div>
         </div>
       </Card>

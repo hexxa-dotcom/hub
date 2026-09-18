@@ -45,7 +45,7 @@ export default async function OmieSetupPage() {
             OM
           </div>
           <div>
-            <h1 className="font-serif font-bold text-2xl sm:text-3xl text-ink tracking-tight">Configurar Omie / OneFlow</h1>
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">Configurar Omie / OneFlow</h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">
               Sincronize recebimentos e despesas direto com a contabilidade do ERP.
             </p>

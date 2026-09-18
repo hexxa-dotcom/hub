@@ -8,6 +8,7 @@ import { getSimplesInputs, proLaboreMinimoParaFatorR } from '@/lib/server/fiscal
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,13 +45,18 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
-        <h1 className="font-serif font-bold text-display text-ink tracking-tight">
-          Gestão de Sócios
-        </h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Pró-labore estratégico para otimização do Fator R e lançamentos de distribuição de lucros isenta.
-        </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              Gestão de Sócios
+            </h1>
+            <SectionInfo
+              title="Sobre a Gestão de Sócios"
+              description="Pró-labore estratégico para otimização do Fator R e lançamentos de distribuição de lucros isenta."
+            />
+          </div>
+        </div>
       </Card>
 
       <Suspense fallback={null}>

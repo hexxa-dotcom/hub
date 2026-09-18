@@ -2,6 +2,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getBalancoDreData, monthLabel, monthLabelShort } from '@/lib/server/reports';
 import { Info, TrendingDown, Scale, Receipt } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { PrintButton } from './PrintButton';
 import { ReportToolbar } from '../ReportToolbar';
 
@@ -32,15 +33,16 @@ export default async function BalancoInstantaneoPage({
         }
       `}</style>
 
-      <Card level={2} tone="deep" className="card-finish print:hidden">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-display font-serif text-ink tracking-tight">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               Balanço e DRE — <span className="capitalize">{periodoLabel}</span>
             </h1>
-            <p className="mt-1 text-footnote text-ink-soft">
-              Gerado em tempo real com base nos lançamentos conciliados no sistema.
-            </p>
+            <SectionInfo
+              title="Sobre Balanço e DRE"
+              description="Gerado em tempo real com base nos lançamentos conciliados no sistema."
+            />
           </div>
 
           <div className="flex flex-col items-end gap-2">

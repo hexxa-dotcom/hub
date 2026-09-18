@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { BarChart3, Scale, Users, Clock, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,13 +42,18 @@ const REPORTS: { href: string; icon: LucideIcon; title: string; description: str
 export default function RelatoriosHubPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-7 animate-fade-up">
-      <Card level={2} tone="deep" className="card-finish">
-        <h1 className="text-display font-serif text-ink tracking-tight">
-          O que você quer visualizar?
-        </h1>
-        <p className="mt-1 text-footnote text-ink-soft max-w-xl">
-          Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema.
-        </p>
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              O que você quer visualizar?
+            </h1>
+            <SectionInfo
+              title="Sobre os Relatórios"
+              description="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
+            />
+          </div>
+        </div>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -2,6 +2,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getFaturamentoPorClienteData, SEM_CLIENTE } from '@/lib/server/reports';
 import { Info } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SectionInfo } from '@/components/ui/SectionInfo';
 import { ReportToolbar } from '../ReportToolbar';
 
 export const dynamic = 'force-dynamic';
@@ -20,15 +21,16 @@ export default async function FaturamentoPorClientePage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
-      <Card level={2} tone="deep" className="card-finish print:hidden">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-display font-serif text-ink tracking-tight">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               Faturamento por Cliente · {ano}
             </h1>
-            <p className="mt-1 text-footnote text-ink-soft">
-              Quanto cada cliente representou no faturamento do ano.
-            </p>
+            <SectionInfo
+              title="Sobre Faturamento por Cliente"
+              description="Quanto cada cliente representou no faturamento da empresa no ano fiscal selecionado."
+            />
           </div>
 
           <div className="flex flex-col items-end gap-2">

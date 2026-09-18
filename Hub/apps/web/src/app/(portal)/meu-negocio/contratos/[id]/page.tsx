@@ -15,7 +15,7 @@ export default async function ContratoDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-4xl w-full space-y-6 animate-in fade-in">
-      <Card level={2} tone="deep" className="card-finish">
+      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
         <div className="flex items-center gap-4">
           <Link
             href="/meu-negocio/contratos"
@@ -24,7 +24,7 @@ export default async function ContratoDetailPage({ params }: { params: Promise<{
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-display font-serif text-ink leading-tight">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               {detail.contract.title}
             </h1>
           </div>
