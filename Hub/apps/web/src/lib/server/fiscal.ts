@@ -383,12 +383,54 @@ export async function estimateInvoiceTaxRate(
   profileAliquota?: number | null,
 ): Promise<number> {
   if (cfg.optanteSimples) {
+    /**
+     * A alíquota REAL da última apuração manda.
+     *
+     * `tax_history` é alimentado pela volta do OneFlow com o que ele de fato
+     * apurou — RBT12, alíquota efetiva e anexo. Preferi-la ao cálculo interno
+     * é o que impede o descasamento entre o "imposto aproximado" que o
+     * cliente vê ao emitir e o DAS que chega depois: quem calcula imposto é
+     * o sistema contábil, e o Hub mostra o que ele calculou.
+     */
+    const real = await ultimaAliquotaApurada(ctx);
+    if (real !== null) return real;
+
     const { rbt12, folha12 } = await getSimplesInputs(ctx);
     const { TaxThermometerService } = await import('@hexxa/core');
     const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
-    return simples.nominalRate;
+    /**
+     * EFETIVA, não nominal.
+     *
+     * O DAS é calculado sobre a alíquota efetiva, que desconta a parcela a
+     * deduzir da faixa. Usar a nominal só coincide na primeira faixa (onde a
+     * parcela é zero) e superestima daí para cima: numa empresa com RBT12 de
+     * R$ 500 mil no Anexo III, a nominal é 13,5% e a efetiva 9,97% — o
+     * cliente veria um imposto 35% maior que o real em toda nota emitida.
+     */
+    return simples.effectiveRate;
   }
   return profileAliquota ?? cfg.aliquotaIss ?? 0;
+}
+
+/**
+ * Alíquota efetiva da apuração mais recente que o OneFlow devolveu.
+ *
+ * `null` quando ainda não há apuração importada — empresa nova, ou mês que
+ * o contábil ainda não fechou. Aí o cálculo interno assume, e é por isso que
+ * ele continua existindo.
+ */
+async function ultimaAliquotaApurada(ctx: TenantContext): Promise<number | null> {
+  const linhas = await withTenant(ctx.companyId, async (tx) =>
+    tx.execute(sql`
+      SELECT effective_rate FROM tax_history
+       WHERE company_id = ${ctx.companyId}
+       ORDER BY reference_month DESC
+       LIMIT 1
+    `),
+  );
+  if (linhas.length === 0) return null;
+  const r = Number(linhas[0]!.effective_rate);
+  return Number.isFinite(r) && r > 0 ? r : null;
 }
 
 /**

@@ -283,6 +283,10 @@ async function importarGuias(
     const valor = numero(a.TOTAL_APURADO);
     const taxName = NOME_DO_IMPOSTO[codigo] ?? codigo;
 
+    if (codigo === 'SIMPLES') {
+      await registrarAliquota(tx, companyId, appHash, competencia, a, of, out);
+    }
+
     // Apuração zerada não vira guia. Gravar uma guia de R$ 0,00 encheria a
     // tela do cliente de cobranças que não existem — e o razão de partidas
     // sem valor, que o trigger de equilíbrio recusa de qualquer forma.
@@ -408,6 +412,76 @@ async function importarGuias(
       valorAnterior: anterior,
     });
   }
+}
+
+/**
+ * Grava em `tax_history` a alíquota que o OneFlow REALMENTE aplicou.
+ *
+ * ── Por que isto existe ─────────────────────────────────────────────────
+ *
+ * Ao emitir uma nota, o Hub mostra ao cliente um "imposto aproximado". Esse
+ * número era calculado aqui dentro, por conta própria — e um número calculado
+ * em dois lugares diverge nos dois. O cliente veria uma estimativa na emissão
+ * e um DAS diferente no fim do mês, sem nada que explicasse a diferença.
+ *
+ * Quem calcula imposto é o sistema contábil. Gravando o que ele apurou, a
+ * estimativa da próxima nota passa a ser a alíquota real da última apuração,
+ * e as duas telas param de se contradizer.
+ *
+ * A mesma linha serve a `reparticaoDoDas`, que já lia `tax_history` para
+ * repartir o DAS entre PIS, COFINS, ISS, IRPJ, CSLL e CPP conforme a LC 123.
+ * Antes ela dependia de alguém preencher isso à mão.
+ *
+ * ── Como o anexo é descoberto ───────────────────────────────────────────
+ *
+ * A apuração não diz em qual anexo a empresa está. Mas diz o valor apurado e
+ * a receita do período; a razão entre os dois é a alíquota efetiva real, e
+ * comparar com a tabela de alíquotas da competência revela o anexo. É
+ * dedução a partir do fato, não suposição.
+ */
+async function registrarAliquota(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+  apuracao: Record<string, unknown>,
+  of: ReturnType<typeof clienteOneflow>,
+  out: RetornoResult,
+): Promise<void> {
+  const rbt12 = numero(apuracao.SN_RBT12_MERC_INTERNO);
+  const receita = numero(apuracao.SN_PA_MERC_INTERNO_COMPETENCIA);
+  const apurado = numero(apuracao.TOTAL_APURADO);
+  if (receita <= 0 || apurado <= 0) return;
+
+  const efetiva = (apurado / receita) * 100;
+
+  let anexo: number | null = null;
+  try {
+    const r = conteudo(await of.aliquotasDoSimples(companyId, appHash, competencia));
+    const tabela = lista(r.aliquotas).filter((q) => String(q.MERCADO ?? 'I') === 'I');
+    // O anexo é aquele cuja alíquota efetiva mais se aproxima da praticada.
+    let melhor = Infinity;
+    for (const q of tabela) {
+      const dist = Math.abs(numero(q.ALIQUOTA_EFETIVA) * 100 - efetiva);
+      if (dist < melhor) { melhor = dist; anexo = Number(q.ANEXO); }
+    }
+    // Longe de qualquer linha da tabela: não adivinha o anexo.
+    if (melhor > 0.5) anexo = null;
+  } catch (err) {
+    out.avisos.push(`Alíquotas do Simples: ${msg(err)}`);
+  }
+
+  const romano = ['', 'I', 'II', 'III', 'IV', 'V'][anexo ?? 0] ?? '';
+  const bracket = anexo ? `Anexo ${romano}` : 'Simples Nacional';
+  const mes = `${competencia.slice(0, 4)}-${competencia.slice(4, 6)}`;
+
+  await tx.execute(sql`
+    DELETE FROM tax_history WHERE company_id = ${companyId} AND reference_month = ${mes}
+  `);
+  await tx.execute(sql`
+    INSERT INTO tax_history (company_id, reference_month, rba12, effective_rate, tax_bracket)
+    VALUES (${companyId}, ${mes}, ${rbt12.toFixed(2)}, ${efetiva.toFixed(2)}, ${bracket})
+  `);
 }
 
 /* ── Folha ──────────────────────────────────────────────────────────────── */
