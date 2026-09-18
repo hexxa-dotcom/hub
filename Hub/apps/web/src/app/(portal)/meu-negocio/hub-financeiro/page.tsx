@@ -40,15 +40,17 @@ export default async function Page() {
       <Suspense fallback={null}>
         <HubFinanceiroInsight />
       </Suspense>
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
-        <div className="flex items-center justify-between gap-4 w-full">
+      <Card level={2} tone="deep" className="relative z-30 py-5 sm:py-6 px-6 sm:px-8 card-finish">
+        <div className="flex items-center justify-between gap-6 w-full">
           <SectionInfo
             title="Sobre o Hub Financeiro"
             description="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
           />
-          <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight text-right shrink-0">
-            Hub Financeiro
-          </h1>
+          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
+              Hub Financeiro
+            </h1>
+          </div>
         </div>
       </Card>
 

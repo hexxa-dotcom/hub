@@ -495,6 +495,79 @@ export function settlePayslip(doc: PayslipDoc): JournalDraft {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   Folha vinda do OneFlow — com encargos e retenções discriminados
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export interface FolhaDoc {
+  /** Identificador do fato: empresa + competência + tipo de folha. */
+  id: string;
+  referenceMonth: string;
+  tipoFolha: string;
+  /** Bruto da folha: é ele que vira despesa, não o líquido. */
+  totalProventos: number;
+  /** Líquido a pagar ao trabalhador ou ao sócio. */
+  totalLiquido: number;
+  /** INSS retido do segurado — obrigação da empresa recolher. */
+  inssSegurado: number;
+  /** IRRF retido na fonte. */
+  irrf: number;
+  /** Pró-labore tem conta própria; salário vai para Salários a Pagar. */
+  proLabore: boolean;
+}
+
+/**
+ * Reconhece a folha do mês pelo BRUTO, repartindo as retenções.
+ *
+ * A diferença em relação a `accruePayslip` é o que define esta função: o
+ * recibo do OneFlow discrimina proventos, descontos, INSS e IRRF, então a
+ * despesa pode ser reconhecida pelo que ela de fato é — o custo total do
+ * trabalhador — em vez de pelo líquido que sai do banco.
+ *
+ * Reconhecer pelo líquido subavaliaria a despesa de pessoal exatamente no
+ * valor das retenções, e sumiria com obrigações que a empresa tem a recolher.
+ * Num Simples isso distorce o Fator R, que é calculado sobre a folha.
+ *
+ * O resíduo (`totalProventos - líquido - INSS - IRRF`) é o que o recibo não
+ * discrimina: assistência, contribuição sindical, vale. Vai para Outras
+ * Obrigações a Pagar, com nome próprio, para não ser somado a um encargo que
+ * não é dele.
+ */
+export function accrueFolha(doc: FolhaDoc): JournalDraft {
+  const contaLiquido = doc.proLabore
+    ? ACCOUNTS.PRO_LABORE_A_PAGAR
+    : ACCOUNTS.SALARIOS_A_PAGAR;
+  const contaDespesa = doc.proLabore ? ACCOUNTS.PRO_LABORE : ACCOUNTS.DESPESA_PESSOAL;
+
+  const residuo = Number(
+    (doc.totalProventos - doc.totalLiquido - doc.inssSegurado - doc.irrf).toFixed(2),
+  );
+
+  const lines: DraftLine[] = [
+    { accountCode: contaDespesa, direction: 'DEBIT', amount: doc.totalProventos },
+    { accountCode: contaLiquido, direction: 'CREDIT', amount: doc.totalLiquido },
+  ];
+  if (doc.inssSegurado > 0) {
+    lines.push({ accountCode: ACCOUNTS.ENCARGOS_A_RECOLHER, direction: 'CREDIT', amount: doc.inssSegurado });
+  }
+  if (doc.irrf > 0) {
+    lines.push({ accountCode: ACCOUNTS.IMPOSTOS_A_RECOLHER, direction: 'CREDIT', amount: doc.irrf });
+  }
+  if (residuo > 0) {
+    lines.push({ accountCode: ACCOUNTS.OUTRAS_OBRIGACOES, direction: 'CREDIT', amount: residuo });
+  }
+
+  return assertBalanced({
+    entryDate: doc.referenceMonth,
+    referenceMonth: doc.referenceMonth,
+    memo: `${doc.tipoFolha} — ${doc.referenceMonth.slice(0, 7)}`,
+    source: 'PAYSLIP',
+    sourceId: doc.id,
+    event: 'ACCRUAL',
+    lines,
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Distribuição de lucros (profit_distribution)
    ══════════════════════════════════════════════════════════════════════════ */
 

@@ -11,6 +11,7 @@ interface SectionInfoProps {
 
 export function SectionInfo({ title = 'Sobre esta seção', description, className = '' }: SectionInfoProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -20,22 +21,38 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
   };
 
   const handleMouseLeave = () => {
+    if (isPinned) return; // Se foi fixado por clique, mantém aberto!
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 250);
+  };
+
+  const toggleOpen = () => {
+    if (isOpen && isPinned) {
+      setIsPinned(false);
+      setIsOpen(false);
+    } else {
+      setIsPinned(true);
+      setIsOpen(true);
+    }
+  };
+
+  const close = () => {
+    setIsPinned(false);
+    setIsOpen(false);
   };
 
   // Fecha ao clicar fora ou pressionar Escape
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        close();
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsOpen(false);
+        close();
       }
     }
 
@@ -60,7 +77,7 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
       {/* Botão (i) no canto esquerdo da barra */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={toggleOpen}
         aria-label="Informações sobre esta seção"
         aria-expanded={isOpen}
         className={`tap-target pressable focusable group shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-all cursor-pointer ${
@@ -76,16 +93,16 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
       <div
         role="region"
         aria-label={title}
-        className={`transition-all duration-300 ease-out sm:relative max-sm:absolute max-sm:left-12 max-sm:top-1/2 max-sm:-translate-y-1/2 max-sm:right-4 max-sm:z-40 ${
+        className={`overflow-hidden transition-all duration-300 ease-out sm:relative max-sm:absolute max-sm:left-12 max-sm:top-1/2 max-sm:-translate-y-1/2 max-sm:right-4 max-sm:z-40 ${
           isOpen
-            ? 'opacity-100 max-w-2xl sm:translate-x-0'
+            ? 'opacity-100 max-w-3xl sm:translate-x-0'
             : 'opacity-0 max-w-0 pointer-events-none sm:-translate-x-2 max-sm:hidden'
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0 py-1">
+        <div className="flex items-center gap-3 min-w-0 py-1">
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 text-xs sm:text-sm min-w-0">
             {title && (
-              <span className="font-semibold text-ink shrink-0">
+              <span className="font-bold text-ink shrink-0">
                 {title}:
               </span>
             )}
@@ -98,7 +115,7 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setIsOpen(false);
+              close();
             }}
             className="shrink-0 rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ml-1"
             aria-label="Fechar informações"

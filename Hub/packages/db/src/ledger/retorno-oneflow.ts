@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { taxGuide, employee, payslip } from '../schema/accounting';
-import { financialEntry } from '../schema/finance';
-import { escriturarGuia, reescriturarGuia, escriturarLancamento } from './escrituracao';
+import { escriturarGuia, reescriturarGuia } from './escrituracao';
+import { postJournal } from './repository';
+import { accrueFolha } from '@hexxa/core';
 import { clienteOneflow } from './oneflow-client';
 
 /**
@@ -46,6 +48,30 @@ function conteudo(r: unknown): Record<string, unknown> {
 function lista(v: unknown): Record<string, unknown>[] {
   if (Array.isArray(v)) return v as Record<string, unknown>[];
   return [];
+}
+
+/**
+ * UUID derivado de uma chave de texto, sempre o mesmo para a mesma chave.
+ *
+ * A folha do mês não é uma linha de tabela: é o agregado dos recibos de uma
+ * competência. Mas `journal_entry.source_id` é UUID, e é ele que forma a
+ * chave de idempotência (empresa, origem, documento, fato). Sem um id
+ * estável, cada rodada do cron lançaria a mesma folha de novo.
+ *
+ * Determinístico e não aleatório justamente por isso: reexecutar reconhece o
+ * que já existe em vez de duplicar a despesa de pessoal.
+ */
+function idDeterminista(chave: string): string {
+  const h = createHash('sha1').update(chave).digest('hex');
+  // Formato UUID, com a versão 5 marcada — é o que a especificação reserva
+  // para identificador derivado de nome.
+  return [
+    h.slice(0, 8),
+    h.slice(8, 12),
+    '5' + h.slice(13, 16),
+    ((parseInt(h[16]!, 16) & 0x3) | 0x8).toString(16) + h.slice(17, 20),
+    h.slice(20, 32),
+  ].join('-');
 }
 
 function numero(v: unknown): number {
@@ -116,6 +142,53 @@ const TIPOS_DE_FOLHA: { codigo: number; nome: string }[] = [
   { codigo: 8, nome: 'Férias' },
   { codigo: 10, nome: 'Folha complementar' },
 ];
+
+/** O `tipoFolha` do status vem por NOME; os recibos são pedidos por código. */
+const CODIGO_POR_NOME: Record<string, number> = {
+  mensal: 1,
+  adiantamento: 2,
+  férias: 8,
+  ferias: 8,
+  complementar: 10,
+};
+
+/**
+ * Quais folhas existem na competência, a partir do `statusfolha`.
+ *
+ * ── O formato que me enganou ────────────────────────────────────────────
+ *
+ * `statusDaFolha` é um OBJETO, não uma lista:
+ *
+ *   { competencia: "202608", status: "Fechada", tipoFolha: "Mensal", … }
+ *
+ * e quando NÃO há folha, é o mesmo objeto com os valores vazios:
+ *
+ *   { competencia: {}, status: {}, tipoFolha: {}, … }
+ *
+ * A primeira versão tratava tudo como lista, recebia zero itens nos dois
+ * casos, e concluía "não há folha" — inclusive para empresas que tinham. Duas
+ * empresas com pró-labore ficaram sem folha nenhuma importada por causa disso,
+ * e sem nem um aviso, porque "não há folha" é resposta legítima.
+ *
+ * Por isso a decisão agora é pelo CONTEÚDO (`status` ser texto), não pelo
+ * formato do envelope.
+ */
+function tiposComFolha(v: unknown): Set<number> {
+  const linhas = Array.isArray(v) ? v : [v];
+  const out = new Set<number>();
+
+  for (const l of linhas as Record<string, unknown>[]) {
+    if (!l || typeof l !== 'object') continue;
+    if (typeof l.status !== 'string' || !l.status.trim()) continue;
+
+    const nome = String(l.tipoFolha ?? '').trim().toLowerCase();
+    const codigo = CODIGO_POR_NOME[nome] ?? (/13/.test(nome) ? 5 : null);
+    // Sem reconhecer o nome, assume a mensal: perder a folha inteira por um
+    // rótulo novo é pior que pedir os recibos do tipo mais comum.
+    out.add(codigo ?? 1);
+  }
+  return out;
+}
 
 export interface RetornoGuia {
   imposto: string;
@@ -373,13 +446,9 @@ async function importarFolha(
   let tiposExistentes: Set<number> | null = null;
   try {
     const st = conteudo(await of.statusDaFolha(companyId, appHash, competencia));
-    const linhas = lista((st as Record<string, unknown>).statusDaFolha);
-    if (linhas.length > 0) {
-      tiposExistentes = new Set(linhas.map((l) => Number(l.tipoFolha ?? l.TIPOFOLHA)).filter(Number.isFinite));
-    } else {
-      // Objeto vazio = nenhuma folha na competência. Encerra aqui.
-      return;
-    }
+    const tipos = tiposComFolha((st as Record<string, unknown>).statusDaFolha);
+    if (tipos.size === 0) return; // não há folha na competência.
+    tiposExistentes = tipos;
   } catch (err) {
     // Sem o status, o certo é NÃO varrer os cinco tipos às cegas: isso
     // trocaria uma falha por cinco. A competência fica sem folha e o aviso
@@ -402,60 +471,57 @@ async function importarFolha(
     const recibos = lista(res.recibos);
     if (recibos.length === 0) continue; // não há folha desse tipo — normal.
 
-    const valorTotal = recibos.reduce((s, r) => s + numero(r.valorLiquido ?? r.VALOR_LIQUIDO ?? r.valor), 0);
-    if (valorTotal <= 0) {
-      out.avisos.push(`${tipo.nome}: ${recibos.length} recibo(s) sem valor líquido reconhecível. Não escriturada.`);
+    const som = (c: string) => recibos.reduce((s, r) => s + numero(r[c]), 0);
+    const proventos = som('totalProventos');
+    const liquido = som('totalLiquido');
+    const inss = som('INSSSegurado');
+    const irrf = som('valorIRPF');
+
+    if (proventos <= 0 || liquido <= 0) {
+      out.avisos.push(
+        `${tipo.nome}: ${recibos.length} recibo(s) sem proventos ou líquido reconhecíveis ` +
+          `(chaves: ${Object.keys(recibos[0] ?? {}).join(', ')}). Não escriturada.`,
+      );
       continue;
     }
 
     for (const r of recibos) await gravarContracheque(tx, companyId, referenceMonth, r);
 
-    const descricao = `${tipo.nome} — ${competencia} (OneFlow)`;
-    const externalId = `oneflow:folha:${companyId}:${competencia}:${tipo.codigo}`;
+    // Pró-labore tem conta própria. O recibo diz qual é em `tipoRecibo`.
+    const proLabore = recibos.every((r) => /labor/i.test(String(r.tipoRecibo ?? '')));
 
-    const [existente] = await tx
-      .select({ id: financialEntry.id, amount: financialEntry.amount })
-      .from(financialEntry)
-      .where(eq(financialEntry.externalId, externalId));
+    const doc = {
+      id: idDeterminista(`folha:${companyId}:${competencia}:${tipo.codigo}`),
+      referenceMonth,
+      tipoFolha: tipo.nome,
+      totalProventos: proventos,
+      totalLiquido: liquido,
+      inssSegurado: inss,
+      irrf,
+      proLabore,
+    };
 
-    let lancamentoId: string;
-    if (existente) {
-      lancamentoId = existente.id;
-      if (Math.abs(Number(existente.amount) - valorTotal) >= 0.005) {
-        out.avisos.push(
-          `${tipo.nome}: valor mudou no OneFlow (${existente.amount} → ${valorTotal.toFixed(2)}). ` +
-            'O lançamento NÃO foi alterado — folha já escriturada exige reabertura pelo contador.',
-        );
-      }
-    } else {
-      const [novo] = await tx
-        .insert(financialEntry)
-        .values({
-          companyId,
-          type: 'PAYABLE',
-          status: 'PENDING',
-          description: descricao,
-          amount: valorTotal.toFixed(2),
-          // Salário vence no 5º dia útil; sem calendário de feriados, o dia 5
-          // é a aproximação honesta, e o contador ajusta se precisar.
-          dueDate: vencimentoPadrao(competencia, 5),
-          referenceMonth,
-          source: 'PAYROLL',
-          externalId,
-        })
-        .returning({ id: financialEntry.id });
-      lancamentoId = novo!.id;
+    try {
+      const r2 = await postJournal(tx, companyId, accrueFolha(doc));
+      if (!r2.jaExistia) out.escrituradas += 1;
+    } catch (err) {
+      out.avisos.push(`${tipo.nome}: ${msg(err)}`);
+      continue;
+    }
 
-      const r2 = await escriturarLancamento(tx, companyId, lancamentoId);
-      out.escrituradas += r2.gravadas;
-      for (const e of r2.erros) out.avisos.push(`${tipo.nome}: ${e.motivo}`);
+    const residuo = Number((proventos - liquido - inss - irrf).toFixed(2));
+    if (residuo > 0) {
+      out.avisos.push(
+        `${tipo.nome}: ${residuo.toFixed(2)} de desconto que o recibo não discrimina ` +
+          '(assistência, sindical, vale) foi para Outras Obrigações a Pagar.',
+      );
     }
 
     out.folha.push({
       tipoFolha: tipo.nome,
       recibos: recibos.length,
-      valorTotal,
-      lancamentoId,
+      valorTotal: proventos,
+      lancamentoId: null,
     });
   }
 }

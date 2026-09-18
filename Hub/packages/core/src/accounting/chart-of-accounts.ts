@@ -58,10 +58,18 @@ export const ACCOUNTS = {
   FORNECEDORES: '2.1.01.001',
   SALARIOS_A_PAGAR: '2.1.02.001',
   ENCARGOS_A_RECOLHER: '2.1.02.002',
+  /** Pró-labore é obrigação trabalhista com conta própria no Anexo 7. */
+  PRO_LABORE_A_PAGAR: '2.1.02.003',
   IMPOSTOS_A_RECOLHER: '2.1.03.001',
   /** ITG 1000 chama de "Lucros a Pagar", sob Obrigações com Sócios. */
   LUCROS_A_PAGAR: '2.1.04.001',
   ADIANTAMENTO_CLIENTE: '2.1.05.001',
+  /**
+   * Descontos de folha que o recibo não discrimina (assistência, sindical,
+   * vale). Existe para o resíduo ser NOMEADO em vez de somado a um encargo
+   * que não é dele — e o relatório da importação sempre o aponta.
+   */
+  OUTRAS_OBRIGACOES: '2.1.05.003',
 
   CAPITAL_SOCIAL: '2.3.01.001',
   CAPITAL_A_INTEGRALIZAR: '2.3.01.002',
@@ -89,6 +97,14 @@ export const ACCOUNTS = {
   IRPJ: '3.8.1.01.01',
   CSLL: '3.8.1.01.02',
   DESPESA_PESSOAL: '3.3.2.01.01',
+  /**
+   * Pró-labore é remuneração de SÓCIO, não salário de empregado.
+   *
+   * Conta própria porque a ITG 1000 as separa na DRE e porque o Fator R do
+   * Simples soma as duas — somá-las numa linha só esconderia de qual delas
+   * veio a folha, que é a pergunta quando o Fator R fica perto de 28%.
+   */
+  PRO_LABORE: '3.3.2.01.02',
   /** CPP (INSS patronal) embutida no DAS — encargo, não dedução de receita. */
   ENCARGOS_PESSOAL: '3.3.2.01.05',
   /**
@@ -159,7 +175,7 @@ export const DEFAULT_CHART: AccountSeed[] = [
   { code: '2.1.02', name: 'Obrigações Trabalhistas', type: 'PASSIVO', analytical: false },
   { code: ACCOUNTS.SALARIOS_A_PAGAR, name: 'Salários e Ordenados a Pagar', type: 'PASSIVO', analytical: true },
   { code: ACCOUNTS.ENCARGOS_A_RECOLHER, name: 'Encargos Sociais a Recolher', type: 'PASSIVO', analytical: true },
-  { code: '2.1.02.003', name: 'Pró-labore a Pagar', type: 'PASSIVO', analytical: true },
+  { code: ACCOUNTS.PRO_LABORE_A_PAGAR, name: 'Pró-labore a Pagar', type: 'PASSIVO', analytical: true },
   { code: '2.1.02.004', name: 'Provisão de Férias e 13º', type: 'PASSIVO', analytical: true },
 
   { code: '2.1.03', name: 'Obrigações Tributárias', type: 'PASSIVO', analytical: false },
@@ -173,6 +189,7 @@ export const DEFAULT_CHART: AccountSeed[] = [
   { code: '2.1.05', name: 'Outras Obrigações', type: 'PASSIVO', analytical: false },
   { code: ACCOUNTS.ADIANTAMENTO_CLIENTE, name: 'Adiantamentos de Clientes', type: 'PASSIVO', analytical: true },
   { code: '2.1.05.002', name: 'Empréstimos e Financiamentos', type: 'PASSIVO', analytical: true },
+  { code: ACCOUNTS.OUTRAS_OBRIGACOES, name: 'Outras Obrigações a Pagar', type: 'PASSIVO', analytical: true },
 
   /* ── 2.3 PATRIMÔNIO LÍQUIDO ───────────────────────────────────────────── */
   { code: '2.3', name: 'Patrimônio Líquido', type: 'PATRIMONIO_LIQUIDO', analytical: false },
@@ -213,6 +230,7 @@ export const DEFAULT_CHART: AccountSeed[] = [
   { code: '3.3.2', name: 'Despesas Administrativas', type: 'DESPESA', analytical: false },
   { code: '3.3.2.01', name: 'Despesas com Pessoal', type: 'DESPESA', analytical: false },
   { code: ACCOUNTS.DESPESA_PESSOAL, name: 'Salários (Administrativo)', type: 'DESPESA', analytical: true },
+  { code: ACCOUNTS.PRO_LABORE, name: 'Pró-labore', type: 'DESPESA', analytical: true },
   { code: ACCOUNTS.ENCARGOS_PESSOAL, name: 'INSS (Administrativo)', type: 'DESPESA', analytical: true },
   // As 14 Despesas Gerais do Anexo 7, na íntegra. Quanto mais contas reais o
   // classificador tem para escolher, menos ele precisa hesitar — e a norma já
