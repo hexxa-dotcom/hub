@@ -70,7 +70,7 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-center gap-3 min-w-0 flex-1 ${className}`}
+      className={`relative flex items-center min-w-0 ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -89,26 +89,30 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
         <Info className="h-4 w-4 transition-transform group-hover:scale-110" />
       </button>
 
-      {/* Informação que abre na horizontal, diretamente sobre o card no espaço livre (sem moldura adicional) */}
+      {/* Informação que abre na horizontal, diretamente sobre o card no espaço livre (sem moldura e sem alterar altura do card) */}
       <div
         role="region"
         aria-label={title}
-        className={`overflow-hidden transition-all duration-300 ease-out sm:relative max-sm:absolute max-sm:left-12 max-sm:top-1/2 max-sm:-translate-y-1/2 max-sm:right-4 max-sm:z-40 ${
+        className={`absolute left-11 top-1/2 -translate-y-1/2 z-20 transition-all duration-250 ease-out ${
           isOpen
-            ? 'opacity-100 max-w-3xl sm:translate-x-0'
-            : 'opacity-0 max-w-0 pointer-events-none sm:-translate-x-2 max-sm:hidden'
+            ? 'opacity-100 translate-x-0 pointer-events-auto'
+            : 'opacity-0 -translate-x-3 pointer-events-none'
         }`}
+        style={{
+          width: 'max-content',
+          maxWidth: 'min(580px, calc(100vw - 460px))',
+        }}
       >
-        <div className="flex items-center gap-3 min-w-0 py-1">
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 text-xs sm:text-sm min-w-0">
+        <div className="flex items-start gap-3 py-0.5">
+          <div className="flex flex-col gap-0.5 min-w-0">
             {title && (
-              <span className="font-bold text-ink shrink-0">
-                {title}:
+              <span className="font-bold text-xs sm:text-sm text-ink tracking-tight">
+                {title}
               </span>
             )}
-            <span className="text-ink-soft leading-snug">
+            <p className="text-xs text-ink-soft leading-relaxed">
               {description}
-            </span>
+            </p>
           </div>
 
           <button
@@ -117,7 +121,7 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
               e.stopPropagation();
               close();
             }}
-            className="shrink-0 rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ml-1"
+            className="shrink-0 rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer mt-0.5"
             aria-label="Fechar informações"
           >
             <X className="h-3.5 w-3.5" />

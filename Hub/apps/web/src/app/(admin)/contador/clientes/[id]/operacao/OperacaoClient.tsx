@@ -37,6 +37,11 @@ const AGENTES: { chave: keyof ConfiguracaoDaEmpresa['valores']['agentes']; nome:
     desc: 'Confere o mês contra oito verificações e propõe o fechamento. Nunca fecha sozinho.',
   },
   {
+    chave: 'envioOneflow',
+    nome: 'Enviar o razão ao OneFlow',
+    desc: 'Manda as partidas do Hub para a contabilidade oficial, aos poucos ao longo do mês. Exige o plano de contas já criado lá.',
+  },
+  {
     chave: 'retornoOneflow',
     nome: 'Guias e folha do OneFlow',
     desc: 'Traz do OneFlow o imposto apurado e a folha do mês, e escritura os dois. Exige o módulo fiscal implantado lá.',

@@ -47,6 +47,20 @@ export interface AgentesLigados {
    * só produz aviso de apuração zerada todo mês.
    */
   retornoOneflow: boolean;
+  /**
+   * Manda o razão do Hub para a contabilidade do OneFlow.
+   *
+   * Separado de `retornoOneflow` porque as duas direções dependem de módulos
+   * DIFERENTES estarem prontos do lado de lá. Uma empresa pode ter o fiscal
+   * implantado (e portanto guias para trazer) e o contábil ainda zerado — foi
+   * o caso das duas primeiras que cadastramos: `balancete` vazio e
+   * `idPlanoContas: 0`.
+   *
+   * Desligado por padrão, e é o padrão certo: ligar sem o plano de contas
+   * criado lá faz cada partida voltar com erro de conta inexistente e marca
+   * centenas delas como ERRO — que depois precisam ser destravadas à mão.
+   */
+  envioOneflow: boolean;
   /** Dicas contextuais nas telas do portal. */
   insights: boolean;
 }
@@ -137,6 +151,7 @@ export const PADRAO_SISTEMA: OperationSettings = {
     // relatório de "apuração zerada" — e aviso que aparece sempre é aviso
     // que ninguém lê.
     retornoOneflow: false,
+    envioOneflow: false,
     insights: true,
   },
   motor: { provider: null, model: null, baseUrl: null },

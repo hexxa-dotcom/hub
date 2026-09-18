@@ -40,7 +40,7 @@ export default async function Page() {
       <Suspense fallback={null}>
         <HubFinanceiroInsight />
       </Suspense>
-      <Card level={2} tone="deep" className="relative z-30 py-5 sm:py-6 px-6 sm:px-8 card-finish">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
         <div className="flex items-center justify-between gap-6 w-full">
           <SectionInfo
             title="Sobre o Hub Financeiro"

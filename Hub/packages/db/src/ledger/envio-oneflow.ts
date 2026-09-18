@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { traduzirConta, contasSemDestino, dataOneflow } from '@hexxa/core';
+import type { LancamentoOneflow } from '@hexxa/integrations';
 
 /**
  * ENSAIO E ENVIO DO RAZÃO AO ONEFLOW.
@@ -180,6 +181,83 @@ export async function ensaiarEnvio(
     contasACriar: contasSemDestino(todasAsContas),
     jaEnviadas,
   };
+}
+
+export interface ResultadoEnvioRazao {
+  mes: string;
+  enviadas: number;
+  erros: { journalEntryId: string; motivo: string }[];
+  /** Ainda não enviadas por falta de orçamento nesta execução. */
+  restantes: number;
+  bloqueadas: number;
+  cotaAcabou: boolean;
+}
+
+/**
+ * Envia o razão de um mês ao OneFlow, até o limite de chamadas concedido.
+ *
+ * ── Por que há orçamento ────────────────────────────────────────────────
+ *
+ * O OneFlow aceita UMA partida por chamada, e a cota é de 500 por dia para o
+ * escritório inteiro. Setembro teve 519 partidas em cinco empresas — ou seja,
+ * um único mês de uma carteira pequena já não cabe num dia.
+ *
+ * Por isso o envio é contínuo e fatiado, não um empurrão no fechamento: cada
+ * execução gasta o que lhe foi concedido, registra o que enviou, e a próxima
+ * continua de onde parou. A idempotência de `oneflow_envio` é o que torna
+ * isso seguro.
+ */
+export async function enviarRazao(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  cnpjDaEmpresa: string,
+  referenceMonth: string,
+  limite: number,
+  cliente: {
+    enviarLancamento: (c: string, a: string, l: LancamentoOneflow) => Promise<{ id: string | null }>;
+  },
+): Promise<ResultadoEnvioRazao> {
+  const ensaio = await ensaiarEnvio(tx, companyId, referenceMonth, cnpjDaEmpresa);
+  const out: ResultadoEnvioRazao = {
+    mes: referenceMonth,
+    enviadas: 0,
+    erros: [],
+    restantes: 0,
+    bloqueadas: ensaio.bloqueadas.length,
+    cotaAcabou: false,
+  };
+
+  for (const [i, p] of ensaio.prontas.entries()) {
+    if (out.enviadas >= limite) {
+      out.restantes = ensaio.prontas.length - i;
+      break;
+    }
+    try {
+      const r = await cliente.enviarLancamento(companyId, appHash, {
+        data: p.data,
+        valor: p.valor,
+        ...(p.documento ? { documento: p.documento } : {}),
+        partidas: p.partidas,
+      });
+      await registrarEnvio(tx, companyId, p.journalEntryId, r.id);
+      out.enviadas++;
+    } catch (err) {
+      const motivo = err instanceof Error ? err.message : String(err);
+      // Cota diária: parar o lote INTEIRO. Continuar só geraria uma lista de
+      // erros idênticos e marcaria como ERRO partidas que não têm defeito
+      // nenhum — e elas precisariam ser destravadas à mão depois.
+      if (/requisi..es por dia/i.test(motivo)) {
+        out.cotaAcabou = true;
+        out.restantes = ensaio.prontas.length - i;
+        break;
+      }
+      await registrarEnvio(tx, companyId, p.journalEntryId, null, motivo);
+      out.erros.push({ journalEntryId: p.journalEntryId, motivo });
+    }
+  }
+
+  return out;
 }
 
 /** Registra que uma partida foi enviada, para não mandar de novo. */

@@ -15,16 +15,28 @@ export const maxDuration = 300;
 /**
  * MÃO DE VOLTA DO ONEFLOW — traz guia apurada e folha, e escritura.
  *
- * Roda mensalmente porque é esse o ritmo do fato: a apuração fiscal fecha
- * depois do mês, não durante. Rodar diariamente gastaria a cota diária da API
- * para reler trinta vezes o mesmo número.
+ * ── Por que DIÁRIO, e não num dia fixo ──────────────────────────────────
  *
- * ── Qual competência ────────────────────────────────────────────────────
+ * A primeira versão rodava uma vez, no dia 10. Os dados desmentiram a
+ * escolha. Datas reais de geração da guia do DAS, duas empresas, cinco
+ * competências:
  *
- * O mês ANTERIOR ao de execução. Rodando dia 10 de março, busca fevereiro —
- * quando o fiscal já fechou lá e a guia já existe. Buscar o mês corrente só
- * devolveria apuração aberta, que a importação recusa de propósito: valor de
- * apuração aberta ainda muda, e escriturá-lo produziria um estorno por rodada.
+ *   BM3       dias 1, 1, 3, 3, 1
+ *   ESTÚDIO   dias 1, 1, 3, 12, 15
+ *
+ * Quem gera é o OneFlow, no ritmo dele. Um tiro único no dia 5 perderia duas
+ * guias do Estúdio; no dia 10, perderia uma; e em qualquer dia fixo, a guia
+ * que saiu antes fica esperando à toa.
+ *
+ * Rodando todo dia, cada guia chega ao cliente no dia seguinte ao de existir.
+ * Para a maioria isso é dia 2 — melhor que qualquer data fixa — e para as
+ * atrasadas é o mais cedo possível, porque antes disso não havia o que pegar.
+ *
+ * ── E por que isso é barato ─────────────────────────────────────────────
+ *
+ * Empresa cuja guia já chegou é pulada sem gastar chamada nenhuma: a
+ * verificação é uma consulta ao banco. O custo diário é de duas chamadas por
+ * empresa que ainda falta, e ele cai a zero conforme o mês se completa.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -47,6 +59,22 @@ export async function GET(request: Request) {
         SELECT cnpj FROM company WHERE id = ${empresa.id}
       `)) as unknown as { cnpj: string }[];
       if (!dados) continue;
+
+      /**
+       * Já chegou tudo desta competência? Pula sem gastar chamada.
+       *
+       * "Tudo" é a guia COM o arquivo dentro: guia sem PDF é guia que o
+       * cliente vê mas não consegue pagar, e é exatamente o estado que a
+       * execução do dia seguinte precisa tentar resolver.
+       */
+      const [pronta] = (await db.execute(sql`
+        SELECT 1 FROM tax_guide
+         WHERE company_id = ${empresa.id}
+           AND reference_month = ${`${competencia.slice(0, 4)}-${competencia.slice(4, 6)}-01`}
+           AND file_url IS NOT NULL
+         LIMIT 1
+      `)) as unknown as { '?column?': number }[];
+      if (pronta) continue;
 
       const appHash = await appHashPorCnpj(db, dados.cnpj, empresa.id);
       if (!appHash) {

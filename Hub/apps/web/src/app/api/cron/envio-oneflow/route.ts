@@ -1,0 +1,155 @@
+import { NextResponse } from 'next/server';
+import { sql } from 'drizzle-orm';
+import {
+  getDb,
+  enviarRazao,
+  clienteOneflow,
+  appHashPorCnpj,
+  empresasComAgenteLigado,
+} from '@hexxa/db';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+/**
+ * ENVIO CONTÍNUO DO RAZÃO AO ONEFLOW.
+ *
+ * ── Por que diário, e não no fechamento ─────────────────────────────────
+ *
+ * O OneFlow aceita UMA partida por chamada e limita o escritório a 500
+ * chamadas por dia. Setembro de 2026 teve 519 partidas em cinco empresas —
+ * um único mês de uma carteira pequena já não cabe num dia.
+ *
+ * Concentrar o envio no fechamento seria, portanto, garantir que ele não
+ * termina. Espalhado pelo mês, cada dia manda o que apareceu no dia, e o
+ * fechamento encontra quase tudo já entregue: sobra a diferença dos últimos
+ * dias, que cabe com folga.
+ *
+ * ── Orçamento ───────────────────────────────────────────────────────────
+ *
+ * Duas coisas disputam a mesma cota: este envio e a volta (guias e folha). A
+ * volta é barata e tem hora certa; o envio é caro e contínuo. Por isso o
+ * envio fica com a maior parte, mas não com tudo — e nunca chega a zerar a
+ * cota, senão a volta do dia 1 não aconteceria.
+ */
+const ORCAMENTO_DIARIO = 300;
+
+export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const db = getDb();
+
+  try {
+    const url = new URL(request.url);
+    const orcamento = Number(url.searchParams.get('limite') ?? ORCAMENTO_DIARIO);
+
+    const ligadas = await empresasComAgenteLigado(db, 'envioOneflow');
+    const cliente = clienteOneflow(db);
+    const relatorio: Record<string, unknown>[] = [];
+
+    let restante = orcamento;
+    let interrompido: string | null = null;
+
+    for (const empresa of ligadas) {
+      if (restante <= 0) break;
+
+      const [dados] = (await db.execute(sql`
+        SELECT cnpj FROM company WHERE id = ${empresa.id}
+      `)) as unknown as { cnpj: string }[];
+      if (!dados) continue;
+
+      const appHash = await appHashPorCnpj(db, dados.cnpj, empresa.id);
+      if (!appHash) continue;
+
+      /**
+       * Desde quando o contábil existe lá.
+       *
+       * Sem isto, o envio tenta meses anteriores à implantação, toma recusa em
+       * todos e os marca como ERRO — que depois precisam ser destravados à
+       * mão. Aconteceu no primeiro teste: 22 partidas de dezembro/2025 de uma
+       * empresa cujo contábil começa em janeiro/2026.
+       */
+      let inicioContabil: string | null = null;
+      try {
+        const modulos = await cliente.competenciaInicialDosModulos(empresa.id, appHash);
+        inicioContabil = modulos['Contábil'] ?? modulos['Contabil'] ?? null;
+      } catch {
+        // Sem a data, seguir seria arriscar o lote de erros que ela evita.
+        relatorio.push({ empresa: empresa.nome, erro: 'não foi possível ler a implantação do contábil' });
+        continue;
+      }
+      if (!inicioContabil) {
+        relatorio.push({ empresa: empresa.nome, erro: 'módulo contábil não implantado no OneFlow' });
+        continue;
+      }
+
+      /**
+       * Meses com partida ainda não enviada, do mais antigo para o mais novo.
+       *
+       * A ordem importa: a contabilidade de lá recusa lançamento anterior ao
+       * início do regime, e enviar fora de ordem deixaria buracos difíceis de
+       * localizar depois. Do mais antigo para o mais novo, o que falha falha
+       * no começo e fica evidente.
+       */
+      const meses = (await db.execute(sql`
+        SELECT DISTINCT to_char(j.reference_month, 'YYYY-MM-DD') AS mes
+          FROM journal_entry j
+         WHERE j.company_id = ${empresa.id}
+           AND j.status = 'POSTED'
+           AND j.reversed_by IS NULL
+           AND j.source <> 'CLOSING'
+           AND NOT EXISTS (
+             SELECT 1 FROM oneflow_envio e
+              WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO'
+           )
+         ORDER BY 1
+      `)) as unknown as { mes: string }[];
+
+      for (const { mes } of meses) {
+        if (restante <= 0) break;
+        // Anterior à implantação: o OneFlow recusaria, e a recusa viraria
+        // ERRO numa partida que não tem defeito nenhum.
+        if (mes.slice(0, 7) < inicioContabil) continue;
+
+        const r = await enviarRazao(
+          db, empresa.id, appHash, dados.cnpj, mes, restante, cliente,
+        );
+        restante -= r.enviadas;
+
+        if (r.enviadas || r.erros.length || r.bloqueadas) {
+          relatorio.push({
+            empresa: empresa.nome,
+            mes: mes.slice(0, 7),
+            enviadas: r.enviadas,
+            erros: r.erros.length,
+            bloqueadas: r.bloqueadas,
+            restantes: r.restantes,
+          });
+        }
+        if (r.erros.length) {
+          console.error(`[cron/envio-oneflow] ${empresa.nome} ${mes}:`, r.erros.slice(0, 5));
+        }
+        if (r.cotaAcabou) { interrompido = empresa.nome; break; }
+      }
+      if (interrompido) break;
+    }
+
+    return NextResponse.json({
+      message: interrompido
+        ? `Interrompido em "${interrompido}": cota diária do OneFlow esgotada.`
+        : `Enviadas ${orcamento - restante} partida(s) de ${relatorio.length} mês/empresa.`,
+      orcamento,
+      gasto: orcamento - restante,
+      empresas: relatorio,
+    });
+  } catch (error) {
+    console.error('[cron/envio-oneflow] falhou:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
+  }
+}

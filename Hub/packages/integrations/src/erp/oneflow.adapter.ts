@@ -140,8 +140,36 @@ export interface NotaFiscalOneflow {
   desconto?: number;
 }
 
+/**
+ * Espaçamento mínimo entre chamadas.
+ *
+ * A cota é de 60 por minuto, então 1000ms bastaria na teoria. 1100ms dá folga
+ * para a variação de latência — estourar a cota não devolve 429 honesto, e sim
+ * HTTP 200 com erro no corpo, que é o modo de falha mais caro desta API.
+ */
+const INTERVALO_ENTRE_CHAMADAS_MS = 1100;
+
 export class OneflowAdapter {
   constructor(private readonly store: OneflowTokenStore) {}
+
+  /** Momento em que a última chamada saiu — a régua do espaçamento. */
+  private ultimaChamada = 0;
+
+  /**
+   * Segura a chamada até completar o intervalo desde a anterior.
+   *
+   * Fica no adaptador, e não em quem chama, porque a cota é do cliente
+   * inteiro: um lote de escrituração e uma busca de guia rodando juntos
+   * somam na mesma conta. Espalhar essa responsabilidade garantiria que
+   * algum caminho de código a esquecesse.
+   */
+  private async aguardarVez(): Promise<void> {
+    const desde = Date.now() - this.ultimaChamada;
+    if (desde < INTERVALO_ENTRE_CHAMADAS_MS) {
+      await new Promise((r) => setTimeout(r, INTERVALO_ENTRE_CHAMADAS_MS - desde));
+    }
+    this.ultimaChamada = Date.now();
+  }
 
   /* ── Cadeia de autenticação ──────────────────────────────────────────── */
 
@@ -149,6 +177,8 @@ export class OneflowAdapter {
     url: string,
     opts: { token?: string; method?: string; body?: unknown } = {},
   ): Promise<T> {
+    await this.aguardarVez();
+
     const res = await fetch(url, {
       method: opts.method ?? 'GET',
       headers: {
@@ -585,6 +615,41 @@ export class OneflowAdapter {
       `${API}/oneflow/empresa/obrigacoes/anexos?competencia=${competencia}&codigo=${codigo}`,
       { token },
     );
+  }
+
+  /**
+   * Competência em que cada módulo foi implantado na empresa.
+   *
+   * O OneFlow RECUSA lançamento anterior à implantação do contábil, e com uma
+   * mensagem que não diz isso: "É necessário informar uma Conta Contábil
+   * válida". Quem recebe esse erro procura defeito no plano de contas e não
+   * encontra nada — o problema é a data.
+   *
+   * Consultar antes de enviar troca um lote inteiro de erros por um mês que
+   * nem chega a ser tentado.
+   *
+   * @returns mapa `{ Contábil: '2026-01', Fiscal: '2026-01', … }`
+   */
+  async competenciaInicialDosModulos(
+    companyId: string,
+    appHash: string,
+  ): Promise<Record<string, string>> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    const r = await this.pedir<Record<string, unknown>>(
+      `${API}/oneflow/empresa/geral/dadosbasicos`,
+      { token },
+    );
+    const res = (r.result ?? r) as Record<string, unknown>;
+    const modulos = Array.isArray(res.modulos) ? (res.modulos as Record<string, unknown>[]) : [];
+
+    const out: Record<string, string> = {};
+    for (const m of modulos) {
+      // Vem como "MM/AAAA"; devolvemos "AAAA-MM", que ordena como texto.
+      const ini = String(m.competenciaInicial ?? '').trim();
+      const ok = /^(\d{2})\/(\d{4})$/.exec(ini);
+      if (ok) out[String(m.modulo ?? '')] = `${ok[2]}-${ok[1]}`;
+    }
+    return out;
   }
 
   /** Quadro societário cadastrado lá — confere contra os sócios do Hub. */
