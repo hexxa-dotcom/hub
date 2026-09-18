@@ -495,6 +495,87 @@ export function settlePayslip(doc: PayslipDoc): JournalDraft {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   Saldos de abertura — a empresa que chega no meio do caminho
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export interface SaldoDeAbertura {
+  accountCode: string;
+  /** Sempre positivo; o lado é `direction`. */
+  amount: number;
+  direction: Direction;
+}
+
+export class AberturaNaoFechaError extends Error {
+  constructor(
+    public readonly debito: number,
+    public readonly credito: number,
+  ) {
+    super(
+      `O balancete de abertura não fecha: débito ${debito.toFixed(2)} ≠ crédito ` +
+        `${credito.toFixed(2)}, diferença de ${Math.abs(debito - credito).toFixed(2)}. ` +
+        'Confira o balancete recebido antes de abrir a empresa — a diferença é ' +
+        'informação faltando, não um arredondamento para acertar aqui.',
+    );
+    this.name = 'AberturaNaoFechaError';
+  }
+}
+
+/**
+ * Partida de abertura: traz os saldos com que a empresa chega.
+ *
+ * ── Para que serve ──────────────────────────────────────────────────────
+ *
+ * Cliente que troca de contabilidade no meio do ano não traz lançamento
+ * nenhum — traz um balancete da contabilidade anterior. Sem uma partida de
+ * abertura, o razão do Hub começaria do zero e o balanço diria que a empresa
+ * não tem caixa, não deve a ninguém e não tem capital. Todo relatório sairia
+ * errado até o primeiro exercício fechar.
+ *
+ * ── Por que ela RECUSA quando não fecha ─────────────────────────────────
+ *
+ * Um balancete que não fecha significa informação faltando: conta que não
+ * veio, saldo transcrito errado, página que faltou no PDF. A tentação é
+ * jogar a diferença numa conta de ajuste e seguir — e é exatamente isso que
+ * produz um balanço que ninguém consegue explicar dois anos depois.
+ *
+ * Recusar devolve o problema a quem pode resolvê-lo, que é quem tem o
+ * balancete na mão.
+ */
+export function openingBalance(doc: {
+  id: string;
+  /** Data do saldo: o último dia do período que veio pronto. */
+  date: string;
+  saldos: SaldoDeAbertura[];
+  origem?: string;
+}): JournalDraft {
+  const validos = doc.saldos.filter((s) => Math.round(s.amount * 100) !== 0);
+  if (validos.length < 2) {
+    throw new Error('Abertura precisa de ao menos duas contas com saldo.');
+  }
+
+  const debito = validos.filter((s) => s.direction === 'DEBIT').reduce((t, s) => t + cents(s.amount), 0);
+  const credito = validos.filter((s) => s.direction === 'CREDIT').reduce((t, s) => t + cents(s.amount), 0);
+  if (debito !== credito) throw new AberturaNaoFechaError(debito / 100, credito / 100);
+
+  return assertBalanced({
+    entryDate: doc.date,
+    referenceMonth: monthOf(doc.date),
+    memo: doc.origem
+      ? `Saldos de abertura — ${doc.origem}`
+      : 'Saldos de abertura',
+    source: 'OPENING',
+    sourceId: doc.id,
+    event: 'ADJUSTMENT',
+    lines: validos.map((s) => ({
+      accountCode: s.accountCode,
+      direction: s.direction,
+      amount: s.amount,
+      lineMemo: 'Saldo transportado',
+    })),
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Folha vinda do OneFlow — com encargos e retenções discriminados
    ══════════════════════════════════════════════════════════════════════════ */
 
