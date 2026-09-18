@@ -42,16 +42,16 @@ const REPORTS: { href: string; icon: LucideIcon; title: string; description: str
 export default function RelatoriosHubPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-7 animate-fade-up">
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
-              O que você quer visualizar?
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
+        <div className="flex items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre os Relatórios"
+            description="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
+          />
+          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
+              Relatórios Financeiros
             </h1>
-            <SectionInfo
-              title="Sobre os Relatórios"
-              description="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
-            />
           </div>
         </div>
       </Card>

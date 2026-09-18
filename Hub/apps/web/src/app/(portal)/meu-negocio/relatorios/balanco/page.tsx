@@ -33,40 +33,40 @@ export default async function BalancoInstantaneoPage({
         }
       `}</style>
 
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre Balanço e DRE"
+            description="Gerado em tempo real com base nos lançamentos conciliados no sistema."
+          />
+
+          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
               Balanço e DRE — <span className="capitalize">{periodoLabel}</span>
             </h1>
-            <SectionInfo
-              title="Sobre Balanço e DRE"
-              description="Gerado em tempo real com base nos lançamentos conciliados no sistema."
-            />
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <form method="get" className="flex flex-wrap items-center gap-2">
-              <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
-                {options.map((m) => (
-                  <option key={m} value={m}>{monthLabel(m)}</option>
-                ))}
-              </select>
-              <span className="text-caption text-ink-soft">até</span>
-              <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
-                {options.map((m) => (
-                  <option key={m} value={m}>{monthLabel(m)}</option>
-                ))}
-              </select>
-              <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
-                Filtrar
-              </button>
-            </form>
-            <ReportToolbar
-              reportType="balanco"
-              query={{ de: deOrdered, ate: ateOrdered }}
-              documentTitle={`Balanço e DRE — ${periodoLabel}`}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <form method="get" className="flex flex-wrap items-center gap-2">
+                <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+                  {options.map((m) => (
+                    <option key={m} value={m}>{monthLabel(m)}</option>
+                  ))}
+                </select>
+                <span className="text-caption text-ink-soft">até</span>
+                <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+                  {options.map((m) => (
+                    <option key={m} value={m}>{monthLabel(m)}</option>
+                  ))}
+                </select>
+                <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
+                  Filtrar
+                </button>
+              </form>
+              <ReportToolbar
+                reportType="balanco"
+                query={{ de: deOrdered, ate: ateOrdered }}
+                documentTitle={`Balanço e DRE — ${periodoLabel}`}
+              />
+            </div>
           </div>
         </div>
       </Card>

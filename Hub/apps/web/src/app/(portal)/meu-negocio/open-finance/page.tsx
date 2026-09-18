@@ -47,18 +47,20 @@ const RECURSOS = [
 export default function OpenFinancePage() {
   return (
     <div className="space-y-8">
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">Open Finance</h1>
-            <SectionInfo
-              title="Sobre Open Finance"
-              description="Conexão direta com as contas bancárias da empresa para conciliação automática e extratos em tempo real."
-            />
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
+        <div className="flex items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre Open Finance"
+            description="Conexão direta com as contas bancárias da empresa para conciliação automática e extratos em tempo real."
+          />
+          <div className="shrink-0 flex items-center gap-3 pr-4 sm:pr-8 lg:pr-12">
+            <span className="rounded-full bg-hexxa-forest/10 dark:bg-hexxa-lime/10 border border-hexxa-forest/20 dark:border-hexxa-lime/20 px-3.5 py-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">
+              Em breve
+            </span>
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
+              Open Finance
+            </h1>
           </div>
-          <span className="rounded-full bg-hexxa-forest/10 dark:bg-hexxa-lime/10 border border-hexxa-forest/20 dark:border-hexxa-lime/20 px-3.5 py-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">
-            Em breve
-          </span>
         </div>
       </Card>
 

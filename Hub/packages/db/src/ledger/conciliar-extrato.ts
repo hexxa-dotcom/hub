@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { accrueBankTransaction, ACCOUNTS } from '@hexxa/core';
-import { postJournal } from './repository';
+import { postJournal, reverseJournal } from './repository';
 import { escriturarLancamento } from './escrituracao';
 
 /**
@@ -199,6 +199,88 @@ function normalizar(d: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 40);
+}
+
+export interface MovimentoNaTransitoria {
+  bankTransactionId: string;
+  journalEntryId: string;
+  data: string;
+  valor: number;
+  descricao: string;
+}
+
+/**
+ * Movimentos parados na transitória, esperando quem diga o que são.
+ *
+ * É a fila que a IA e o contador atacam — e a mesma que trava o fechamento.
+ */
+export async function movimentosNaTransitoria(
+  tx: DbHandle,
+  companyId: string,
+  limite = 40,
+): Promise<MovimentoNaTransitoria[]> {
+  return (await tx.execute(sql`
+    SELECT b.id::text            AS "bankTransactionId",
+           j.id::text            AS "journalEntryId",
+           to_char(j.entry_date, 'YYYY-MM-DD') AS data,
+           b.amount::float       AS valor,
+           b.description         AS descricao
+      FROM journal_entry j
+      JOIN ledger_line l  ON l.journal_entry_id = j.id
+      JOIN chart_of_account a ON a.id = l.account_id
+      JOIN bank_transaction b ON b.id = j.source_id
+     WHERE j.company_id = ${companyId}
+       AND j.source = 'BANK_TRANSACTION'
+       AND j.status = 'POSTED'
+       AND j.reversed_by IS NULL
+       AND a.code = ${ACCOUNTS.VALORES_A_CLASSIFICAR}
+     ORDER BY j.entry_date DESC
+     LIMIT ${String(limite)}
+  `)) as unknown as MovimentoNaTransitoria[];
+}
+
+/**
+ * Tira um movimento da transitória e o põe na conta certa.
+ *
+ * Por ESTORNO, como toda correção neste razão: a partida antiga continua lá,
+ * marcada, com a espelho ao lado. É o que permite responder depois "este
+ * movimento ficou sem identificação até o dia tal, e quem o identificou foi
+ * a IA" — precisamente o tipo de pergunta que aparece quando quem classificou
+ * não foi uma pessoa.
+ */
+export async function reclassificarMovimento(
+  tx: DbHandle,
+  companyId: string,
+  bankTransactionId: string,
+  contaContabil: string,
+  motivo: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const [mov] = (await tx.execute(sql`
+    SELECT j.id::text AS journal_id, to_char(b.posted_at,'YYYY-MM-DD') AS data,
+           b.amount::float AS valor, b.description AS descricao
+      FROM bank_transaction b
+      JOIN journal_entry j ON j.source_id = b.id AND j.source = 'BANK_TRANSACTION'
+     WHERE b.id = ${bankTransactionId}
+       AND b.company_id = ${companyId}
+       AND j.status = 'POSTED'
+       AND j.reversed_by IS NULL
+     LIMIT 1
+  `)) as unknown as { journal_id: string; data: string; valor: number; descricao: string }[];
+
+  if (!mov) return { ok: false, erro: 'Movimento não encontrado ou já reclassificado.' };
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  await reverseJournal(tx, companyId, mov.journal_id, motivo, hoje);
+
+  await postJournal(tx, companyId, accrueBankTransaction({
+    id: bankTransactionId,
+    data: mov.data,
+    valor: mov.valor,
+    descricao: mov.descricao,
+    resultAccountCode: contaContabil,
+  }));
+
+  return { ok: true };
 }
 
 /** Saldo da transitória — é ele que trava o fechamento. */

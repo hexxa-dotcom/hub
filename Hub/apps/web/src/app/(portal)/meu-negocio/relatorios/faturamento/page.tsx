@@ -27,19 +27,17 @@ export default async function FaturamentoReportPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
-      <Card level={2} tone="deep" className="relative z-30 p-6 sm:p-7 card-finish print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
+          <SectionInfo
+            title="Sobre o Faturamento"
+            description="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
+          />
+
+          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
+            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
               {visao === 'mensal' ? `Faturamento Mensal · ${ano}` : 'Faturamento Anual'}
             </h1>
-            <SectionInfo
-              title="Sobre o Faturamento"
-              description="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
-            />
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
                 <Link
@@ -68,12 +66,12 @@ export default async function FaturamentoReportPage({
                   </button>
                 </form>
               )}
+              <ReportToolbar
+                reportType="faturamento"
+                query={{ visao, ...(visao === 'mensal' ? { ano } : {}) }}
+                documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
+              />
             </div>
-            <ReportToolbar
-              reportType="faturamento"
-              query={visao === 'mensal' ? { visao: 'mensal', ano } : { visao: 'anual' }}
-              documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
-            />
           </div>
         </div>
       </Card>
