@@ -86,9 +86,47 @@ export class PgOneflowTokenStore implements OneflowTokenStore {
   }
 }
 
-/** Cliente autenticado. A cadeia de tokens se renova sozinha a partir daqui. */
+/**
+ * Cliente autenticado, contando cada chamada na cota do dia.
+ *
+ * A contagem é do escritório inteiro porque a cota é: 500 por dia somando
+ * todos os consumidores e todas as empresas. Sem contar num lugar só, cada
+ * cron respeita o próprio orçamento e juntos estouram o total — que é
+ * exatamente o que aconteceria com 50 empresas.
+ */
 export function clienteOneflow(db: DbHandle): OneflowAdapter {
-  return new OneflowAdapter(new PgOneflowTokenStore(db));
+  return new OneflowAdapter(new PgOneflowTokenStore(db), () => registrarChamada(db));
+}
+
+/** Dia corrente no fuso de São Paulo — é nele que a cota do OneFlow vira. */
+const DIA_SP = sql`(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
+
+/** Soma uma chamada ao contador do dia. */
+async function registrarChamada(db: DbHandle): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO oneflow_uso_diario (dia, chamadas) VALUES (${DIA_SP}, 1)
+    ON CONFLICT (dia) DO UPDATE
+      SET chamadas = oneflow_uso_diario.chamadas + 1, atualizado_em = NOW()
+  `);
+}
+
+/** Teto diário da API do OneFlow, para o escritório inteiro. */
+export const COTA_DIARIA = 500;
+
+/**
+ * Quantas chamadas ainda cabem hoje.
+ *
+ * `reserva` é o que se quer deixar para os outros consumidores. O envio do
+ * razão reserva espaço para a volta: a volta tem hora certa e não pode ser
+ * adiada sem atrasar a guia do cliente, enquanto o envio retoma no dia
+ * seguinte sem prejuízo nenhum.
+ */
+export async function cotaRestante(db: DbHandle, reserva = 0): Promise<number> {
+  const [linha] = (await db.execute(sql`
+    SELECT chamadas FROM oneflow_uso_diario WHERE dia = ${DIA_SP}
+  `)) as unknown as { chamadas: number }[];
+  const usadas = linha?.chamadas ?? 0;
+  return Math.max(0, COTA_DIARIA - reserva - usadas);
 }
 
 /**

@@ -253,6 +253,42 @@ export async function importarDoOneflow(
   return out;
 }
 
+/**
+ * A guia já existe do lado de lá? UMA chamada responde.
+ *
+ * ── Por que esta pergunta é o centro do dimensionamento ─────────────────
+ *
+ * A volta custa ~6 chamadas por empresa: apuração, anexo, alíquotas, status
+ * da folha, recibos, Fator R. Com 50 empresas seriam 300 por dia, e sobrando
+ * 200 para o envio do razão — que precisa de muito mais.
+ *
+ * Mas a guia demora dias para sair (observado: dia 1 na maioria, dia 15 no
+ * pior caso), e nesse meio-tempo as seis chamadas voltam de mãos vazias. Uma
+ * sondagem barata que responde "ainda não" corta 6 para 1 enquanto se espera,
+ * e as outras cinco só são gastas no dia em que há o que buscar.
+ *
+ * O anexo é a sondagem certa porque é o ÚLTIMO artefato a existir: quando ele
+ * está lá, todo o resto também está.
+ */
+export async function guiaDisponivel(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+): Promise<boolean> {
+  const of = clienteOneflow(tx);
+  try {
+    const r = conteudo(await of.anexosDasObrigacoes(companyId, appHash, competencia, 'GPGDAS'));
+    return lista(r.obrigacoes).length > 0;
+  } catch {
+    // Na dúvida, deixa passar: um falso positivo custa cinco chamadas, um
+    // falso negativo atrasa a guia do cliente em um dia.
+    return true;
+  }
+}
+
+
+
 /* ── Guias ──────────────────────────────────────────────────────────────── */
 
 async function importarGuias(
@@ -454,6 +490,14 @@ async function registrarAliquota(
   if (receita <= 0 || apurado <= 0) return;
 
   const efetiva = (apurado / receita) * 100;
+  const mesRef = `${competencia.slice(0, 4)}-${competencia.slice(4, 6)}`;
+
+  // Já registrada com o mesmo valor? Não custa a chamada de alíquotas de novo.
+  const [ja] = (await tx.execute(sql`
+    SELECT effective_rate FROM tax_history
+     WHERE company_id = ${companyId} AND reference_month = ${mesRef}
+  `)) as unknown as { effective_rate: string }[];
+  if (ja && Math.abs(Number(ja.effective_rate) - efetiva) < 0.005) return;
 
   let anexo: number | null = null;
   try {
@@ -473,14 +517,13 @@ async function registrarAliquota(
 
   const romano = ['', 'I', 'II', 'III', 'IV', 'V'][anexo ?? 0] ?? '';
   const bracket = anexo ? `Anexo ${romano}` : 'Simples Nacional';
-  const mes = `${competencia.slice(0, 4)}-${competencia.slice(4, 6)}`;
 
   await tx.execute(sql`
-    DELETE FROM tax_history WHERE company_id = ${companyId} AND reference_month = ${mes}
+    DELETE FROM tax_history WHERE company_id = ${companyId} AND reference_month = ${mesRef}
   `);
   await tx.execute(sql`
     INSERT INTO tax_history (company_id, reference_month, rba12, effective_rate, tax_bracket)
-    VALUES (${companyId}, ${mes}, ${rbt12.toFixed(2)}, ${efetiva.toFixed(2)}, ${bracket})
+    VALUES (${companyId}, ${mesRef}, ${rbt12.toFixed(2)}, ${efetiva.toFixed(2)}, ${bracket})
   `);
 }
 

@@ -150,7 +150,17 @@ export interface NotaFiscalOneflow {
 const INTERVALO_ENTRE_CHAMADAS_MS = 1100;
 
 export class OneflowAdapter {
-  constructor(private readonly store: OneflowTokenStore) {}
+  /**
+   * Chamado ANTES de cada requisição, para contar a cota.
+   *
+   * Fica aqui, e não em quem chama, porque a cota de 500/dia é do escritório
+   * inteiro: todo caminho que fala com o OneFlow precisa ser contado, e um
+   * caminho esquecido é uma cota estourada sem explicação.
+   */
+  constructor(
+    private readonly store: OneflowTokenStore,
+    private readonly aoChamar?: () => void | Promise<void>,
+  ) {}
 
   /** Momento em que a última chamada saiu — a régua do espaçamento. */
   private ultimaChamada = 0;
@@ -178,6 +188,7 @@ export class OneflowAdapter {
     opts: { token?: string; method?: string; body?: unknown } = {},
   ): Promise<T> {
     await this.aguardarVez();
+    if (this.aoChamar) await this.aoChamar();
 
     const res = await fetch(url, {
       method: opts.method ?? 'GET',

@@ -5,6 +5,7 @@ import {
   enviarRazao,
   clienteOneflow,
   appHashPorCnpj,
+  cotaRestante,
   empresasComAgenteLigado,
 } from '@hexxa/db';
 
@@ -25,14 +26,19 @@ export const maxDuration = 300;
  * fechamento encontra quase tudo já entregue: sobra a diferença dos últimos
  * dias, que cabe com folga.
  *
- * ── Orçamento ───────────────────────────────────────────────────────────
- *
- * Duas coisas disputam a mesma cota: este envio e a volta (guias e folha). A
- * volta é barata e tem hora certa; o envio é caro e contínuo. Por isso o
- * envio fica com a maior parte, mas não com tudo — e nunca chega a zerar a
- * cota, senão a volta do dia 1 não aconteceria.
  */
-const ORCAMENTO_DIARIO = 300;
+
+/**
+ * Chamadas guardadas para a volta das guias.
+ *
+ * A volta roda de manhã e o envio de madrugada, mas os dois sacam da MESMA
+ * cota de 500. Com 50 empresas, um envio guloso deixaria a volta sem nada — e
+ * a volta é a que o cliente sente, porque é dela que vem a guia para pagar.
+ *
+ * 120 cobre a sondagem de 50 empresas mais a importação completa de algumas
+ * dezenas no dia em que as guias saem.
+ */
+const RESERVA_PARA_A_VOLTA = 120;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -44,7 +50,17 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
-    const orcamento = Number(url.searchParams.get('limite') ?? ORCAMENTO_DIARIO);
+    const pedido = url.searchParams.get('limite');
+    const orcamento = pedido
+      ? Number(pedido)
+      : await cotaRestante(db, RESERVA_PARA_A_VOLTA);
+
+    if (orcamento <= 0) {
+      return NextResponse.json({
+        message: 'Sem cota disponível hoje depois da reserva da volta. Retoma amanhã.',
+        orcamento: 0,
+      });
+    }
 
     const ligadas = await empresasComAgenteLigado(db, 'envioOneflow');
     const cliente = clienteOneflow(db);

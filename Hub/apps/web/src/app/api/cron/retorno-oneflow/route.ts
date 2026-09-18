@@ -3,6 +3,8 @@ import { getDb } from '@hexxa/db';
 import {
   importarDoOneflow,
   cotaDiariaEsgotada,
+  guiaDisponivel,
+  cotaRestante,
   appHashPorCnpj,
   assertLedgerBalances,
   empresasComAgenteLigado,
@@ -53,6 +55,14 @@ export async function GET(request: Request) {
     const ligadas = await empresasComAgenteLigado(db, 'retornoOneflow');
     const relatorio: Record<string, unknown>[] = [];
     let interrompido: string | null = null;
+    let sondagens = 0;
+
+    /**
+     * A volta roda PRIMEIRO e sem reserva: ela tem hora certa e adiá-la
+     * atrasa a guia do cliente. O envio do razão roda depois, com o que
+     * sobrar, porque ele retoma no dia seguinte sem prejuízo nenhum.
+     */
+    let orcamento = await cotaRestante(db);
 
     for (const empresa of ligadas) {
       const [dados] = (await db.execute(sql`
@@ -82,7 +92,21 @@ export async function GET(request: Request) {
         continue;
       }
 
+      if (orcamento <= 0) { interrompido = empresa.nome; break; }
+
+      /**
+       * Sondagem barata antes de gastar a importação inteira.
+       *
+       * A importação custa ~6 chamadas; a sondagem, 1. Com 50 empresas
+       * esperando a guia sair, a diferença é entre 300 e 50 chamadas por dia
+       * — e a maior parte desses dias a resposta é "ainda não".
+       */
+      sondagens++;
+      orcamento -= 1;
+      if (!(await guiaDisponivel(db, empresa.id, appHash, competencia))) continue;
+
       const r = await importarDoOneflow(db, empresa.id, appHash, competencia);
+      orcamento = await cotaRestante(db);
 
       // Conferir depois de escrever. Vale aqui ainda mais que na escrituração
       // comum: o valor veio de fora, e um razão que ninguém verifica é só uma
@@ -126,6 +150,8 @@ export async function GET(request: Request) {
           'Ela reinicia à meia-noite; as empresas restantes entram na próxima execução.'
         : `Volta concluída para ${relatorio.length} empresa(s), competência ${competencia}.`,
       competencia,
+      sondagens,
+      cotaRestante: orcamento,
       empresas: relatorio,
     });
   } catch (error) {
