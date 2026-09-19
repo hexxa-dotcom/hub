@@ -5,6 +5,12 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { AlertTriangle, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SimplesPosition } from '@hexxa/core';
+
+/**
+ * A posição que chega aqui pode ser a oficial (anexo I a V, da apuração) ou a
+ * estimada (III ou V, da conta interna) — ver `posicaoSimples`.
+ */
+type Posicao = Omit<SimplesPosition, 'anexo'> & { anexo: string };
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { spring, crossFade } from '@/lib/motion';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
@@ -331,7 +337,7 @@ function ResumoDoMes({
   sobraPorMes: { rotulo: string; valor: number }[];
   faturamentoPorMes: { rotulo: string; valor: number }[];
   lucroPorMes: { rotulo: string; valor: number }[];
-  simples: SimplesPosition;
+  simples: Posicao;
   faixaProgress: number;
 }) {
   const margemPrevista = month.faturamento > 0 ? month.sobraPrevista / month.faturamento : 0;
@@ -776,7 +782,7 @@ export function DetalhesView({
 }: {
   months: MonthSummary[];
   loadError: boolean;
-  simples: SimplesPosition;
+  simples: Posicao;
   faixaProgress: number;
 }) {
   const currentMonthKey = months[months.length - 1]!.key;

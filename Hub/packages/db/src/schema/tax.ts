@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, uuid, varchar, timestamp, numeric } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 
 export const taxHistory = pgTable('tax_history', {
@@ -17,6 +17,11 @@ export const taxHistory = pgTable('tax_history', {
    * como se fosse a apuração — superestimando o imposto do cliente.
    */
   source: varchar('source', { length: 16 }).notNull().default('ESTIMATE'),
+  /** Do OneFlow: a atividade se sujeita ao Fator R? Nulo = desconhecido. */
+  /** Fator R oficial da competência (0.46 = 46%), do OneFlow. */
+  fatorR: numeric('fator_r', { precision: 6, scale: 4 }),
+  /** Deduzido do anexo apurado + fator. Nulo = não se sabe. */
+  fatorRSujeito: boolean('fator_r_sujeito'),
   pdfUrl: varchar('pdf_url', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

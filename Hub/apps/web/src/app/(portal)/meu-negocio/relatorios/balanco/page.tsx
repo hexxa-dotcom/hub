@@ -178,7 +178,7 @@ export default async function BalancoInstantaneoPage({
                     </tr>
                     <tr>
                       <td className="py-3 text-xs text-ink-soft">
-                        (−) Imposto estimado (Simples, {pct(simples.effectiveRate)} efetiva · Anexo {simples.anexo})
+                        (−) Imposto {simples.fonte === 'APURADO' ? 'pela alíquota apurada' : 'estimado'} (Simples, {pct(simples.effectiveRate)} efetiva · Anexo {simples.anexo})
                       </td>
                       <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(impostoEstimado)}</td>
                     </tr>
@@ -207,7 +207,11 @@ export default async function BalancoInstantaneoPage({
                   <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Fator R Atual</p>
                   <p className="font-serif text-2xl font-bold text-ink tabular">{pct(simples.fatorR * 100)}</p>
                   <p className={`text-[11px] font-bold ${simples.fatorRFavorable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {simples.fatorRFavorable ? 'Anexo III (favorável)' : 'Anexo V'}
+                    {/* Com apuração, o anexo é o apurado — que pode ser I, II ou IV,
+                        onde o Fator R nem entra. Sem ela, a conta só conhece III e V. */}
+                    {simples.fonte === 'APURADO'
+                      ? `Anexo ${simples.anexo} (apurado)`
+                      : simples.fatorRFavorable ? 'Anexo III (favorável)' : 'Anexo V'}
                   </p>
                 </div>
                 <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">

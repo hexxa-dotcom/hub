@@ -450,3 +450,116 @@ export function proLaboreMinimoParaFatorR(rbt12: number, folhaEmpregados12: numb
   const alvo = 0.28 * rbt12 - folhaEmpregados12;
   return Math.max(0, alvo / 12);
 }
+
+/**
+ * Enquadramento oficial no Simples — o que o contábil APUROU, quando há.
+ *
+ * ── Por que as telas precisam disto ─────────────────────────────────────
+ *
+ * O cálculo interno decide Anexo III ou V pelo Fator R da folha, para toda
+ * empresa. Mas o Fator R só vale para algumas atividades; outras estão no
+ * Anexo III (ou I, II, IV) por natureza. Para essas, a tela dizia "Abaixo de
+ * 28% · Anexo V" e o piloto automático recomendava aumentar o pró-labore —
+ * mais INSS, sem benefício nenhum. É conselho errado com cara de cálculo.
+ *
+ * A apuração do OneFlow sabe o anexo, e o OneFlow calcula o Fator R oficial.
+ * Nenhum endpoint diz se a atividade se sujeita ao Fator R — mas os dois
+ * números juntos às vezes dizem. Onde há apuração, é o que as telas mostram;
+ * o cálculo interno fica para quem ainda não tem, marcado como estimativa.
+ *
+ * `fatorRAplica`:
+ * - `false` quando o anexo apurado é III com Fator R abaixo de 28% (seria V
+ *   se a atividade se sujeitasse), ou quando o
+ *   anexo apurado é I, II ou IV (o Fator R só escolhe entre III e V);
+ * - `true` quando o anexo apurado é V (só se chega a ele pelo Fator R);
+ * - `null` quando não se sabe.
+ */
+export interface EnquadramentoApurado {
+  anexo: string;
+  aliquotaEfetiva: number;
+  mes: string;
+  /** Fator R oficial (0.46 = 46%), quando o OneFlow calculou. */
+  fatorR: number | null;
+  fatorRAplica: boolean | null;
+}
+
+export async function enquadramentoApurado(ctx: TenantContext): Promise<EnquadramentoApurado | null> {
+  const linhas = await withTenant(ctx.companyId, async (tx) =>
+    tx.execute(sql`
+      SELECT reference_month, effective_rate, tax_bracket, fator_r, fator_r_sujeito
+        FROM tax_history
+       WHERE company_id = ${ctx.companyId} AND source = 'ONEFLOW'
+       ORDER BY reference_month DESC
+       LIMIT 1
+    `),
+  );
+  const l = linhas[0] as
+    | {
+        reference_month: string;
+        effective_rate: string;
+        tax_bracket: string;
+        fator_r: string | null;
+        fator_r_sujeito: boolean | null;
+      }
+    | undefined;
+  if (!l) return null;
+
+  const anexo = /Anexo\s+([IV]+)/i.exec(l.tax_bracket)?.[1]?.toUpperCase() ?? '';
+  const foraPeloAnexo = ['I', 'II', 'IV'].includes(anexo);
+
+  return {
+    anexo,
+    aliquotaEfetiva: Number(l.effective_rate),
+    mes: l.reference_month,
+    fatorR: l.fator_r === null ? null : Number(l.fator_r),
+    fatorRAplica: foraPeloAnexo ? false : l.fator_r_sujeito,
+  };
+}
+
+/**
+ * Posição no Simples com o que é OFICIAL por cima do que é estimado.
+ *
+ * ── Por que existe ──────────────────────────────────────────────────────
+ *
+ * Cinco lugares calculavam a posição pela conta interna — `simplesPosition`
+ * sobre RBT12 e folha — e usavam a alíquota dela para o VALOR do imposto:
+ * a DRE, o balanço, a evolução mensal, o resumo do mês e o texto que a IA do
+ * resumo lê. Era o mesmo descasamento que já tinha sido corrigido no imposto
+ * aproximado da nota, ainda vivo em cinco telas: numa empresa apurada a 6%,
+ * a conta interna podia dizer 15,5%.
+ *
+ * Onde há apuração importada do OneFlow, anexo, alíquota efetiva e Fator R
+ * são os dela. Faixa, próxima faixa e alíquota nominal continuam vindo da
+ * conta interna — são projeção, não fato, e a apuração não as devolve.
+ */
+export type PosicaoSimples = Omit<import('@hexxa/core').SimplesPosition, 'anexo'> & {
+  /** 'I' a 'V'. A conta interna só conhece III e V; a apuração conhece todos. */
+  anexo: string;
+  fonte: 'APURADO' | 'ESTIMADO';
+  /** Mês da apuração usada, 'AAAA-MM'. */
+  mesApurado: string | null;
+};
+
+export async function posicaoSimples(
+  ctx: TenantContext,
+  entradas: { rbt12: number; folha12: number },
+): Promise<PosicaoSimples> {
+  const { TaxThermometerService } = await import('@hexxa/core');
+  const calc = new TaxThermometerService().simplesPosition({
+    rbt12: entradas.rbt12,
+    payroll12: entradas.folha12,
+  });
+  const apurado = await enquadramentoApurado(ctx);
+  if (!apurado || !apurado.anexo) return { ...calc, fonte: 'ESTIMADO', mesApurado: null };
+
+  return {
+    ...calc,
+    anexo: apurado.anexo,
+    effectiveRate: apurado.aliquotaEfetiva,
+    fatorR: apurado.fatorR ?? calc.fatorR,
+    // Com anexo apurado III ou V, "favorável" é o anexo — não a conta.
+    fatorRFavorable: ['III', 'V'].includes(apurado.anexo) ? apurado.anexo === 'III' : calc.fatorRFavorable,
+    fonte: 'APURADO',
+    mesApurado: apurado.mes,
+  };
+}

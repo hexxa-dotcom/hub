@@ -2,7 +2,8 @@ import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import { TaxThermometerService } from '@hexxa/core';
 import { AlertTriangle, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs } from '@/lib/server/fiscal';
+import { getSimplesInputs, posicaoSimples } from '@/lib/server/fiscal';
+import type { TenantContext } from '@hexxa/core';
 import { withTenant, sql } from '@hexxa/db';
 import { DueDatesTimeline } from './DueDatesTimeline';
 import { CashflowForecast, type CashflowDay } from './CashflowForecast';
@@ -54,12 +55,14 @@ export async function ResumoView() {
   let openDasGuide: { amount: number; dueDate: string } | null = null;
   let loadError = false;
   let companyId = '';
+  let ctxResumo: TenantContext | null = null;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
 
   try {
     const ctx = await getTenantContext();
     companyId = ctx.companyId;
+    ctxResumo = ctx;
     // getSimplesInputs e o bloco withTenant abaixo só dependem de ctx —
     // independentes entre si, então rodam em paralelo.
     const [simples12, data] = await Promise.all([
@@ -85,7 +88,7 @@ export async function ResumoView() {
           `),
           tx.execute(sql`
             SELECT amount, due_date FROM tax_guide
-            WHERE company_id = ${ctx.companyId} AND tax_name = 'DAS - Simples Nacional' AND status = 'OPEN'
+            WHERE company_id = ${ctx.companyId} AND tax_name IN ('DAS', 'DAS - Simples Nacional') AND status = 'OPEN'
             ORDER BY due_date DESC
             LIMIT 1
           `),
@@ -233,7 +236,11 @@ export async function ResumoView() {
     faturamentoMesAnterior > 0 ? (faturamentoMes - faturamentoMesAnterior) / faturamentoMesAnterior : 0;
 
   // Termômetro Tributário & Simples
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+  // O oficial por cima do estimado: o texto que a IA lê abaixo diz o anexo e
+  // a alíquota, e eles precisam ser os da apuração, não os da conta interna.
+  const simples = ctxResumo
+    ? await posicaoSimples(ctxResumo, { rbt12, folha12 })
+    : new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
   const nextMonthLabel = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
 
 

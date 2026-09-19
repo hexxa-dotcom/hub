@@ -2,7 +2,7 @@ import 'server-only';
 import type { TenantContext } from '@hexxa/core';
 import { TaxThermometerService } from '@hexxa/core';
 import { withTenant, getDb, sql } from '@hexxa/db';
-import { getSimplesInputs } from './fiscal';
+import { getSimplesInputs, posicaoSimples } from './fiscal';
 import type { ReportCompanyIdentity } from './pdf/report-pdf';
 
 /**
@@ -88,7 +88,7 @@ export interface BalancoDreData {
   margem: number;
   categorias: [string, number][];
   monthly: BalancoMonthSummary[];
-  simples: { effectiveRate: number; anexo: string; fatorR: number; fatorRFavorable: boolean };
+  simples: { effectiveRate: number; anexo: string; fatorR: number; fatorRFavorable: boolean; fonte: 'APURADO' | 'ESTIMADO' };
   rbt12: number;
 }
 
@@ -101,7 +101,7 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
   const [deOrdered, ateOrdered] = de <= ate ? [de, ate] : [ate, de];
 
   const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
 
   const allEntries = await withTenant(ctx.companyId, async (tx) => {
     const rows = await tx.execute(sql`
@@ -182,7 +182,7 @@ export async function getFaturamentoData(ctx: TenantContext, params: { ano?: str
   const ano = params.ano && anosDisponiveis.includes(params.ano) ? params.ano : anoAtual;
 
   const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
 
   const receitaPorMesDoAno = new Map(
     receitaPorMes.filter((r) => r.ano === ano).map((r) => [r.mes.slice(5, 7), Number(r.total)]),
@@ -249,7 +249,7 @@ export async function getFaturamentoPorClienteData(ctx: TenantContext, params: {
   const ano = params.ano && anos.includes(params.ano) ? params.ano : anoAtual;
 
   const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
 
   const doAno = porCliente.filter((r) => r.ano === ano);
   const receitaTotal = doAno.reduce((s, r) => s + Number(r.amount), 0);

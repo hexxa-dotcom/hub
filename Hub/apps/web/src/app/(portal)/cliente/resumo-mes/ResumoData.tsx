@@ -1,5 +1,6 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs } from '@/lib/server/fiscal';
+import { getSimplesInputs, posicaoSimples } from '@/lib/server/fiscal';
+import type { TenantContext } from '@hexxa/core';
 import { TaxThermometerService } from '@hexxa/core';
 import { withTenant, sql } from '@hexxa/db';
 import { DetalhesView, type MonthSummary, type CompromissoRow, type WeekFlow } from './ResumoMesView';
@@ -123,9 +124,11 @@ export async function DetalhesData() {
   let employmentEvents: EmploymentEventRow[] = [];
   let loadError = false;
   let simplesInputs = { rbt12: 0, folha12: 0 };
+  let ctxResumo: TenantContext | null = null;
 
   try {
     const ctx = await getTenantContext();
+    ctxResumo = ctx;
     // Enquadramento no Simples é independente das consultas de lançamento —
     // roda junto em vez de esperar uma pela outra.
     const simplesPromise = getSimplesInputs(ctx);
@@ -140,7 +143,7 @@ export async function DetalhesData() {
       `);
       const dasGuide = await tx.execute(sql`
         SELECT amount, due_date FROM tax_guide
-        WHERE company_id = ${ctx.companyId} AND tax_name = 'DAS - Simples Nacional' AND status = 'OPEN'
+        WHERE company_id = ${ctx.companyId} AND tax_name IN ('DAS', 'DAS - Simples Nacional') AND status = 'OPEN'
         ORDER BY due_date DESC
         LIMIT 1
       `);
@@ -408,10 +411,14 @@ export async function DetalhesData() {
     };
   });
 
-  const simples = new TaxThermometerService().simplesPosition({
-    rbt12: simplesInputs.rbt12,
-    payroll12: simplesInputs.folha12,
-  });
+  // Anexo, alíquota efetiva e Fator R oficiais, quando há apuração
+  // importada; faixa e projeção continuam da conta interna.
+  const simples = ctxResumo
+    ? await posicaoSimples(ctxResumo, simplesInputs)
+    : new TaxThermometerService().simplesPosition({
+        rbt12: simplesInputs.rbt12,
+        payroll12: simplesInputs.folha12,
+      });
   const faixaProgress =
     simples.faixaMax > simples.faixaMin
       ? (simplesInputs.rbt12 - simples.faixaMin) / (simples.faixaMax - simples.faixaMin)

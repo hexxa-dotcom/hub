@@ -8,9 +8,9 @@ import {
   fecharParaOCliente,
   type FechamentoAgente,
 } from '@hexxa/db';
-import { verificarFechamento, TaxThermometerService } from '@hexxa/core';
+import { verificarFechamento } from '@hexxa/core';
 import { taxGuide } from '@hexxa/db/schema';
-import { getSimplesInputs } from './fiscal';
+import { getSimplesInputs, posicaoSimples } from './fiscal';
 import { classificarPendentes } from './agente-classificador';
 import { escriturar } from './ledger';
 
@@ -44,11 +44,24 @@ export interface FechamentoResolvido extends FechamentoAgente {
 }
 
 /**
- * Provisiona a guia do mês a partir do faturamento e da posição no Simples.
+ * Provisiona o DAS do mês até a apuração oficial chegar.
  *
- * A IA tem tudo que precisa: faturamento do mês, RBT12 e folha dos últimos 12.
- * Perguntar ao cliente quanto de imposto ele deve seria o avesso do produto —
- * é exatamente o que ele contratou a ferramenta para não ter que saber.
+ * O mês precisa reconhecer o imposto no próprio mês — é competência — e o
+ * DAS oficial só sai do OneFlow entre o dia 1 e o dia 15 do mês seguinte.
+ * Sem provisão, todo fechamento no dia 1 travaria.
+ *
+ * ── O que esta função fazia, e por que era grave ────────────────────────
+ *
+ * Gravava a guia como "DAS - Simples Nacional", pela alíquota NOMINAL. A
+ * volta do OneFlow grava a oficial como "DAS", e casa guia existente por
+ * (empresa, nome, mês) — nomes diferentes, então nunca se encontravam. O
+ * resultado seriam duas guias para a mesma competência e o imposto lançado
+ * DUAS vezes no razão, com a primeira pela alíquota errada.
+ *
+ * Agora a provisão usa o mesmo nome da oficial e a alíquota EFETIVA (a
+ * apurada do último mês, quando há). Quando o DAS de verdade chega, a volta
+ * encontra esta guia, vê o valor diferente e a substitui por estorno —
+ * `reescriturarGuia` —, com o valor provisionado registrado ao lado.
  */
 async function provisionarGuia(companyId: string, referenceMonth: string, receita: number) {
   const db = getDb();
@@ -63,14 +76,14 @@ async function provisionarGuia(companyId: string, referenceMonth: string, receit
     SELECT type::text AS type FROM company WHERE id = ${companyId}
   `)) as unknown as { type: string }[];
 
-  const { rbt12, folha12 } = await getSimplesInputs({
+  const ctx = {
     companyId,
     companyType: (comp?.type ?? 'SERVICE') as 'SERVICE' | 'HOLDING',
     userId: 'agente-fechamento',
-  });
-
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
-  const valor = (receita * simples.nominalRate) / 100;
+  };
+  const { rbt12, folha12 } = await getSimplesInputs(ctx);
+  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
+  const valor = Number(((receita * simples.effectiveRate) / 100).toFixed(2));
   if (valor <= 0) return null;
 
   // Vencimento no dia 20 do mês seguinte ao de referência — prazo do DAS.
@@ -81,7 +94,9 @@ async function provisionarGuia(companyId: string, referenceMonth: string, receit
     .insert(taxGuide)
     .values({
       companyId,
-      taxName: 'DAS - Simples Nacional',
+      // O MESMO nome que a volta do OneFlow usa — é o que faz a oficial
+      // encontrar e substituir esta provisão, em vez de somar a ela.
+      taxName: 'DAS',
       referenceMonth,
       amount: valor.toFixed(2),
       dueDate: venc,
@@ -95,8 +110,9 @@ async function provisionarGuia(companyId: string, referenceMonth: string, receit
   return {
     pendencia: 'guia_nao_provisionada',
     acao:
-      `Apurado DAS de R$ ${valor.toFixed(2)} (Anexo ${simples.anexo}, faixa ${simples.faixa}, ` +
-      `alíquota ${simples.nominalRate.toFixed(2)}%) e provisionado no razão.`,
+      `DAS provisionado em R$ ${valor.toFixed(2)} (alíquota efetiva ${simples.effectiveRate.toFixed(2)}%, ` +
+      `${simples.fonte === 'APURADO' ? `a apurada em ${simples.mesApurado}` : 'estimada'}). ` +
+      'A apuração oficial do OneFlow substitui este valor quando sair.',
   };
 }
 

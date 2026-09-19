@@ -212,7 +212,16 @@ export interface RetornoResult {
   guias: RetornoGuia[];
   folha: RetornoFolha[];
   /** Fator R da competência, quando a folha está finalizada lá. */
-  fatorR: { valor: number | null; mensagem: string | null } | null;
+  fatorR: {
+    valor: number | null;
+    mensagem: string | null;
+    /**
+     * A empresa tem receita sujeita ao Fator R nesta competência?
+     * `false` = atividades fora do Fator R (lista vazia, sem mensagem).
+     * `null` = o OneFlow não soube dizer — a mensagem explica por quê.
+     */
+    sujeito: boolean | null;
+  } | null;
   /** Partidas gravadas no razão a partir do que voltou. */
   escrituradas: number;
   /** O que impediu parte da volta — nomeado, nunca silencioso. */
@@ -249,6 +258,15 @@ export async function importarDoOneflow(
   // responde isso quando não há. Perguntar assim mesmo seria queimar uma
   // requisição da cota diária para receber uma frase que já sabemos.
   if (out.folha.length > 0) await lerFatorR(companyId, appHash, competencia, of, out);
+
+  /**
+   * Guarda o Fator R oficial junto da alíquota apurada. Era lido e
+   * descartado — e é o que impede o termômetro de dizer "Anexo V, aumente o
+   * pró-labore" a uma empresa que o contábil apurou no Anexo III.
+   */
+  if (out.fatorR?.valor !== null && out.fatorR?.valor !== undefined) {
+    await registrarFatorR(tx, companyId, competencia, out.fatorR.valor, out);
+  }
 
   return out;
 }
@@ -703,13 +721,77 @@ async function lerFatorR(
   out: RetornoResult,
 ): Promise<void> {
   try {
+    /**
+     * O formato real é `{ msgretorno, receitas }` — e `receitas` é a SÉRIE
+     * MENSAL do cálculo: um item por competência dos últimos doze meses, com
+     * `valorFolha`, `valorReceita` e o `fatorR` acumulado até ali.
+     *
+     * Duas leituras erradas vieram antes desta. A primeira procurava `r.fatorR`
+     * no topo, que não existe, e o valor saía sempre nulo. A segunda pegava o
+     * primeiro item da lista — o mês MAIS ANTIGO, com Fator R 0 — e tomava
+     * "a lista não está vazia" como "a atividade se sujeita ao Fator R". A
+     * série não diz nada sobre sujeição; ela é só a conta.
+     *
+     * O valor que vale é o da competência pedida (ou o último da série).
+     */
     const r = conteudo(await of.fatorR(companyId, appHash, competencia));
-    const mensagem = r.msgretorno ? String(r.msgretorno) : null;
-    const valor = r.fatorR !== undefined ? numero(r.fatorR) : null;
-    out.fatorR = { valor, mensagem };
+    const mensagem = r.msgretorno ? String(r.msgretorno).trim() || null : null;
+    const serie = (Array.isArray(r.receitas)
+      ? r.receitas
+      : r.receitas && typeof r.receitas === 'object'
+        ? Object.values(r.receitas)
+        : []) as Record<string, unknown>[];
+
+    const alvo = `${competencia.slice(4, 6)}/${competencia.slice(0, 4)}`;
+    const item = serie.find((x) => x?.competenciaReferencia === alvo) ?? serie[serie.length - 1];
+    const valor = item && item.fatorR !== undefined && item.fatorR !== null ? numero(item.fatorR) : null;
+
+    // Sujeição não vem deste endpoint — é deduzida junto com o anexo apurado,
+    // em `registrarFatorR`, onde os dois números oficiais estão lado a lado.
+    out.fatorR = { valor, mensagem, sujeito: null };
   } catch (err) {
     out.avisos.push(`Fator R: ${msg(err)}`);
   }
+}
+
+/**
+ * Grava o Fator R oficial e, quando os números permitem, a sujeição.
+ *
+ * O endpoint do Fator R não diz se a atividade se sujeita a ele. Mas o anexo
+ * APURADO, lado a lado com o fator, às vezes diz:
+ *
+ * - Anexo V apurado: sujeita, e abaixo de 28%.
+ * - Anexo III com Fator R abaixo de 28%: NÃO sujeita — se fosse, a apuração
+ *   teria caído no V. É o caso que fazia a tela recomendar mais pró-labore
+ *   a quem não ganharia nada com isso.
+ * - Anexo III com Fator R de 28% ou mais: não dá para saber, e não importa —
+ *   a empresa está no III de qualquer jeito.
+ *
+ * Nulo quando não se sabe. Nunca um palpite.
+ */
+async function registrarFatorR(
+  tx: DbHandle,
+  companyId: string,
+  competencia: string,
+  fator: number,
+  out: RetornoResult,
+): Promise<void> {
+  const mesRef = `${competencia.slice(0, 4)}-${competencia.slice(4, 6)}`;
+  const [linha] = (await tx.execute(sql`
+    SELECT tax_bracket FROM tax_history
+     WHERE company_id = ${companyId} AND reference_month = ${mesRef} AND source = 'ONEFLOW'
+  `)) as unknown as { tax_bracket: string }[];
+  if (!linha) return;
+
+  const anexo = /Anexo\s+([IV]+)/i.exec(linha.tax_bracket)?.[1]?.toUpperCase() ?? '';
+  const sujeito = anexo === 'V' ? true : anexo === 'III' && fator < 0.28 ? false : null;
+  if (out.fatorR) out.fatorR.sujeito = sujeito;
+
+  await tx.execute(sql`
+    UPDATE tax_history
+       SET fator_r = ${fator.toFixed(4)}, fator_r_sujeito = ${sujeito}
+     WHERE company_id = ${companyId} AND reference_month = ${mesRef} AND source = 'ONEFLOW'
+  `);
 }
 
 /* ── Arquivo da guia ────────────────────────────────────────────────────── */

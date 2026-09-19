@@ -1,5 +1,5 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs, getCurrentMinimumWage } from '@/lib/server/fiscal';
+import { getSimplesInputs, getCurrentMinimumWage, enquadramentoApurado } from '@/lib/server/fiscal';
 import { TaxThermometerService, ProlaboreAutopilotService } from '@hexxa/core';
 import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -13,11 +13,41 @@ export const dynamic = 'force-dynamic';
 
 export default async function TermometroTributarioPage() {
   const ctx = await getTenantContext();
-  const [{ rbt12, folha12 }, minimumWage] = await Promise.all([
+  const [{ rbt12, folha12 }, minimumWage, apurado] = await Promise.all([
     getSimplesInputs(ctx),
     getCurrentMinimumWage(),
+    enquadramentoApurado(ctx),
   ]);
   const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+
+  /**
+   * O que o contábil apurou manda sobre o que o Hub estima.
+   *
+   * O cálculo interno decide III ou V pelo Fator R para TODA empresa. Para
+   * quem está no Anexo III pela própria atividade, isso virava "Anexo V —
+   * aumente o pró-labore": mais INSS, sem benefício nenhum. Onde há apuração
+   * importada, o anexo e a alíquota são os dela, e o Fator R só aparece se a
+   * atividade se sujeita a ele.
+   */
+  /**
+   * Fora do Fator R por dedução OFICIAL (anexo apurado + fator do OneFlow),
+   * ou por dedução que se apoia na estimativa (anexo apurado III + fator
+   * estimado abaixo de 28%). A segunda é mais fraca e aparece com texto mais
+   * cauteloso — mas também esconde o piloto, porque o risco é assimétrico:
+   * esconder por engano tira uma sugestão; mostrar por engano aconselha a
+   * pagar INSS sem ganho nenhum.
+   */
+  const foraOficial = apurado?.fatorRAplica === false;
+  const foraEstimado =
+    !foraOficial &&
+    apurado?.anexo === 'III' &&
+    apurado.fatorRAplica !== true &&
+    (apurado.fatorR ?? simples.fatorR) < 0.28;
+  const fatorRAplica = !(foraOficial || foraEstimado);
+  const favoravel = apurado && ['III', 'V'].includes(apurado.anexo)
+    ? apurado.anexo === 'III'
+    : simples.fatorRFavorable;
+  const mesApurado = apurado ? apurado.mes.split('-').reverse().join('/') : null;
 
   // Piloto Automático do Pró-labore
   const payrollLast11Months = (folha12 * 11) / 12;
@@ -126,45 +156,81 @@ export default async function TermometroTributarioPage() {
               <Card level={1} className="p-6 card-finish">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3">Carga Tributária Efetiva</h3>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate(simples.effectiveRate)}</span>
-                  <span className="text-xs text-ink-soft">alíquota real</span>
+                  <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate(apurado ? apurado.aliquotaEfetiva : simples.effectiveRate)}</span>
+                  <span className="text-xs text-ink-soft">{apurado ? `apurada em ${mesApurado}` : 'estimativa'}</span>
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">Nominal da faixa: <span className="font-serif tabular">{rate(simples.nominalRate)}</span></p>
                 <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
                   <p className="text-xs text-ink-soft">
                     Enquadramento Atual:
-                    <strong className="text-sm text-ink mt-1 block">Anexo {simples.anexo} · Faixa {simples.faixa}</strong>
+                    <strong className="text-sm text-ink mt-1 block">
+                      {apurado?.anexo
+                        ? <>Anexo {apurado.anexo} <span className="font-normal text-ink-soft">· apurado pelo contábil</span></>
+                        : <>Anexo {simples.anexo} · Faixa {simples.faixa} <span className="font-normal text-ink-soft">· estimativa</span></>}
+                    </strong>
                   </p>
                 </div>
               </Card>
 
-              <Card level={1} className="p-6 card-finish">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3 flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" /> Fator R (Folha / Faturamento)
-                </h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate(simples.fatorR * 100)}</span>
-                </div>
-                <div className="mt-2">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                    simples.fatorRFavorable
-                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
-                  }`}>
-                    {simples.fatorRFavorable ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                    {simples.fatorRFavorable ? 'Favorável (≥ 28%) · Anexo III' : 'Abaixo de 28% · Anexo V'}
-                  </span>
-                </div>
-                {!simples.fatorRFavorable && (
-                  <Link
-                    href="/minha-contabilidade/socios"
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline"
-                  >
-                    Ajustar pró-labore em Sócios <ArrowRight className="h-3 w-3" />
-                  </Link>
-                )}
-              </Card>
+              {fatorRAplica ? (
+                <Card level={1} className="p-6 card-finish">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" /> Fator R (Folha / Faturamento)
+                  </h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate((apurado?.fatorR ?? simples.fatorR) * 100)}</span>
+                    <span className="text-xs text-ink-soft">{apurado?.fatorR !== null && apurado?.fatorR !== undefined ? 'oficial' : 'estimativa'}</span>
+                  </div>
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                      favoravel
+                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                    }`}>
+                      {favoravel ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                      {apurado && ['III', 'V'].includes(apurado.anexo)
+                        ? `Anexo ${apurado.anexo} · apurado`
+                        : favoravel ? 'Favorável (≥ 28%) · Anexo III' : 'Abaixo de 28% · Anexo V'}
+                    </span>
+                  </div>
+                  {!favoravel && (
+                    <Link
+                      href="/minha-contabilidade/socios"
+                      className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline"
+                    >
+                      Ajustar pró-labore em Sócios <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+                </Card>
+              ) : (
+                <Card level={1} className="p-6 card-finish">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" /> Fator R
+                  </h3>
+                  <p className="font-serif font-bold text-base text-ink">
+                    {foraOficial ? 'Não se aplica à sua atividade' : 'Seu imposto não depende dele hoje'}
+                  </p>
+                  {foraEstimado ? (
+                    <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+                      O contábil apurou sua empresa no Anexo III, e pela folha que o Hub enxerga o
+                      Fator R ficaria abaixo de 28% — o que só é possível se a sua atividade não
+                      depender dele. Antes de mexer no pró-labore, fale com o seu contador.
+                    </p>
+                  ) : (
+                  <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+                    O contábil apurou sua empresa no Anexo {apurado?.anexo}
+                    {apurado?.fatorR !== null && apurado?.fatorR !== undefined
+                      ? `, com Fator R de ${rate(apurado.fatorR * 100)} — abaixo dos 28% que levariam ao Anexo V se a sua atividade dependesse dele`
+                      : ''}
+                    . O Fator R só decide entre os Anexos III e V para algumas atividades, e a sua não
+                    está entre elas: mudar o pró-labore não muda o seu imposto.
+                  </p>
+                  )}
+                </Card>
+              )}
 
+              {fatorRAplica && (
+              <>
               {/* Piloto Automático do Fator R */}
               <Card level={2} tone="deep" className="p-6 card-finish">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-hexxa-lime mb-3 flex items-center gap-1.5">
@@ -190,6 +256,8 @@ export default async function TermometroTributarioPage() {
                   </span>
                 </div>
               </Card>
+              </>
+              )}
             </div>
           </div>
 
