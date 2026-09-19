@@ -417,7 +417,10 @@ async function importarGuias(
      * Só preenche o que está VAZIO: um Pix colado à mão pelo contador vale
      * mais que o nosso palpite, e sobrescrevê-lo seria perder trabalho dele.
      */
-    const preencher: { fileUrl?: string; pixCode?: string; dueDate?: string } = {};
+    const preencher: { fileUrl?: string; pixCode?: string; dueDate?: string; provisional?: boolean } = {};
+    // Chegou a apuração oficial: a guia deixa de ser estimativa e passa a
+    // aparecer para o cliente — com o valor abaixo corrigido, se diferir.
+    if (existente.provisional) preencher.provisional = false;
     if (!existente.fileUrl && arquivo.fileUrl) preencher.fileUrl = arquivo.fileUrl;
     if (!existente.pixCode && arquivo.pixCode) preencher.pixCode = arquivo.pixCode;
     // O vencimento real chega junto com o anexo, depois da guia já existir.

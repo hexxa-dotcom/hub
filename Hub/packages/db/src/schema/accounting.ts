@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, date, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, date, timestamp, jsonb, integer, boolean } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { businessContract } from './service-ops';
 import { partner } from './patrimonial';
@@ -23,6 +23,12 @@ export const taxGuide = pgTable('tax_guide', {
   pixCode: text('pix_code'), // copia-e-cola do botão "Copiar Pix"
   fileUrl: text('file_url'),
   status: docStatus('status').notNull().default('OPEN'),
+  /**
+   * Estimativa do fechamento, aguardando a apuração oficial do OneFlow.
+   * Fica no razão (o imposto é do mês) e fora da tela do cliente (não é o
+   * valor a pagar). A volta do OneFlow desliga ao gravar o oficial.
+   */
+  provisional: boolean('provisional').notNull().default(false),
   /**
    * Parcelamento tributário: quando o contador cadastra um plano com N
    * parcelas, cada parcela vira uma linha de tax_guide com o mesmo

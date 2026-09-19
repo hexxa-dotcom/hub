@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/honorarios",
       "schedule": "0 9 1 * *"
+    },
+    {
+      "path": "/api/cron/resultado-oneflow",
+      "schedule": "30 6 * * *"
     }
   ]
 }

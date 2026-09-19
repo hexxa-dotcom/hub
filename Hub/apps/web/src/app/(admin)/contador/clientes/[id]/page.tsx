@@ -23,6 +23,7 @@ import {
 import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
 import { ClienteStatusActions } from './ClienteStatusActions';
+import { HonorariosEditor } from './HonorariosEditor';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -59,7 +60,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
   const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, companyId)), 8000);
   if (!comp) notFound();
 
-  let sub: { subscriptionId: string; status: string; planName: string | null; monthlyValue: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
+  let sub: { subscriptionId: string; status: string; planId: string; planName: string | null; monthlyValue: string | null; discountValue: string; discountReason: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
+  let planos: { id: string; nome: string; valor: number }[] = [];
   let owner: { name: string; email: string } | undefined;
   let openTickets: { id: string; subject: string; priority: string; createdAt: Date }[] = [];
   let invoices: { id: string; referenceMonth: string; dueDate: string; value: string; status: string }[] = [];
@@ -72,8 +74,11 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
           .select({
             subscriptionId: subscription.id,
             status: subscription.status,
+            planId: subscription.planId,
             planName: plan.name,
             monthlyValue: plan.monthlyValue,
+            discountValue: subscription.discountValue,
+            discountReason: subscription.discountReason,
             asaasCustomerId: subscription.asaasCustomerId,
             asaasSubscriptionId: subscription.asaasSubscriptionId,
           })
@@ -117,7 +122,17 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
 
   const status = (sub?.status as SubStatus) || 'TRIAL';
   const st = STATUS_CFG[status] ?? STATUS_CFG.TRIAL;
-  const mrr = sub ? Number(sub.monthlyValue) : 0;
+  try {
+    const linhasPlano = await withDbTimeout(db.select().from(plan), 8000);
+    planos = linhasPlano
+      .map((p) => ({ id: p.id, nome: p.name, valor: Number(p.monthlyValue) }))
+      .sort((a, b) => b.valor - a.valor);
+  } catch (err) {
+    console.error('[cliente] planos:', err);
+  }
+
+  // Receita real do cliente: o preço do plano MENOS o desconto combinado.
+  const mrr = sub ? Number(sub.monthlyValue) - Number(sub.discountValue ?? 0) : 0;
   const email = (fiscalContact?.email as string | null) || owner?.email || null;
   const telefone = (fiscalContact?.telefone as string | null) || null;
 
@@ -308,27 +323,24 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
           {/* Plano */}
           <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
-              <CreditCard className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Plano contratado
+              <CreditCard className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Honorários
             </h2>
-            {sub ? (
-              <div className="rounded-2xl bg-[#EFFFD6] dark:bg-[#2F4A3C]/30 border border-[#2F4A3C]/20 p-4">
-                <p className="text-sm font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">{sub.planName}</p>
-                <p className="text-xs font-medium text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">{BRL.format(Number(sub.monthlyValue))}/mês</p>
-              </div>
-            ) : (
-              <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Sem assinatura vinculada.</p>
-            )}
+            <HonorariosEditor
+              companyId={comp.id}
+              planos={planos}
+              atual={{
+                planId: sub?.planId ?? null,
+                desconto: Number(sub?.discountValue ?? 0),
+                motivo: sub?.discountReason ?? null,
+                status: sub?.status ?? null,
+              }}
+            />
             {sub?.asaasSubscriptionId && (
               <div className="mt-3 flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
                 Cobrança via Asaas ativa
               </div>
             )}
-            <div className="mt-4">
-              <Link href="/contador/clientes" className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE]">
-                Alterar plano / status na lista de clientes →
-              </Link>
-            </div>
           </div>
 
           {/* Ações rápidas */}

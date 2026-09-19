@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { TenantContext } from '@hexxa/core';
 import { withTenant, type DbHandle } from '../client';
 import { taxGuide } from '../schema/accounting';
@@ -70,7 +70,9 @@ export class DrizzleTaxGuideRepository {
       const rows = await tx
         .select()
         .from(taxGuide)
-        .where(eq(taxGuide.companyId, ctx.companyId))
+        // Provisória fica de fora: é estimativa do fechamento, não o valor a
+        // pagar. O cliente vê a guia quando a apuração oficial chega.
+        .where(and(eq(taxGuide.companyId, ctx.companyId), eq(taxGuide.provisional, false)))
         .orderBy(desc(taxGuide.dueDate));
 
       return rows.map(mapRow);

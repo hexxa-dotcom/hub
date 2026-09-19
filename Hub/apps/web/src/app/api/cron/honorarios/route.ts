@@ -48,6 +48,8 @@ export async function GET(request: Request) {
           companyId: subscription.companyId,
           nome: company.legalName,
           valor: plan.monthlyValue,
+          desconto: subscription.discountValue,
+          motivoDesconto: subscription.discountReason,
           plano: plan.name,
         })
         .from(subscription)
@@ -79,7 +81,7 @@ export async function GET(request: Request) {
               and(
                 eq(accountingInvoice.companyId, a.companyId),
                 eq(accountingInvoice.referenceMonth, referenceMonth),
-                sql`${accountingInvoice.description} = 'Honorários Contábeis'`,
+                sql`${accountingInvoice.description} LIKE 'Honorários Contábeis%'`,
               ),
             ),
           8000,
@@ -90,11 +92,26 @@ export async function GET(request: Request) {
           continue;
         }
 
+        /**
+         * O desconto sai na descrição, com o preço cheio ao lado. É o que
+         * mostra ao cliente o benefício que ele tem — e o que evita que um
+         * desconto esquecido vire, sem ninguém notar, o preço da tabela.
+         */
+        const cheio = Number(a.valor);
+        const desconto = Number(a.desconto ?? 0);
+        const valorFinal = Math.max(0, cheio - desconto);
+        const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
         await withDbTimeout(
           db.insert(accountingInvoice).values({
             companyId: a.companyId,
-            description: 'Honorários Contábeis',
-            value: a.valor,
+            // A checagem de duplicidade acima procura por este prefixo.
+            description:
+              desconto > 0
+                ? `Honorários Contábeis — ${a.plano} ${brl(cheio)} − desconto ${brl(desconto)}` +
+                  (a.motivoDesconto ? ` (${a.motivoDesconto})` : '')
+                : `Honorários Contábeis — ${a.plano}`,
+            value: valorFinal.toFixed(2),
             referenceMonth,
             dueDate,
             status: 'OPEN',
@@ -102,7 +119,7 @@ export async function GET(request: Request) {
           }),
           8000,
         );
-        geradas.push(`${a.nome} · ${a.plano}`);
+        geradas.push(`${a.nome} · ${a.plano} · ${brl(valorFinal)}`);
       } catch (err) {
         erros.push(`${a.nome}: ${err instanceof Error ? err.message : String(err)}`);
       }

@@ -40,7 +40,9 @@ export default async function Page() {
     `Pró-labore total pago aos sócios (mensal, últimos 12 meses/12): R$ ${(simplesInputs.prolabore12 / 12).toFixed(2)}.`,
     `Pró-labore mínimo recomendado pra manter o Fator R favorável: R$ ${prolaboreMinimoRecomendado.toFixed(2)}.`,
     `Sócios cadastrados: ${partners.map((p) => `${p.nome} (${p.participacao}% de participação, pró-labore R$ ${p.prolabore.toFixed(2)}/mês)`).join('; ') || 'nenhum'}.`,
-    `Lucro do ano disponível pra distribuir: R$ ${yearlyProfit.availableToDistribute.toFixed(2)} (já distribuído este ano: R$ ${yearlyProfit.distributedThisYear.toFixed(2)}).`,
+    yearlyProfit.fonte === 'OFICIAL'
+      ? `Lucro do ano disponível pra distribuir (contabilidade oficial, até ${yearlyProfit.mesOficial}): R$ ${yearlyProfit.availableToDistribute.toFixed(2)} (já distribuído este ano: R$ ${yearlyProfit.distributedThisYear.toFixed(2)}).`
+      : `Lucro oficial indisponível — NÃO sugira valores de distribuição. Motivo: ${yearlyProfit.motivoIndisponivel}`,
   ].join('\n');
 
   return (

@@ -503,7 +503,10 @@ export async function listGuiasImpostos(companyId: string, filter?: { status?: s
       amount,
       due_date,
       status,
-      pix_code IS NOT NULL as tem_pix
+      pix_code IS NOT NULL as tem_pix,
+      -- Provisória = estimativa do fechamento, antes da apuração oficial. O
+      -- agente precisa saber para não apresentar o valor como o que pagar.
+      provisional AS provisoria_nao_e_valor_a_pagar
     FROM tax_guide
     WHERE company_id = ${companyId}
   `;

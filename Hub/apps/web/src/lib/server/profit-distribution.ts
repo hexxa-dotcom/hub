@@ -3,10 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { escriturarNovos } from '@/lib/server/ledger';
 import { getTenantContext } from './tenant';
-import { withTenant, eq, and, sql } from '@hexxa/db';
+import { withTenant, eq, and, sql, resultadoOficial } from '@hexxa/db';
 import { profitDistribution, company, partner } from '@hexxa/db/schema';
 import { ProfitDistributionService, type ProfitDistributionResult } from '@hexxa/core';
-import { depreciacaoAnual } from '@/app/(portal)/patrimonial/lib';
 
 /**
  * Motor real de distribuição de lucro — compartilhado entre Sócios (SERVICE:
@@ -40,6 +39,16 @@ export type YearlyProfitSummary = {
   accumulatedProfit: number;
   /** Prejuízo histórico acumulado ainda não coberto — positivo (0 se a empresa está no lucro). */
   accumulatedLosses: number;
+  /**
+   * De onde veio o lucro. 'OFICIAL' = balancete do OneFlow, de um mês
+   * liberado e enviado. 'INDISPONIVEL' = não há lucro oficial, e nenhum valor
+   * é oferecido para distribuição.
+   */
+  fonte: 'OFICIAL' | 'INDISPONIVEL';
+  /** Competência do balancete usado, 'AAAA-MM'. */
+  mesOficial: string | null;
+  /** Por que não há número — em palavras que o cliente entende. */
+  motivoIndisponivel: string | null;
 };
 
 function nextSuggestedDate(frequency: DistributionFrequency, today: Date): string {
@@ -59,52 +68,37 @@ function nextSuggestedDate(frequency: DistributionFrequency, today: Date): strin
   return target.toISOString().slice(0, 10);
 }
 
-/** Soma receita/despesa de financial_entry num intervalo (ou histórico completo, se sem filtro de ano). */
-async function sumFinancialEntries(tx: any, companyId: string, year?: number) {
-  const rows = await tx.execute(
-    year
-      ? sql`
-          SELECT
-            COALESCE(SUM(CASE WHEN type = 'RECEIVABLE' THEN amount ELSE 0 END), 0) AS receita,
-            COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
-          FROM financial_entry
-          WHERE company_id = ${companyId} AND status != 'CANCELED' AND EXTRACT(YEAR FROM reference_month) = ${year}
-        `
-      : sql`
-          SELECT
-            COALESCE(SUM(CASE WHEN type = 'RECEIVABLE' THEN amount ELSE 0 END), 0) AS receita,
-            COALESCE(SUM(CASE WHEN type = 'PAYABLE' THEN amount ELSE 0 END), 0) AS despesa
-          FROM financial_entry
-          WHERE company_id = ${companyId} AND status != 'CANCELED'
-        `,
-  );
-  return { receita: Number(rows[0]?.receita ?? 0), despesa: Number(rows[0]?.despesa ?? 0) };
-}
-
-/** Depreciação anual total dos imóveis da empresa (só faz sentido pra HOLDING) — mesma fórmula de patrimonial/actions.ts. */
-async function annualDepreciation(tx: any, companyId: string, refYear: number): Promise<number> {
-  const rows = await tx.execute(sql`
-    SELECT acquisition_value, depreciation_rate, acquisition_date
-    FROM property
-    WHERE company_id = ${companyId} AND acquisition_value IS NOT NULL AND depreciation_rate IS NOT NULL
-  `);
-  return rows.reduce((s: number, r: any) => {
-    const acq = Number(r.acquisition_value);
-    const rate = Number(r.depreciation_rate);
-    const anos = r.acquisition_date ? refYear - new Date(r.acquisition_date).getFullYear() : 0;
-    return s + depreciacaoAnual(acq, rate, anos);
-  }, 0);
-}
-
+/**
+ * Lucro disponível para distribuir — o da CONTABILIDADE OFICIAL, ou nenhum.
+ *
+ * ── O que esta função fazia ─────────────────────────────────────────────
+ *
+ * Somava receitas e despesas do módulo financeiro. Errava para cima, e sem
+ * aviso: o DAS e a folha que vêm do OneFlow não passam pelo financeiro, então
+ * não eram descontados; e o ano inteiro entrava, inclusive parcelas de meses
+ * que ainda não aconteceram. Para empresas cuja receita está toda no OneFlow,
+ * errava para zero. Um lucro superestimado vira distribuição acima do
+ * permitido — dividendo que perde a isenção, ou que descapitaliza a empresa.
+ *
+ * ── O que faz agora ────────────────────────────────────────────────────
+ *
+ * Lê o resultado acumulado no exercício do balancete do OneFlow, do último
+ * mês que o contador liberou e que chegou inteiro lá (`resultadoOficial`).
+ * Não havendo, devolve zero disponível e DIZ POR QUÊ. Nunca troca por outra
+ * conta: um lucro inventado é pior que nenhum.
+ *
+ * O acumulado considera só o exercício corrente. Reservas de anos anteriores
+ * existem, mas contá-las exige o PL oficial conciliado com as distribuições
+ * já feitas; até lá, o número pode sair menor que o real — nunca maior.
+ */
 export async function getAvailableProfitAction(): Promise<YearlyProfitSummary> {
   const ctx = await getTenantContext();
   const year = new Date().getFullYear();
   const isHolding = ctx.companyType === 'HOLDING';
 
-  const [yearTotals, allTimeTotals, distRows, companyRow] = await withTenant(ctx.companyId, async (tx) => {
+  const [oficial, distRows, companyRow] = await withTenant(ctx.companyId, async (tx) => {
     return Promise.all([
-      sumFinancialEntries(tx, ctx.companyId, year),
-      sumFinancialEntries(tx, ctx.companyId),
+      resultadoOficial(tx, ctx.companyId),
       tx
         .select({ amount: profitDistribution.amount, referenceYear: profitDistribution.referenceYear })
         .from(profitDistribution)
@@ -113,35 +107,58 @@ export async function getAvailableProfitAction(): Promise<YearlyProfitSummary> {
     ]);
   });
 
-  const depreciationThisYear = isHolding ? await withTenant(ctx.companyId, (tx) => annualDepreciation(tx, ctx.companyId, year)) : 0;
-
-  const revenue = yearTotals.receita;
-  const expenses = yearTotals.despesa;
-  const netProfit = revenue - expenses - depreciationThisYear;
-
-  const distributedThisYear = distRows.filter((r) => r.referenceYear === year).reduce((s, r) => s + Number(r.amount), 0);
-  const distributedAllTime = distRows.reduce((s, r) => s + Number(r.amount), 0);
-
-  // Depreciação histórica: aproximação — aplica a mesma taxa anual a cada ano
-  // já decorrido não é preciso ano a ano sem histórico de referenceMonth por
-  // ano, então usamos a depreciação do ano corrente como proxy do "desconto
-  // recorrente" também no acumulado. Simplificação honesta — documentada.
-  const allTimeNet = allTimeTotals.receita - allTimeTotals.despesa - (isHolding ? depreciationThisYear : 0) - distributedAllTime;
-
   const frequency = (companyRow[0]?.frequency as DistributionFrequency) ?? 'MENSAL';
+  const distributedThisYear = distRows.filter((r) => r.referenceYear === year).reduce((s, r) => s + Number(r.amount), 0);
 
-  return {
+  const base = {
     year,
-    revenue,
-    expenses,
-    netProfit,
     distributedThisYear,
-    availableToDistribute: Math.max(0, netProfit - distributedThisYear),
     frequency,
     nextSuggestedDate: nextSuggestedDate(frequency, new Date()),
     profitLabel: isHolding ? 'Lucro de Aluguéis' : 'Lucro de Serviços',
-    accumulatedProfit: Math.max(0, allTimeNet),
-    accumulatedLosses: Math.max(0, -allTimeNet),
+  };
+
+  const motivo = !oficial
+    ? `O lucro distribuível vem da contabilidade oficial e aparece depois que o primeiro mês de ${year} ` +
+      'for fechado e liberado pelo seu contador. Até lá, nenhum valor é oferecido — distribuir sobre um ' +
+      'lucro não conferido pode tirar a isenção do dividendo.'
+    : !oficial.contabilImplantado || oficial.resultado === null
+      ? 'A contabilidade desta empresa ainda não está implantada no sistema contábil. Sem lucro ' +
+        'escriturado, não há base segura para distribuir — fale com o seu contador.'
+      : Number(oficial.referenceMonth.slice(0, 4)) !== year
+        ? `O último mês liberado é de ${oficial.referenceMonth.slice(0, 4)}. O lucro de ${year} aparece ` +
+          'quando o primeiro mês deste ano for fechado e liberado.'
+        : null;
+
+  if (motivo || !oficial || oficial.resultado === null) {
+    return {
+      ...base,
+      revenue: 0,
+      expenses: 0,
+      netProfit: 0,
+      availableToDistribute: 0,
+      accumulatedProfit: 0,
+      accumulatedLosses: 0,
+      fonte: 'INDISPONIVEL',
+      mesOficial: oficial?.referenceMonth.slice(0, 7) ?? null,
+      motivoIndisponivel: motivo ?? 'Lucro oficial indisponível.',
+    };
+  }
+
+  const netProfit = oficial.resultado;
+  const disponivel = Math.max(0, Number((netProfit - distributedThisYear).toFixed(2)));
+
+  return {
+    ...base,
+    revenue: oficial.receitas ?? 0,
+    expenses: oficial.custosDespesas ?? 0,
+    netProfit,
+    availableToDistribute: disponivel,
+    accumulatedProfit: disponivel,
+    accumulatedLosses: Math.max(0, -netProfit),
+    fonte: 'OFICIAL',
+    mesOficial: oficial.referenceMonth.slice(0, 7),
+    motivoIndisponivel: null,
   };
 }
 
@@ -243,7 +260,11 @@ export async function evaluatePartnerDistributionAction(
       activeMutualContractsBalance: Number(partnerRecord.mutualLoanBalance),
     },
     accountingContext: {
-      accumulatedProfit: profit.accumulatedProfit,
+      // BRUTO das distribuições do ano: o serviço já desconta o que cada
+      // sócio recebeu. Passar o líquido descontaria a mesma distribuição
+      // duas vezes e bloquearia saque legítimo. Sem lucro oficial, zero —
+      // e o serviço bloqueia com a mensagem dele.
+      accumulatedProfit: profit.fonte === 'OFICIAL' ? Math.max(0, profit.netProfit) : 0,
       accumulatedLosses: profit.accumulatedLosses,
       totalProfitDistributedThisYearToPartner,
       totalProfitDistributedThisYearGlobally,
@@ -253,7 +274,7 @@ export async function evaluatePartnerDistributionAction(
   return result;
 }
 
-/** Grava a distribuição já aprovada (chamar só depois de evaluatePartnerDistributionAction aprovar). */
+/** Grava a distribuição — reavaliando antes; ver o comentário no corpo. */
 export async function confirmDistributionAction(input: {
   partnerId: string;
   amount: number;
@@ -261,6 +282,25 @@ export async function confirmDistributionAction(input: {
 }): Promise<{ ok: boolean; message: string }> {
   const ctx = await getTenantContext();
   if (!(input.amount > 0)) return { ok: false, message: 'Valor inválido.' };
+
+  /**
+   * Reavalia AQUI, no servidor, antes de gravar.
+   *
+   * O comentário acima dizia "chamar só depois de aprovar", mas nada
+   * garantia: uma server action é um endpoint, e chamá-la direto com
+   * qualquer valor gravava a distribuição e a escriturava. A regra que
+   * protege a isenção do dividendo não pode depender da tela ter sido usada
+   * na ordem certa.
+   */
+  const parecer = await evaluatePartnerDistributionAction(input.partnerId, input.amount);
+  if ('error' in parecer) return { ok: false, message: parecer.error };
+  if (!parecer.isApproved || input.amount > parecer.approvedAmount + 0.005) {
+    const motivo = Object.values(parecer.locks).find((l) => !l.passed)?.message;
+    return {
+      ok: false,
+      message: motivo ?? 'Distribuição acima do permitido pela contabilidade oficial.',
+    };
+  }
 
   const today = new Date().toISOString().slice(0, 10);
 

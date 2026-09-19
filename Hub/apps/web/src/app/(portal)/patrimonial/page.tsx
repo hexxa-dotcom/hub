@@ -31,7 +31,9 @@ export default async function Page() {
   const insightContext = [
     `Tela: gestão de patrimônio (imóveis, ativos, depreciação e contratos de aluguel) de uma holding patrimonial.`,
     `Bens cadastrados: ${properties.length}. Contratos de aluguel ativos: ${ativos.length}, renda mensal total R$ ${ativos.reduce((s, l) => s + l.monthlyRent, 0).toFixed(2)}.`,
-    `Lucro do exercício (já líquido de depreciação, base pro simulador de dividendos): R$ ${resumo.netProfit.toFixed(2)}.`,
+    resumo.fonte === 'OFICIAL'
+      ? `Lucro do exercício pela contabilidade oficial, até ${resumo.mesOficial} (base pro simulador de dividendos): R$ ${resumo.netProfit.toFixed(2)}.`
+      : `Lucro oficial indisponível — NÃO sugira valores de dividendos. Motivo: ${resumo.motivoIndisponivel}`,
     `Bens sem contrato de aluguel ativo: ${properties.filter((p) => !p.leaseId).length}.`,
   ].join('\n');
 

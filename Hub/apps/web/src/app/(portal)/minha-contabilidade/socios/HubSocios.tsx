@@ -379,11 +379,26 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
           </span>
           <div>
             <h2 className="font-serif font-bold text-base text-ink">Lucro Acumulado em {yearlyProfit.year}</h2>
-            <p className="text-xs sm:text-sm text-ink-soft">Faturamento líquido de despesas no ano corrente.</p>
+            <p className="text-xs sm:text-sm text-ink-soft">
+              {yearlyProfit.fonte === 'OFICIAL'
+                ? `Resultado da contabilidade oficial, acumulado até ${yearlyProfit.mesOficial?.split('-').reverse().join('/')}.`
+                : 'Resultado da contabilidade oficial.'}
+            </p>
           </div>
         </div>
       </div>
 
+      {/*
+        Sem lucro oficial, nenhum número. "R$ 0,00 disponível" leria como
+        "a empresa não teve lucro" — e o que é verdade é outra coisa: o número
+        ainda não existe. Dizer o motivo é a diferença entre as duas.
+      */}
+      {yearlyProfit.fonte === 'INDISPONIVEL' ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-xs leading-relaxed text-amber-900 dark:text-amber-300">
+          <p className="font-bold">Distribuição indisponível por enquanto</p>
+          <p className="mt-1">{yearlyProfit.motivoIndisponivel}</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Lucro Líquido do Ano</p>
@@ -398,6 +413,7 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
           <p className="mt-0.5 font-serif tabular font-bold text-2xl text-hexxa-lime">{BRL.format(yearlyProfit.availableToDistribute)}</p>
         </div>
       </div>
+      )}
 
       <div className="border-t border-black/5 dark:border-white/10 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -475,6 +491,7 @@ function DistribuicaoTab({
       <DistributionRequestForm
         partners={partners.map((p) => ({ id: p.id, nome: p.nome, participacao: p.participacao }))}
         availableToDistribute={yearlyProfit.availableToDistribute}
+        indisponivel={yearlyProfit.motivoIndisponivel}
         onConfirmed={onConfirmed}
       />
 

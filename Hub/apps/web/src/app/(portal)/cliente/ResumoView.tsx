@@ -88,7 +88,7 @@ export async function ResumoView() {
           `),
           tx.execute(sql`
             SELECT amount, due_date FROM tax_guide
-            WHERE company_id = ${ctx.companyId} AND tax_name IN ('DAS', 'DAS - Simples Nacional') AND status = 'OPEN'
+            WHERE company_id = ${ctx.companyId} AND tax_name IN ('DAS', 'DAS - Simples Nacional') AND status = 'OPEN' AND NOT provisional
             ORDER BY due_date DESC
             LIMIT 1
           `),

@@ -183,7 +183,9 @@ function Dividendos({
       <Card level={1} className="p-6 sm:p-8 space-y-4">
         <h2 className="font-serif font-bold text-base text-ink">Parâmetros de Simulação</h2>
         <p className="text-xs text-ink-soft">
-          Pré-preenchido com o lucro real do ano, já descontada a depreciação do período ({BRL.format(resumo.netProfit)}), e o acumulado histórico ainda não distribuído ({BRL.format(resumo.accumulatedProfit)}).
+          {resumo.fonte === 'OFICIAL'
+            ? <>Pré-preenchido com o lucro do exercício pela contabilidade oficial, até {resumo.mesOficial?.split('-').reverse().join('/')} ({BRL.format(resumo.netProfit)}), e o que ainda não foi distribuído ({BRL.format(resumo.accumulatedProfit)}).</>
+            : <>Sem lucro oficial ainda — {resumo.motivoIndisponivel} Os campos abaixo servem só para simular.</>}
         </p>
         <div className="mt-4 space-y-4">
           <div>
@@ -253,6 +255,7 @@ function Dividendos({
         <DistributionRequestForm
           partners={partners.map((p) => ({ id: p.id, nome: p.nome, participacao: p.participacao }))}
           availableToDistribute={resumo.availableToDistribute}
+          indisponivel={resumo.motivoIndisponivel}
           onConfirmed={onConfirmed}
         />
       </div>

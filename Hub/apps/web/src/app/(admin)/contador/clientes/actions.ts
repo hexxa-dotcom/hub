@@ -59,7 +59,30 @@ export async function changeSubscriptionPlanAction(subscriptionId: string, planN
     const p = planRecord[0];
     if (!p) return { error: `Plano "${planName}" não encontrado.` };
 
-    await withDbTimeout(db.update(subscription).set({ planId: p.id }).where(eq(subscription.id, subscriptionId)), 8000);
+    const atualizadas = await withDbTimeout(
+      db.update(subscription).set({ planId: p.id }).where(eq(subscription.id, subscriptionId))
+        .returning({ id: subscription.id }),
+      8000,
+    );
+
+    /**
+     * Empresa sem assinatura chega aqui com o id DA EMPRESA — é o que a lista
+     * usa como chave quando não há assinatura. O UPDATE acima não acha nada
+     * e, antes, a função respondia sucesso assim mesmo: a tela mostrava o
+     * plano trocado, e nada tinha sido gravado. Agora a assinatura nasce.
+     */
+    if (!atualizadas.length) {
+      const [empresa] = await withDbTimeout(
+        db.select({ id: company.id }).from(company).where(eq(company.id, subscriptionId)),
+        8000,
+      );
+      if (!empresa) return { error: 'Assinatura ou empresa não encontrada.' };
+      await withDbTimeout(
+        db.insert(subscription).values({ companyId: empresa.id, planId: p.id, status: 'ACTIVE' }),
+        8000,
+      );
+    }
+
     revalidatePath('/contador/clientes');
     return { success: true };
   } catch (error: any) {

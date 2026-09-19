@@ -38,10 +38,13 @@ const lbl = 'text-xs font-bold text-ink-soft uppercase tracking-wide';
 export function DistributionRequestForm({
   partners,
   availableToDistribute,
+  indisponivel,
   onConfirmed,
 }: {
   partners: PartnerOption[];
   availableToDistribute: number;
+  /** Motivo de não haver lucro oficial. Presente = formulário fechado. */
+  indisponivel?: string | null;
   onConfirmed: () => void;
 }) {
   const [partnerId, setPartnerId] = useState(partners[0]?.id ?? '');
@@ -98,6 +101,17 @@ export function DistributionRequestForm({
     } finally {
       setConfirming(false);
     }
+  }
+
+  // Sem lucro oficial, não há o que pedir. O servidor recusaria de qualquer
+  // jeito; fechar aqui evita o cliente preencher um pedido para ouvir "não".
+  if (indisponivel) {
+    return (
+      <Card level={1} className="p-6 sm:p-8 space-y-2 card-finish">
+        <h3 className="font-serif font-bold text-base text-ink">Pedir distribuição de lucro</h3>
+        <p className="text-xs leading-relaxed text-ink-soft">{indisponivel}</p>
+      </Card>
+    );
   }
 
   return (

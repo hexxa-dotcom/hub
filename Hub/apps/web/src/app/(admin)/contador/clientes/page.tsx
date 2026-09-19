@@ -32,6 +32,7 @@ async function getClientes(): Promise<Cliente[]> {
         status: subscription.status,
         planName: plan.name,
         monthlyValue: plan.monthlyValue,
+        discountValue: subscription.discountValue,
         asaasCustomerId: subscription.asaasCustomerId,
         asaasSubscriptionId: subscription.asaasSubscriptionId,
       })
@@ -70,7 +71,8 @@ async function getClientes(): Promise<Cliente[]> {
       telefone: '—',
       plano: s.planName ?? '—',
       status: s.status ?? 'SEM_PLANO',
-      mrr: s.status === 'ACTIVE' ? Number(s.monthlyValue) : 0,
+      // Receita real: preço do plano menos o desconto combinado com o cliente.
+      mrr: s.status === 'ACTIVE' ? Number(s.monthlyValue) - Number(s.discountValue ?? 0) : 0,
       desde: s.createdAt.toISOString().slice(0, 10),
       responsavel: owner?.name ?? '—',
       regime: s.taxRegime,

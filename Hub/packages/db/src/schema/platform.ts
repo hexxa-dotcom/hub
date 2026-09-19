@@ -88,6 +88,13 @@ export const subscription = pgTable('subscription', {
   currentPeriodEnd: date('current_period_end'),
   asaasCustomerId: text('asaas_customer_id'),
   asaasSubscriptionId: text('asaas_subscription_id'),
+  /**
+   * Abatimento combinado com este cliente, em reais. A fatura mostra o preço
+   * do plano e o desconto separados — se a tabela subir, o acordo continua
+   * sendo "R$ 100 a menos", não um preço congelado.
+   */
+  discountValue: numeric('discount_value', { precision: 14, scale: 2 }).notNull().default('0'),
+  discountReason: text('discount_reason'),
 });
 
 /** Credenciais por empresa para cada integração (segredo fica em secret manager). */

@@ -13,3 +13,4 @@ export * from './conferir-abertura';
 export * from './importar-extrato';
 export * from './conciliar-extrato';
 export * from './cadastro-oneflow';
+export * from './resultado-oneflow';

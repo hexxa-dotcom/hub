@@ -101,6 +101,8 @@ async function provisionarGuia(companyId: string, referenceMonth: string, receit
       amount: valor.toFixed(2),
       dueDate: venc,
       status: 'OPEN',
+      // Estimativa: fica no razão, fora da tela do cliente, até o oficial.
+      provisional: true,
     })
     .returning({ id: taxGuide.id });
 
