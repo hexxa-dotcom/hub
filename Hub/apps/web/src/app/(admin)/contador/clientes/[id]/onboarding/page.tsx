@@ -17,15 +17,22 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
   let invoiceCount: { n: number }[] = [];
   let entryCount: { n: number }[] = [];
   let sub: { status: string } | undefined;
+  let aberturaRows: any[] = [];
   try {
     let subRows: { status: string }[];
-    [fiscalRows, ownerRows, invoiceCount, entryCount, subRows] = await withDbTimeout(
+    [fiscalRows, ownerRows, invoiceCount, entryCount, subRows, aberturaRows] = await withDbTimeout(
       Promise.all([
         db.execute(sql`SELECT cnpj, codigo_municipio FROM nfse_config WHERE company_id = ${id} LIMIT 1`),
         db.select({ id: membership.id }).from(membership).where(and(eq(membership.companyId, id), eq(membership.role, 'OWNER'))),
         db.select({ n: sql<number>`count(*)::int` }).from(serviceInvoice).where(eq(serviceInvoice.companyId, id)),
         db.select({ n: sql<number>`count(*)::int` }).from(financialEntry).where(eq(financialEntry.companyId, id)),
         db.select({ status: subscription.status }).from(subscription).where(eq(subscription.companyId, id)),
+        db.execute(sql`
+          SELECT to_char(entry_date, 'DD/MM/YYYY') AS quando
+            FROM journal_entry
+           WHERE company_id = ${id} AND source = 'OPENING' AND reversed_by IS NULL
+           LIMIT 1
+        `),
       ]),
       8000,
     );
@@ -46,6 +53,15 @@ export default async function AdminOnboardingPage({ params }: { params: Promise<
     { label: 'Cadastro da empresa completo', done: cadastroCompleto, hint: 'CNPJ real informado (não é mais um cadastro pendente).' },
     { label: 'Responsável vinculado', done: responsavelVinculado, hint: 'Existe um usuário OWNER associado à empresa.' },
     { label: 'Cadastro fiscal completo', done: fiscalCompleto, hint: 'CNPJ e código do município preenchidos para emitir NFSe.' },
+    {
+      label: 'Saldos de abertura lançados',
+      done: aberturaRows.length > 0,
+      // Sem abertura o razão até funciona, mas o balanço nasce sem o passado
+      // da empresa dentro dele — e ninguém percebe até o primeiro relatório.
+      hint: aberturaRows.length
+        ? `Balancete da contabilidade anterior lançado em ${String(aberturaRows[0]?.quando ?? '')}.`
+        : 'Só para quem vem de outra contabilidade. Empresa aberta agora começa zerada, e isso está certo.',
+    },
     { label: 'Assinatura ativa', done: assinaturaAtiva, hint: 'Plano contratado e cobrança em dia.' },
     { label: 'Primeiro lançamento financeiro', done: primeiroLancamento, hint: 'Ao menos uma entrada em contas a pagar/receber.' },
     { label: 'Primeira nota fiscal emitida', done: primeiraNota, hint: 'Ao menos uma NFSe registrada para o cliente.' },

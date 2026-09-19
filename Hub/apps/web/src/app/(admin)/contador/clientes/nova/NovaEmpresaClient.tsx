@@ -147,7 +147,17 @@ export function NovaEmpresaClient() {
               {r.avisos.map((a) => (
                 <p key={a} className="mt-1.5 text-amber-800 dark:text-amber-300">⚠ {a}</p>
               ))}
+              <p className="mt-2.5 opacity-80">
+                Falta o que o OneFlow não tem: os saldos de abertura, do balancete da
+                contabilidade anterior.
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={`/contador/clientes/${r.companyId}/abertura`}
+                  className="rounded-full bg-[#2F4A3C] px-3 py-1 font-bold text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#231F20]"
+                >
+                  Lançar saldos de abertura
+                </Link>
                 <Link
                   href={`/contador/clientes/${r.companyId}/operacao`}
                   className="rounded-full bg-white/70 px-3 py-1 font-bold text-[#231F20] dark:bg-white/10 dark:text-[#F5F6F4]"
@@ -161,10 +171,6 @@ export function NovaEmpresaClient() {
                   Abrir ficha
                 </Link>
               </div>
-              <p className="mt-2.5 opacity-80">
-                Falta o que o OneFlow não tem: os saldos de abertura, do balancete da
-                contabilidade anterior.
-              </p>
             </div>
           ))}
         </div>

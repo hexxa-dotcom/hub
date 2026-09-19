@@ -3,3 +3,4 @@ export * from './chart-of-accounts';
 export * from './posting-rules';
 export * from './oneflow-mapping';
 export * from './oneflow-depara';
+export * from './balancete-parser';

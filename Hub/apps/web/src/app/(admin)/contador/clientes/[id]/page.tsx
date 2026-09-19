@@ -18,6 +18,7 @@ import {
   Clock,
   Receipt,
   Sliders,
+  Scale,
 } from 'lucide-react';
 import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
@@ -353,6 +354,10 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               <Link href={`/contador/clientes/${comp.id}/guias`}
                 className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
                 <Receipt className="h-4 w-4 opacity-70" /> Guias &amp; parcelamentos
+              </Link>
+              <Link href={`/contador/clientes/${comp.id}/abertura`}
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
+                <Scale className="h-4 w-4 opacity-70" /> Saldos de abertura
               </Link>
               <Link href={`/contador/clientes/${comp.id}/onboarding`}
                 className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
