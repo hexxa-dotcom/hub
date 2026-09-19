@@ -36,17 +36,17 @@ type Guia = TaxGuideRecord;
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CAT_CONFIG: Record<GuiaCategoria, { label: string; cls: string }> = {
-  DAS:          { label: 'DAS',          cls: 'bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#2F4A3C]/40 dark:text-[#DFFFAE] border border-[#2F4A3C]/10 dark:border-[#DFFFAE]/20' },
+  DAS:          { label: 'DAS',          cls: 'bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30' },
   DARF:         { label: 'DARF',         cls: 'bg-[#D8DDD6] text-[#231F20] dark:bg-white/10 dark:text-[#F5F6F4] border border-black/5 dark:border-white/10' },
-  ISS:          { label: 'ISS',          cls: 'bg-[#DCE7EB] text-[#23434E] dark:bg-[#A2C1CD]/15 dark:text-[#A2C1CD] border border-[#A2C1CD]/30' },
+  ISS:          { label: 'ISS',          cls: 'bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30' },
   PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-[#E7EAE5] text-[#6E6A61] dark:bg-[#1A201C] dark:text-[#A8A49C] border border-black/5 dark:border-white/10' },
-  FGTS:         { label: 'FGTS',         cls: 'bg-[#E2EDE5] text-[#1E3328] dark:bg-[#1E3328]/50 dark:text-[#DFFFAE] border border-[#2F4A3C]/20' },
+  FGTS:         { label: 'FGTS',         cls: 'bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30' },
   DIVERSA:      { label: 'Diversa',      cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C] border border-black/5 dark:border-white/10' },
 };
 
 const STATUS_CONFIG: Record<GuiaStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
   OPEN:     { label: 'Pendente',  cls: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300', icon: Clock },
-  PAID:     { label: 'Paga',      cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300', icon: CheckCircle2 },
+  PAID:     { label: 'Paga',      cls: 'bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30', icon: CheckCircle2 },
   OVERDUE:  { label: 'Em atraso', cls: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300', icon: AlertTriangle },
 };
 
@@ -78,9 +78,9 @@ function CopyBtn({ text, label = 'Copiar Pix' }: { text: string; label?: string 
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold hover:brightness-110 active:scale-95 transition-all"
+      className="inline-flex items-center gap-1.5 rounded-full bg-[#B8D7E3] hover:brightness-105 text-[#162832] shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold active:scale-95 transition-all"
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <Check className="h-3.5 w-3.5 text-[#162832]" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? 'Copiado!' : label}
     </button>
   );
@@ -123,7 +123,7 @@ function EmitirDasBtn({ competencia, cnpj }: { competencia: string; cnpj: string
         href={`${PGMEI_BASE}?cnpj=${so}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold hover:brightness-110 active:scale-95 transition-all"
+        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#B8D7E3] hover:brightness-105 text-[#162832] shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold active:scale-95 transition-all"
       >
         <ExternalLink className="h-3.5 w-3.5" /> Emitir DAS no portal da Receita
       </a>
@@ -138,7 +138,7 @@ function EmitirDasBtn({ competencia, cnpj }: { competencia: string; cnpj: string
 // ── Form Nova Guia ────────────────────────────────────────────────────────────
 
 const field =
-  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-[#B8D7E3] transition-all';
 const lbl = 'text-caption font-bold text-ink-soft tracking-wider uppercase';
 
 function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
@@ -216,7 +216,7 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         </div>
         <div className="sm:col-span-2">
           <label className={lbl}>PDF da Guia (opcional)</label>
-          <input name="anexo" type="file" accept="application/pdf,image/*" className={`mt-1.5 ${field} file:mr-3 file:rounded-full file:border-0 file:bg-hexxa-forest file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-hexxa-lime`} />
+          <input name="anexo" type="file" accept="application/pdf,image/*" className={`mt-1.5 ${field} file:mr-3 file:rounded-full file:border-0 file:bg-[#B8D7E3]/25 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#244A59] dark:file:text-[#B8D7E3]`} />
           <p className="mt-1 text-caption text-ink-soft">Sobe o PDF que você baixou do OneFlow/Omie (ou de onde for) — máx. 4MB.</p>
         </div>
       </div>
@@ -225,7 +225,7 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold transition-all disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-[#B8D7E3] hover:brightness-105 text-[#162832] shadow-(--elev-1) active:scale-95 px-5 py-2.5 text-xs font-bold transition-all disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Registrar Guia
         </button>
@@ -318,7 +318,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
           onClick={() => setMainTab('guias')}
           className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
             mainTab === 'guias'
-              ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+              ? 'border border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-inset)'
               : 'border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) text-ink-soft hover:text-ink'
           }`}
         >
@@ -329,7 +329,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
           onClick={() => setMainTab('timeline')}
           className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
             mainTab === 'timeline'
-              ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+              ? 'border border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-inset)'
               : 'border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) text-ink-soft hover:text-ink'
           }`}
         >
@@ -340,7 +340,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
           onClick={() => setMainTab('parcelamentos')}
           className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
             mainTab === 'parcelamentos'
-              ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+              ? 'border border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-inset)'
               : 'border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) text-ink-soft hover:text-ink'
           }`}
         >
@@ -352,7 +352,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
         <div className="space-y-4 animate-in fade-in">
           <Card level={1} className="p-6 sm:p-8 space-y-5 card-finish">
             <h2 className="font-serif font-bold text-xl text-ink flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
+              <Calendar className="h-5 w-5 text-[#336577] dark:text-[#B8D7E3]" />
               Linha do Tempo das Obrigações do Mês
             </h2>
             <p className="text-xs sm:text-sm text-ink-soft">
@@ -361,11 +361,11 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
 
             <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-black/10 dark:before:bg-white/10">
               <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-[#B8D7E3] ring-4 ring-[#B8D7E3]/30" />
                 <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Dia 07 do Mês</span>
-                    <span className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold">
+                    <span className="text-xs font-bold text-[#244A59] dark:text-[#B8D7E3]">Dia 07 do Mês</span>
+                    <span className="rounded-full bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30 px-2.5 py-0.5 text-[10px] font-bold">
                       Concluído
                     </span>
                   </div>
@@ -393,11 +393,11 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
               </div>
 
               <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-hexxa-forest dark:bg-hexxa-lime ring-4 ring-hexxa-forest/20 dark:ring-hexxa-lime/20" />
+                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-[#B8D7E3] ring-4 ring-[#B8D7E3]/30" />
                 <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">Dia 30 do Mês</span>
-                    <span className="rounded-full bg-hexxa-forest text-hexxa-lime px-2.5 py-0.5 text-[10px] font-bold shadow-(--elev-inset)">
+                    <span className="text-xs font-bold text-[#244A59] dark:text-[#B8D7E3]">Dia 30 do Mês</span>
+                    <span className="rounded-full bg-[#B8D7E3] text-[#162832] px-2.5 py-0.5 text-[10px] font-bold shadow-(--elev-1)">
                       Agendado
                     </span>
                   </div>
@@ -446,7 +446,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
                       )}
                     </div>
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                      <div className="h-full rounded-full bg-hexxa-forest dark:bg-hexxa-lime transition-[width] duration-700 ease-out" style={{ width: `${(pagas / total) * 100}%` }} />
+                      <div className="h-full rounded-full bg-[#B8D7E3] transition-[width] duration-700 ease-out" style={{ width: `${(pagas / total) * 100}%` }} />
                     </div>
                     <p className="text-xs text-ink-soft">Valor total do plano: <strong className="font-serif tabular text-ink">{BRL.format(totalValor)}</strong></p>
                   </div>
@@ -490,7 +490,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
                                 <button
                                   type="button"
                                   onClick={() => markPaid(p.id)}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-3.5 py-1.5 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30 px-3.5 py-1.5 text-xs font-bold hover:bg-[#B8D7E3]/25 transition-colors"
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
                                 </button>
@@ -513,11 +513,9 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
           {/* Summary KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card level={1} className="card-finish p-6">
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Total em Aberto</p>
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <DollarSign className="h-4 w-4" />
-                </div>
+                <DollarSign className="h-5 w-5 text-ink-soft" />
               </div>
               <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-amber-600 dark:text-amber-400 tabular">{BRL.format(totalAberto)}</p>
               <p className="mt-1 text-caption text-ink-soft">{pendentes.length + vencidas.length} guia(s) a pagar</p>
@@ -526,11 +524,9 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
             <Card level={1} className={`p-6 card-finish ${
               vencidas.length > 0 ? 'border-red-500/30' : ''
             }`}>
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Em Atraso</p>
-                <div className={`p-2 rounded-xl ${vencidas.length > 0 ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-surface-card shadow-(--elev-inset) text-ink-soft'}`}>
-                  <AlertTriangle className="h-4 w-4" />
-                </div>
+                <AlertTriangle className="h-5 w-5 text-ink-soft" />
               </div>
               <p className={`mt-3 font-serif font-bold text-2xl sm:text-3xl tabular ${vencidas.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-ink'}`}>
                 {BRL.format(totalVencido)}
@@ -539,13 +535,11 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
             </Card>
 
             <Card level={1} className="card-finish p-6">
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Total Pago</p>
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
+                <CheckCircle2 className="h-5 w-5 text-ink-soft" />
               </div>
-              <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(totalPago)}</p>
+              <p className="mt-3 font-serif font-bold text-2xl sm:text-3xl text-[#336577] dark:text-[#B8D7E3] tabular">{BRL.format(totalPago)}</p>
               <p className="mt-1 text-caption text-ink-soft">{pagas.length} guia(s) quitada(s)</p>
             </Card>
           </div>
@@ -577,7 +571,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
                     onClick={() => setStatusFilter(s.key)}
                     className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
                       statusFilter === s.key
-                        ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
+                        ? 'border border-black/5 dark:border-white/5 bg-surface-card text-ink shadow-(--elev-inset)'
                         : 'text-ink-soft hover:text-ink'
                     }`}
                   >
@@ -588,7 +582,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
               <button
                 type="button"
                 onClick={() => setShowForm((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold transition-all"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#B8D7E3] hover:brightness-105 text-[#162832] shadow-(--elev-1) active:scale-95 px-5 py-2.5 text-xs font-bold transition-all"
               >
                 <Plus className="h-4 w-4" /> Registrar Guia
               </button>
@@ -625,7 +619,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
                   setCnpjMei(normalizeDocument(cnpjInput));
                   setShowCnpjConfig(false);
                 }}
-                className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) px-4 py-1.5 text-xs font-bold hover:brightness-110"
+                className="rounded-full bg-[#B8D7E3] hover:brightness-105 text-[#162832] shadow-(--elev-1) px-4 py-1.5 text-xs font-bold transition-all"
               >
                 Salvar
               </button>
@@ -727,7 +721,7 @@ export function HubGuias({ initial }: { initial: Guia[] }) {
                               <button
                                 type="button"
                                 onClick={() => markPaid(g.id)}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-3.5 py-1.5 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF2F5] text-[#244A59] dark:bg-[#B8D7E3]/15 dark:text-[#B8D7E3] border border-[#B8D7E3]/30 px-3.5 py-1.5 text-xs font-bold hover:bg-[#B8D7E3]/25 transition-colors"
                               >
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
                               </button>

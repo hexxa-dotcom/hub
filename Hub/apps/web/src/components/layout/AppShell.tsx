@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { ChevronDown, Menu, X, Bell, MessageCircle, Search, Pin } from 'lucide-react';
+import { ChevronDown, Menu, X, Bell, MessageCircle, Search, Pin, LogOut } from 'lucide-react';
 import {
   SquaresFour,
   Notebook,
@@ -16,7 +16,6 @@ import {
 } from '@phosphor-icons/react';
 import type { NavSection } from '@/lib/nav';
 import { ThemeToggle } from '@/components/theme/ThemeControls';
-import { LogOut } from 'lucide-react';
 import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
@@ -55,7 +54,7 @@ function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
  */
 function itemClass(active: boolean, isDarkOverlay: boolean = false) {
   const base =
-    'flex w-full items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-sm transition-all duration-200';
+    'flex w-full items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2 text-xs transition-all duration-200';
   if (active) {
     // A página em que você está fica AFUNDADA na superfície. Usa o relevo que
     // o sistema já tem, em vez de gastar cor: cor guardada rende mais quando
@@ -95,7 +94,7 @@ function NavList({
             <Link
               href={i.href as never}
               onClick={onNavigate}
-              className={`${itemClass(active, isDark)} ml-[30px] w-auto`}
+              className={`${itemClass(active, isDark)} ml-[34px] w-auto`}
               prefetch={false}
               title={collapsed ? i.label : undefined}
             >
@@ -154,7 +153,12 @@ function AppShellInner({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [avisoAdmin, setAvisoAdmin] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string>('Financeiro');
+  const [activeGroup, setActiveGroup] = useState<string>(() => {
+    const currentSection = sections.find(s =>
+      s.items.some(i => pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`)))
+    );
+    return currentSection ? currentSection.title : 'Início';
+  });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (title: string) => {
@@ -264,39 +268,88 @@ function AppShellInner({
                  fazia a seleção vazar para fora da barra. */}
           <div className={`space-y-2 transition-all ${isCollapsed ? 'w-12' : 'w-full'}`}>
             {sections.map(s => {
+              const hasSubmenu = s.title !== 'Início' && (s.items.length > 1 || (s.items.length === 1 && s.title !== s.items[0]?.label));
+              const firstItem = s.items[0];
               const isExpanded = expandedSections[s.title] ?? (s.title === activeGroup); // Default to active group
               const GroupIcon = GROUP_ICONS[s.title] ?? SquaresFour;
               const isActiveGroup = s.title === activeGroup;
               
+              if (!hasSubmenu && firstItem) {
+                return (
+                  <div key={s.title} className="flex flex-col">
+                    <Link
+                      href={firstItem.href as never}
+                      onClick={() => {
+                        setActiveGroup(s.title);
+                      }}
+                      title={isCollapsed ? s.title : undefined}
+                      className={`tap-target pressable focusable mb-1 group flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-bold transition-all hover:shadow-(--sidebar-elev-inset) ${
+                        isActiveGroup
+                          ? 'text-(--sidebar-ink) shadow-(--sidebar-elev-inset)'
+                          : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
+                      }`}
+                    >
+                      <GroupIcon
+                        weight="duotone"
+                        className={`h-7 w-7 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                          isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
+                        }`}
+                      />
+                      {!isCollapsed && (
+                        <span className="flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight">
+                          {s.title}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                );
+              }
+
               return (
                 <div key={s.title} className="flex flex-col">
-                  <button
-                    onClick={() => toggleSection(s.title)}
-                    title={isCollapsed ? s.title : undefined}
-                    className={`tap-target pressable focusable mb-1 group flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-bold transition-all hover:shadow-(--sidebar-elev-inset) ${
+                  <div
+                    className={`mb-1 group flex w-full items-center overflow-hidden rounded-xl transition-all hover:shadow-(--sidebar-elev-inset) ${
                       isActiveGroup
                         ? 'text-(--sidebar-ink)'
                         : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
                     }`}
                   >
-                    {/* O abacate marca só a seção em que você está. É o que
-                        responde "onde estou" com o menu recolhido, quando o
-                        ícone é a única coisa visível. */}
-                    <GroupIcon
-                      weight="duotone"
-                      className={`h-6 w-6 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                        isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
-                      }`}
-                    />
-                    {!isCollapsed && (
-                      <>
-                        <span className="flex-1 text-left truncate uppercase tracking-wider text-[10px]">
+                    <Link
+                      href={(firstItem?.href ?? '#') as never}
+                      onClick={() => {
+                        setExpandedSections(prev => ({ ...prev, [s.title]: true }));
+                        setActiveGroup(s.title);
+                      }}
+                      title={isCollapsed ? s.title : undefined}
+                      className="tap-target pressable focusable flex flex-1 items-center gap-3 overflow-hidden px-3 py-2.5 min-w-0"
+                    >
+                      <GroupIcon
+                        weight="duotone"
+                        className={`h-7 w-7 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                          isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
+                        }`}
+                      />
+                      {!isCollapsed && (
+                        <span className="flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight">
                           {s.title}
                         </span>
-                        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                      </>
+                      )}
+                    </Link>
+                    {!isCollapsed && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleSection(s.title);
+                        }}
+                        title={isExpanded ? 'Recolher' : 'Expandir'}
+                        className="tap-target pressable flex items-center justify-center p-2 text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) transition-colors"
+                      >
+                        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
                     )}
-                  </button>
+                  </div>
                   
                   <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="w-full relative">
@@ -336,14 +389,51 @@ function AppShellInner({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-4 space-y-6">
-          {sections.map(s => (
-            <div key={s.title}>
-              <h3 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE]">
-                {s.title}
-              </h3>
-              <NavList items={s.items} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-            </div>
-          ))}
+          {sections.map(s => {
+            const hasSubmenu = s.title !== 'Início' && (s.items.length > 1 || (s.items.length === 1 && s.title !== s.items[0]?.label));
+            const firstItem = s.items[0];
+            const GroupIcon = GROUP_ICONS[s.title] ?? SquaresFour;
+
+            if (!hasSubmenu && firstItem) {
+              const active = pathname === firstItem.href;
+              return (
+                <div key={s.title}>
+                  <Link
+                    href={firstItem.href as never}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
+                      active
+                        ? 'text-(--sidebar-ink) shadow-(--sidebar-elev-inset)'
+                        : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
+                    }`}
+                  >
+                    <GroupIcon
+                      weight="duotone"
+                      className={`h-6 w-6 ${active ? 'text-hexxa-lime dark:text-hexxa-green' : ''}`}
+                    />
+                    <span className="text-[15px] font-bold text-ink">{s.title}</span>
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div key={s.title}>
+                <Link
+                  href={(firstItem?.href ?? '#') as never}
+                  onClick={() => setMobileOpen(false)}
+                  className="mb-2 flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                >
+                  <GroupIcon
+                    weight="duotone"
+                    className={`h-6 w-6 ${activeGroup === s.title ? 'text-hexxa-lime dark:text-hexxa-green' : ''}`}
+                  />
+                  <span className="text-[15px] font-bold text-ink">{s.title}</span>
+                </Link>
+                <NavList items={s.items} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+              </div>
+            );
+          })}
         </div>
       </aside>
 
