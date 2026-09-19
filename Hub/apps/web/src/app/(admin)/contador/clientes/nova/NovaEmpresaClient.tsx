@@ -159,6 +159,12 @@ export function NovaEmpresaClient() {
                   Lançar saldos de abertura
                 </Link>
                 <Link
+                  href={`/contador/clientes/${r.companyId}/acessos`}
+                  className="rounded-full bg-white/70 px-3 py-1 font-bold text-[#231F20] dark:bg-white/10 dark:text-[#F5F6F4]"
+                >
+                  Dar acesso ao cliente
+                </Link>
+                <Link
                   href={`/contador/clientes/${r.companyId}/operacao`}
                   className="rounded-full bg-white/70 px-3 py-1 font-bold text-[#231F20] dark:bg-white/10 dark:text-[#F5F6F4]"
                 >

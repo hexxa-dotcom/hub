@@ -28,10 +28,17 @@ import {
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-type Status = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED';
+/**
+ * `SEM_PLANO` não é um status de assinatura — é a ausência de uma.
+ *
+ * A empresa existe, é escriturada e recebe guias antes de alguém contratar um
+ * plano da plataforma. Tratar isso como estado nomeado é o que permite a
+ * lista partir de `company`, e não sumir com quem ainda não assinou.
+ */
+type Status = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED' | 'SEM_PLANO';
 
 export type Cliente = {
-  id: string; // subscription.id
+  id: string; // subscription.id, ou company.id quando não há assinatura
   companyId: string;
   razao: string;
   fantasia: string;
@@ -46,6 +53,8 @@ export type Cliente = {
   regime: string;
   municipio: string;
   pendencias: number;
+  /** Ninguém consegue entrar nesta empresa ainda. */
+  semAcesso?: boolean;
   asaasCustomerId?: string;
   asaasSubscriptionId?: string;
 };
@@ -55,6 +64,7 @@ const STATUS_CFG: Record<Status, { label: string; cls: string; icon: React.Compo
   TRIAL: { label: 'Trial', cls: 'bg-blue-50 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200', icon: Clock },
   PAST_DUE: { label: 'Inadimplente', cls: 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 border border-red-200', icon: AlertTriangle },
   CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61]', icon: AlertTriangle },
+  SEM_PLANO: { label: 'Sem plano', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C] border border-black/5 dark:border-white/10', icon: Clock },
 };
 
 const PLANO_PALETTE = ['bg-[#2F4A3C] text-[#DFFFAE]', 'bg-[#5F6E46] text-[#F5F6F4]', 'bg-[#A2C1CD] text-[#1E3328]'];
@@ -92,6 +102,13 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
   }
 
   async function alterarStatus(id: string, status: Status) {
+    /**
+     * `SEM_PLANO` não é um status que se atribui — é a falta de assinatura.
+     * Mandá-lo para a ação de status tentaria gravar um valor que o enum do
+     * banco não aceita. Contratar um plano é outro caminho.
+     */
+    if (status === 'SEM_PLANO') return;
+
     setBusy(id);
     const res = await changeSubscriptionStatusAction(id, status);
     if (!('error' in res)) {
@@ -127,6 +144,36 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
           </div>
         </div>
       </div>
+
+      {/*
+        Empresa sem ninguém que possa entrar.
+
+        Ela é escriturada, recebe guias e fecha o mês normalmente — nada
+        acusa. O dono é que não vê nada disso. É o estado em que toda empresa
+        trazida do OneFlow nasce, e que só o contador pode desfazer.
+      */}
+      {clientes.some(c => c.semAcesso) && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4">
+          <p className="text-xs font-bold text-amber-900 dark:text-amber-300">
+            {clientes.filter(c => c.semAcesso).length} empresa(s) sem nenhum acesso
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800/90 dark:text-amber-300/80">
+            Existem no Hub e são escrituradas, mas ninguém do lado do cliente consegue
+            entrar. Convide o dono em cada uma.
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {clientes.filter(c => c.semAcesso).map(c => (
+              <Link
+                key={c.companyId}
+                href={`/contador/clientes/${c.companyId}/acessos` as never}
+                className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-[#231F20] dark:bg-white/10 dark:text-[#F5F6F4]"
+              >
+                {c.fantasia}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters & Search */}
       <div className="flex flex-wrap items-center justify-between gap-3">

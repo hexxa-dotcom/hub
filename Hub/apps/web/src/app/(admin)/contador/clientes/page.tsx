@@ -3,13 +3,23 @@ import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket } from '@hexxa/db/schema';
 import { ClientesTable, type Cliente } from './ClientesTable';
 
+/**
+ * A lista parte de COMPANY, não de subscription.
+ *
+ * Antes era um INNER JOIN em `subscription`, o que fazia a empresa sem plano
+ * contratado simplesmente não existir nesta tela. Com nenhuma assinatura
+ * cadastrada, a lista ficava vazia — e a empresa recém-trazida do OneFlow
+ * desaparecia logo depois de ser criada, sem erro nenhum para explicar.
+ *
+ * Cliente é quem o escritório atende. O plano da plataforma é um atributo
+ * dele, e um que costuma chegar depois do primeiro mês de serviço.
+ */
 async function getClientes(): Promise<Cliente[]> {
   const db = getDb();
 
-  const [subs, owners, ticketCounts] = await withDbTimeout(Promise.all([
+  const [empresas, owners, acessos, ticketCounts] = await withDbTimeout(Promise.all([
     db
       .select({
-        subscriptionId: subscription.id,
         companyId: company.id,
         legalName: company.legalName,
         tradeName: company.tradeName,
@@ -18,20 +28,22 @@ async function getClientes(): Promise<Cliente[]> {
         city: company.city,
         state: company.state,
         createdAt: company.createdAt,
+        subscriptionId: subscription.id,
         status: subscription.status,
         planName: plan.name,
         monthlyValue: plan.monthlyValue,
         asaasCustomerId: subscription.asaasCustomerId,
         asaasSubscriptionId: subscription.asaasSubscriptionId,
       })
-      .from(subscription)
-      .innerJoin(company, eq(subscription.companyId, company.id))
-      .innerJoin(plan, eq(subscription.planId, plan.id)),
+      .from(company)
+      .leftJoin(subscription, eq(subscription.companyId, company.id))
+      .leftJoin(plan, eq(subscription.planId, plan.id)),
     db
       .select({ companyId: membership.companyId, name: appUser.name, email: appUser.email })
       .from(membership)
       .innerJoin(appUser, eq(membership.userId, appUser.id))
       .where(eq(membership.role, 'OWNER')),
+    db.select({ companyId: membership.companyId }).from(membership),
     db
       .select({ companyId: ticket.companyId, id: ticket.id })
       .from(ticket)
@@ -39,27 +51,32 @@ async function getClientes(): Promise<Cliente[]> {
   ]), 8000);
 
   const ownerByCompany = new Map(owners.map(o => [o.companyId, o]));
+  const acessosPorEmpresa = new Map<string, number>();
+  for (const a of acessos) acessosPorEmpresa.set(a.companyId, (acessosPorEmpresa.get(a.companyId) ?? 0) + 1);
   const pendByCompany = new Map<string, number>();
   for (const t of ticketCounts) pendByCompany.set(t.companyId, (pendByCompany.get(t.companyId) ?? 0) + 1);
 
-  return subs.map(s => {
+  return empresas.map(s => {
     const owner = ownerByCompany.get(s.companyId);
     return {
-      id: s.subscriptionId,
+      // Sem assinatura não há subscription.id; o id da empresa serve de chave
+      // e é o que as ações da tabela realmente usam.
+      id: s.subscriptionId ?? s.companyId,
       companyId: s.companyId,
       razao: s.legalName,
       fantasia: s.tradeName || s.legalName,
       cnpj: s.cnpj,
       email: owner?.email ?? '—',
       telefone: '—',
-      plano: s.planName,
-      status: s.status,
+      plano: s.planName ?? '—',
+      status: s.status ?? 'SEM_PLANO',
       mrr: s.status === 'ACTIVE' ? Number(s.monthlyValue) : 0,
       desde: s.createdAt.toISOString().slice(0, 10),
       responsavel: owner?.name ?? '—',
       regime: s.taxRegime,
       municipio: s.city && s.state ? `${s.city}/${s.state}` : '—',
       pendencias: pendByCompany.get(s.companyId) ?? 0,
+      semAcesso: (acessosPorEmpresa.get(s.companyId) ?? 0) === 0,
       asaasCustomerId: s.asaasCustomerId ?? undefined,
       asaasSubscriptionId: s.asaasSubscriptionId ?? undefined,
     };
