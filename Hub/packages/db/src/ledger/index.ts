@@ -14,3 +14,4 @@ export * from './importar-extrato';
 export * from './conciliar-extrato';
 export * from './cadastro-oneflow';
 export * from './resultado-oneflow';
+export * from './conta-bancaria';

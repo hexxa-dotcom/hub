@@ -650,6 +650,30 @@ async function importarFolha(
 
     for (const r of recibos) await gravarContracheque(tx, companyId, referenceMonth, r);
 
+    /**
+     * O pró-labore de cada sócio, espelhado da folha oficial.
+     *
+     * A tela de sócios lia `partner.pro_labore`, que alguém digita — e para a
+     * BM3 mostrava R$ 0,00 enquanto a folha do OneFlow pagava R$ 1.624,86 à
+     * sócia todo mês. Esse campo entra no Fator R estimado e na recomendação
+     * de pró-labore; zerado, os dois mentem. Só a folha MENSAL atualiza: 13º
+     * e férias não são o pró-labore do mês. Casa por CPF, que é o que os dois
+     * sistemas compartilham sem variação de grafia.
+     */
+    if (tipo.codigo === 1) {
+      for (const r of recibos) {
+        if (!/labor/i.test(String(r.tipoRecibo ?? ''))) continue;
+        const cpf = String(r.cpf ?? '').replace(/\D/g, '');
+        const bruto = numero(r.totalProventos);
+        if (!cpf || bruto <= 0) continue;
+        await tx.execute(sql`
+          UPDATE partner SET pro_labore = ${bruto.toFixed(2)}
+           WHERE company_id = ${companyId}
+             AND regexp_replace(COALESCE(cpf, ''), '\\D', '', 'g') = ${cpf}
+        `);
+      }
+    }
+
     // Pró-labore tem conta própria. O recibo diz qual é em `tipoRecibo`.
     const proLabore = recibos.every((r) => /labor/i.test(String(r.tipoRecibo ?? '')));
 

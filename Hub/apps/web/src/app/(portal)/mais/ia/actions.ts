@@ -1,6 +1,6 @@
 'use server';
 
-import { getTenantContext } from '@/lib/server/tenant';
+import { getTenantContext, autorOuNulo } from '@/lib/server/tenant';
 import { listarFilaAprovacao, listarFilaRevisao, decidirAcao } from '@/lib/server/agent-tools';
 import { revalidatePath } from 'next/cache';
 import { getDb, sql } from '@hexxa/db';
@@ -44,7 +44,7 @@ export async function decidir(
     ctx.companyId,
     acaoId,
     decisao === 'aprovar' ? 'APPROVED' : 'REJECTED',
-    ctx.userId,
+    autorOuNulo(ctx.userId),
     nota,
     categoriaCorretaId,
   );

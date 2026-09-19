@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/resultado-oneflow",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/envio-nfse-oneflow",
+      "schedule": "0 3 * * *"
     }
   ]
 }

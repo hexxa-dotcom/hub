@@ -1,4 +1,4 @@
-import { getTenantContext } from '@/lib/server/tenant';
+import { getTenantContext, autorOuNulo } from '@/lib/server/tenant';
 import { appUser, getDb, eq } from '@hexxa/db';
 
 /**
@@ -27,11 +27,16 @@ export async function Saudacao() {
 
   try {
     const ctx = await getTenantContext();
-    const [row] = await getDb()
-      .select({ name: appUser.name })
-      .from(appUser)
-      .where(eq(appUser.id, ctx.userId));
-    primeiroNome = row?.name?.trim().split(/\s+/)[0] ?? null;
+    // Com o login contornado não há usuário real para cumprimentar — e a
+    // consulta com um id que não é UUID só enchia o log de erro.
+    const autor = autorOuNulo(ctx.userId);
+    if (autor) {
+      const [row] = await getDb()
+        .select({ name: appUser.name })
+        .from(appUser)
+        .where(eq(appUser.id, autor));
+      primeiroNome = row?.name?.trim().split(/\s+/)[0] ?? null;
+    }
   } catch (err) {
     console.error('[cliente/Saudacao] falha ao carregar o nome do usuário:', err);
   }

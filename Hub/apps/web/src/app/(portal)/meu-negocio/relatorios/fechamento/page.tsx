@@ -2,10 +2,19 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, eq, desc } from '@hexxa/db';
 import { monthlyClosure } from '@hexxa/db/schema';
 import { redirect } from 'next/navigation';
-import { FileText, Printer, CheckCircle2, TrendingUp, TrendingDown, Clock, Users, ArrowRight } from 'lucide-react';
+import { FileText, CheckCircle2, TrendingUp, TrendingDown, Clock, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { SectionInfo } from '@/components/ui/SectionInfo';
+import { ControlesDoRelatorio } from './ControlesDoRelatorio';
+
+const ROTULO_DO_ESTAGIO: Record<string, string> = {
+  ABERTO: 'EM ABERTO',
+  FECHADO: 'FECHADO — EM CONFERÊNCIA',
+  CONFERIDO: 'LIBERADO PELO CONTADOR',
+  ENVIADO: 'ENVIADO À CONTABILIDADE',
+  REABERTO: 'REABERTO',
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -49,15 +58,15 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
   let closure = closures[0];
 
   if (selectedMonth) {
-    const found = closures.find(c => c.reference_month === selectedMonth);
+    const found = closures.find(c => c.referenceMonth === selectedMonth);
     if (found) closure = found;
   }
 
-  const [year, month] = closure.reference_month.split('-');
+  const [year, month] = closure.referenceMonth.split('-');
   const monthName = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  const totalRev = Number(closure.total_revenue);
-  const totalExp = Number(closure.total_expenses);
+  const totalRev = Number(closure.totalRevenue);
+  const totalExp = Number(closure.totalExpenses);
   const result = totalRev - totalExp;
   const isProfit = result >= 0;
 
@@ -75,33 +84,16 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
             <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right capitalize">
               Relatório de Fechamento — {monthName}
             </h1>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <select 
-                  className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
-                  defaultValue={closure.reference_month}
-                  onChange={(e) => {
-                    if (typeof window !== 'undefined') {
-                      window.location.href = `/meu-negocio/relatorios/fechamento?month=${e.target.value}`;
-                    }
-                  }}
-                >
-                  {closures.map(c => {
-                    const [y, m] = c.reference_month.split('-');
-                    const n = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
-                    return <option key={c.reference_month} value={c.reference_month}>{n}</option>;
-                  })}
-                </select>
-              </div>
-              
-              <button 
-                onClick={() => { if (typeof window !== 'undefined') window.print(); }}
-                className="flex items-center gap-2 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-colors cursor-pointer"
-              >
-                <Printer className="h-4 w-4" />
-                Imprimir
-              </button>
-            </div>
+            <ControlesDoRelatorio
+              atual={closure.referenceMonth}
+              meses={closures.map((c) => {
+                const [y, m] = String(c.referenceMonth).split('-');
+                return {
+                  valor: c.referenceMonth,
+                  rotulo: new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
+                };
+              })}
+            />
           </div>
         </div>
       </Card>
@@ -116,9 +108,14 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
               Dados consolidados para contabilidade
             </p>
           </div>
+          {/*
+            O estágio verdadeiro do mês. O selo era fixo em "ENVIADO À
+            CONTABILIDADE" para qualquer mês com registro — inclusive os que
+            ninguém tinha fechado.
+          */}
           <div className="flex items-center gap-2 bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) border border-hexxa-lime/20 px-4 py-1.5 rounded-full">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="text-xs font-bold tracking-wide">ENVIADO À CONTABILIDADE</span>
+            {closure.stage === 'ENVIADO' || closure.stage === 'CONFERIDO' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+            <span className="text-xs font-bold tracking-wide">{ROTULO_DO_ESTAGIO[closure.stage as string] ?? 'EM ABERTO'}</span>
           </div>
         </div>
 
@@ -144,7 +141,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
 
             <div className="space-y-1 border-l-2 border-amber-600 pl-4">
               <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Inadimplência (Atrasos)</p>
-              <p className="font-serif text-2xl font-bold text-ink tabular">{closure.defaults_count || 0}</p>
+              <p className="font-serif text-2xl font-bold text-ink tabular">{closure.defaultsCount || 0}</p>
             </div>
           </div>
 
@@ -165,7 +162,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
                   <div>
                     <p className="text-sm font-bold text-ink">Novos Contratos</p>
                     <p className="text-xs text-ink-soft mt-0.5">
-                      Você fechou <strong className="text-ink">{closure.new_contracts_count || 0} contratos novos</strong> neste mês.
+                      Você fechou <strong className="text-ink">{closure.newContractsCount || 0} contratos novos</strong> neste mês.
                     </p>
                   </div>
                 </li>
@@ -202,7 +199,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
                     </p>
                   </div>
                 </li>
-                {closure.defaults_count > 0 && (
+                {closure.defaultsCount > 0 && (
                   <li className="flex items-start gap-3 bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 rounded-2xl">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
                       <TrendingDown className="h-4 w-4" />
@@ -220,8 +217,8 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
           </div>
 
           <div className="mt-8 text-center pt-8 border-t border-black/5 dark:border-white/10 text-xs text-ink-soft print:pt-4">
-            <p>Hexxa Hub — Documento auxiliar gerado automaticamente em {new Date(closure.created_at).toLocaleString('pt-BR')}.</p>
-            <p>A contabilidade já recebeu estes dados para processamento.</p>
+            <p>Hexxa Hub — Documento auxiliar gerado automaticamente em {new Date(closure.createdAt).toLocaleString('pt-BR')}.</p>
+            {closure.stage === 'ENVIADO' && <p>A contabilidade já recebeu estes dados para processamento.</p>}
           </div>
         </div>
       </div>

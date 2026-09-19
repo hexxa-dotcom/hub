@@ -1,4 +1,5 @@
 import { getDb } from '@hexxa/db';
+import { autorOuNulo } from './tenant';
 import {
   escriturarLancamento,
   escriturarGuia,
@@ -48,7 +49,7 @@ export async function escriturar(
 ): Promise<EscrituracaoResult | null> {
   try {
     const r = await ESCRITURADORES[alvo](getDb(), companyId, documentoId, {
-      createdByUserId: userId ?? null,
+      createdByUserId: autorOuNulo(userId),
     });
 
     if (r.erros.length) {
@@ -77,7 +78,7 @@ export async function escriturar(
  */
 export async function escriturarNovos(companyId: string, userId?: string | null) {
   try {
-    const r = await escriturarPendentes(getDb(), companyId, { createdByUserId: userId ?? null });
+    const r = await escriturarPendentes(getDb(), companyId, { createdByUserId: autorOuNulo(userId) });
     if (r.erros.length) {
       console.error(`[ledger] varredura de ${companyId}: ${r.erros.length} erro(s)`, r.erros.slice(0, 5));
     }

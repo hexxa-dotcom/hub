@@ -4,12 +4,11 @@ import { useState, useTransition } from 'react';
 import {
   matchTransaction,
   ignoreTransaction,
-  generateMockTransactions,
   suggestAiMatchesAction,
   applyAiMatchAction,
   applyAiNewEntryAction,
 } from './actions';
-import { Loader2, ArrowRightLeft, Check, X, RefreshCw, Plus, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRightLeft, Check, X, Plus, Sparkles } from 'lucide-react';
 
 
 type Transaction = {
@@ -85,16 +84,7 @@ export function ConciliacaoClient({
     });
   }
 
-  function handleMock() {
-    startTransition(async () => {
-      try {
-        await generateMockTransactions();
-        alert('Mock gerado!');
-      } catch (err) {
-        alert('Erro ao gerar mock.');
-      }
-    });
-  }
+
 
   async function handleSuggestAi() {
     setAiLoading(true);
@@ -153,16 +143,8 @@ export function ConciliacaoClient({
         <ArrowRightLeft className="h-12 w-12 text-ink-soft opacity-30 mb-4" />
         <h3 className="font-serif text-xl font-bold text-ink mb-2">Tudo em dia!</h3>
         <p className="text-sm text-ink-soft max-w-md mb-6">
-          Não há transações pendentes de conciliação. Quando você fizer upload do OFX ou integrar seu banco, elas aparecerão aqui.
+          Não há transações pendentes de conciliação. Quando você importar o extrato do banco, elas aparecerão aqui.
         </p>
-        <button
-          onClick={handleMock}
-          disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold transition-all disabled:opacity-50"
-        >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Gerar Dados de Teste
-        </button>
       </div>
     );
   }
@@ -177,14 +159,6 @@ export function ConciliacaoClient({
         >
           {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           Sugerir com IA
-        </button>
-        <button
-          onClick={handleMock}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-        >
-          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-          + Dados
         </button>
       </div>
 

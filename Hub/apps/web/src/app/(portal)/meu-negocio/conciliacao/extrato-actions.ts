@@ -7,10 +7,12 @@ import {
   saldoDaTransitoria,
   movimentosNaTransitoria,
   MESES_DE_HISTORICO,
+  contaDoExtrato,
+  criarContaBancaria,
 } from '@hexxa/db';
 // Nada de constante exportada daqui: um arquivo 'use server' só pode exportar
 // funções assíncronas, e o build quebra sem explicar bem o porquê.
-import { ExtratoIlegivelError } from '@hexxa/core';
+import { ExtratoIlegivelError, lerExtrato } from '@hexxa/core';
 import { getTenantContext } from '@/lib/server/tenant';
 import { identificarMovimentos } from '@/lib/server/agente-extrato';
 import { revalidatePath } from 'next/cache';
@@ -48,13 +50,11 @@ export async function subirExtratoAction(
 ): Promise<EstadoUpload> {
   const ctx = await getTenantContext();
   const arquivo = formData.get('arquivo');
-  const bankAccountId = String(formData.get('bankAccountId') ?? '');
+  // Vazio = "reconhecer pelo arquivo": o OFX diz de que conta é.
+  const escolhida = String(formData.get('bankAccountId') ?? '') || null;
 
   if (!(arquivo instanceof File) || arquivo.size === 0) {
     return { ok: false, mensagem: 'Escolha um arquivo de extrato.' };
-  }
-  if (!bankAccountId) {
-    return { ok: false, mensagem: 'Escolha a conta bancária deste extrato.' };
   }
   // 8 MB cobre extrato de ano inteiro em OFX; acima disso é outra coisa.
   if (arquivo.size > 8 * 1024 * 1024) {
@@ -65,7 +65,9 @@ export async function subirExtratoAction(
   const db = getDb();
 
   try {
-    const imp = await importarExtrato(db, ctx.companyId, bankAccountId, conteudo);
+    const lido = lerExtrato(conteudo);
+    const conta = await contaDoExtrato(db, ctx.companyId, escolhida, { banco: lido.banco, conta: lido.conta });
+    const imp = await importarExtrato(db, ctx.companyId, conta.id, conteudo);
     const conc = await conciliarExtrato(db, ctx.companyId);
 
     // A IA só entra depois que o fato e o histórico já fizeram o que podiam.
@@ -82,9 +84,10 @@ export async function subirExtratoAction(
     return {
       ok: true,
       mensagem:
-        imp.novas === 0
+        (conta.criada ? `Conta ${conta.nome} reconhecida pelo arquivo e cadastrada. ` : '') +
+        (imp.novas === 0
           ? 'Este extrato já tinha sido importado — nada foi duplicado.'
-          : `${imp.novas} movimento(s) importado(s).`,
+          : `${imp.novas} movimento(s) importado(s) na conta ${conta.nome}.`),
       detalhe: {
         lidas: imp.lidas,
         novas: imp.novas,
@@ -130,4 +133,19 @@ export async function contasDaEmpresa(): Promise<{ id: string; nome: string }[]>
       nome: c.number ? `${c.bank_name} · ${c.number}` : c.bank_name,
     }));
   });
+}
+
+/** Cadastro manual de conta — para quem só tem extrato em CSV. */
+export async function criarContaAction(
+  banco: string,
+  numero: string,
+): Promise<{ ok: boolean; id?: string; erro?: string }> {
+  const ctx = await getTenantContext();
+  try {
+    const r = await criarContaBancaria(getDb(), ctx.companyId, banco, numero);
+    revalidatePath('/meu-negocio/conciliacao');
+    return { ok: true, id: r.id };
+  } catch (err) {
+    return { ok: false, erro: err instanceof Error ? err.message : String(err) };
+  }
 }

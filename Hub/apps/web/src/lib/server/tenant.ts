@@ -28,6 +28,22 @@ export class NoActiveCompanySelectedError extends Error {
 
 const ACTIVE_COMPANY_COOKIE = 'hexx_active_company';
 
+/**
+ * O id de usuário serve de AUTORIA? Só se for um usuário de verdade.
+ *
+ * `ctx.userId` vale 'dev-skip-auth' com o login contornado — que é como a
+ * produção roda hoje, com `SKIP_AUTH_TEMP` —, 'cron' nos crons e 'mcp' no
+ * servidor MCP. Gravar isso numa coluna de autoria (UUID, com chave para
+ * `app_user`) faz a gravação inteira falhar: marcar guia paga, lançar no
+ * financeiro, decidir na fila da IA. Autoria desconhecida é nula, não um
+ * texto que o banco recusa.
+ */
+export function autorOuNulo(userId: string | null | undefined): string | null {
+  return userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+    ? userId
+    : null;
+}
+
 const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_SKIP_AUTH === 'true';
 /**
  * TEMPORÁRIO: rede de segurança da migração Clerk → Supabase Auth. Enquanto

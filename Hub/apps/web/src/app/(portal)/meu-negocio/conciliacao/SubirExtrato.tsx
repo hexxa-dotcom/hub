@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Upload, FileCheck2, AlertCircle, Loader2 } from 'lucide-react';
-import { subirExtratoAction, type EstadoUpload } from './extrato-actions';
+import { subirExtratoAction, criarContaAction, type EstadoUpload } from './extrato-actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -26,13 +26,21 @@ export function SubirExtrato({ contas, meses }: { contas: { id: string; nome: st
   );
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
 
-  if (contas.length === 0) {
-    return (
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-800 dark:text-amber-300">
-        Cadastre uma conta bancária antes de importar o extrato — é nela que os
-        movimentos vão ser registrados.
-      </div>
-    );
+  // Sem conta cadastrada não é mais um beco sem saída: o OFX diz de que
+  // conta é, e ela nasce na importação. Só o CSV precisa do cadastro manual.
+  const [novaConta, setNovaConta] = useState(false);
+  const [banco, setBanco] = useState('');
+  const [numero, setNumero] = useState('');
+  const [erroConta, setErroConta] = useState<string | null>(null);
+  const [salvandoConta, setSalvandoConta] = useState(false);
+
+  async function cadastrar() {
+    setErroConta(null);
+    setSalvandoConta(true);
+    const r = await criarContaAction(banco, numero);
+    setSalvandoConta(false);
+    if (r.ok) { setNovaConta(false); setBanco(''); setNumero(''); }
+    else setErroConta(r.erro ?? 'Não consegui cadastrar a conta.');
   }
 
   const d = estado.detalhe;
@@ -41,17 +49,19 @@ export function SubirExtrato({ contas, meses }: { contas: { id: string; nome: st
     <div className="rounded-2xl border border-black/5 bg-white p-5 dark:border-white/10 dark:bg-[#1A1A18]">
       <h3 className="text-sm font-bold text-ink">Importar extrato</h3>
       <p className="mt-1 text-xs text-ink-soft">
-        Baixe o extrato do seu banco em <strong>OFX</strong> e solte aqui. CSV também
-        funciona. Subir o mesmo arquivo duas vezes não duplica nada.
+        Baixe o extrato do seu banco em <strong>OFX</strong> e solte aqui — a conta é
+        reconhecida pelo próprio arquivo. CSV também funciona, com a conta cadastrada antes.
+        Subir o mesmo arquivo duas vezes não duplica nada.
       </p>
 
       <form action={acao} className="mt-4 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row">
           <select
             name="bankAccountId"
-            required
+            defaultValue=""
             className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-ink"
           >
+            <option value="">Reconhecer pelo arquivo (OFX)</option>
             {contas.map((c) => (
               <option key={c.id} value={c.id}>{c.nome}</option>
             ))}
@@ -80,6 +90,34 @@ export function SubirExtrato({ contas, meses }: { contas: { id: string; nome: st
           </button>
         </div>
       </form>
+
+      {!novaConta ? (
+        <button
+          type="button"
+          onClick={() => setNovaConta(true)}
+          className="mt-2 text-xs font-bold text-ink-soft underline-offset-2 hover:underline"
+        >
+          Extrato em CSV? Cadastre a conta primeiro
+        </button>
+      ) : (
+        <div className="mt-3 flex flex-col gap-2 rounded-xl bg-black/[0.03] p-3 sm:flex-row sm:items-end dark:bg-white/[0.04]">
+          <label className="flex-1 text-xs">
+            <span className="font-bold text-ink">Banco</span>
+            <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="Nubank"
+              className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-ink" />
+          </label>
+          <label className="flex-1 text-xs">
+            <span className="font-bold text-ink">Conta</span>
+            <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="12345678-9"
+              className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-ink" />
+          </label>
+          <button type="button" onClick={cadastrar} disabled={salvandoConta}
+            className="rounded-full bg-hexxa-forest px-4 py-2 text-xs font-bold text-hexxa-lime disabled:opacity-50">
+            {salvandoConta ? 'Salvando…' : 'Cadastrar conta'}
+          </button>
+        </div>
+      )}
+      {erroConta && <p className="mt-2 text-xs text-red-700 dark:text-red-400">{erroConta}</p>}
 
       {estado.mensagem && !estado.ok && (
         <p className="mt-3 flex items-start gap-2 rounded-xl bg-red-500/10 px-3.5 py-2 text-xs text-red-700 dark:text-red-400">
