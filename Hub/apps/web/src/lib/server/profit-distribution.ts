@@ -122,6 +122,9 @@ export async function getAvailableProfitAction(): Promise<YearlyProfitSummary> {
     ? `O lucro distribuível vem da contabilidade oficial e aparece depois que o primeiro mês de ${year} ` +
       'for fechado e liberado pelo seu contador. Até lá, nenhum valor é oferecido — distribuir sobre um ' +
       'lucro não conferido pode tirar a isenção do dividendo.'
+    : oficial.contabilImplantado && oficial.motivo
+      ? `O balancete oficial não passou na conferência do Hub (${oficial.motivo}). Até o seu ` +
+        'contador verificar, nenhum valor é oferecido para distribuição.'
     : !oficial.contabilImplantado || oficial.resultado === null
       ? 'A contabilidade desta empresa ainda não está implantada no sistema contábil. Sem lucro ' +
         'escriturado, não há base segura para distribuir — fale com o seu contador.'

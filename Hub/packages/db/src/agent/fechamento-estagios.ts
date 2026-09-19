@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { monthlyClosure } from '../schema/accounting';
+import { ORIGEM_ONEFLOW } from '../ledger/envio-oneflow';
 import { propor, marcarAplicada, decidir } from './repository';
 
 /**
@@ -238,6 +239,7 @@ export async function concluirEnviados(tx: DbHandle, companyId: string): Promise
             AND j.status = 'POSTED'
             AND j.reversed_by IS NULL
             AND j.source <> 'CLOSING'
+            AND NOT ${ORIGEM_ONEFLOW}
             -- Mesma regra do ensaio: espelho de estorno só conta como
             -- pendente se a partida que ele anula foi enviada — senão ele
             -- nunca vai, e o mês ficaria preso em CONFERIDO para sempre.
@@ -269,7 +271,10 @@ export async function reabrirMes(
 
   const r = await tx
     .update(monthlyClosure)
-    .set({ stage: 'REABERTO', reviewNote: motivo })
+    // A autorização de envio cai junto: ela valia para os números de antes.
+    // Sem limpar, o mês reliberado sairia para o OneFlow sem o segundo
+    // clique — mesmo com o envio automático desligado.
+    .set({ stage: 'REABERTO', reviewNote: motivo, sendAuthorizedAt: null, sendAuthorizedByUserId: null })
     .where(
       and(
         eq(monthlyClosure.companyId, companyId),

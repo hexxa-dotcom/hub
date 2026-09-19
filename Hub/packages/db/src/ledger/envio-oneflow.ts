@@ -4,6 +4,22 @@ import { traduzirConta, contasSemDestino, dataOneflow } from '@hexxa/core';
 import type { LancamentoOneflow } from '@hexxa/integrations';
 
 /**
+ * Partidas que nasceram no OneFlow e por isso não voltam para lá.
+ *
+ * Fragmento SQL sobre `j` (journal_entry), usado em todo lugar que decide o
+ * que falta enviar — o ensaio, o cron e a conclusão do mês. Se um deles
+ * divergisse, o mês ficaria esperando para sempre uma partida que o envio
+ * nunca manda.
+ *
+ * É a escolha segura enquanto não se confirma se o OneFlow integra fiscal e
+ * folha ao contábil sozinho: uma partida que faltar lá dá para mandar depois;
+ * uma duplicada só sai por exclusão manual.
+ */
+export const ORIGEM_ONEFLOW = sql.raw(
+  `(j.event = 'ACCRUAL' AND j.source IN ('TAX_GUIDE', 'PAYSLIP'))`,
+);
+
+/**
  * ENSAIO E ENVIO DO RAZÃO AO ONEFLOW.
  *
  * O ensaio (`ensaiarEnvio`) monta os lançamentos e NÃO manda nada. Existe
@@ -59,7 +75,14 @@ export interface EnsaioResult {
  * 3. **Apuração do resultado** (`source = 'CLOSING'`) — o OneFlow apura
  *    sozinho a partir dos lançamentos que recebe, e tem endpoint próprio para
  *    encerrar competência. Enviar a nossa zeraria as contas de resultado lá e
- *    ele zeraria de novo: o lucro sairia dobrado no patrimônio líquido.
+ *    ele zeraria de novo: o lucro sairia dobrado no patrimônio líquido. *
+ * 4. **O que nasceu no OneFlow** — a apuração do imposto (`TAX_GUIDE`,
+ *    reconhecimento) e o cálculo da folha (`PAYSLIP`). A volta os importa
+ *    para o Hub mostrar o balanço inteiro, mas eles são do fiscal e da folha
+ *    de lá, que alimentam o contábil de lá. Devolvê-los duplicaria imposto e
+ *    folha nos livros oficiais — e a provisão do DAS, que é estimativa nossa,
+ *    iria junto. O PAGAMENTO da guia continua indo: é fato do banco, visto
+ *    aqui. Ver `ORIGEM_ONEFLOW`.
  */
 export async function ensaiarEnvio(
   tx: DbHandle,
@@ -90,6 +113,8 @@ export async function ensaiarEnvio(
       AND j.reference_month = ${referenceMonth}::date
       -- A apuração é do OneFlow, não nossa.
       AND j.source <> 'CLOSING'
+      -- O que nasceu lá não volta para lá. Ver item 4 acima.
+      AND NOT ${ORIGEM_ONEFLOW}
       -- Espelho de estorno só vai se a partida que ele anula tiver ido antes.
       AND (
         j.event <> 'REVERSAL'
@@ -326,6 +351,23 @@ export async function enviarRazao(
       await registrarEnvio(tx, companyId, p.journalEntryId, null, motivo);
       out.erros.push({ journalEntryId: p.journalEntryId, motivo });
     }
+  }
+
+  /**
+   * Mês já ENVIADO que recebeu correção agora mudou lá.
+   *
+   * O espelho do resultado oficial relê o balancete só quando `sent_at`
+   * avança. Uma reclassificação ou um estorno enviados depois do mês estar
+   * ENVIADO não passavam por `concluirEnviados` — o mês já estava no último
+   * estágio —, e o lucro oficial ficava com o número de antes da correção.
+   */
+  if (out.enviadas > 0) {
+    await tx.execute(sql`
+      UPDATE monthly_closure SET sent_at = NOW()
+       WHERE company_id = ${companyId}
+         AND reference_month = ${referenceMonth}::date
+         AND stage = 'ENVIADO'
+    `);
   }
 
   return out;

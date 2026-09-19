@@ -1,9 +1,9 @@
 import { getTenantContext } from '@/lib/server/tenant';
-import { getSimplesInputs, getCurrentMinimumWage, enquadramentoApurado } from '@/lib/server/fiscal';
-import { TaxThermometerService, ProlaboreAutopilotService } from '@hexxa/core';
+import { getSimplesInputs, getCurrentMinimumWage, enquadramentoApurado, fatorRSeAplica, posicaoSimples } from '@/lib/server/fiscal';
+import { ProlaboreAutopilotService } from '@hexxa/core';
 import { BarChart3, TrendingUp, AlertTriangle, Users, Sparkles, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import Link from 'next/link';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -18,7 +18,9 @@ export default async function TermometroTributarioPage() {
     getCurrentMinimumWage(),
     enquadramentoApurado(ctx),
   ]);
-  const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+  // Posição com o oficial por cima: faixa, nominal e projeção na tabela do
+  // anexo apurado, não no que a folha sugeriria.
+  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
 
   /**
    * O que o contábil apurou manda sobre o que o Hub estima.
@@ -29,21 +31,12 @@ export default async function TermometroTributarioPage() {
    * importada, o anexo e a alíquota são os dela, e o Fator R só aparece se a
    * atividade se sujeita a ele.
    */
-  /**
-   * Fora do Fator R por dedução OFICIAL (anexo apurado + fator do OneFlow),
-   * ou por dedução que se apoia na estimativa (anexo apurado III + fator
-   * estimado abaixo de 28%). A segunda é mais fraca e aparece com texto mais
-   * cauteloso — mas também esconde o piloto, porque o risco é assimétrico:
-   * esconder por engano tira uma sugestão; mostrar por engano aconselha a
-   * pagar INSS sem ganho nenhum.
-   */
-  const foraOficial = apurado?.fatorRAplica === false;
-  const foraEstimado =
-    !foraOficial &&
-    apurado?.anexo === 'III' &&
-    apurado.fatorRAplica !== true &&
-    (apurado.fatorR ?? simples.fatorR) < 0.28;
-  const fatorRAplica = !(foraOficial || foraEstimado);
+  // A regra de quando o Fator R não se aplica mora em `fatorRSeAplica` —
+  // a mesma que a tela de sócios usa.
+  const regraFatorR = fatorRSeAplica(apurado, simples.fatorR);
+  const fatorRAplica = regraFatorR.aplica;
+  const foraOficial = regraFatorR.fora === 'OFICIAL';
+  const foraEstimado = regraFatorR.fora === 'ESTIMADO';
   const favoravel = apurado && ['III', 'V'].includes(apurado.anexo)
     ? apurado.anexo === 'III'
     : simples.fatorRFavorable;
@@ -65,19 +58,11 @@ export default async function TermometroTributarioPage() {
 
   return (
     <div className="space-y-6">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
-        <div className="flex items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre a Bússola Tributária"
-            description="Acompanhamento em tempo real da alíquota efetiva do Simples Nacional, sublimite e enquadramento do Fator R."
-          />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Bússola Tributária
-            </h1>
-          </div>
-        </div>
-      </Card>
+      <SectionHero
+        title="Bússola Tributária"
+        infoTitle="Sobre a Bússola Tributária"
+        infoDescription="Acompanhamento em tempo real da alíquota efetiva do Simples Nacional, sublimite e enquadramento do Fator R."
+      />
 
       {rbt12 === 0 ? (
         <Card level={1} className="border-dashed p-12 text-center card-finish">
@@ -159,7 +144,9 @@ export default async function TermometroTributarioPage() {
                   <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate(apurado ? apurado.aliquotaEfetiva : simples.effectiveRate)}</span>
                   <span className="text-xs text-ink-soft">{apurado ? `apurada em ${mesApurado}` : 'estimativa'}</span>
                 </div>
-                <p className="mt-1 text-xs text-ink-soft">Nominal da faixa: <span className="font-serif tabular">{rate(simples.nominalRate)}</span></p>
+                {simples.projecaoConfiavel && (
+                  <p className="mt-1 text-xs text-ink-soft">Nominal da faixa: <span className="font-serif tabular">{rate(simples.nominalRate)}</span></p>
+                )}
                 <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
                   <p className="text-xs text-ink-soft">
                     Enquadramento Atual:
@@ -261,7 +248,7 @@ export default async function TermometroTributarioPage() {
             </div>
           </div>
 
-          {simples.toNextFaixa !== null ? (
+          {!simples.projecaoConfiavel ? null : simples.toNextFaixa !== null ? (
             <Card level={1} className="flex items-start gap-4 p-6 card-finish">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
                 <TrendingUp className="h-5 w-5" />

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { taxGuide, employee, payslip } from '../schema/accounting';
-import { escriturarGuia, reescriturarGuia } from './escrituracao';
+import { escriturarGuia, reescriturarGuia, anularGuia } from './escrituracao';
 import { postJournal } from './repository';
 import { accrueFolha } from '@hexxa/core';
 import { clienteOneflow } from './oneflow-client';
@@ -345,6 +345,31 @@ async function importarGuias(
     // tela do cliente de cobranças que não existem — e o razão de partidas
     // sem valor, que o trigger de equilíbrio recusa de qualquer forma.
     if (valor <= 0) {
+      /**
+       * Zerada, mas o fechamento pode ter PROVISIONADO imposto para este mês.
+       * A apuração oficial manda: a provisão é estornada e a guia provisória
+       * sai. Só a provisória — uma guia que o contador cadastrou à mão não é
+       * palpite nosso para desfazer.
+       */
+      const [provisoria] = await tx
+        .select({ id: taxGuide.id, amount: taxGuide.amount })
+        .from(taxGuide)
+        .where(
+          and(
+            eq(taxGuide.companyId, companyId),
+            eq(taxGuide.taxName, taxName),
+            eq(taxGuide.referenceMonth, referenceMonth),
+            eq(taxGuide.provisional, true),
+          ),
+        );
+      if (provisoria) {
+        await anularGuia(
+          tx, companyId, provisoria.id,
+          `Apuração oficial do OneFlow para ${competencia} é zero — provisão de ${provisoria.amount} desfeita`,
+        );
+        await tx.delete(taxGuide).where(eq(taxGuide.id, provisoria.id));
+        out.avisos.push(`${taxName}: provisão de ${provisoria.amount} desfeita — a apuração oficial é zero.`);
+      }
       out.guias.push({ imposto: codigo, taxName, valor: 0, acao: 'zerada', guiaId: null });
       continue;
     }

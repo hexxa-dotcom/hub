@@ -47,6 +47,7 @@ async function migrate() {
     '0061_oneflow_resultado.sql',
     '0062_guia_provisoria.sql',
     '0063_honorarios.sql',
+    '0064_resultado_motivo.sql',
   ]) {
     const sqlText = fs.readFileSync(path.resolve(process.cwd(), 'packages/db/migrations', nome), 'utf-8');
     // A migration inteira numa execução só: os triggers dependem das tabelas e

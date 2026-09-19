@@ -133,11 +133,14 @@ function ModalSocio({
 // ── ProLaboreTab ──────────────────────────────────────────────────────────────
 
 function ProLaboreTab({
-  socios, prolaboreMinimoRecomendado, fatorRFavoravel,
+  socios, prolaboreMinimoRecomendado, fatorRFavoravel, fatorRAplica, anexoApurado,
 }: {
   socios: PartnerRow[];
   prolaboreMinimoRecomendado: number;
   fatorRFavoravel: boolean;
+  /** O Fator R decide o imposto desta empresa? Ver `fatorRSeAplica`. */
+  fatorRAplica: boolean;
+  anexoApurado: string | null;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
@@ -200,7 +203,21 @@ function ProLaboreTab({
         </div>
       )}
 
-      {/* Recomendação de pró-labore saudável (Fator R) */}
+      {/*
+        Recomendação de pró-labore pelo Fator R — só quando ele decide o
+        imposto. Para quem está no Anexo III pela atividade, recomendar mais
+        pró-labore é recomendar mais INSS sem ganho nenhum.
+      */}
+      {!fatorRAplica ? (
+        <Card level={1} className="p-6 card-finish">
+          <h3 className="font-serif font-bold text-base text-ink">O Fator R não decide o seu imposto</h3>
+          <p className="mt-1 text-xs sm:text-sm text-ink-soft">
+            O contábil apurou sua empresa no Anexo {anexoApurado ?? 'III'}. Aumentar o pró-labore não
+            reduz o imposto — só aumenta o INSS. Defina o valor pelo que faz sentido para os sócios, e
+            fale com o seu contador antes de mudar.
+          </p>
+        </Card>
+      ) : (
       <Card level={1} className={`p-6 card-finish ${fatorRFavoravel ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
         <div className="flex items-start gap-4">
           <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${fatorRFavoravel ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
@@ -226,6 +243,7 @@ function ProLaboreTab({
           </div>
         </div>
       </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
@@ -540,13 +558,16 @@ function DistribuicaoTab({
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export function HubSocios({
-  initialPartners, initialDistribuicoes, prolaboreMinimoRecomendado, fatorRFavoravel, yearlyProfit,
+  initialPartners, initialDistribuicoes, prolaboreMinimoRecomendado, fatorRFavoravel,
+  fatorRAplica = true, anexoApurado = null, yearlyProfit,
 }: {
   initialPartners: PartnerRow[];
   initialDistribuicoes: DistributionRow[];
   prolaboreMinimoRecomendado: number;
   prolaboreAtualTotal: number;
   fatorRFavoravel: boolean;
+  fatorRAplica?: boolean;
+  anexoApurado?: string | null;
   yearlyProfit: YearlyProfitSummary;
 }) {
   const [tab, setTab] = useState<'prolabore' | 'distribuicao'>('prolabore');
@@ -567,7 +588,7 @@ export function HubSocios({
       </div>
 
       {tab === 'prolabore'
-        ? <ProLaboreTab socios={initialPartners} prolaboreMinimoRecomendado={prolaboreMinimoRecomendado} fatorRFavoravel={fatorRFavoravel} />
+        ? <ProLaboreTab socios={initialPartners} prolaboreMinimoRecomendado={prolaboreMinimoRecomendado} fatorRFavoravel={fatorRFavoravel} fatorRAplica={fatorRAplica} anexoApurado={anexoApurado} />
         : <DistribuicaoTab
             distribuicoes={initialDistribuicoes}
             yearlyProfit={yearlyProfit}

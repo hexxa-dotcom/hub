@@ -85,9 +85,7 @@ export default async function BalancoInstantaneoPage({
 
         <div className="p-6 sm:p-8 space-y-8">
           {!hasData ? (
-            <p className="text-center text-sm text-ink-soft py-12">
-              Nenhum lançamento encontrado para {periodoLabel}.
-            </p>
+            <SemDadosNoHub periodo={periodoLabel} rbt12={rbt12} oficial={simples.fonte === 'APURADO'} />
           ) : (
             <div className="grid gap-6 sm:grid-cols-3">
               <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
@@ -156,9 +154,7 @@ export default async function BalancoInstantaneoPage({
 
         <div className="p-6 sm:p-8 space-y-8">
           {!hasData ? (
-            <p className="text-center text-sm text-ink-soft py-12">
-              Nenhum lançamento encontrado para {periodoLabel}. Emita notas ou lance despesas para o DRE aparecer aqui.
-            </p>
+            <SemDadosNoHub periodo={periodoLabel} rbt12={rbt12} oficial={simples.fonte === 'APURADO'} />
           ) : (
             <>
               <div className="space-y-2">
@@ -280,6 +276,37 @@ export default async function BalancoInstantaneoPage({
       <div className="text-center text-xs text-ink-soft print:pt-4">
         <p>Hexxa Hub — relatórios gerados automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Sem lançamento no Hub, mas com apuração no contábil: a empresa FATURA, só
+ * que a nota sai pela prefeitura e chega direto ao OneFlow.
+ *
+ * "Nenhum lançamento encontrado" é verdade sobre o Hub e mentira sobre a
+ * empresa — lido por um cliente, diz que ele não faturou nada. Onde o
+ * contábil tem o faturamento, a tela diz isso e aponta onde está o número.
+ */
+function SemDadosNoHub({ periodo, rbt12, oficial }: { periodo: string; rbt12: number; oficial: boolean }) {
+  if (!oficial) {
+    return (
+      <p className="text-center text-sm text-ink-soft py-12">
+        Nenhum lançamento encontrado para {periodo}.
+      </p>
+    );
+  }
+  return (
+    <div className="mx-auto max-w-xl py-10 text-center">
+      <p className="text-sm font-bold text-ink">O faturamento desta empresa está no sistema contábil.</p>
+      <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+        As notas saem pela prefeitura e vão direto para a contabilidade — por isso não aparecem como
+        lançamentos aqui em {periodo}. Faturamento dos últimos 12 meses, pela apuração oficial:{' '}
+        <strong className="font-serif tabular text-ink">
+          {rbt12.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </strong>
+        . Veja a posição tributária completa na Bússola Tributária.
+      </p>
     </div>
   );
 }

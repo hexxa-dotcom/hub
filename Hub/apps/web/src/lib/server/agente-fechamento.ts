@@ -73,8 +73,16 @@ async function provisionarGuia(companyId: string, referenceMonth: string, receit
   if (existente) return null;
 
   const [comp] = (await db.execute(sql`
-    SELECT type::text AS type FROM company WHERE id = ${companyId}
-  `)) as unknown as { type: string }[];
+    SELECT type::text AS type, tax_regime::text AS regime FROM company WHERE id = ${companyId}
+  `)) as unknown as { type: string; regime: string | null }[];
+
+  /**
+   * DAS só existe no Simples. Para Presumido ou Real, o imposto do mês é
+   * outra conta (PIS, COFINS, IRPJ, CSLL, cada um com sua regra), e
+   * provisionar DAS lançaria a despesa pela regra errada. A pendência fica de
+   * pé para o contador, que é quem sabe fazer essa conta — ou o OneFlow.
+   */
+  if (comp?.regime && comp.regime !== 'SIMPLES_NACIONAL') return null;
 
   const ctx = {
     companyId,

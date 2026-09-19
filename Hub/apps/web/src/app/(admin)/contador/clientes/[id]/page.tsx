@@ -109,7 +109,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
           .where(eq(accountingInvoice.companyId, companyId))
           .orderBy(desc(accountingInvoice.referenceMonth))
           .limit(6),
-        db.execute(sql`SELECT email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`).then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
+        db.execute(sql`SELECT email_contato AS email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`).then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
       ]),
       8000,
     );

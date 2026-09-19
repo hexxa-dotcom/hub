@@ -312,11 +312,18 @@ export async function reserveNextDpsNumber(ctx: TenantContext): Promise<number> 
  */
 export async function getSimplesInputs(
   ctx: TenantContext,
-): Promise<{ rbt12: number; folha12: number; folhaEmpregados12: number; prolabore12: number }> {
+): Promise<{
+  rbt12: number;
+  folha12: number;
+  folhaEmpregados12: number;
+  prolabore12: number;
+  /** 'APURADO' = RBT12 da última apuração do OneFlow; 'HUB' = soma dos recebíveis daqui. */
+  rbt12Fonte: 'APURADO' | 'HUB';
+}> {
   return withTenant(ctx.companyId, async (tx) => {
-    // As 3 queries não dependem uma da outra — rodam em paralelo na mesma
+    // As queries não dependem uma da outra — rodam em paralelo na mesma
     // transação (postgres.js pipeline com segurança dentro de sql.begin).
-    const [rbtRes, folhaRes, prolaboreRes] = await Promise.all([
+    const [rbtRes, folhaRes, prolaboreRes, apuradoRes] = await Promise.all([
       tx.execute(sql`
         SELECT coalesce(sum(amount), 0) AS total
         FROM financial_entry
@@ -339,11 +346,27 @@ export async function getSimplesInputs(
         FROM partner
         WHERE company_id = ${ctx.companyId}
       `),
+      /**
+       * O RBT12 que a apuração oficial usou.
+       *
+       * A soma dos recebíveis do Hub só enxerga o que passa pelo Hub. Para
+       * empresas cuja nota sai pela prefeitura e chega direto ao OneFlow, ela
+       * dá zero — e o termômetro dizia "nenhum faturamento nos últimos 12
+       * meses" para uma empresa com R$ 85 mil apurados. O de lá prevalece.
+       */
+      tx.execute(sql`
+        SELECT rba12 FROM tax_history
+         WHERE company_id = ${ctx.companyId} AND source = 'ONEFLOW'
+         ORDER BY reference_month DESC LIMIT 1
+      `),
     ]);
     const folhaEmpregadosMensal = Number(folhaRes[0]?.total ?? 0);
     const prolaboreMensal = Number(prolaboreRes[0]?.total ?? 0);
+    const apurado = apuradoRes[0] ? Number(apuradoRes[0].rba12) : null;
+    const usaApurado = apurado !== null && Number.isFinite(apurado) && apurado > 0;
     return {
-      rbt12: Number(rbtRes[0]?.total ?? 0),
+      rbt12: usaApurado ? apurado! : Number(rbtRes[0]?.total ?? 0),
+      rbt12Fonte: usaApurado ? 'APURADO' : 'HUB',
       folha12: (folhaEmpregadosMensal + prolaboreMensal) * 12,
       folhaEmpregados12: folhaEmpregadosMensal * 12,
       prolabore12: prolaboreMensal * 12,
@@ -538,6 +561,12 @@ export type PosicaoSimples = Omit<import('@hexxa/core').SimplesPosition, 'anexo'
   fonte: 'APURADO' | 'ESTIMADO';
   /** Mês da apuração usada, 'AAAA-MM'. */
   mesApurado: string | null;
+  /**
+   * Faixa, alíquota nominal e projeção de próxima faixa estão na tabela
+   * certa? Falso para os anexos I, II e IV, cujas tabelas o Hub não tem —
+   * aí a tela esconde a projeção em vez de mostrar a do anexo errado.
+   */
+  projecaoConfiavel: boolean;
 };
 
 export async function posicaoSimples(
@@ -550,10 +579,24 @@ export async function posicaoSimples(
     payroll12: entradas.folha12,
   });
   const apurado = await enquadramentoApurado(ctx);
-  if (!apurado || !apurado.anexo) return { ...calc, fonte: 'ESTIMADO', mesApurado: null };
+  if (!apurado || !apurado.anexo) {
+    return { ...calc, fonte: 'ESTIMADO', mesApurado: null, projecaoConfiavel: true };
+  }
+
+  // Faixa e projeção na tabela do anexo APURADO. Deduzir pelo Fator R dava
+  // Anexo V, com as alíquotas do V, para quem o contábil apurou no III.
+  const tabelaConhecida = apurado.anexo === 'III' || apurado.anexo === 'V';
+  const naTabela = tabelaConhecida
+    ? new TaxThermometerService().simplesPosition({
+        rbt12: entradas.rbt12,
+        payroll12: entradas.folha12,
+        anexo: apurado.anexo as 'III' | 'V',
+      })
+    : calc;
 
   return {
-    ...calc,
+    ...naTabela,
+    projecaoConfiavel: tabelaConhecida,
     anexo: apurado.anexo,
     effectiveRate: apurado.aliquotaEfetiva,
     fatorR: apurado.fatorR ?? calc.fatorR,
@@ -562,4 +605,36 @@ export async function posicaoSimples(
     fonte: 'APURADO',
     mesApurado: apurado.mes,
   };
+}
+
+/**
+ * O Fator R decide o imposto desta empresa hoje?
+ *
+ * Uma regra só, usada pelo termômetro e pela tela de sócios — as duas
+ * recomendavam pró-labore pelo Fator R para qualquer empresa, inclusive as
+ * que estão no Anexo III pela própria atividade. Para essas, a recomendação
+ * é aumentar o INSS sem ganho nenhum.
+ *
+ * - `fora: 'OFICIAL'` — deduzido de números oficiais: anexo apurado I, II ou
+ *   IV; ou Anexo III com Fator R oficial abaixo de 28% (seria V se a
+ *   atividade dependesse dele).
+ * - `fora: 'ESTIMADO'` — Anexo III apurado, e só a estimativa do Hub dá
+ *   abaixo de 28%. Conclusão mais fraca; quem mostra deve ser cauteloso. A
+ *   recomendação some assim mesmo: esconder por engano tira uma sugestão,
+ *   mostrar por engano aconselha a pagar INSS à toa.
+ * - `fora: null` — se aplica, ou não há apuração para dizer o contrário.
+ */
+export function fatorRSeAplica(
+  apurado: EnquadramentoApurado | null,
+  fatorREstimado: number,
+): { aplica: boolean; fora: 'OFICIAL' | 'ESTIMADO' | null } {
+  if (apurado?.fatorRAplica === false) return { aplica: false, fora: 'OFICIAL' };
+  if (
+    apurado?.anexo === 'III' &&
+    apurado.fatorRAplica !== true &&
+    (apurado.fatorR ?? fatorREstimado) < 0.28
+  ) {
+    return { aplica: false, fora: apurado.fatorR !== null ? 'OFICIAL' : 'ESTIMADO' };
+  }
+  return { aplica: true, fora: null };
 }

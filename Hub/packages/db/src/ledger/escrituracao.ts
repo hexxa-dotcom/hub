@@ -486,6 +486,24 @@ export async function reescriturarGuia(
   return { ...r, estornadas };
 }
 
+/**
+ * Anula no razão tudo o que uma guia lançou — por estorno.
+ *
+ * Existe para a provisão de DAS que a apuração oficial desmente: o fechamento
+ * provisionou imposto pela alíquota efetiva, e o OneFlow apurou zero. Sem
+ * isto, a despesa estimada ficava no razão para sempre, porque a volta
+ * pulava a apuração zerada sem olhar se havia algo a desfazer.
+ */
+export async function anularGuia(
+  tx: DbHandle,
+  companyId: string,
+  guiaId: string,
+  motivo: string,
+  opts: PostOptions = {},
+): Promise<number> {
+  return estornarVivas(tx, companyId, 'TAX_GUIDE', guiaId, motivo, opts);
+}
+
 /** Estorna as partidas vivas de um documento. Devolve quantas. */
 async function estornarVivas(
   tx: DbHandle,

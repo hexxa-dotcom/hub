@@ -229,13 +229,27 @@ export async function cadastrarDoOneflow(
    */
   const temFiscal = modulos.some((m) => /fiscal/i.test(m));
   if (temFiscal) {
-    await tx.execute(sql`
-      DELETE FROM operation_setting WHERE scope = 'COMPANY' AND scope_key = ${companyId}
-    `);
-    await tx.execute(sql`
-      INSERT INTO operation_setting (scope, scope_key, settings)
-      VALUES ('COMPANY', ${companyId}, '{"agentes":{"retornoOneflow":true}}'::jsonb)
-    `);
+    /**
+     * MESCLA, não substitui.
+     *
+     * A primeira versão apagava a linha e gravava só este interruptor. Na
+     * primeira execução não fazia diferença; na segunda — e o cadastro foi
+     * feito para ser rodado de novo, para atualizar — apagava o dia de
+     * fechamento, o envio e as diretrizes que o contador tinha configurado.
+     */
+    const atualizadas = (await tx.execute(sql`
+      UPDATE operation_setting
+         SET settings = settings || jsonb_build_object(
+               'agentes', COALESCE(settings->'agentes', '{}'::jsonb) || '{"retornoOneflow":true}'::jsonb)
+       WHERE scope = 'COMPANY' AND scope_key = ${companyId}
+      RETURNING 1
+    `)) as unknown as unknown[];
+    if (!atualizadas.length) {
+      await tx.execute(sql`
+        INSERT INTO operation_setting (scope, scope_key, settings)
+        VALUES ('COMPANY', ${companyId}, '{"agentes":{"retornoOneflow":true}}'::jsonb)
+      `);
+    }
   } else {
     avisos.push('Módulo fiscal não implantado no OneFlow — a busca de guias fica desligada.');
   }

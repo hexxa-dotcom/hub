@@ -67,10 +67,18 @@ export class TaxThermometerService {
     return { usagePct, level, fatorR, fatorRFavorable: fatorR >= FATOR_R_LIMIT };
   }
 
-  /** Em qual anexo/faixa do Simples a empresa está e quanto falta p/ a próxima faixa. */
-  simplesPosition(input: { rbt12: number; payroll12: number }): SimplesPosition {
+  /**
+   * Em qual anexo/faixa do Simples a empresa está e quanto falta p/ a próxima faixa.
+   *
+   * `anexo`, quando informado, é o que a apuração OFICIAL usou. Sem ele, o
+   * anexo é deduzido do Fator R — o que só vale para atividade sujeita ao
+   * Fator R. Deduzir para uma empresa do Anexo III por atividade, com folha
+   * baixa, dava Anexo V: faixa e projeção saíam nas alíquotas do V (15,5%,
+   * 18%) para quem paga pelas do III (6%, 11,2%).
+   */
+  simplesPosition(input: { rbt12: number; payroll12: number; anexo?: 'III' | 'V' }): SimplesPosition {
     const fatorR = input.rbt12 > 0 ? input.payroll12 / input.rbt12 : 0;
-    const anexo: 'III' | 'V' = fatorR >= FATOR_R_LIMIT ? 'III' : 'V';
+    const anexo: 'III' | 'V' = input.anexo ?? (fatorR >= FATOR_R_LIMIT ? 'III' : 'V');
     const rates = anexo === 'III' ? RATES_III : RATES_V;
     const pds = anexo === 'III' ? PD_III : PD_V;
 

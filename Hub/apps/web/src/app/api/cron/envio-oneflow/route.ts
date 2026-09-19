@@ -8,6 +8,7 @@ import {
   cotaRestante,
   empresasComAgenteLigado,
   concluirEnviados,
+  ORIGEM_ONEFLOW,
 } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
@@ -145,6 +146,7 @@ export async function GET(request: Request) {
            AND j.status = 'POSTED'
            AND j.reversed_by IS NULL
            AND j.source <> 'CLOSING'
+           AND NOT ${ORIGEM_ONEFLOW}
            AND NOT EXISTS (
              SELECT 1 FROM oneflow_envio e
               WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO'
