@@ -5,6 +5,8 @@ import {
   excecoes,
   PADRAO_SISTEMA,
   LIMITE_DIRETRIZES,
+  dataDoFechamento,
+  mesQueFechaEm,
 } from './operation-settings';
 
 describe('herança em três camadas', () => {
@@ -139,5 +141,45 @@ describe('a resolução é previsível', () => {
     });
     expect(r.valores.agentes.classificador).toBe(true);
     expect(r.valores.agentes.fechamento).toBe(false);
+  });
+});
+
+describe('dia de fechamento por empresa', () => {
+  it('dia 1 fecha o mês anterior no primeiro dia do mês seguinte', () => {
+    expect(dataDoFechamento('2026-08', 1)).toBe('2026-09-01');
+    expect(mesQueFechaEm('2026-09-01', 1)).toBe('2026-08');
+  });
+
+  it('dia 0 fecha o PRÓPRIO mês, no último dia dele', () => {
+    // O caso que quebra a pergunta feita de frente: aqui o mês que tranca é
+    // o corrente, não o anterior.
+    expect(dataDoFechamento('2026-09', 0)).toBe('2026-09-30');
+    expect(mesQueFechaEm('2026-09-30', 0)).toBe('2026-09');
+  });
+
+  it('dia 0 acerta fevereiro bissexto', () => {
+    expect(mesQueFechaEm('2024-02-29', 0)).toBe('2024-02');
+    expect(mesQueFechaEm('2025-02-28', 0)).toBe('2025-02');
+  });
+
+  it('dia 10 fecha o mês anterior no dia 10', () => {
+    expect(mesQueFechaEm('2026-09-10', 10)).toBe('2026-08');
+  });
+
+  it('devolve null na esmagadora maioria dos dias', () => {
+    expect(mesQueFechaEm('2026-09-07', 1)).toBeNull();
+    expect(mesQueFechaEm('2026-09-15', 10)).toBeNull();
+  });
+
+  it('atravessa a virada do ano', () => {
+    expect(mesQueFechaEm('2027-01-01', 1)).toBe('2026-12');
+    expect(dataDoFechamento('2026-12', 1)).toBe('2027-01-01');
+  });
+
+  it('o dia configurado nunca alcança o vencimento do DAS', () => {
+    // O teto de 20 existe para isso: um mês que ainda não fechou não tem
+    // guia apurada para pagar no dia 20.
+    expect(mesQueFechaEm('2026-09-20', 20)).toBe('2026-08');
+    expect(mesQueFechaEm('2026-09-21', 20)).toBeNull();
   });
 });

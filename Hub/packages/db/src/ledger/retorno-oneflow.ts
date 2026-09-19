@@ -522,8 +522,8 @@ async function registrarAliquota(
     DELETE FROM tax_history WHERE company_id = ${companyId} AND reference_month = ${mesRef}
   `);
   await tx.execute(sql`
-    INSERT INTO tax_history (company_id, reference_month, rba12, effective_rate, tax_bracket)
-    VALUES (${companyId}, ${mesRef}, ${rbt12.toFixed(2)}, ${efetiva.toFixed(2)}, ${bracket})
+    INSERT INTO tax_history (company_id, reference_month, rba12, effective_rate, tax_bracket, source)
+    VALUES (${companyId}, ${mesRef}, ${rbt12.toFixed(2)}, ${efetiva.toFixed(2)}, ${bracket}, 'ONEFLOW')
   `);
 }
 

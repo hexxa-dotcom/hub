@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/fechamento",
-      "schedule": "0 5 1 * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron/nfse-status",
@@ -27,10 +27,6 @@
     {
       "path": "/api/cron/escrituracao",
       "schedule": "30 * * * *"
-    },
-    {
-      "path": "/api/cron/fechamento-conferido",
-      "schedule": "0 6 1 * *"
     },
     {
       "path": "/api/cron/classificacao",
@@ -47,6 +43,10 @@
     {
       "path": "/api/cron/envio-oneflow",
       "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/honorarios",
+      "schedule": "0 9 1 * *"
     }
   ]
 }

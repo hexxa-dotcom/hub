@@ -418,12 +418,19 @@ export async function estimateInvoiceTaxRate(
  * `null` quando ainda não há apuração importada — empresa nova, ou mês que
  * o contábil ainda não fechou. Aí o cálculo interno assume, e é por isso que
  * ele continua existindo.
+ *
+ * O filtro por `source` não é detalhe. A tabela também guarda estimativas
+ * internas, calculadas pela alíquota NOMINAL da faixa, e sem o filtro a linha
+ * mais recente podia ser uma delas — lida aqui como se fosse apuração real.
+ * Era o que acontecia enquanto o cron de fechamento antigo escrevia ali: a
+ * correção que fez o imposto aproximado vir do OneFlow era desfeita todo dia 1.
  */
 async function ultimaAliquotaApurada(ctx: TenantContext): Promise<number | null> {
   const linhas = await withTenant(ctx.companyId, async (tx) =>
     tx.execute(sql`
       SELECT effective_rate FROM tax_history
        WHERE company_id = ${ctx.companyId}
+         AND source = 'ONEFLOW'
        ORDER BY reference_month DESC
        LIMIT 1
     `),

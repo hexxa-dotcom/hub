@@ -185,6 +185,37 @@ export function dataDoFechamento(referenceMonth: string, dia: number): string {
 }
 
 /**
+ * Qual mês tranca HOJE, dado o dia configurado — ou `null` se nenhum.
+ *
+ * ── Por que a pergunta é feita ao contrário ─────────────────────────────
+ *
+ * O caminho direto seria "que dia o mês passado fecha?", mas ele quebra em
+ * `diaDoFechamento = 0`, que significa o último dia do PRÓPRIO mês: nesse
+ * caso o mês que tranca é o corrente, não o anterior. Tratar os dois casos
+ * com um `if` espalha a regra pelo cron.
+ *
+ * Perguntar ao contrário resolve os dois de uma vez: testa o mês corrente e o
+ * anterior, e devolve aquele cuja data de fechamento cai em hoje. Um dia sem
+ * fechamento devolve `null`, que é a resposta na maioria dos dias.
+ *
+ * @param hoje 'AAAA-MM-DD' no fuso de quem opera, não em UTC
+ * @returns 'AAAA-MM' do mês de referência, ou `null`
+ */
+export function mesQueFechaEm(hoje: string, dia: number): string | null {
+  const [ano, mes] = hoje.split('-').map(Number);
+  if (!ano || !mes) return null;
+
+  const corrente = `${ano}-${String(mes).padStart(2, '0')}`;
+  const anteriorData = new Date(Date.UTC(ano, mes - 2, 1));
+  const anterior = `${anteriorData.getUTCFullYear()}-${String(anteriorData.getUTCMonth() + 1).padStart(2, '0')}`;
+
+  for (const ref of [anterior, corrente]) {
+    if (dataDoFechamento(ref, dia) === hoje) return ref;
+  }
+  return null;
+}
+
+/**
  * Camada 2 — o que muda por tipo de empresa.
  *
  * `company.type` já existia no sistema e é o discriminador natural. A diferença

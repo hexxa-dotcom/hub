@@ -5,6 +5,7 @@ import { company } from '../schema/tenancy';
 import {
   resolverConfiguracao,
   excecoes,
+  mesQueFechaEm,
   type ConfiguracaoResolvida,
   type PerfilEmpresa,
   type SettingsParcial,
@@ -186,4 +187,54 @@ export async function empresasComAgenteLigado(
       return cfg.valores.agentes[agente] === true;
     })
     .map((e) => ({ id: e.id, nome: e.nome }));
+}
+
+/**
+ * Empresas cujo mês tranca HOJE, cada uma no dia que o contador escolheu.
+ *
+ * ── Por que o cron roda todo dia ────────────────────────────────────────
+ *
+ * Porque o dia é por empresa. Um cron mensal no dia 1 só serve para quem
+ * configurou o dia 1 — e a configuração existe justamente porque cada
+ * cliente entrega o que falta num ritmo diferente. Rodar diariamente e
+ * perguntar "quem fecha hoje?" custa uma consulta e devolve lista vazia na
+ * maioria dos dias.
+ *
+ * @param hoje 'AAAA-MM-DD' no fuso de São Paulo — quem passa é o chamador,
+ *             porque o servidor roda em UTC e a virada do dia lá acontece
+ *             às 21h daqui: usar UTC fecharia o mês um dia antes.
+ */
+export async function empresasParaFecharHoje(
+  tx: DbHandle,
+  hoje: string,
+): Promise<{ id: string; nome: string; referenceMonth: string; diaDoFechamento: number }[]> {
+  const empresas = await tx
+    .select({ id: company.id, nome: company.legalName, type: company.type })
+    .from(company);
+
+  const sistema = await lerEscopo(tx, 'SYSTEM', null);
+
+  const excecoesPorEmpresa = await tx
+    .select({ scopeKey: operationSetting.scopeKey, settings: operationSetting.settings })
+    .from(operationSetting)
+    .where(eq(operationSetting.scope, 'COMPANY'));
+
+  const porId = new Map(
+    excecoesPorEmpresa.map((r) => [String(r.scopeKey), r.settings as SettingsParcial]),
+  );
+
+  const out: { id: string; nome: string; referenceMonth: string; diaDoFechamento: number }[] = [];
+
+  for (const e of empresas) {
+    const cfg = resolverConfiguracao(e.type as PerfilEmpresa, sistema, porId.get(e.id));
+    if (cfg.valores.agentes.fechamento !== true) continue;
+
+    const dia = cfg.valores.fechamento.diaDoFechamento;
+    const ref = mesQueFechaEm(hoje, dia);
+    if (!ref) continue;
+
+    out.push({ id: e.id, nome: e.nome, referenceMonth: `${ref}-01`, diaDoFechamento: dia });
+  }
+
+  return out;
 }

@@ -1,188 +1,105 @@
 import { NextResponse } from 'next/server';
-import { getDb, withDbTimeout } from '@hexxa/db';
-import { monthlyClosure, financialEntry, company, taxGuide, accountingInvoice, taxHistory, subscription, plan } from '@hexxa/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { TaxThermometerService } from '@hexxa/core';
-import { getSimplesInputs } from '@/lib/server/fiscal';
-import type { TenantContext } from '@hexxa/core';
+import { getDb, empresasParaFecharHoje } from '@hexxa/db';
+import { fecharMesResolvendo } from '@/lib/server/agente-fechamento';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutos, caso sejam muitos clientes
+export const maxDuration = 300;
 
+/**
+ * FECHAMENTO PROGRAMADO — cada empresa no dia que o contador escolheu.
+ *
+ * ── O que esta rota fazia antes, e por que foi substituída ──────────────
+ *
+ * A versão anterior rodava no dia 1 para TODAS as empresas e fazia três
+ * coisas erradas, todas em silêncio:
+ *
+ * 1. Gravava `monthly_closure` com `status: 'CLOSED'` a partir de um
+ *    `SUM()` de receita e despesa, sem passar por nenhuma das verificações
+ *    de fechamento. Declarava encerrado um mês que ninguém conferiu —
+ *    inclusive meses com receita zero.
+ *
+ * 2. Fabricava uma guia de DAS pela alíquota NOMINAL. As guias de verdade
+ *    chegam do OneFlow, apuradas, com PDF e Pix. O resultado eram duas
+ *    guias para a mesma competência, e a fabricada aparecia para o cliente
+ *    como cobrança a pagar. Havia R$ 34.762,50 assim no banco.
+ *
+ * 3. Gravava essa mesma alíquota nominal em `tax_history` — a tabela que o
+ *    cálculo do imposto aproximado lê como se fosse a apuração real. Isso
+ *    desfazia, todo dia 1, a correção que fez o imposto aproximado parar de
+ *    superestimar. A nominal só coincide com a efetiva na primeira faixa.
+ *
+ * Nenhuma das três tinha como ser notada: o balanço fecha, a guia parece uma
+ * guia, e a alíquota errada é um número plausível.
+ *
+ * ── O que faz agora ────────────────────────────────────────────────────
+ *
+ * Roda todo dia e pergunta quem fecha hoje. O dia é por empresa porque cada
+ * cliente entrega o que falta num ritmo diferente — era o pedido que originou
+ * `ConfigFechamento.diaDoFechamento`, e sem este cron ele não fazia nada.
+ *
+ * E não fecha nada sozinho: escritura o que faltava, confere contra as
+ * verificações, resolve o que a IA pode resolver, e deixa o parecer na trilha
+ * de agente. Declarar um período encerrado vai para aprovação humana, porque
+ * é a base do que sobe para a contabilidade oficial.
+ */
 export async function GET(request: Request) {
-  // Segurança básica para o Cron Job
   const authHeader = request.headers.get('authorization');
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const db = getDb();
+
+  /**
+   * O dia é o de São Paulo, não o do servidor.
+   *
+   * A Vercel roda em UTC, onde o dia vira às 21h daqui. Um fechamento
+   * marcado para o dia 1 dispararia às 21h do dia 31 — fechando o mês antes
+   * de ele acabar.
+   */
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
   try {
-    const db = getDb();
+    const empresas = await empresasParaFecharHoje(db, hoje);
 
-    // 1. Determinar o mês anterior
-    const today = new Date();
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    
-    const referenceMonthStr = lastMonth.toISOString().split('T')[0] as string;
-
-    // 2. Buscar todas as empresas ativas
-    const companies = await withDbTimeout(
-      db.select({ id: company.id, legalName: company.legalName, type: company.type }).from(company),
-      8000,
-    );
-
-    const thermometer = new TaxThermometerService();
-
-    if (!companies || companies.length === 0) {
-      return NextResponse.json({ message: 'Nenhuma empresa encontrada para processamento.' });
+    if (!empresas.length) {
+      return NextResponse.json({ hoje, mensagem: 'Nenhuma empresa fecha hoje.', empresas: [] });
     }
 
-    let successCount = 0;
-    const errors: string[] = [];
-
-    // 3. Processar o fechamento de cada empresa
-    for (const comp of companies) {
+    const relatorio = [];
+    for (const emp of empresas) {
       try {
-        // Verificar se já existe fechamento para este mês
-        const [existing] = await withDbTimeout(
-          db
-            .select({ id: monthlyClosure.id })
-            .from(monthlyClosure)
-            .where(
-              and(
-                eq(monthlyClosure.companyId, comp.id),
-                eq(monthlyClosure.referenceMonth, referenceMonthStr)
-              )
-            ),
-          8000,
-        );
-
-        if (existing) {
-          continue; // Já foi fechado
-        }
-
-        // Agregar Receitas e Despesas do mês anterior
-        const entries = await withDbTimeout(
-          db
-            .select({ type: financialEntry.type, amount: financialEntry.amount })
-            .from(financialEntry)
-            .where(
-              and(
-                eq(financialEntry.companyId, comp.id),
-                eq(financialEntry.referenceMonth, referenceMonthStr)
-              )
-            ),
-          8000,
-        );
-
-        let totalRevenue = 0;
-        let totalExpenses = 0;
-
-        for (const entry of (entries || [])) {
-          if (entry.type === 'RECEIVABLE') totalRevenue += Number(entry.amount);
-          if (entry.type === 'PAYABLE') totalExpenses += Number(entry.amount);
-        }
-
-        // Para novos contratos e inadimplências, usaremos 0 por enquanto até 
-        // integrarmos o módulo de contratos/faturas de forma mais granular
-        const newContractsCount = 0;
-        const defaultsCount = 0;
-
-        // Inserir o fechamento
-        await withDbTimeout(
-          db.insert(monthlyClosure).values({
-            companyId: comp.id,
-            referenceMonth: referenceMonthStr,
-            totalRevenue: String(totalRevenue),
-            totalExpenses: String(totalExpenses),
-            newContractsCount,
-            defaultsCount,
-            status: 'CLOSED',
-          }),
-          8000,
-        );
-
-        const nextMonthStr = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]!;
-
-        // RBT12/folha reais (janela de 12 meses) e posição no Simples — mesma
-        // lógica usada na emissão de NFSe (ver emitNfseAction), não mais um
-        // valor fabricado.
-        const ctx: TenantContext = { companyId: comp.id, companyType: comp.type, userId: 'cron' };
-        const { rbt12, folha12 } = await getSimplesInputs(ctx);
-        const simples = thermometer.simplesPosition({ rbt12, payroll12: folha12 });
-
-        // Gerar Guia de DAS (Simples Nacional) se houve faturamento, usando a
-        // alíquota nominal real da faixa/anexo em que a empresa está.
-        if (totalRevenue > 0) {
-          const dasAmount = (totalRevenue * simples.nominalRate) / 100;
-          await withDbTimeout(
-            db.insert(taxGuide).values({
-              companyId: comp.id,
-              taxName: 'DAS - Simples Nacional',
-              referenceMonth: nextMonthStr, // Guia cobrada no mês vigente (sobre o faturamento passado)
-              amount: String(dasAmount),
-              dueDate: new Date(today.getFullYear(), today.getMonth(), 20).toISOString().split('T')[0]!,
-              status: 'OPEN',
-              // TODO: pixCode ainda é um placeholder — gerar cobrança real exige
-              // integração de pagamento própria da plataforma (não a do
-              // Asaas do tenant, que é para cobrar OS CLIENTES da empresa).
-              pixCode: null,
-            }),
-            8000,
-          );
-
-          await withDbTimeout(
-            db.insert(taxHistory).values({
-              companyId: comp.id,
-              referenceMonth: nextMonthStr.slice(0, 7), // Apenas YYYY-MM
-              rba12: String(rbt12),
-              effectiveRate: simples.nominalRate.toFixed(2),
-              taxBracket: `Anexo ${simples.anexo} - Faixa ${simples.faixa}`,
-            }),
-            8000,
-          );
-        }
-
-        // Fatura de Honorários (Recorrente) — valor real do plano contratado
-        // pela empresa na plataforma, não mais um valor fixo de exemplo.
-        const [activeSub] = await withDbTimeout(
-          db
-            .select({ monthlyValue: plan.monthlyValue })
-            .from(subscription)
-            .innerJoin(plan, eq(subscription.planId, plan.id))
-            .where(and(eq(subscription.companyId, comp.id), eq(subscription.status, 'ACTIVE'))),
-          8000,
-        );
-
-        if (activeSub) {
-          await withDbTimeout(
-            db.insert(accountingInvoice).values({
-              companyId: comp.id,
-              description: 'Honorários Contábeis',
-              value: activeSub.monthlyValue,
-              referenceMonth: nextMonthStr,
-              dueDate: new Date(today.getFullYear(), today.getMonth(), 10).toISOString().split('T')[0]!,
-              status: 'OPEN',
-              // TODO: mesmo placeholder de pixCode acima.
-              pixCode: null,
-            }),
-            8000,
-          );
-        }
-
-        successCount++;
-      } catch (err: any) {
-        errors.push(`Erro ao processar empresa ${comp.legalName}: ${err.message}`);
+        const r = await fecharMesResolvendo(emp.id, emp.referenceMonth, { trigger: 'CRON' });
+        relatorio.push({
+          empresa: emp.nome,
+          mes: emp.referenceMonth,
+          diaConfigurado: emp.diaDoFechamento,
+          podeFechar: r.podeFechar,
+          resumo: r.resumo,
+          bloqueios: r.bloqueios.map((b) => b.titulo),
+          atencoes: r.atencoes.map((a) => a.titulo),
+          escrituradas: r.escrituradas,
+          resolvidoPelaIA: r.resolvido,
+          pedidosAoCliente: r.aindaPrecisaDoCliente,
+          aguardandoAprovacao: r.acaoFechamentoId ?? null,
+        });
+      } catch (err) {
+        // Uma empresa que falha não derruba as outras — mesmo isolamento por
+        // documento que a escrituração usa.
+        relatorio.push({
+          empresa: emp.nome,
+          mes: emp.referenceMonth,
+          erro: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
-    return NextResponse.json({
-      message: `Fechamento concluído: ${successCount} empresas processadas para o mês ${referenceMonthStr}.`,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-
-  } catch (error: any) {
-    console.error('Erro no Cron de Fechamento:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ hoje, empresas: relatorio });
+  } catch (error) {
+    console.error('[cron/fechamento] falhou:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }
