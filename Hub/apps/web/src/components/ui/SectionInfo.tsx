@@ -7,9 +7,10 @@ interface SectionInfoProps {
   title?: string;
   description: React.ReactNode;
   className?: string;
+  variant?: 'inline' | 'floating';
 }
 
-export function SectionInfo({ title = 'Sobre esta seção', description, className = '' }: SectionInfoProps) {
+export function SectionInfo({ title = 'Sobre esta seção', description, className = '', variant = 'inline' }: SectionInfoProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,11 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
       <div
         role="region"
         aria-label={title}
-        className={`absolute left-11 top-1/2 -translate-y-1/2 z-20 transition-all duration-250 ease-out ${
+        className={`absolute left-11 top-1/2 -translate-y-1/2 z-30 transition-all duration-250 ease-out ${
+          variant === 'floating'
+            ? 'bg-surface/95 dark:bg-surface-elevated/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-black/10 dark:border-white/10 shadow-(--elev-3)'
+            : ''
+        } ${
           isOpen
             ? 'opacity-100 translate-x-0 pointer-events-auto'
             : 'opacity-0 -translate-x-3 pointer-events-none'
