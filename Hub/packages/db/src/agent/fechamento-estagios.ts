@@ -100,6 +100,11 @@ export async function conferirELiberar(
   userId: string | null,
   agentRunId: string,
   nota?: string,
+  /**
+   * Liberar também autoriza o envio ao OneFlow? Vem de
+   * `ConfigFechamento.envioAutomaticoAoLiberar`, lido por quem chama.
+   */
+  autorizarEnvioJunto = false,
 ): Promise<{ ok: boolean; message: string }> {
   const [fechamento] = await tx
     .select({ id: monthlyClosure.id, stage: monthlyClosure.stage })
@@ -144,10 +149,111 @@ export async function conferirELiberar(
       reviewedAt: new Date(),
       reviewedByUserId: userId,
       reviewNote: nota ?? null,
+      ...(autorizarEnvioJunto
+        ? { sendAuthorizedAt: new Date(), sendAuthorizedByUserId: userId }
+        : {}),
     })
     .where(eq(monthlyClosure.id, fechamento.id));
 
-  return { ok: true, message: `${referenceMonth} liberado para a contabilidade.` };
+  return {
+    ok: true,
+    message: autorizarEnvioJunto
+      ? `${referenceMonth} liberado — o envio ao OneFlow sai na próxima execução.`
+      : `${referenceMonth} liberado. O envio ao OneFlow aguarda sua autorização.`,
+  };
+}
+
+/**
+ * Autoriza o envio de um mês já liberado.
+ *
+ * É o segundo clique, para quem deixou `envioAutomaticoAoLiberar` desligado.
+ * Só vale para mês CONFERIDO: autorizar o envio de um mês que o contador não
+ * liberou pularia justamente a etapa que protege os livros oficiais.
+ */
+export async function autorizarEnvio(
+  tx: DbHandle,
+  companyId: string,
+  referenceMonth: string,
+  userId: string | null,
+): Promise<{ ok: boolean; message: string }> {
+  const r = await tx
+    .update(monthlyClosure)
+    .set({ sendAuthorizedAt: new Date(), sendAuthorizedByUserId: userId })
+    .where(
+      and(
+        eq(monthlyClosure.companyId, companyId),
+        eq(monthlyClosure.referenceMonth, referenceMonth),
+        eq(monthlyClosure.stage, 'CONFERIDO'),
+        sql`${monthlyClosure.sendAuthorizedAt} IS NULL`,
+      ),
+    )
+    .returning({ id: monthlyClosure.id });
+
+  return r.length
+    ? { ok: true, message: `Envio de ${referenceMonth} autorizado — sai na próxima execução.` }
+    : { ok: false, message: 'O mês precisa estar liberado, e ainda sem envio autorizado.' };
+}
+
+/** Meses liberados esperando a autorização de envio. */
+export async function aguardandoEnvio(
+  tx: DbHandle,
+): Promise<{ companyId: string; empresa: string; mes: string; liberadoEm: Date | null }[]> {
+  const rows = await tx.execute(sql`
+    SELECT mc.company_id::text, c.legal_name, to_char(mc.reference_month,'YYYY-MM-DD') AS mes,
+           mc.reviewed_at
+    FROM monthly_closure mc
+    JOIN company c ON c.id = mc.company_id
+    WHERE mc.stage = 'CONFERIDO' AND mc.send_authorized_at IS NULL
+    ORDER BY mc.reference_month, c.legal_name
+  `);
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    companyId: String(r.company_id),
+    empresa: String(r.legal_name),
+    mes: String(r.mes),
+    liberadoEm: (r.reviewed_at as Date) ?? null,
+  }));
+}
+
+/**
+ * Fecha a cadeia: mês autorizado sem mais nada a enviar vira ENVIADO.
+ *
+ * Sem isto o estágio ENVIADO não era alcançado por caminho nenhum — a tela
+ * de fechamentos tinha o rótulo, e nenhum mês chegava a ele.
+ *
+ * "Nada a enviar" conta só o que o envio mandaria — a mesma seleção de
+ * `ensaiarEnvio`. Partida bloqueada por falta de de-para segura o mês em
+ * CONFERIDO, e deve: o mês não chegou inteiro lá.
+ */
+export async function concluirEnviados(tx: DbHandle, companyId: string): Promise<number> {
+  const r = await tx.execute(sql`
+    UPDATE monthly_closure mc
+       SET stage = 'ENVIADO', sent_at = NOW()
+     WHERE mc.company_id = ${companyId}
+       AND mc.stage = 'CONFERIDO'
+       AND mc.send_authorized_at IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM journal_entry j
+          WHERE j.company_id = mc.company_id
+            AND j.reference_month = mc.reference_month
+            AND j.status = 'POSTED'
+            AND j.reversed_by IS NULL
+            AND j.source <> 'CLOSING'
+            -- Mesma regra do ensaio: espelho de estorno só conta como
+            -- pendente se a partida que ele anula foi enviada — senão ele
+            -- nunca vai, e o mês ficaria preso em CONFERIDO para sempre.
+            AND (
+              j.event <> 'REVERSAL'
+              OR EXISTS (SELECT 1 FROM journal_entry orig
+                           JOIN oneflow_envio env ON env.journal_entry_id = orig.id
+                                                 AND env.status = 'ENVIADO'
+                          WHERE orig.reversed_by = j.id)
+            )
+            AND NOT EXISTS (SELECT 1 FROM oneflow_envio e
+                             WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO')
+       )
+    RETURNING mc.id
+  `);
+  return (r as unknown as unknown[]).length;
 }
 
 /** Reabre um mês fechado. Exige motivo — muda número já apresentado como final. */

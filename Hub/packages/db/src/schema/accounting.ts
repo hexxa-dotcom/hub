@@ -203,6 +203,13 @@ export const monthlyClosure = pgTable('monthly_closure', {
   reviewedByUserId: uuid('reviewed_by_user_id'),
   reviewNote: text('review_note'),
   sentAt: timestamp('sent_at', { withTimezone: true }),
+  /**
+   * Envio ao OneFlow autorizado. Nulo = nada deste mês sai para a
+   * contabilidade oficial. Separado da liberação (`stage = CONFERIDO`) porque
+   * podem ser dois atos — ver `ConfigFechamento.envioAutomaticoAoLiberar`.
+   */
+  sendAuthorizedAt: timestamp('send_authorized_at', { withTimezone: true }),
+  sendAuthorizedByUserId: uuid('send_authorized_by_user_id'),
   /** Parecer da conferência: ocorrências, o que a IA resolveu, o que sobrou. */
   parecer: jsonb('parecer'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

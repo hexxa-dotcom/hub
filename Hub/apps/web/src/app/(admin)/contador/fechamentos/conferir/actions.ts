@@ -1,7 +1,10 @@
 'use server';
 
 import { getDb } from '@hexxa/db';
-import { aguardandoConferencia, conferirELiberar, reabrirMes, iniciarRun, encerrarRun } from '@hexxa/db';
+import {
+  aguardandoConferencia, conferirELiberar, reabrirMes, iniciarRun, encerrarRun,
+  aguardandoEnvio, autorizarEnvio, configuracaoDaEmpresa,
+} from '@hexxa/db';
 import { requireAdmin, adminUserId } from '@/lib/server/admin-guard';
 import { revalidatePath } from 'next/cache';
 
@@ -39,7 +42,12 @@ export async function liberar(
   });
 
   try {
-    const r = await conferirELiberar(db, companyId, mes, userId, runId, nota);
+    // O interruptor da tela de operação: liberar já autoriza o envio, ou o
+    // envio fica esperando um segundo clique aqui mesmo.
+    const cfg = await configuracaoDaEmpresa(db, companyId);
+    const junto = cfg.valores.fechamento.envioAutomaticoAoLiberar === true;
+
+    const r = await conferirELiberar(db, companyId, mes, userId, runId, nota, junto);
     await encerrarRun(db, runId, { summary: r.message });
     revalidatePath('/contador/fechamentos/conferir');
     return r;
@@ -58,5 +66,28 @@ export async function reabrir(
   await requireAdmin();
   const r = await reabrirMes(getDb(), companyId, mes, motivo);
   revalidatePath('/contador/fechamentos/conferir');
+  return r;
+}
+
+export async function listarAguardandoEnvio() {
+  await requireAdmin();
+  return aguardandoEnvio(getDb());
+}
+
+/**
+ * O segundo clique: autoriza o mês liberado a sair para o OneFlow.
+ *
+ * Só existe para quem deixou `envioAutomaticoAoLiberar` desligado — o padrão,
+ * porque o que entra nos livros oficiais de lá só sai por exclusão manual.
+ */
+export async function autorizarEnvioAction(
+  companyId: string,
+  mes: string,
+): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const userId = await adminUserId();
+  const r = await autorizarEnvio(getDb(), companyId, mes, userId);
+  revalidatePath('/contador/fechamentos/conferir');
+  revalidatePath('/contador/fechamentos');
   return r;
 }

@@ -42,6 +42,7 @@ async function migrate() {
     '0056_nfse_para_oneflow.sql',
     '0057_oneflow_cota.sql',
     '0058_tax_history_origem.sql',
+    '0059_envio_autorizado.sql',
   ]) {
     const sqlText = fs.readFileSync(path.resolve(process.cwd(), 'packages/db/migrations', nome), 'utf-8');
     // A migration inteira numa execução só: os triggers dependem das tabelas e

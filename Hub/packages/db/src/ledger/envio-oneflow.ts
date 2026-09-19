@@ -193,6 +193,45 @@ export interface ResultadoEnvioRazao {
   cotaAcabou: boolean;
   /** Parou pelo relógio, não pela cota — o resto vai na próxima execução. */
   tempoAcabou: boolean;
+  /** O mês não tem envio autorizado — nada foi mandado, e isso não é erro. */
+  naoAutorizado: boolean;
+}
+
+/**
+ * O mês pode sair para a contabilidade oficial?
+ *
+ * Só depois de o contador liberá-lo e de o envio ser autorizado — que é o
+ * que `monthly_closure.send_authorized_at` registra. Liberar e autorizar
+ * podem ser o mesmo clique (`envioAutomaticoAoLiberar`) ou dois.
+ *
+ * ── Por que a trava mora aqui, e não no cron ──────────────────────────────
+ *
+ * Esta é a única função que manda lançamento ao OneFlow. Uma trava no cron
+ * protege o cron; aqui ela protege qualquer caminho que venha a chamar o
+ * envio depois — um botão, uma ferramenta de agente, um script.
+ *
+ * ── O que motivou ─────────────────────────────────────────────────────────
+ *
+ * O envio era contínuo: todo dia mandava o que aparecia, sem olhar se o mês
+ * estava fechado. Mandou o mês corrente, ainda aberto, e mandou 17 partidas
+ * de outubro/2026 a janeiro/2027 — parcelas futuras que ainda podem ser
+ * canceladas. Lançamento que entra lá só sai por exclusão manual, e a
+ * listagem do razão deles não devolve ids. O que chega aos livros oficiais
+ * precisa ter passado pelo contador antes.
+ */
+export async function envioAutorizado(
+  tx: DbHandle,
+  companyId: string,
+  referenceMonth: string,
+): Promise<boolean> {
+  const [r] = (await tx.execute(sql`
+    SELECT 1 AS ok FROM monthly_closure
+     WHERE company_id = ${companyId}
+       AND reference_month = ${referenceMonth}::date
+       AND send_authorized_at IS NOT NULL
+       AND stage IN ('CONFERIDO', 'ENVIADO')
+  `)) as unknown as { ok: number }[];
+  return Boolean(r);
 }
 
 /**
@@ -222,6 +261,13 @@ export async function enviarRazao(
   /** Instante (epoch ms) em que esta execução precisa ter terminado. */
   prazo?: number,
 ): Promise<ResultadoEnvioRazao> {
+  if (!(await envioAutorizado(tx, companyId, referenceMonth))) {
+    return {
+      mes: referenceMonth, enviadas: 0, erros: [], restantes: 0, bloqueadas: 0,
+      cotaAcabou: false, tempoAcabou: false, naoAutorizado: true,
+    };
+  }
+
   const ensaio = await ensaiarEnvio(tx, companyId, referenceMonth, cnpjDaEmpresa);
   const out: ResultadoEnvioRazao = {
     mes: referenceMonth,
@@ -231,6 +277,7 @@ export async function enviarRazao(
     bloqueadas: ensaio.bloqueadas.length,
     cotaAcabou: false,
     tempoAcabou: false,
+    naoAutorizado: false,
   };
 
   for (const [i, p] of ensaio.prontas.entries()) {

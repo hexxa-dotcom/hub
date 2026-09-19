@@ -262,8 +262,9 @@ export function OperacaoClient({ inicial }: { inicial: ConfiguracaoDaEmpresa }) 
               </div>
               <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
                 Ligado, sua conferência já dispara a saída. Desligado, o mês fica pronto na sua
-                área e o envio é um segundo comando — o padrão, porque lançamento que entra no
-                OneFlow só sai de lá por exclusão manual.
+                área e o envio é um segundo comando, em Fechamentos → Conferir — o padrão,
+                porque lançamento que entra no OneFlow só sai de lá por exclusão manual. Nos
+                dois casos, mês que você não liberou não sai.
               </p>
             </div>
             <button

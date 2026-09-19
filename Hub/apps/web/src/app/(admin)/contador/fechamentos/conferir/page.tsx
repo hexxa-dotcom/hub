@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/server/admin-guard';
-import { listarAguardando } from './actions';
+import { listarAguardando, listarAguardandoEnvio } from './actions';
 import { ConferirClient } from './ConferirClient';
+import { AguardandoEnvio } from './AguardandoEnvio';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +10,9 @@ export default async function ConferirPage() {
   await requireAdmin();
 
   let itens: Awaited<ReturnType<typeof listarAguardando>> = [];
+  let paraEnviar: Awaited<ReturnType<typeof listarAguardandoEnvio>> = [];
   try {
-    itens = await listarAguardando();
+    [itens, paraEnviar] = await Promise.all([listarAguardando(), listarAguardandoEnvio()]);
   } catch (err) {
     console.error('[contador/fechamentos/conferir] falha ao listar:', err);
   }
@@ -29,6 +31,8 @@ export default async function ConferirPage() {
       </div>
 
       <ConferirClient inicial={itens} />
+
+      <AguardandoEnvio itens={paraEnviar} />
     </div>
   );
 }

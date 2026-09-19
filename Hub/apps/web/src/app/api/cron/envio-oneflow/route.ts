@@ -7,6 +7,7 @@ import {
   appHashPorCnpj,
   cotaRestante,
   empresasComAgenteLigado,
+  concluirEnviados,
 } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
@@ -15,17 +16,21 @@ export const maxDuration = 300;
 /**
  * ENVIO CONTÍNUO DO RAZÃO AO ONEFLOW.
  *
- * ── Por que diário, e não no fechamento ─────────────────────────────────
+ * ── Só sai o que o contador liberou ─────────────────────────────────────
  *
- * O OneFlow aceita UMA partida por chamada e limita o escritório a 500
- * chamadas por dia. Setembro de 2026 teve 519 partidas em cinco empresas —
- * um único mês de uma carteira pequena já não cabe num dia.
+ * A primeira versão era contínua: todo dia mandava o que aparecia, para
+ * espalhar a cota de 500 chamadas pelo mês. O preço foi alto e invisível —
+ * mandou o mês corrente ainda aberto, e 17 parcelas futuras (out/2026 a
+ * jan/2027) que ainda podem ser canceladas. Lançamento que entra lá só sai
+ * por exclusão manual.
  *
- * Concentrar o envio no fechamento seria, portanto, garantir que ele não
- * termina. Espalhado pelo mês, cada dia manda o que apareceu no dia, e o
- * fechamento encontra quase tudo já entregue: sobra a diferença dos últimos
- * dias, que cabe com folga.
+ * Agora só vai mês com envio autorizado (`monthly_closure.send_authorized_at`,
+ * checado dentro de `enviarRazao`). A cota continua cabendo: o fechamento é
+ * por empresa, em dias diferentes, e 50 empresas somam ~600 partidas por mês
+ * — dois dias de envio, no pior caso em que todas liberem no mesmo dia.
  *
+ * O cron segue diário porque o que muda é o gatilho, não o ritmo: o mês
+ * liberado hoje sai de madrugada, e o que não coube continua amanhã.
  */
 
 /**
@@ -129,6 +134,13 @@ export async function GET(request: Request) {
       const meses = (await db.execute(sql`
         SELECT DISTINCT to_char(j.reference_month, 'YYYY-MM-DD') AS mes
           FROM journal_entry j
+          -- Só meses com envio autorizado. A mesma trava existe dentro de
+          -- enviarRazao; aqui ela evita gastar tempo ensaiando meses que
+          -- seriam recusados de qualquer forma.
+          JOIN monthly_closure mc
+            ON mc.company_id = j.company_id
+           AND mc.reference_month = j.reference_month
+           AND mc.send_authorized_at IS NOT NULL
          WHERE j.company_id = ${empresa.id}
            AND j.status = 'POSTED'
            AND j.reversed_by IS NULL
@@ -167,6 +179,11 @@ export async function GET(request: Request) {
         }
         if (r.cotaAcabou) { interrompido = empresa.nome; break; }
       }
+
+      // Mês autorizado que não tem mais nada pendente chega a ENVIADO.
+      const concluidos = await concluirEnviados(db, empresa.id);
+      if (concluidos) relatorio.push({ empresa: empresa.nome, mesesConcluidos: concluidos });
+
       if (interrompido) break;
     }
 
