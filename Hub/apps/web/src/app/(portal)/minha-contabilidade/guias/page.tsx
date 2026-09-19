@@ -42,16 +42,37 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
+      <Card level={2} tone="deep" className="relative z-30 min-h-[84px] py-4 px-6 sm:px-8 card-finish flex items-center">
         <div className="flex items-center justify-between gap-6 w-full">
           <SectionInfo
             title="Sobre a Central de Guias"
             description="Acompanhe toda a sua jornada de impostos do mês de forma simples. DAS, DARF, ISS e parcelamentos centralizados em um só lugar."
           />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Central de Guias
-            </h1>
+          <div className="flex flex-col items-end gap-1 text-right shrink-0">
+            <div className="flex items-center gap-3">
+              {vencidas.length > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 px-3 py-1 text-xs font-bold shadow-xs">
+                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                  {vencidas.length} em atraso
+                </span>
+              ) : proximas7dias.length > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-3 py-1 text-xs font-bold shadow-xs">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  {proximas7dias.length} a vencer
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 text-xs font-bold shadow-xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Tudo em dia
+                </span>
+              )}
+              <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+                Central de Guias
+              </h1>
+            </div>
+            <p className="text-xs text-ink-soft hidden sm:block">
+              Gestão integrada de impostos e obrigações fiscais
+            </p>
           </div>
         </div>
       </Card>
