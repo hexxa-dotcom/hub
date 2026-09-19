@@ -14,7 +14,7 @@ export default async function AdminFechamentosPage() {
     totalRevenue: string;
     totalExpenses: string;
     defaultsCount: number;
-    status: string;
+    stage: string;
     companyName: string | null;
   }[] = [];
   try {
@@ -27,7 +27,14 @@ export default async function AdminFechamentosPage() {
           totalRevenue: monthlyClosure.totalRevenue,
           totalExpenses: monthlyClosure.totalExpenses,
           defaultsCount: monthlyClosure.defaultsCount,
-          status: monthlyClosure.status,
+          // `stage`, não `status`.
+          //
+          // `status` é a coluna legada, que colapsava "a IA apurou" e "o
+          // contador liberou" num campo só. O cron antigo gravava CLOSED nela
+          // sem conferir nada, e esta tela mostrava cinco meses como prontos
+          // enquanto o `stage` deles dizia ABERTO — que é o que o caminho de
+          // fechamento de verdade lê.
+          stage: monthlyClosure.stage,
           companyName: company.legalName,
         })
         .from(monthlyClosure)
@@ -50,7 +57,7 @@ export default async function AdminFechamentosPage() {
       totalRevenue: c.totalRevenue,
       totalExpenses: c.totalExpenses,
       defaultsCount: c.defaultsCount,
-      status: c.status,
+      stage: c.stage,
     });
     byMonth.set(c.referenceMonth, list);
   }

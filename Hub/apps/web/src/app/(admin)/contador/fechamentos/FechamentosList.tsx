@@ -13,7 +13,7 @@ export type ClosureRow = {
   totalRevenue: string;
   totalExpenses: string;
   defaultsCount: number;
-  status: string;
+  stage: string;
 };
 
 export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][] }) {
@@ -94,15 +94,7 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
                           )}
                         </td>
                         <td className="px-5 py-4 text-center">
-                          {closure.status === 'CLOSED' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                              <CheckCircle2 className="h-3 w-3" /> Pronto
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:text-[#A8A49C]">
-                              {closure.status}
-                            </span>
-                          )}
+                          <EstagioBadge stage={closure.stage} />
                         </td>
                       </tr>
                     ))}
@@ -132,3 +124,28 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
   );
 }
 
+
+/**
+ * O estágio do fechamento, com o nome que ele tem.
+ *
+ * São quatro fatos diferentes, de donos diferentes: a IA trancou, o contador
+ * liberou, foi entregue ao contábil. Mostrar tudo como "pronto" ou "não
+ * pronto" apagava justamente a distinção que o fechamento em dois tempos
+ * existe para fazer.
+ */
+function EstagioBadge({ stage }: { stage: string }) {
+  const cfg: Record<string, { rotulo: string; cls: string }> = {
+    ABERTO:    { rotulo: 'Aberto',    cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' },
+    FECHADO:   { rotulo: 'Trancado',  cls: 'bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400' },
+    CONFERIDO: { rotulo: 'Liberado',  cls: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400' },
+    ENVIADO:   { rotulo: 'Enviado',   cls: 'bg-emerald-600/15 border border-emerald-600/25 text-emerald-800 dark:text-emerald-300' },
+    REABERTO:  { rotulo: 'Reaberto',  cls: 'bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400' },
+  };
+  const c = cfg[stage] ?? { rotulo: stage, cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${c.cls}`}>
+      {stage === 'CONFERIDO' || stage === 'ENVIADO' ? <CheckCircle2 className="h-3 w-3" /> : null}
+      {c.rotulo}
+    </span>
+  );
+}
