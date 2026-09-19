@@ -349,3 +349,74 @@ export async function historicoDoDocumento(
     autonomy: r.autonomy as Autonomy,
   }));
 }
+
+/* ── Fila do escritório ─────────────────────────────────────────────────── */
+
+export interface ItemDaFilaDoEscritorio {
+  id: string;
+  companyId: string;
+  empresa: string;
+  kind: string;
+  fila: 'APROVACAO' | 'REVISAO';
+  rationale: string;
+  confidence: number;
+  amount: number | null;
+  /** Lançamento alvo, quando a ação é sobre um. */
+  lancamento: { id: string; descricao: string; data: string | null } | null;
+  /** O que a IA escolheu, quando é classificação. */
+  categoriaEscolhida: string | null;
+  createdAt: Date;
+}
+
+/**
+ * As duas filas de todas as empresas, numa lista só.
+ *
+ * ── Por que existe ──────────────────────────────────────────────────────
+ *
+ * A fila vivia no portal do CLIENTE, presa à empresa de quem estava logado.
+ * Para conferir o que a IA fez, o contador precisaria entrar em cada cliente
+ * — e com cinquenta clientes isso não acontece, que é o mesmo que a fila não
+ * existir. Revisar o que a IA classificou é trabalho do contador, e ele
+ * precisa ver tudo de uma vez.
+ *
+ * Aprovação vem antes de revisão: aprovação é algo parado esperando alguém;
+ * revisão é algo que já aconteceu e precisa de um segundo olhar.
+ */
+export async function filaDoEscritorio(
+  tx: DbHandle,
+  limite = 300,
+): Promise<ItemDaFilaDoEscritorio[]> {
+  const rows = (await tx.execute(sql`
+    SELECT a.id::text, a.company_id::text, c.legal_name, a.kind::text, a.rationale,
+           a.confidence, a.amount, a.created_at,
+           CASE WHEN a.status = 'AWAITING_APPROVAL' THEN 'APROVACAO' ELSE 'REVISAO' END AS fila,
+           a.proposal->>'categoriaNome' AS categoria,
+           fe.id::text AS fe_id, fe.description AS fe_desc,
+           to_char(COALESCE(fe.paid_at, fe.due_date), 'YYYY-MM-DD') AS fe_data
+      FROM agent_action a
+      JOIN company c ON c.id = a.company_id
+      LEFT JOIN financial_entry fe
+        ON a.target_table = 'financial_entry' AND fe.id = a.target_id
+     WHERE a.status = 'AWAITING_APPROVAL'
+        OR (a.autonomy = 'REVIEW' AND a.status = 'APPLIED'
+            AND NOT EXISTS (SELECT 1 FROM agent_approval ap WHERE ap.agent_action_id = a.id))
+     ORDER BY (a.status = 'AWAITING_APPROVAL') DESC, c.legal_name, a.created_at DESC
+     LIMIT ${String(limite)}::int
+  `)) as unknown as Record<string, unknown>[];
+
+  return rows.map((r) => ({
+    id: String(r.id),
+    companyId: String(r.company_id),
+    empresa: String(r.legal_name),
+    kind: String(r.kind),
+    fila: r.fila === 'APROVACAO' ? 'APROVACAO' : 'REVISAO',
+    rationale: String(r.rationale ?? ''),
+    confidence: Number(r.confidence),
+    amount: r.amount === null ? null : Number(r.amount),
+    lancamento: r.fe_id
+      ? { id: String(r.fe_id), descricao: String(r.fe_desc ?? ''), data: (r.fe_data as string) ?? null }
+      : null,
+    categoriaEscolhida: (r.categoria as string) ?? null,
+    createdAt: r.created_at as Date,
+  }));
+}

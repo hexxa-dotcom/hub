@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'O que a IA fez · Hexxa Hub' };
 export const dynamic = 'force-dynamic';
 
 export default async function IaPage() {
-  let filas: Awaited<ReturnType<typeof listarFilas>> = { aprovacao: [], revisao: [] };
+  let filas: Awaited<ReturnType<typeof listarFilas>> = { aprovacao: [], revisao: [], categorias: [] };
   try {
     filas = await listarFilas();
   } catch (err) {

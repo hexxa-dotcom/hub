@@ -499,15 +499,24 @@ function buildServer(auth: ApiTokenAuth): McpServer {
           acao_id: z.string().uuid().describe('ID da ação (agent_action), vindo de fila_de_aprovacao.'),
           decisao: z.enum(['aprovar', 'rejeitar']),
           nota: z.string().optional().describe('Motivo da decisão. Obrigatório na prática para rejeição.'),
+          categoria_correta_id: z
+            .string()
+            .uuid()
+            .optional()
+            .describe(
+              'Ao rejeitar uma classificação já aplicada: a categoria certa. Sem ela a rejeição é ' +
+                'recusada, porque deixaria o lançamento na conta errada.',
+            ),
         },
       },
-      async ({ acao_id, decisao, nota }) => {
+      async ({ acao_id, decisao, nota, categoria_correta_id }) => {
         const r = await decidirAcao(
           auth.companyId,
           acao_id,
           decisao === 'aprovar' ? 'APPROVED' : 'REJECTED',
           null,
           nota,
+          categoria_correta_id,
         );
         return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
       }

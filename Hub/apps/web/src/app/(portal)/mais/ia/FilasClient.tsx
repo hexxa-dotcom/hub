@@ -78,20 +78,40 @@ function Evidencia({ evidence }: { evidence: unknown }) {
 function ItemAcao({
   acao,
   modo,
+  categorias,
   onDecidido,
 }: {
   acao: Acao;
   modo: 'aprovacao' | 'revisao';
+  categorias: { id: string; nome: string }[];
   onDecidido: (id: string) => void;
 }) {
   const [pendente, startTransition] = useTransition();
   const [rejeitando, setRejeitando] = useState(false);
   const [nota, setNota] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+
+  /**
+   * Classificação já aplicada que "estava errada" precisa dizer qual é a
+   * certa. Antes, rejeitar só anotava: o item sumia daqui e o lançamento
+   * continuava na conta errada, com a tela dizendo que estava resolvido.
+   */
+  const pedeCategoria = modo === 'revisao' && acao.kind === 'CLASSIFICAR_LANCAMENTO';
 
   function agir(decisao: 'aprovar' | 'rejeitar') {
+    setErro(null);
     startTransition(async () => {
-      await decidir(acao.id, decisao, nota || undefined);
-      onDecidido(acao.id);
+      const r = await decidir(
+        acao.id,
+        decisao,
+        nota || undefined,
+        decisao === 'rejeitar' && pedeCategoria ? categoria : undefined,
+      );
+      // Só sai da fila o que o servidor aceitou — sumir com um item recusado
+      // é mostrar como resolvido o que não foi.
+      if (r.ok) onDecidido(acao.id);
+      else setErro(r.message);
     });
   }
 
@@ -117,6 +137,29 @@ function ItemAcao({
       </p>
 
       <Evidencia evidence={acao.evidence} />
+
+      {erro && (
+        <p className="rounded-2xl bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">{erro}</p>
+      )}
+
+      {rejeitando && pedeCategoria && (
+        <div className="border-t border-black/5 dark:border-white/10 pt-3">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft" htmlFor={`cat-${acao.id}`}>
+            Qual é a categoria certa?
+          </label>
+          <select
+            id={`cat-${acao.id}`}
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+            className="mt-2 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3 py-2 text-xs text-ink outline-none"
+          >
+            <option value="">— escolher —</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {rejeitando && (
         <div className="border-t border-black/5 dark:border-white/10 pt-3">
@@ -167,7 +210,7 @@ function ItemAcao({
             <button
               type="button"
               onClick={() => agir('rejeitar')}
-              disabled={pendente || nota.trim().length < 5}
+              disabled={pendente || nota.trim().length < 5 || (pedeCategoria && !categoria)}
               title={nota.trim().length < 5 ? 'Escreva o motivo para treinar o agente' : undefined}
               className="rounded-full bg-rose-600 hover:bg-rose-700 px-5 py-2 text-xs font-bold text-white shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-40"
             >
@@ -183,7 +226,7 @@ function ItemAcao({
 export function FilasClient({
   inicial,
 }: {
-  inicial: { aprovacao: Acao[]; revisao: Acao[] };
+  inicial: { aprovacao: Acao[]; revisao: Acao[]; categorias: { id: string; nome: string }[] };
 }) {
   const [aprovacao, setAprovacao] = useState(inicial.aprovacao);
   const [revisao, setRevisao] = useState(inicial.revisao);
@@ -211,7 +254,7 @@ export function FilasClient({
         ) : (
           <div className="space-y-4">
             {aprovacao.map((a) => (
-              <ItemAcao key={a.id} acao={a} modo="aprovacao" onDecidido={remover('a')} />
+              <ItemAcao key={a.id} acao={a} modo="aprovacao" categorias={inicial.categorias} onDecidido={remover('a')} />
             ))}
           </div>
         )}
@@ -233,7 +276,7 @@ export function FilasClient({
         ) : (
           <div className="space-y-4">
             {revisao.map((a) => (
-              <ItemAcao key={a.id} acao={a} modo="revisao" onDecidido={remover('r')} />
+              <ItemAcao key={a.id} acao={a} modo="revisao" categorias={inicial.categorias} onDecidido={remover('r')} />
             ))}
           </div>
         )}

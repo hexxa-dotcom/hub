@@ -3,6 +3,7 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { listarFilaAprovacao, listarFilaRevisao, decidirAcao } from '@/lib/server/agent-tools';
 import { revalidatePath } from 'next/cache';
+import { getDb, sql } from '@hexxa/db';
 
 /**
  * Fila de decisões sobre o que a IA fez ou quer fazer.
@@ -20,17 +21,22 @@ import { revalidatePath } from 'next/cache';
 
 export async function listarFilas() {
   const ctx = await getTenantContext();
-  const [aprovacao, revisao] = await Promise.all([
+  const [aprovacao, revisao, categorias] = await Promise.all([
     listarFilaAprovacao(ctx.companyId),
     listarFilaRevisao(ctx.companyId),
+    getDb().execute(sql`
+      SELECT id::text, name FROM category WHERE company_id = ${ctx.companyId} ORDER BY name
+    `) as unknown as Promise<{ id: string; name: string }[]>,
   ]);
-  return { aprovacao, revisao };
+  return { aprovacao, revisao, categorias: categorias.map((c) => ({ id: c.id, nome: c.name })) };
 }
 
 export async function decidir(
   acaoId: string,
   decisao: 'aprovar' | 'rejeitar',
   nota?: string,
+  /** Categoria certa — obrigatória ao dizer que uma classificação estava errada. */
+  categoriaCorretaId?: string,
 ): Promise<{ ok: boolean; message: string }> {
   const ctx = await getTenantContext();
 
@@ -40,6 +46,7 @@ export async function decidir(
     decisao === 'aprovar' ? 'APPROVED' : 'REJECTED',
     ctx.userId,
     nota,
+    categoriaCorretaId,
   );
 
   revalidatePath('/mais/ia');

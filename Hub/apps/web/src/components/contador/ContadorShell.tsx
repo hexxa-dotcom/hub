@@ -43,6 +43,7 @@ function buildNavGroups(openTicketsCount: number): { label: string; items: NavIt
         { label: 'Solicitações', href: '/contador/solicitacoes', icon: HelpCircle, badge: openTicketsCount || undefined },
         { label: 'Notas Fiscais', href: '/contador/notas', icon: Receipt },
         { label: 'Fechamentos', href: '/contador/fechamentos', icon: ClipboardList },
+        { label: 'Revisão da IA', href: '/contador/revisao', icon: Sparkles },
         { label: 'Contratos', href: '/contador/contratos', icon: FileSignature },
       ],
     },

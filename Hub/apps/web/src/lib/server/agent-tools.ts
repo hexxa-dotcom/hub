@@ -1,6 +1,6 @@
 import 'server-only';
 import { getDb, eq, and, sql } from '@hexxa/db';
-import { financialEntry, category, bankTransaction, reconciliationMatch } from '@hexxa/db/schema';
+import { financialEntry, category, bankTransaction, reconciliationMatch, agentAction } from '@hexxa/db/schema';
 import {
   iniciarRun,
   encerrarRun,
@@ -404,12 +404,23 @@ export async function historicoDoLancamento(companyId: string, lancamentoId: str
 }
 
 /**
- * Decide sobre uma ação pendente.
+ * Decide sobre uma ação — e faz a decisão valer no razão.
  *
- * Só registra a decisão — não aplica. Aplicar o que foi aprovado exige executar
- * a proposta no domínio, e cada tipo de ação sabe fazer isso de um jeito; isso
- * é o despachante do próximo incremento. Separar os dois evita que "aprovar"
- * vire um botão que faz coisa demais.
+ * ── O que esta função fazia antes ───────────────────────────────────────
+ *
+ * Só registrava. Aprovar mudava o status para APPROVED e respondia "será
+ * executada na próxima passagem do agente" — passagem que não existia: nada
+ * no sistema aplicava ação aprovada. E rejeitar uma classificação que a IA
+ * JÁ tinha aplicado marcava REJECTED e tirava o item da fila, com o
+ * lançamento ainda na conta errada. O contador dizia "isto está errado", a
+ * fila esvaziava, e o balancete continuava dizendo a coisa errada.
+ *
+ * ── O que faz agora ────────────────────────────────────────────────────
+ *
+ * - Aprovar uma classificação que esperava aprovação: aplica, na hora.
+ * - Rejeitar uma classificação já aplicada: exige a categoria certa e
+ *   reclassifica — por estorno, como toda correção no razão.
+ * - Qualquer outro tipo: registra, e diz isso com essas palavras.
  */
 export async function decidirAcao(
   companyId: string,
@@ -417,15 +428,110 @@ export async function decidirAcao(
   decision: 'APPROVED' | 'REJECTED',
   userId: string | null,
   nota?: string,
+  /** Categoria correta, quando a rejeição é de uma classificação. */
+  categoriaCorretaId?: string,
 ): Promise<ResultadoFerramenta> {
-  await decidir(getDb(), companyId, acaoId, decision, userId, nota);
+  const db = getDb();
+  const [acao] = await db
+    .select({
+      kind: agentAction.kind,
+      status: agentAction.status,
+      targetId: agentAction.targetId,
+      proposal: agentAction.proposal,
+    })
+    .from(agentAction)
+    .where(and(eq(agentAction.id, acaoId), eq(agentAction.companyId, companyId)));
+
+  if (!acao) return { ok: false, situacao: 'erro', mensagem: 'Ação não encontrada nesta empresa.' };
+
+  const ehClassificacao = acao.kind === 'CLASSIFICAR_LANCAMENTO' && Boolean(acao.targetId);
+  const proposta = (acao.proposal ?? {}) as { categoriaId?: string; categoriaNome?: string };
+
+  /* ── Rejeitar classificação: corrigir, não só anotar ─────────────────── */
+  if (decision === 'REJECTED' && ehClassificacao && acao.status === 'APPLIED') {
+    if (!categoriaCorretaId) {
+      return {
+        ok: false,
+        situacao: 'erro',
+        mensagem:
+          'Diga qual é a categoria certa. Rejeitar sem corrigir deixaria o lançamento na conta ' +
+          'errada, com a fila vazia dizendo que está tudo resolvido.',
+      };
+    }
+    const [cat] = await db
+      .select({ id: category.id, name: category.name })
+      .from(category)
+      .where(and(eq(category.id, categoriaCorretaId), eq(category.companyId, companyId)));
+    if (!cat) return { ok: false, situacao: 'erro', mensagem: 'Categoria não encontrada nesta empresa.' };
+
+    await db
+      .update(financialEntry)
+      .set({ categoryId: cat.id })
+      .where(and(eq(financialEntry.id, acao.targetId!), eq(financialEntry.companyId, companyId)));
+    const re = await reescriturarLancamento(
+      db,
+      companyId,
+      acao.targetId!,
+      `corrigido de "${proposta.categoriaNome ?? '?'}" para "${cat.name}"${nota ? `: ${nota}` : ''}`,
+      { createdByUserId: userId },
+    );
+
+    // A nota leva a categoria certa: é o par rotulado que a confiança medida
+    // lê da próxima vez — "a IA disse X, o certo era Y".
+    await decidir(db, companyId, acaoId, 'REJECTED', userId,
+      `[correta: ${cat.name}] ${nota ?? ''}`.trim());
+
+    return {
+      ok: true,
+      situacao: 'aplicado',
+      mensagem:
+        `Corrigido para "${cat.name}". ${re.estornadas} partida(s) estornada(s) e ` +
+        `${re.gravadas} refeita(s) no razão.`,
+      acaoId,
+    };
+  }
+
+  /* ── Aprovar classificação que esperava: aplicar agora ───────────────── */
+  if (decision === 'APPROVED' && ehClassificacao && acao.status === 'AWAITING_APPROVAL') {
+    if (!proposta.categoriaId) {
+      return { ok: false, situacao: 'erro', mensagem: 'A proposta não diz qual categoria aplicar.' };
+    }
+    // A aprovação precisa existir ANTES de aplicar: o trigger do banco recusa
+    // aplicar ação de nível APPROVAL sem aprovação registrada.
+    await decidir(db, companyId, acaoId, 'APPROVED', userId, nota);
+    try {
+      await db
+        .update(financialEntry)
+        .set({ categoryId: proposta.categoriaId })
+        .where(and(eq(financialEntry.id, acao.targetId!), eq(financialEntry.companyId, companyId)));
+      const re = await reescriturarLancamento(
+        db, companyId, acao.targetId!,
+        `classificado como "${proposta.categoriaNome ?? ''}" — aprovado pelo contador`,
+        { createdByUserId: userId },
+      );
+      await marcarAplicada(db, acaoId);
+      return {
+        ok: true,
+        situacao: 'aplicado',
+        mensagem: `Aprovado e aplicado: "${proposta.categoriaNome}". ${re.gravadas} partida(s) no razão.`,
+        acaoId,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await marcarFalhada(db, acaoId, msg);
+      return { ok: false, situacao: 'erro', mensagem: `Aprovado, mas falhou ao aplicar: ${msg}`, acaoId };
+    }
+  }
+
+  /* ── O resto: registrar, e dizer que é só isso ───────────────────────── */
+  await decidir(db, companyId, acaoId, decision, userId, nota);
   return {
     ok: true,
     situacao: decision === 'APPROVED' ? 'aplicado' : 'recusado',
     mensagem:
       decision === 'APPROVED'
-        ? 'Ação aprovada. Ela será executada na próxima passagem do agente.'
-        : 'Ação rejeitada.',
+        ? 'Decisão registrada na trilha.'
+        : 'Rejeição registrada — é ela que ensina o agente da próxima vez.',
     acaoId,
   };
 }
