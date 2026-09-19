@@ -133,8 +133,8 @@ export function AberturaClient({
       <section className="rounded-2xl border border-black/5 bg-white p-5 dark:border-white/10 dark:bg-[#1A1A18]">
         <Passo n={1} titulo="O balancete do escritório anterior" feito={leitura.ok} />
         <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#6E6A61] dark:text-[#A8A49C]">
-          Aceito PDF gerado pelo sistema contábil, CSV, ou as linhas coladas direto
-          de uma planilha. O que preciso de cada linha é a conta, a descrição e o{' '}
+          Aceito planilha do Excel (.xlsx), PDF gerado pelo sistema contábil, CSV, ou as
+          linhas coladas direto de uma planilha. O que preciso de cada linha é a conta, a descrição e o{' '}
           <strong>saldo final</strong> — não o saldo anterior nem o movimento do período.
         </p>
 
@@ -144,11 +144,11 @@ export function AberturaClient({
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-black/15 px-3 py-2 text-sm text-[#6E6A61] hover:border-black/30 dark:border-white/15 dark:text-[#A8A49C] dark:hover:border-white/30">
               <Upload className="h-4 w-4 shrink-0" />
-              <span className="truncate">{nomeArquivo ?? 'Escolher arquivo (.pdf, .csv, .txt)'}</span>
+              <span className="truncate">{nomeArquivo ?? 'Escolher arquivo (.xlsx, .pdf, .csv)'}</span>
               <input
                 type="file"
                 name="arquivo"
-                accept=".pdf,.csv,.txt,.tsv,text/csv,application/pdf"
+                accept=".xlsx,.pdf,.csv,.txt,.tsv,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 onChange={(e) => setNomeArquivo(e.target.files?.[0]?.name ?? null)}
               />

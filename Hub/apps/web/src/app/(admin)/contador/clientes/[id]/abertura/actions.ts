@@ -5,6 +5,7 @@ import type { EnsaioAbertura, ResultadoAbertura } from '@hexxa/db';
 import { lerBalancete, BalanceteIlegivelError, type LinhaDeBalancete } from '@hexxa/core';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { revalidatePath } from 'next/cache';
+import { planilhaParaTexto, PlanilhaIlegivelError } from '@/lib/server/planilha';
 
 /**
  * Saldos de abertura — área do contador.
@@ -62,8 +63,13 @@ export async function lerBalanceteAction(
     try {
       conteudo = /\.pdf$/i.test(arquivo.name)
         ? await textoDoPdf(arquivo)
-        : await arquivo.text();
+        : /\.xlsx$/i.test(arquivo.name)
+          ? planilhaParaTexto(new Uint8Array(await arquivo.arrayBuffer()))
+          : await arquivo.text();
     } catch (err) {
+      if (err instanceof PlanilhaIlegivelError || err instanceof BalanceteIlegivelError) {
+        return { ok: false, mensagem: err.message };
+      }
       return {
         ok: false,
         mensagem: `Não consegui ler o arquivo: ${err instanceof Error ? err.message : String(err)}`,
