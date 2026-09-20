@@ -621,6 +621,22 @@ export class OneflowAdapter {
       planoContas?: { tipo: 'D' | 'O'; origem?: string };
     },
   ): Promise<unknown> {
+    /**
+     * O início não pode ser ANTERIOR à competência do módulo contábil.
+     *
+     * Com uma competência anterior o OneFlow responde 201, marca o
+     * assistente como concluído e NÃO cria o plano de contas — e como ele só
+     * roda uma vez, a empresa fica sem plano e sem como refazer, só pelo
+     * reset (que apaga os lançamentos). Aconteceu com a HEXX em 20/09/2026:
+     * módulo em 01/2026, início mandado em 12/2025.
+     *
+     * Custa uma consulta, uma vez por empresa, e troca um erro irreversível
+     * por um ajuste automático.
+     */
+    const doModulo = (await this.competenciaInicialDosModulos(companyId, appHash))['Contábil'];
+    const minimo = doModulo ? doModulo.replace('-', '') : null;
+    const inicio = minimo && minimo > dados.inicio ? minimo : dados.inicio;
+
     const token = await this.tokenDaEmpresa(companyId, appHash);
     return this.pedir(`${API}/oneflow/empresa/contabil/onboarding`, {
       token,
@@ -628,7 +644,7 @@ export class OneflowAdapter {
       body: {
         tipoEstabelecimento: dados.tipoEstabelecimento ?? 'U',
         regimeApuracao: dados.regimeApuracao ?? '1',
-        inicioRegimeApuracao: dados.inicio,
+        inicioRegimeApuracao: inicio,
         balancete: 'S',
         dre: 'S',
         planoContas: dados.planoContas ?? { tipo: 'D' },
