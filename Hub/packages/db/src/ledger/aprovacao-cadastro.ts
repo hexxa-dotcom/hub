@@ -222,6 +222,35 @@ export async function aprovarCadastro(
   await tx.execute(sql`UPDATE membership SET authorized = true WHERE company_id = ${companyId}`);
 
   /**
+   * O assistente do contábil, com PLANO DINÂMICO, na mesma passada.
+   *
+   * Habilitar o módulo não cria plano de contas, e sem plano o contábil não
+   * recebe lançamento nenhum — nem do fiscal, nem da folha, nem do Hub. E o
+   * plano precisa ser o dinâmico: o de-para do Hub é escrito contra ele, e
+   * no plano PADRÃO do OneFlow nenhuma das 33 contas existe.
+   *
+   * Tem que ser aqui, antes de alguém abrir a tela do OneFlow: o assistente
+   * roda UMA vez por empresa. Depois de concluído com o plano errado, a API
+   * recusa refazer ("onboarding já concluído") e recusa reabilitar o módulo
+   * — foi o que aconteceu com a BM3, que ficou no plano padrão sem volta.
+   */
+  if (existente?.appHash && escolhas.modulos.includes('CTL')) {
+    try {
+      await of.configurarContabil(companyId, existente.appHash, {
+        inicio: escolhas.competencia,
+        planoContas: { tipo: 'D' },
+      });
+    } catch (err) {
+      const motivo = err instanceof Error ? err.message : String(err);
+      avisos.push(
+        /já foi concluído/i.test(motivo)
+          ? 'O contábil desta empresa já tinha sido configurado no OneFlow — confira se o plano é o Dinâmico, porque o de-para do Hub só funciona com ele.'
+          : `Não consegui configurar o contábil no OneFlow (${motivo}). Sem plano de contas, ele não recebe lançamento.`,
+      );
+    }
+  }
+
+  /**
    * A volta, na mesma passada: vincula o app da empresa e lê regime,
    * cadastro e sócios. Falhar aqui não desfaz a aprovação — a empresa já
    * existe lá —, só fica para o botão "Trazer do OneFlow".
