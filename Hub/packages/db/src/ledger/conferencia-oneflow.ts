@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
-import { traduzirConta } from '@hexxa/core';
+import { traduzirConta, DE_PARA_ONEFLOW } from '@hexxa/core';
+import { clienteOneflow } from './oneflow-client';
 
 /**
  * CONFERÊNCIA: balancete do Hub × balancete do OneFlow.
@@ -149,5 +150,76 @@ export async function conferirContraOneflow(
     bate: linhas.every((l) => l.bate),
     enviadas: Number(contagem?.enviadas ?? 0),
     naoEnviadas: Number(contagem?.erro ?? 0),
+  };
+}
+
+export interface ConferenciaDoPlano {
+  /** Modelo de plano que a empresa usa no OneFlow ('Dinâmico', 'Padrão'…). */
+  modelo: string | null;
+  contasNoOneflow: number;
+  /** Destinos do de-para que EXISTEM no plano dela. */
+  encontrados: number;
+  /** Destinos que não existem — cada um é uma partida que seria recusada. */
+  faltando: { classificacao: string; contasDoHub: string[] }[];
+  /** `true` só quando todo destino do de-para existe no plano da empresa. */
+  pronta: boolean;
+}
+
+/**
+ * O plano de contas desta empresa no OneFlow aceita o nosso de-para?
+ *
+ * ── Por que isto existe ─────────────────────────────────────────────────
+ *
+ * O de-para é um mapa único, escrito contra o "Plano de Contas Dinâmico
+ * OneFlow". O OneFlow também oferece um plano PADRÃO, com outra numeração a
+ * partir do terceiro nível: nele, das 33 contas do mapa, ZERO existem.
+ *
+ * Sem esta conferência, isso só apareceria no envio — como uma recusa por
+ * partida, ou, pior, silenciosamente, se algum código existisse lá por
+ * coincidência e apontasse para outra conta. Foi o caso da BM3, descoberto
+ * à mão.
+ *
+ * Custa uma chamada por página do plano (≈4 no dinâmico). Roda uma vez por
+ * empresa, antes de ligar o envio — não a cada envio.
+ */
+export async function conferirPlanoDoOneflow(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+): Promise<ConferenciaDoPlano> {
+  const of = clienteOneflow(tx);
+
+  const classificacoes = new Set<string>();
+  let contas = 0;
+  let modelo: string | null = null;
+  for (let pagina = 1; pagina <= 30; pagina++) {
+    const lote = await of.planoDeContas(companyId, appHash, pagina);
+    if (!lote.length) break;
+    for (const c of lote) {
+      classificacoes.add(c.classificacao);
+      contas++;
+      modelo ??= (c as unknown as { nomeModelo?: string }).nomeModelo ?? null;
+    }
+  }
+
+  // Um destino pode servir a várias contas do Hub — dizer quais ajuda a
+  // entender o tamanho do estrago antes de enviar.
+  const porDestino = new Map<string, string[]>();
+  for (const [contaDoHub, destino] of Object.entries(DE_PARA_ONEFLOW)) {
+    const lista = porDestino.get(destino.classificacao) ?? [];
+    lista.push(contaDoHub);
+    porDestino.set(destino.classificacao, lista);
+  }
+
+  const faltando = [...porDestino.entries()]
+    .filter(([classificacao]) => !classificacoes.has(classificacao))
+    .map(([classificacao, contasDoHub]) => ({ classificacao, contasDoHub }));
+
+  return {
+    modelo,
+    contasNoOneflow: contas,
+    encontrados: porDestino.size - faltando.length,
+    faltando,
+    pronta: contas > 0 && faltando.length === 0,
   };
 }

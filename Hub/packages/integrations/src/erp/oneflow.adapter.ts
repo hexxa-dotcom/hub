@@ -88,6 +88,12 @@ export interface ContaContabilOneflow {
   classificacao: string;
   codigoReduzido: string | null;
   descricao: string;
+  /**
+   * Modelo do plano ("Plano de Contas Dinâmico OneFlow", "…Padrão OneFlow").
+   * É o que diz se o de-para do Hub serve para esta empresa: a numeração dos
+   * dois modelos diverge a partir do terceiro nível.
+   */
+  nomeModelo?: string | null;
 }
 
 export interface PartidaOneflow {
@@ -498,15 +504,36 @@ export class OneflowAdapter {
     pagina = 1,
   ): Promise<ContaContabilOneflow[]> {
     const token = await this.tokenDaEmpresa(companyId, appHash);
+    /**
+     * Passar do fim da lista não devolve página vazia: devolve ERRO 400
+     * ("Não existem registros para a página [N]"). Quem pagina precisa saber
+     * parar, e tratar isso como falha faria a leitura do plano inteiro
+     * quebrar sempre na última página.
+     */
     const r = await this.pedir<unknown>(
       `${API}/oneflow/empresa/contabil/planocontas/contas?pagina=${pagina}`,
       { token },
-    );
-    const lista = Array.isArray(r) ? r : ((r as Record<string, unknown>).contas as unknown[]) ?? [];
+    ).catch((err: unknown) => {
+      if (err instanceof OneflowError && /não existem registros/i.test(err.message)) return {};
+      throw err;
+    });
+    /**
+     * A lista vem em `result.planoContas`. A leitura antiga procurava
+     * `contas` na raiz e devolvia vazio para TODA empresa — inclusive as que
+     * têm plano completo. Vazio aqui parece "empresa sem plano de contas",
+     * que é um diagnóstico errado e caro: manda configurar o que já está
+     * configurado.
+     */
+    const env = (r ?? {}) as Record<string, unknown>;
+    const res = (env.result ?? env) as Record<string, unknown>;
+    const lista = Array.isArray(r)
+      ? r
+      : ((res.planoContas ?? res.contas ?? env.contas) as unknown[]) ?? [];
     return (lista as Record<string, unknown>[]).map((c) => ({
       classificacao: String(c.classificacao ?? c.Classificacao ?? ''),
       codigoReduzido: (c.codigoReduzido ?? c.codigo_reduzido ?? null) as string | null,
       descricao: String(c.descricao ?? c.nome ?? ''),
+      nomeModelo: (c.nomeModelo ?? null) as string | null,
     }));
   }
 
@@ -566,6 +593,46 @@ export class OneflowAdapter {
       token,
       method: 'POST',
       body: { id: Number(id) },
+    });
+  }
+
+  /**
+   * Assistente de configuração do módulo contábil ("onboarding").
+   *
+   * Habilitar o módulo NÃO basta: sem esta configuração a empresa fica sem
+   * plano de contas (`idPlanoContas: 0`), o balancete volta vazio e o
+   * contábil não recebe lançamento nenhum — nem do fiscal, nem da folha,
+   * nem do Hub. Foi o que se viu na BM3 e na Nathalia, com o módulo
+   * habilitado e nada dentro.
+   *
+   * O plano "D" (dinâmico) é o mesmo que a HEXX usa, e é o que o de-para de
+   * contas do Hub já conhece.
+   */
+  async configurarContabil(
+    companyId: string,
+    appHash: string,
+    dados: {
+      /** AAAAMM — início do regime de apuração. */
+      inicio: string;
+      tipoEstabelecimento?: 'U' | 'M' | 'F';
+      /** 1 competência · 2 caixa. */
+      regimeApuracao?: '1' | '2';
+      /** 'D' dinâmico, ou 'O' copiando um plano do ambiente do contador. */
+      planoContas?: { tipo: 'D' | 'O'; origem?: string };
+    },
+  ): Promise<unknown> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    return this.pedir(`${API}/oneflow/empresa/contabil/onboarding`, {
+      token,
+      method: 'POST',
+      body: {
+        tipoEstabelecimento: dados.tipoEstabelecimento ?? 'U',
+        regimeApuracao: dados.regimeApuracao ?? '1',
+        inicioRegimeApuracao: dados.inicio,
+        balancete: 'S',
+        dre: 'S',
+        planoContas: dados.planoContas ?? { tipo: 'D' },
+      },
     });
   }
 
