@@ -607,6 +607,20 @@ export class OneflowAdapter {
    *
    * O plano "D" (dinâmico) é o mesmo que a HEXX usa, e é o que o de-para de
    * contas do Hub já conhece.
+   *
+   * ⚠️ NÃO CHAME ISTO. Medido em 2026-09-20, na HEXX, três vezes: responde
+   * 201, marca o onboarding como **concluído** e não cria plano de contas
+   * nenhum — inclusive com a competência correta e `planoContas: {tipo:'D'}`.
+   * Os únicos planos que existem no escritório (BM3, Nathalia) nasceram pelo
+   * assistente da TELA do OneFlow.
+   *
+   * Como o assistente roda UMA vez por empresa, chamar isto não é inofensivo:
+   * queima a única chance e deixa a empresa sem plano e sem conserto pela API
+   * ("O onboarding do contábil já foi concluído!(5114)"). Só o reset pela tela
+   * devolve a escolha, e ele apaga os lançamentos contábeis.
+   *
+   * Fica no adaptador como registro do que foi testado. O caminho válido é o
+   * contador configurar pela tela; `conferirPlanoDoOneflow` é quem verifica.
    */
   async configurarContabil(
     companyId: string,
