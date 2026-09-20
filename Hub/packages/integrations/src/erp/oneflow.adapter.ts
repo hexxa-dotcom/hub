@@ -681,6 +681,42 @@ export class OneflowAdapter {
     );
   }
 
+  /**
+   * O id do plano de contas VINCULADO a esta empresa — `0` quando não há.
+   *
+   * É a prova mais direta que existe de que o contábil está configurado, e
+   * custa uma chamada só. Vem de carona no balancete, que devolve
+   * `idPlanoContas` ao lado das linhas.
+   *
+   * A lista de contas não serve para isso: sem plano vinculado ela responde
+   * "Não existem registros para a página [1]", que se confunde com plano
+   * vazio e com erro de leitura. Foi essa ambiguidade que custou horas na
+   * HEXX — a tela do OneFlow mostrava o plano dinâmico (o MODELO, que existe
+   * no escritório) enquanto a empresa seguia com `idPlanoContas: 0`.
+   */
+  async planoVinculado(companyId: string, appHash: string): Promise<number> {
+    /**
+     * Tenta duas vezes, e **deixa o erro subir**.
+     *
+     * O balancete devolve 504 de vez em quando. Tratar a falha como `0` seria
+     * o pior resultado possível: uma empresa configurada apareceria como "sem
+     * plano", e quem olhasse iria resetar o contábil dela — apagando os
+     * lançamentos por causa de um timeout. Melhor falhar dizendo que falhou.
+     */
+    for (let tentativa = 1; ; tentativa++) {
+      try {
+        // Competência qualquer serve: só queremos o cabeçalho da resposta.
+        const r = (await this.balancete(companyId, appHash, '2026-01-01', '2026-01-31')) as {
+          result?: { idPlanoContas?: number | string };
+        };
+        return Number(r?.result?.idPlanoContas ?? 0);
+      } catch (err) {
+        if (tentativa >= 2) throw err;
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+    }
+  }
+
   /* ── Folha — a mão de volta ──────────────────────────────────────────── */
 
   /**

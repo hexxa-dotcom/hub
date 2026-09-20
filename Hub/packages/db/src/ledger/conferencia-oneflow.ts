@@ -156,6 +156,15 @@ export async function conferirContraOneflow(
 export interface ConferenciaDoPlano {
   /** Modelo de plano que a empresa usa no OneFlow ('Dinâmico', 'Padrão'…). */
   modelo: string | null;
+  /**
+   * `idPlanoContas` que o balancete devolve. **Informativo apenas.**
+   *
+   * Não decide nada: em 2026-09-20 a BM3 devolveu um id e a Nathalia devolveu
+   * `0`, ambas com o plano dinâmico completo e 33/33. Aparentemente só vem
+   * preenchido quando a competência consultada tem movimento. Quem responde
+   * se a empresa está pronta é a lista de contas.
+   */
+  planoVinculado: number;
   contasNoOneflow: number;
   /** Destinos do de-para que EXISTEM no plano dela. */
   encontrados: number;
@@ -189,6 +198,10 @@ export async function conferirPlanoDoOneflow(
 ): Promise<ConferenciaDoPlano> {
   const of = clienteOneflow(tx);
 
+  // Só para o diagnóstico. Não entra no veredito — ver `planoVinculado` na
+  // interface. Um 504 aqui não pode derrubar a conferência inteira.
+  const planoVinculado = await of.planoVinculado(companyId, appHash).catch(() => 0);
+
   const classificacoes = new Set<string>();
   let contas = 0;
   let modelo: string | null = null;
@@ -217,6 +230,7 @@ export async function conferirPlanoDoOneflow(
 
   return {
     modelo,
+    planoVinculado,
     contasNoOneflow: contas,
     encontrados: porDestino.size - faltando.length,
     faltando,
