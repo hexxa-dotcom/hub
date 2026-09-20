@@ -35,7 +35,7 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
  * plano da plataforma. Tratar isso como estado nomeado é o que permite a
  * lista partir de `company`, e não sumir com quem ainda não assinou.
  */
-type Status = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED' | 'SEM_PLANO';
+type Status = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED' | 'SEM_PLANO' | 'ENCERRADO';
 
 export type Cliente = {
   id: string; // subscription.id, ou company.id quando não há assinatura
@@ -64,6 +64,7 @@ const STATUS_CFG: Record<Status, { label: string; cls: string; icon: React.Compo
   TRIAL: { label: 'Trial', cls: 'bg-blue-50 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200', icon: Clock },
   PAST_DUE: { label: 'Inadimplente', cls: 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 border border-red-200', icon: AlertTriangle },
   CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61]', icon: AlertTriangle },
+  ENCERRADO: { label: 'Encerrado', cls: 'bg-black/5 text-[#6E6A61] line-through dark:bg-white/10 dark:text-[#A8A49C]', icon: AlertTriangle },
   SEM_PLANO: { label: 'Sem plano', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C] border border-black/5 dark:border-white/10', icon: Clock },
 };
 
@@ -103,11 +104,12 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
 
   async function alterarStatus(id: string, status: Status) {
     /**
-     * `SEM_PLANO` não é um status que se atribui — é a falta de assinatura.
-     * Mandá-lo para a ação de status tentaria gravar um valor que o enum do
-     * banco não aceita. Contratar um plano é outro caminho.
+     * `SEM_PLANO` e `ENCERRADO` não são status que se atribuem — um é a falta
+     * de assinatura, o outro é a empresa ter saído. Mandá-los para a ação de
+     * status tentaria gravar um valor que o enum do banco não aceita.
+     * Contratar um plano e encerrar o cliente são outros caminhos.
      */
-    if (status === 'SEM_PLANO') return;
+    if (status === 'SEM_PLANO' || status === 'ENCERRADO') return;
 
     setBusy(id);
     const res = await changeSubscriptionStatusAction(id, status);

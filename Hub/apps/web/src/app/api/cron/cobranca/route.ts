@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout } from '@hexxa/db';
 import { contract, financialEntry, customer, company, serviceInvoice } from '@hexxa/db/schema';
-import { eq, and, lte, lt } from 'drizzle-orm';
+import { eq, and, lte, lt, isNull } from 'drizzle-orm';
 import { makeServiceInvoiceService } from '@/lib/server/container';
 import type { TenantContext } from '@hexxa/core';
 
@@ -69,7 +69,8 @@ export async function GET(request: Request) {
         .from(contract)
         .innerJoin(company, eq(contract.companyId, company.id))
         .innerJoin(customer, eq(contract.customerId, customer.id))
-        .where(and(eq(contract.status, 'ACTIVE'), lte(contract.nextBillingDate, todayStr))),
+        // Cliente encerrado não fatura os clientes dele por aqui — ver 0065.
+        .where(and(eq(contract.status, 'ACTIVE'), lte(contract.nextBillingDate, todayStr), isNull(company.closedAt))),
       8000,
     );
 

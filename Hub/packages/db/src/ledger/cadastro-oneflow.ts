@@ -114,6 +114,25 @@ export async function cadastrarDoOneflow(
   const razao = texto('razaoSocial') || texto('razao') || cnpjDaLista;
   const fantasia = texto('fantasia');
 
+  /**
+   * Regime tributário: o de lá prevalece.
+   *
+   * Era gravado fixo como Simples Nacional para todo cliente — um Lucro
+   * Presumido entraria no Hub com a régua de imposto errada, e nada acusaria.
+   * O `dadosbasicos` traz `regimeTributario` por extenso; MEI é Simples.
+   * Regime que não reconhecemos não vira palpite: a empresa entra, e o aviso
+   * manda conferir.
+   */
+  const regimeLa = texto('regimeTributario');
+  const regime = regimeDoOneflow(regimeLa);
+  if (!regime) {
+    avisos.push(
+      regimeLa
+        ? `Regime "${regimeLa}" do OneFlow não reconhecido — confira o regime na ficha do cliente.`
+        : 'O OneFlow não informou o regime tributário — confira na ficha do cliente.',
+    );
+  }
+
   const cnpjFormatado = texto('cnpj') || cnpjDaLista;
   const campos = {
     legal_name: razao,
@@ -143,7 +162,8 @@ export async function cadastrarDoOneflow(
         city = COALESCE(${campos.city}, city),
         state = COALESCE(${campos.state}, state),
         zipcode = COALESCE(${campos.zipcode}, zipcode),
-        municipal_registration = COALESCE(${campos.municipal_registration}, municipal_registration)
+        municipal_registration = COALESCE(${campos.municipal_registration}, municipal_registration),
+        tax_regime = COALESCE(${regime}::tax_regime, tax_regime)
       WHERE id = ${companyId}
     `);
   } else {
@@ -152,7 +172,7 @@ export async function cadastrarDoOneflow(
                            address_line1, address_number, neighborhood, city, state,
                            zipcode, municipal_registration)
       VALUES (${campos.legal_name}, ${campos.trade_name}, ${campos.cnpj}, 'SERVICE',
-              'SIMPLES_NACIONAL', ${campos.address_line1}, ${campos.address_number},
+              ${regime ?? 'SIMPLES_NACIONAL'}::tax_regime, ${campos.address_line1}, ${campos.address_number},
               ${campos.neighborhood}, ${campos.city}, ${campos.state},
               ${campos.zipcode}, ${campos.municipal_registration})
       RETURNING id::text
@@ -160,6 +180,12 @@ export async function cadastrarDoOneflow(
     companyId = nova!.id;
     criada = true;
   }
+
+  // Veio do OneFlow, então está lá: a ficha não deve oferecer "criar no
+  // OneFlow" para ela. Ver 0066.
+  await tx.execute(sql`
+    UPDATE company SET oneflow_created_at = COALESCE(oneflow_created_at, NOW()) WHERE id = ${companyId}
+  `);
 
   // Passa a chave do token do appHash provisório para o id definitivo.
   await tx.execute(sql`
@@ -263,6 +289,17 @@ export async function cadastrarDoOneflow(
     modulos,
     avisos,
   };
+}
+
+/** `regimeTributario` do OneFlow, por extenso → enum do Hub. `null` = não reconhecido. */
+export function regimeDoOneflow(
+  texto: string,
+): 'SIMPLES_NACIONAL' | 'LUCRO_PRESUMIDO' | 'LUCRO_REAL' | null {
+  const t = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/simples|\bmei\b|microempreendedor/.test(t)) return 'SIMPLES_NACIONAL';
+  if (/presumido/.test(t)) return 'LUCRO_PRESUMIDO';
+  if (/\breal\b/.test(t)) return 'LUCRO_REAL';
+  return null;
 }
 
 /** Reexportado para a tela poder oferecer a busca por CNPJ avulso. */

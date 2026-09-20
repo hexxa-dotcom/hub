@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout, eq, and, sql } from '@hexxa/db';
+import { isNull } from 'drizzle-orm';
 import { accountingInvoice, subscription, plan, company } from '@hexxa/db/schema';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,8 @@ export async function GET(request: Request) {
         .from(subscription)
         .innerJoin(plan, eq(subscription.planId, plan.id))
         .innerJoin(company, eq(company.id, subscription.companyId))
-        .where(eq(subscription.status, 'ACTIVE')),
+        // Cliente encerrado não recebe fatura — ver 0065.
+        .where(and(eq(subscription.status, 'ACTIVE'), isNull(company.closedAt))),
       8000,
     );
 

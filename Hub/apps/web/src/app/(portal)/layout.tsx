@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
+import { CadastroEmValidacao } from './CadastroEmValidacao';
 import { NAV } from '@/lib/nav';
 import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
 import { company, appUser, membership, getDb, withTenant, eq } from '@hexxa/db';
@@ -32,11 +33,27 @@ export default async function PortalLayout({ children }: { children: React.React
   // uuid de appUser, então nem tenta a query nesses casos.
   const isRealUser = /^[0-9a-f-]{36}$/i.test(ctx.userId);
   let userRow: { name: string; email: string } | undefined;
-  let memberships: { id: string }[] = [];
+  let memberships: { id: string; companyId: string; authorized: boolean }[] = [];
   if (isRealUser) {
     const db = getDb();
     [userRow] = await db.select({ name: appUser.name, email: appUser.email }).from(appUser).where(eq(appUser.id, ctx.userId));
-    memberships = await db.select({ id: membership.id }).from(membership).where(eq(membership.userId, ctx.userId));
+    memberships = await db
+      .select({ id: membership.id, companyId: membership.companyId, authorized: membership.authorized })
+      .from(membership)
+      .where(eq(membership.userId, ctx.userId));
+  }
+
+  /**
+   * Cadastro ainda não aprovado pelo escritório: só a tela de validação.
+   *
+   * O contador revisa, aprova, e a aprovação cria a empresa no OneFlow —
+   * onde as regras tributárias são definidas. Antes disso o Hub não tem
+   * regime nem contabilidade do outro lado, e qualquer número de imposto
+   * que mostrasse seria palpite.
+   */
+  const vinculo = memberships.find((m) => m.companyId === ctx.companyId);
+  if (vinculo && !vinculo.authorized) {
+    return <CadastroEmValidacao empresa={dbCompany?.legalName ?? ''} nome={userRow?.name} />;
   }
 
   return (

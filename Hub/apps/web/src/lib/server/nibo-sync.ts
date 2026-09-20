@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, withDbTimeout, eq, and } from '@hexxa/db';
+import { getDb, withDbTimeout, eq, and, sql } from '@hexxa/db';
 import { financialEntry, businessPartner, integrationCredential, customer } from '@hexxa/db/schema';
 import { NiboAdapter, type NiboSchedule, type NiboCustomer } from '@hexxa/integrations';
 import { decryptSecret } from './secret-crypto';
@@ -146,7 +146,12 @@ export async function syncNiboForAllCompanies(): Promise<NiboSyncResult[]> {
     db
       .select({ companyId: integrationCredential.companyId, secretRef: integrationCredential.secretRef })
       .from(integrationCredential)
-      .where(and(eq(integrationCredential.provider, 'nibo'), eq(integrationCredential.active, true))),
+      .where(and(
+        eq(integrationCredential.provider, 'nibo'),
+        eq(integrationCredential.active, true),
+        // Cliente encerrado não é mais sincronizado — ver 0065.
+        sql`NOT EXISTS (SELECT 1 FROM company c WHERE c.id = ${integrationCredential.companyId} AND c.closed_at IS NOT NULL)`,
+      )),
     8000,
   );
 

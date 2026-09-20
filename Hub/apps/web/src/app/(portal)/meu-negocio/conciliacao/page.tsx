@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 export default async function Page() {
-  const [data, contas, meses] = await Promise.all([
+  const [data, contas, desde] = await Promise.all([
     getReconciliationData(), contasDaEmpresa(), janelaDeHistorico(),
   ]);
 
@@ -40,7 +40,7 @@ export default async function Page() {
         </div>
       </Card>
 
-      <SubirExtrato contas={contas} meses={meses} />
+      <SubirExtrato contas={contas} desde={desde} />
 
       <ConciliacaoClient transactions={data.transactions} entries={data.entries} />
     </div>

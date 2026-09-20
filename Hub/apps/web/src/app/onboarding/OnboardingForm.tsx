@@ -76,6 +76,34 @@ export function OnboardingForm({ companyName, existingCompanyId }: { companyName
             />
           </div>
 
+          {/*
+            Quem responde pela empresa. O OneFlow exige CPF e celular para
+            criar a empresa lá quando o contador aprovar o cadastro.
+          */}
+          <div className="grid gap-3 pt-1">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsável pela empresa</p>
+            {[
+              { id: 'nome', label: 'Nome completo', type: 'text', placeholder: 'Como no documento', auto: 'name' },
+              { id: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00', auto: 'off' },
+              { id: 'celular', label: 'Celular (WhatsApp)', type: 'tel', placeholder: '(00) 00000-0000', auto: 'tel' },
+            ].map((c) => (
+              <div key={c.id}>
+                <label htmlFor={c.id} className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  {c.label}
+                </label>
+                <input
+                  id={c.id}
+                  name={c.id}
+                  type={c.type}
+                  placeholder={c.placeholder}
+                  autoComplete={c.auto}
+                  required
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+            ))}
+          </div>
+
           {consultando && (
             <p className="flex items-center gap-2 text-sm text-slate-500">
               <Spinner className="h-4 w-4 animate-spin" /> Consultando a Receita…
@@ -109,7 +137,7 @@ export function OnboardingForm({ companyName, existingCompanyId }: { companyName
       </div>
 
       <p className="mt-6 text-center text-xs text-white/60">
-        Você poderá revisar e completar os dados depois em Configurações.
+        Depois de enviar, o escritório valida o cadastro antes de liberar o acesso.
       </p>
     </div>
   );

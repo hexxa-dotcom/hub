@@ -11,12 +11,59 @@ import type { LancamentoOneflow } from '@hexxa/integrations';
  * divergisse, o mês ficaria esperando para sempre uma partida que o envio
  * nunca manda.
  *
- * É a escolha segura enquanto não se confirma se o OneFlow integra fiscal e
- * folha ao contábil sozinho: uma partida que faltar lá dá para mandar depois;
- * uma duplicada só sai por exclusão manual.
+ * Confirmado com o escritório: no OneFlow os módulos fiscal e de folha são
+ * integrados ao contábil — gerar a apuração ou a folha lá já lança no
+ * contábil de lá. Devolver esses reconhecimentos daqui duplicaria imposto e
+ * folha nos livros oficiais. O que o Hub manda é o que só ele vê: o banco,
+ * as despesas, o pagamento das guias.
+ *
+ * A RECEITA segue a mesma regra, sem exceção. Definido pelo escritório: a
+ * única receita que vale — para imposto e para os livros — é a da nota
+ * fiscal emitida. A nota vai ao fiscal do OneFlow, e o fiscal lança lá
+ * "cliente a receber contra receita" no mês de competência. Daqui vai só o
+ * recebimento — banco contra cliente a receber —, que baixa o que o fiscal
+ * lançou. A receita que o Hub reconhece por outra via (boleto, entrada do
+ * extrato) é visão interna e nunca sai daqui: mandá-la criaria nos livros
+ * oficiais faturamento sem nota, ou dobraria o que tem nota.
+ *
+ * E o RECEBIMENTO de um a receber sem nota também fica: sem a receita lá, ele
+ * baixaria um "cliente a receber" que o fiscal nunca lançou, e a conta
+ * ficaria negativa no balanço oficial. Decisão do escritório: isso é
+ * informação interna. "Tem nota" usa o mesmo critério do fechamento
+ * (`receita_sem_nota`): origem NFSE/DFE_SYNC, ou nota emitida no mesmo mês e
+ * valor — se os dois divergissem, o mês fecharia com uma coisa e mandaria
+ * outra.
  */
 export const ORIGEM_ONEFLOW = sql.raw(
-  `(j.event = 'ACCRUAL' AND j.source IN ('TAX_GUIDE', 'PAYSLIP'))`,
+  `(
+    (j.event = 'ACCRUAL' AND j.source IN ('TAX_GUIDE', 'PAYSLIP'))
+    OR (
+      j.event = 'ACCRUAL'
+      AND j.source = 'FINANCIAL_ENTRY'
+      AND EXISTS (
+        SELECT 1 FROM ledger_line rl
+          JOIN chart_of_account ra ON ra.id = rl.account_id
+         WHERE rl.journal_entry_id = j.id AND ra.code LIKE '3.1.1%'
+      )
+    )
+    OR (
+      j.event = 'SETTLEMENT'
+      AND j.source = 'FINANCIAL_ENTRY'
+      AND EXISTS (
+        SELECT 1 FROM financial_entry fe
+         WHERE fe.id = j.source_id
+           AND fe.type = 'RECEIVABLE'
+           AND COALESCE(fe.source, '') NOT IN ('NFSE', 'DFE_SYNC')
+           AND NOT EXISTS (
+             SELECT 1 FROM service_invoice si
+              WHERE si.company_id = fe.company_id
+                AND si.status = 'ISSUED'
+                AND abs(si.amount - fe.amount) < 0.01
+                AND si.reference_month = fe.reference_month
+           )
+      )
+    )
+  )`,
 );
 
 /**
@@ -82,7 +129,8 @@ export interface EnsaioResult {
  *    de lá, que alimentam o contábil de lá. Devolvê-los duplicaria imposto e
  *    folha nos livros oficiais — e a provisão do DAS, que é estimativa nossa,
  *    iria junto. O PAGAMENTO da guia continua indo: é fato do banco, visto
- *    aqui. Ver `ORIGEM_ONEFLOW`.
+ *    aqui. Confirmado: o OneFlow integra fiscal e folha ao contábil sozinho.
+ *    Ver `ORIGEM_ONEFLOW`.
  */
 export async function ensaiarEnvio(
   tx: DbHandle,
@@ -338,6 +386,20 @@ export async function enviarRazao(
       });
       await registrarEnvio(tx, companyId, p.journalEntryId, r.id);
       out.enviadas++;
+      /**
+       * Aceito, mas sem id: fica registrado como ENVIADO — ele existe lá, e
+       * reenviar duplicaria —, e o lote para. Sem id não dá para excluir
+       * pela API, e seguir enviando multiplicaria lançamentos que só saem
+       * à mão. Ver `idDoLancamento`.
+       */
+      if (!r.id) {
+        out.restantes = ensaio.prontas.length - i - 1;
+        out.erros.push({
+          journalEntryId: p.journalEntryId,
+          motivo: 'O OneFlow aceitou o lançamento sem devolver o id. Envio interrompido — confira a resposta da API antes de continuar.',
+        });
+        break;
+      }
     } catch (err) {
       const motivo = err instanceof Error ? err.message : String(err);
       // Cota diária: parar o lote INTEIRO. Continuar só geraria uma lista de
@@ -386,4 +448,136 @@ export async function registrarEnvio(
     VALUES (${companyId}, ${journalEntryId}, ${oneflowId}, ${erro ? 'ERRO' : 'ENVIADO'}, ${erro ?? null})
     ON CONFLICT DO NOTHING
   `);
+}
+
+export interface ResultadoRetirada {
+  retiradas: number;
+  falhas: { journalEntryId: string; oneflowId: string; motivo: string }[];
+  /** Parou antes do fim — cota, ou uma falha que não se explica. */
+  interrompida: string | null;
+}
+
+/**
+ * Retira do OneFlow as partidas enviadas de MESES INFORMADOS, que não têm
+ * autorização de envio.
+ *
+ * Antes da trava de liberação, o envio era contínuo e mandou o mês corrente,
+ * aberto, e parcelas de meses futuros. Cada partida é excluída lá pelo id
+ * que o OneFlow devolveu no envio e fica marcada RETIRADO aqui — e volta para
+ * a fila sozinha quando o mês for liberado, porque só ENVIADO conta como
+ * enviado.
+ *
+ * ── Por que os meses são obrigatórios ──────────────────────────────────
+ *
+ * A primeira versão decidia sozinha: "tudo de mês sem autorização". Parecia
+ * o mesmo critério, e não era — os meses enviados antes da trava existir
+ * também não têm autorização, e foram juntos. Pediu-se para retirar 38
+ * partidas de setembro em diante; saíram 280, e os livros oficiais de janeiro
+ * a agosto ficaram vazios até o reenvio. Excluir dos livros oficiais é
+ * decisão de quem pede, mês a mês — nunca uma inferência.
+ *
+ * Para na primeira resposta que não seja sucesso.
+ */
+export async function retirarEnviosNaoAutorizados(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  cliente: { excluirLancamento: (c: string, a: string, id: string) => Promise<void> },
+  /** Meses a retirar, 'AAAA-MM-01'. Obrigatório e não vazio. */
+  meses: string[],
+  opts: { limite?: number } = {},
+): Promise<ResultadoRetirada> {
+  if (!meses.length || meses.some((m) => !/^\d{4}-\d{2}-01$/.test(m))) {
+    throw new Error('Informe os meses a retirar, no formato AAAA-MM-01.');
+  }
+  const alvos = (await tx.execute(sql`
+    SELECT e.id::text AS envio_id, e.journal_entry_id::text AS journal_id, e.oneflow_id
+      FROM oneflow_envio e
+      JOIN journal_entry j ON j.id = e.journal_entry_id
+      LEFT JOIN monthly_closure mc
+        ON mc.company_id = j.company_id AND mc.reference_month = j.reference_month
+     WHERE e.company_id = ${companyId}
+       AND e.status = 'ENVIADO'
+       AND e.oneflow_id IS NOT NULL
+       AND mc.send_authorized_at IS NULL
+       AND to_char(j.reference_month, 'YYYY-MM-DD') = ANY(${`{${meses.join(',')}}`}::text[])
+     ORDER BY j.reference_month DESC, j.entry_date DESC
+     LIMIT ${String(opts.limite ?? 1000)}::int
+  `)) as unknown as { envio_id: string; journal_id: string; oneflow_id: string }[];
+
+  return excluirDoOneflow(tx, companyId, appHash, cliente, alvos, 'enviado antes da liberação do mês.');
+}
+
+/**
+ * Retira do OneFlow as partidas de MESES INFORMADOS que foram enviadas mas
+ * que a regra atual não manda — as que hoje caem em `ORIGEM_ONEFLOW`.
+ *
+ * Existe para a receita da HEXX: o Hub mandou o reconhecimento dos boletos
+ * como receita antes de a regra ficar definida (receita é só a da nota
+ * fiscal). Serve para qualquer regra que venha a excluir o que já foi: o
+ * critério é o mesmo fragmento que o envio usa, então o que sai daqui é
+ * exatamente o que o envio não mandaria hoje — e não volta, porque o envio
+ * continua a excluí-lo.
+ *
+ * Meses obrigatórios pelo mesmo motivo de `retirarEnviosNaoAutorizados`.
+ */
+export async function retirarEnviosForaDaRegra(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  cliente: { excluirLancamento: (c: string, a: string, id: string) => Promise<void> },
+  /** Meses a retirar, 'AAAA-MM-01'. Obrigatório e não vazio. */
+  meses: string[],
+  opts: { limite?: number } = {},
+): Promise<ResultadoRetirada> {
+  if (!meses.length || meses.some((m) => !/^\d{4}-\d{2}-01$/.test(m))) {
+    throw new Error('Informe os meses a retirar, no formato AAAA-MM-01.');
+  }
+  const alvos = (await tx.execute(sql`
+    SELECT e.id::text AS envio_id, e.journal_entry_id::text AS journal_id, e.oneflow_id
+      FROM oneflow_envio e
+      JOIN journal_entry j ON j.id = e.journal_entry_id
+     WHERE e.company_id = ${companyId}
+       AND e.status = 'ENVIADO'
+       AND e.oneflow_id IS NOT NULL
+       AND ${ORIGEM_ONEFLOW}
+       AND to_char(j.reference_month, 'YYYY-MM-DD') = ANY(${`{${meses.join(',')}}`}::text[])
+     ORDER BY j.reference_month, j.entry_date
+     LIMIT ${String(opts.limite ?? 1000)}::int
+  `)) as unknown as { envio_id: string; journal_id: string; oneflow_id: string }[];
+
+  return excluirDoOneflow(
+    tx, companyId, appHash, cliente, alvos,
+    'fora da regra de envio (receita só pela nota fiscal).',
+  );
+}
+
+/** Exclui lá, marca RETIRADO aqui. Para na primeira falha. */
+async function excluirDoOneflow(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  cliente: { excluirLancamento: (c: string, a: string, id: string) => Promise<void> },
+  alvos: { envio_id: string; journal_id: string; oneflow_id: string }[],
+  motivoDaRetirada: string,
+): Promise<ResultadoRetirada> {
+  const out: ResultadoRetirada = { retiradas: 0, falhas: [], interrompida: null };
+  for (const a of alvos) {
+    try {
+      await cliente.excluirLancamento(companyId, appHash, a.oneflow_id);
+    } catch (err) {
+      const motivo = err instanceof Error ? err.message : String(err);
+      out.falhas.push({ journalEntryId: a.journal_id, oneflowId: a.oneflow_id, motivo });
+      out.interrompida = motivo;
+      break;
+    }
+    await tx.execute(sql`
+      UPDATE oneflow_envio
+         SET status = 'RETIRADO',
+             erro = ${'Excluído do OneFlow em ' + new Date().toISOString().slice(0, 10) + ': ' + motivoDaRetirada}
+       WHERE id = ${a.envio_id}
+    `);
+    out.retiradas++;
+  }
+  return out;
 }

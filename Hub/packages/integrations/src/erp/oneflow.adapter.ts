@@ -149,6 +149,46 @@ export interface NotaFiscalOneflow {
  */
 const INTERVALO_ENTRE_CHAMADAS_MS = 1100;
 
+/**
+ * Corpo do `escritorio/empresas/criar` — só os campos que o Hub preenche.
+ * Códigos conforme a documentação da API (swaggerhub oneflowoficial 2.0.0).
+ */
+export interface CadastroEmpresaOneflow {
+  razao: string;
+  nomeFantasia: string;
+  /** Sem máscara. */
+  cnpj: string;
+  inscricaoMunicipal?: string;
+  CNAEPrincipal?: string;
+  /** 1 Simples · 2 Simples com excesso de sublimite · 3 Presumido · 4 Real · 5 Produtor rural · 8 MEI · 9 Isento. */
+  regimeTributario: '1' | '2' | '3' | '4' | '5' | '8' | '9';
+  /** 0 Industrial · 1 Comércio varejista · 2 Serviços · 3 Construção civil · 4 Atacado · 5 Exportadora · 6/7 Importador · 8 Associação · 9 Órgão público. */
+  tipoAtividade: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+  /** CPF do contador a vincular. */
+  contador?: string;
+  contato: {
+    nomeContato: string;
+    email: string;
+    dddCelular: string;
+    numCelular: string;
+    dddTelefone: string;
+    numTelefone: string;
+  };
+  endereco: {
+    cep: string;
+    rua: string;
+    numero: string;
+    complemento?: string;
+    bairro: string;
+    cidade: string;
+    uf: string;
+  };
+  appOwner: { nome: string; email: string; dddCelular: string; numCelular: string };
+  usuarios: { nome: string; email: string }[];
+  /** FIS Fiscal · CTL Contábil · FPG Folha · CLI Portal. Competência AAAAMM. */
+  modulos: { modulo: 'FIS' | 'CTL' | 'FPG' | 'CLI'; competencia: string }[];
+}
+
 export class OneflowAdapter {
   /**
    * Chamado ANTES de cada requisição, para contar a cota.
@@ -375,6 +415,42 @@ export class OneflowAdapter {
     return of.app_hash;
   }
 
+  /**
+   * Cria a empresa no OneFlow (como "não cliente do Omie ERP"), já com os
+   * módulos e a competência inicial de cada um.
+   *
+   * Não há endpoint para excluir empresa: o que for criado errado sai à mão.
+   * Por isso só é chamado na aprovação do contador, com o que vai ser
+   * enviado mostrado antes — nunca no cadastro do cliente.
+   */
+  async criarEmpresa(cadastro: CadastroEmpresaOneflow): Promise<unknown> {
+    const hash = await this.appHashDoEscritorio();
+    const token = await this.tokenDoApp(hash, 'APP', hash);
+    return this.pedir(`${API}/oneflow/escritorio/empresas/criar`, {
+      token,
+      method: 'POST',
+      body: cadastro,
+    });
+  }
+
+  /**
+   * A empresa já existe no OneFlow? Pelo CNPJ.
+   *
+   * O endpoint responde erro quando não encontra, e é assim que "não
+   * existe" chega — por isso a busca é pela listagem, que diz a mesma coisa
+   * sem confundir "não existe" com "a chamada falhou".
+   */
+  async empresaPorCnpj(cnpj: string): Promise<EmpresaOneflow | null> {
+    const so = cnpj.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+    for (let pagina = 1; pagina <= 20; pagina++) {
+      const lote = await this.listarEmpresas(pagina);
+      if (!lote.length) return null;
+      const achada = lote.find((e) => e.cnpj.replace(/[^0-9A-Za-z]/g, '').toUpperCase() === so);
+      if (achada) return achada;
+    }
+    return null;
+  }
+
   /** Empresas do escritório, com o `app_hash` de cada uma. */
   async listarEmpresas(pagina = 1): Promise<EmpresaOneflow[]> {
     const hash = await this.appHashDoEscritorio();
@@ -473,7 +549,24 @@ export class OneflowAdapter {
       `${API}/oneflow/empresa/contabil/lancamentos/gerarlancamento`,
       { token, method: 'POST', body: lancamento },
     );
-    return { id: (r.id ?? r.idLancamento ?? null) as string | null };
+    return { id: idDoLancamento(r) };
+  }
+
+  /**
+   * Exclui um lançamento contábil pelo id que o próprio OneFlow devolveu.
+   *
+   * Responde `201` quando exclui. A listagem do razão de lá não devolve ids,
+   * então só dá para excluir o que o Hub enviou e cujo id guardou em
+   * `oneflow_envio.oneflow_id` — que é exatamente o que precisa sair quando
+   * algo foi enviado sem dever.
+   */
+  async excluirLancamento(companyId: string, appHash: string, id: string): Promise<void> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    await this.pedir(`${API}/oneflow/empresa/contabil/lancamentos/excluirlancamento`, {
+      token,
+      method: 'POST',
+      body: { id: Number(id) },
+    });
   }
 
   /** Balancete do OneFlow — para conferir contra o nosso. */
@@ -745,4 +838,24 @@ export class OneflowAdapter {
       body: { competencia, ...(modulo ? { modulo } : {}) },
     });
   }
+}
+
+/**
+ * Id do lançamento criado, na resposta do `gerarlancamento`.
+ *
+ * A resposta é `{"code":"201","result":{"id":11561902216}}` — o id vem
+ * DENTRO de `result`. A leitura antiga olhava só o primeiro nível e gravava
+ * nulo sem acusar nada: 153 partidas reenviadas em 19/09/2026 ficaram sem
+ * id, e sem id o OneFlow não deixa excluir pela API.
+ *
+ * Devolve `null` em vez de lançar: o lançamento JÁ EXISTE lá, e tratá-lo
+ * como falha faria o Hub reenviá-lo no dia seguinte, em dobro. Quem envia
+ * decide o que fazer com a falta — `enviarRazao` para o lote.
+ */
+export function idDoLancamento(resposta: Record<string, unknown>): string | null {
+  const dentro = (resposta.result && typeof resposta.result === 'object'
+    ? resposta.result
+    : {}) as Record<string, unknown>;
+  const id = dentro.id ?? dentro.idLancamento ?? resposta.id ?? resposta.idLancamento;
+  return id === undefined || id === null || String(id).trim() === '' ? null : String(id);
 }

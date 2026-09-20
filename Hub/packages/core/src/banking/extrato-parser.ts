@@ -309,6 +309,30 @@ export function lerCsv(conteudo: string): ResultadoLeitura {
   return { linhas, banco: null, conta: null, ...periodo(linhas), ignoradas };
 }
 
+/* ── Codificação do arquivo ─────────────────────────────────────────────── */
+
+/**
+ * Bytes do arquivo → texto, na codificação em que o banco gravou.
+ *
+ * Nubank e os bancos digitais gravam em UTF-8; Itaú, BB, Caixa e boa parte
+ * dos bancos tradicionais ainda gravam OFX em Windows-1252 (`CHARSET:1252`).
+ * Ler tudo como UTF-8 transforma "Transferência" em "Transfer�ncia" — o valor
+ * continua certo, mas a descrição que a identificação usa fica ilegível e o
+ * histórico deixa de reconhecer o fornecedor.
+ *
+ * A decisão é pelo conteúdo, não pelo cabeçalho: um texto com acento em
+ * Windows-1252 quase nunca é UTF-8 válido, então o UTF-8 estrito falha e
+ * cai no 1252. Cabeçalho mentindo sobre a codificação é comum o bastante
+ * para não confiar nele.
+ */
+export function textoDoExtrato(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^﻿/, '');
+  } catch {
+    return new TextDecoder('windows-1252').decode(bytes);
+  }
+}
+
 /* ── Porta única ────────────────────────────────────────────────────────── */
 
 /** Escolhe o leitor pelo conteúdo, não pela extensão do arquivo. */

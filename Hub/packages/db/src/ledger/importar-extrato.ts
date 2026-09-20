@@ -23,22 +23,33 @@ export interface ResultadoImportacao {
   conta: string | null;
   /** Linhas do arquivo que não viraram transação, com o motivo. */
   ignoradas: { linha: string; motivo: string }[];
-  /** Fora da janela permitida — ver `MESES_DE_HISTORICO`. */
+  /** Anteriores ao início da janela — ver `inicioDaJanelaDeExtrato`. */
   foraDaJanela: number;
+  /** Primeiro dia aceito, 'AAAA-MM-DD'. */
+  janelaDesde: string;
 }
 
 /**
- * Até quando para trás um extrato pode trazer lançamento.
+ * Primeiro dia aceito num extrato: 1º de janeiro do ano corrente.
  *
- * Cliente novo traz o que tem, e às vezes isso é o extrato do ano inteiro.
- * Mas o que ficou para trás pertence a quem cuidava da empresa antes: o saldo
- * daquele período entra por `abrirSaldos`, não como centenas de lançamentos
- * que ninguém aqui conferiu e que ninguém aqui vai conseguir explicar.
+ * Regra do escritório: a operação lança só a competência do ano vigente.
+ * Cliente que chega no meio do ano entra com o balanço de 31/12 do ano
+ * anterior (saldos de abertura) e o extrato de janeiro em diante — o que
+ * ficou antes disso é do exercício anterior, fechado, e não recebe
+ * lançamento daqui.
  *
- * Seis meses cobre a troca de contabilidade no meio do ano sem transformar a
- * importação num resgate de arqueologia.
+ * A única folga é janeiro: o fechamento de dezembro acontece em janeiro, e
+ * sem ela o extrato de dezembro seria recusado justamente no mês em que ele
+ * é fechado. Em janeiro, portanto, dezembro do ano anterior ainda entra.
+ *
+ * @param hoje 'AAAA-MM-DD' no fuso de São Paulo (padrão: agora).
  */
-export const MESES_DE_HISTORICO = 6;
+export function inicioDaJanelaDeExtrato(hoje?: string): string {
+  const dia = hoje ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const ano = Number(dia.slice(0, 4));
+  const mes = Number(dia.slice(5, 7));
+  return mes === 1 ? `${ano - 1}-12-01` : `${ano}-01-01`;
+}
 
 /**
  * Lê o arquivo e grava as transações que ainda não existem.
@@ -61,14 +72,11 @@ export async function importarExtrato(
   companyId: string,
   bankAccountId: string,
   conteudo: string,
-  opts: { limiteDeMeses?: number } = {},
+  opts: { hoje?: string } = {},
 ): Promise<ResultadoImportacao> {
   const lido: ResultadoLeitura = lerExtrato(conteudo);
 
-  const meses = opts.limiteDeMeses ?? MESES_DE_HISTORICO;
-  const corte = new Date();
-  corte.setUTCMonth(corte.getUTCMonth() - meses);
-  const dataCorte = corte.toISOString().slice(0, 10);
+  const dataCorte = inicioDaJanelaDeExtrato(opts.hoje);
 
   const dentro: LinhaDeExtrato[] = [];
   let foraDaJanela = 0;
@@ -122,5 +130,6 @@ export async function importarExtrato(
     conta: lido.conta,
     ignoradas: lido.ignoradas,
     foraDaJanela,
+    janelaDesde: dataCorte,
   };
 }

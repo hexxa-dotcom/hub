@@ -75,7 +75,7 @@ export async function coletarDadosDoMes(
       AND reference_month = ${referenceMonth}::date
   `)) as unknown as Record<string, unknown>[];
 
-  // Receita sem nota: lançamento a receber cuja origem não é NFSe e que não
+  // Receita sem nota: lançamento a receber cuja origem não é nota e que não
   // tem nota vinculada. É a checagem que mais custa caro quando falta.
   const [semNota] = (await tx.execute(sql`
     SELECT
@@ -87,7 +87,10 @@ export async function coletarDadosDoMes(
       AND e.type = 'RECEIVABLE'
       AND e.status <> 'CANCELED'
       AND e.reference_month = ${referenceMonth}::date
-      AND e.source <> 'NFSE'
+      -- Nota emitida pelo Hub (NFSE) ou trazida do Emissor Nacional
+      -- (DFE_SYNC): as duas SÃO nota. Contar a segunda como "sem nota"
+      -- travava o fechamento de quem emite fora do Hub.
+      AND e.source NOT IN ('NFSE', 'DFE_SYNC')
       AND NOT EXISTS (
         -- service_invoice não tem data de emissão própria: o mês da nota é
         -- reference_month, como no resto do sistema.

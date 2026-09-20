@@ -29,6 +29,14 @@ export const company = pgTable('company', {
   unpaidShareCapital: numeric('unpaid_share_capital', { precision: 14, scale: 2 }).notNull().default('0'),
   /** Contrato Social prevê distribuição desproporcional à participação societária — checado pelo ProfitDistributionService. */
   allowsDisproportionateDistribution: boolean('allows_disproportionate_distribution').notNull().default(false),
+  /**
+   * Cliente encerrado: nenhum cron opera sobre a empresa. Os dados ficam —
+   * o histórico contábil é guardado por lei. Nulo = cliente ativo.
+   */
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+  closedReason: text('closed_reason'),
+  /** Quando o Hub criou ou vinculou a empresa no OneFlow, na aprovação. Ver 0066. */
+  oneflowCreatedAt: timestamp('oneflow_created_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -38,6 +46,9 @@ export const appUser = pgTable('app_user', {
   authUid: text('auth_uid').notNull().unique(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  /** CPF e celular do responsável — o OneFlow exige para criar a empresa. Ver 0066. */
+  cpf: text('cpf'),
+  phone: text('phone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -51,7 +62,10 @@ export const membership = pgTable('membership', {
     .notNull()
     .references(() => appUser.id, { onDelete: 'cascade' }),
   role: userRole('role').notNull().default('VIEWER'),
-  /** Gate manual do contador (ex.: liberar acesso após validar o cliente). Hoje sem leitor — ver contador/clientes/actions.ts. */
+  /**
+   * Cadastro aprovado pelo contador. Enquanto falso, o portal mostra só
+   * "cadastro em validação" — ver (portal)/layout.tsx.
+   */
   authorized: boolean('authorized').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

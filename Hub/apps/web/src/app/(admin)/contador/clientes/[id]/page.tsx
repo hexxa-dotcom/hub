@@ -24,6 +24,9 @@ import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
 import { ClienteStatusActions } from './ClienteStatusActions';
 import { HonorariosEditor } from './HonorariosEditor';
+import { EncerramentoCard } from './EncerramentoCard';
+import { AprovacaoCard } from './AprovacaoCard';
+import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -59,6 +62,22 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
 
   const [comp] = await withDbTimeout(db.select().from(company).where(eq(company.id, companyId)), 8000);
   if (!comp) notFound();
+
+  /**
+   * Aprovação do cadastro: o que iria para o OneFlow e o que falta. Montar
+   * não fala com o OneFlow — só lê o que o Hub tem.
+   */
+  const hojeSP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const competenciaPadrao = competenciaInicialPadrao(hojeSP);
+  const previa = await montarCadastroOneflow(db, companyId, {
+    regime: '1',
+    atividade: '2',
+    competencia: competenciaPadrao,
+    modulos: ['FIS', 'CTL', 'FPG'],
+  }).catch(() => null);
+  const [donoAprovado] = (await db.execute(sql`
+    SELECT bool_or(authorized) AS ok FROM membership WHERE company_id = ${companyId} AND role = 'OWNER'
+  `)) as unknown as { ok: boolean | null }[];
 
   let sub: { subscriptionId: string; status: string; planId: string; planName: string | null; monthlyValue: string | null; discountValue: string; discountReason: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
   let planos: { id: string; nome: string; valor: number }[] = [];
@@ -342,6 +361,36 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               </div>
             )}
           </div>
+
+          {previa && (
+            <AprovacaoCard
+              companyId={comp.id}
+              noOneflowDesde={comp.oneflowCreatedAt ? comp.oneflowCreatedAt.toLocaleDateString('pt-BR') : null}
+              aprovado={donoAprovado?.ok === true}
+              regimeSugerido={previa.sugestao.regime}
+              competenciaPadrao={competenciaPadrao}
+              faltando={previa.faltando}
+              resumo={{
+                razao: previa.cadastro.razao,
+                cnpj: comp.cnpj,
+                endereco: [
+                  previa.cadastro.endereco.rua,
+                  previa.cadastro.endereco.numero,
+                  previa.cadastro.endereco.bairro,
+                  `${previa.cadastro.endereco.cidade}/${previa.cadastro.endereco.uf}`,
+                ]
+                  .filter(Boolean)
+                  .join(', '),
+                responsavel: previa.responsavel,
+              }}
+            />
+          )}
+
+          <EncerramentoCard
+            companyId={comp.id}
+            encerradaEm={comp.closedAt ? comp.closedAt.toLocaleDateString('pt-BR') : null}
+            motivo={comp.closedReason ?? null}
+          />
 
           {/* Ações rápidas */}
           <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">

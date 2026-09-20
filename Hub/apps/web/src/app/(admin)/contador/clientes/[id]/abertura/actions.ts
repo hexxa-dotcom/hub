@@ -2,7 +2,7 @@
 
 import { getDb, ensaiarAbertura, confirmarAbertura } from '@hexxa/db';
 import type { EnsaioAbertura, ResultadoAbertura } from '@hexxa/db';
-import { lerBalancete, BalanceteIlegivelError, type LinhaDeBalancete } from '@hexxa/core';
+import { lerBalancete, BalanceteIlegivelError, textoDoExtrato, type LinhaDeBalancete } from '@hexxa/core';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { revalidatePath } from 'next/cache';
 import { planilhaParaTexto, PlanilhaIlegivelError } from '@/lib/server/planilha';
@@ -65,7 +65,9 @@ export async function lerBalanceteAction(
         ? await textoDoPdf(arquivo)
         : /\.xlsx$/i.test(arquivo.name)
           ? planilhaParaTexto(new Uint8Array(await arquivo.arrayBuffer()))
-          : await arquivo.text();
+          // CSV salvo pelo Excel no Windows sai em 1252; `.text()` estragaria
+          // os acentos dos nomes de conta — ver `textoDoExtrato`.
+          : textoDoExtrato(new Uint8Array(await arquivo.arrayBuffer()));
     } catch (err) {
       if (err instanceof PlanilhaIlegivelError || err instanceof BalanceteIlegivelError) {
         return { ok: false, mensagem: err.message };

@@ -317,7 +317,7 @@ export async function getSimplesInputs(
   folha12: number;
   folhaEmpregados12: number;
   prolabore12: number;
-  /** 'APURADO' = RBT12 da última apuração do OneFlow; 'HUB' = soma dos recebíveis daqui. */
+  /** 'APURADO' = RBT12 da última apuração do OneFlow; 'HUB' = soma das notas emitidas daqui. */
   rbt12Fonte: 'APURADO' | 'HUB';
 }> {
   return withTenant(ctx.companyId, async (tx) => {
@@ -325,11 +325,16 @@ export async function getSimplesInputs(
     // transação (postgres.js pipeline com segurança dentro de sql.begin).
     const [rbtRes, folhaRes, prolaboreRes, apuradoRes] = await Promise.all([
       tx.execute(sql`
+        -- Só o que tem NOTA: emitida pelo Hub (NFSE) ou trazida do Emissor
+        -- Nacional (DFE_SYNC). Imposto se paga sobre nota emitida; boleto,
+        -- entrada do extrato e recebível digitado não são faturamento
+        -- tributável, e somá-los mudaria a faixa do Simples.
         SELECT coalesce(sum(amount), 0) AS total
         FROM financial_entry
         WHERE company_id = ${ctx.companyId}
           AND type = 'RECEIVABLE'
           AND status != 'CANCELED'
+          AND source IN ('NFSE', 'DFE_SYNC')
           AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
           AND reference_month < date_trunc('month', now())::date
       `),

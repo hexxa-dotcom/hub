@@ -19,7 +19,7 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
  * decide se o mês fecha. E ver que a maior parte veio do histórico, não da
  * IA, é o que mostra ao contador que o sistema está aprendendo com ele.
  */
-export function SubirExtrato({ contas, meses }: { contas: { id: string; nome: string }[]; meses: number }) {
+export function SubirExtrato({ contas, desde }: { contas: { id: string; nome: string }[]; desde: string }) {
   const [estado, acao, pendente] = useActionState<EstadoUpload, FormData>(
     subirExtratoAction,
     { ok: false, mensagem: '' },
@@ -139,7 +139,7 @@ export function SubirExtrato({ contas, meses }: { contas: { id: string; nome: st
             <Linha n={d.identificadasPorIA} rotulo="identificadas pela IA" />
             <Linha n={d.paraRevisao} rotulo="esperando sua conferência" tom="atencao" />
             <Linha n={d.repetidas} rotulo="já tinham sido importadas antes" />
-            <Linha n={d.foraDaJanela} rotulo={`anteriores aos últimos ${meses} meses — não importadas`} />
+            <Linha n={d.foraDaJanela} rotulo={`anteriores a ${desde.split('-').reverse().join('/')} (fora do ano corrente) — não importadas`} />
           </ul>
 
           {d.semIdentificacao > 0 && (

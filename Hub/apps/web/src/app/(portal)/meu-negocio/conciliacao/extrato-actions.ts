@@ -6,13 +6,13 @@ import {
   conciliarExtrato,
   saldoDaTransitoria,
   movimentosNaTransitoria,
-  MESES_DE_HISTORICO,
+  inicioDaJanelaDeExtrato,
   contaDoExtrato,
   criarContaBancaria,
 } from '@hexxa/db';
 // Nada de constante exportada daqui: um arquivo 'use server' só pode exportar
 // funções assíncronas, e o build quebra sem explicar bem o porquê.
-import { ExtratoIlegivelError, lerExtrato } from '@hexxa/core';
+import { ExtratoIlegivelError, lerExtrato, textoDoExtrato } from '@hexxa/core';
 import { getTenantContext } from '@/lib/server/tenant';
 import { identificarMovimentos } from '@/lib/server/agente-extrato';
 import { revalidatePath } from 'next/cache';
@@ -61,7 +61,9 @@ export async function subirExtratoAction(
     return { ok: false, mensagem: 'Arquivo muito grande (máximo 8 MB).' };
   }
 
-  const conteudo = await arquivo.text();
+  // `arquivo.text()` presume UTF-8 e estraga os acentos dos bancos que
+  // gravam em Windows-1252 — ver `textoDoExtrato`.
+  const conteudo = textoDoExtrato(new Uint8Array(await arquivo.arrayBuffer()));
   const db = getDb();
 
   try {
@@ -115,9 +117,9 @@ export async function subirExtratoAction(
   }
 }
 
-/** Janela de histórico aceita, para a tela poder dizer o número certo. */
-export async function janelaDeHistorico(): Promise<number> {
-  return MESES_DE_HISTORICO;
+/** Primeiro dia aceito no extrato ('AAAA-MM-DD'), para a tela dizer a data certa. */
+export async function janelaDeHistorico(): Promise<string> {
+  return inicioDaJanelaDeExtrato();
 }
 
 /** Contas bancárias da empresa, para o seletor do upload. */

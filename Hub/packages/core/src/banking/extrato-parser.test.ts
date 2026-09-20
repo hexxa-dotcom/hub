@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  lerExtrato, lerOfx, lerCsv, valorBr, dataBr, dividirCsv, ExtratoIlegivelError,
+  lerExtrato, lerOfx, lerCsv, valorBr, dataBr, dividirCsv, ExtratoIlegivelError, textoDoExtrato,
 } from './extrato-parser';
 
 /**
@@ -154,6 +154,29 @@ describe('lerCsv', () => {
     expect(r.linhas[0]!.valor).toBe(-485);
   });
 
+  /**
+   * Formato do CSV da Nubank PJ (conferido com um extrato real de agosto/2026
+   * contra o PDF do mesmo mês: 39 linhas, entradas e saídas batendo no
+   * centavo). O "Identificador" é o id da transação no banco — é ele que
+   * torna a reimportação segura.
+   */
+  it('lê o CSV da Nubank, com o identificador da transação', () => {
+    const r = lerCsv(
+      'Data,Valor,Identificador,Descrição\n' +
+        '02/08/2026,-5.00,6a6fc7b6-ce14-453e-adfa-9c85ac603bd0,Compra no débito - LOJA X\n' +
+        '06/08/2026,328.44,6a74f70b-d736-4e72-9853-1bd8434a7883,Transferência recebida pelo Pix - CLIENTE LTDA - 00.000.000/0001-00 - BCO (0033) Agência: 1614 Conta: 1-0\n',
+    );
+    expect(r.linhas).toHaveLength(2);
+    expect(r.linhas[0]).toEqual({
+      data: '2026-08-02',
+      valor: -5,
+      descricao: 'Compra no débito - LOJA X',
+      idExterno: '6a6fc7b6-ce14-453e-adfa-9c85ac603bd0',
+    });
+    expect(r.linhas[1]!.valor).toBe(328.44);
+    expect(r.ignoradas).toHaveLength(0);
+  });
+
   it('explica o que fazer quando não acha o cabeçalho', () => {
     expect(() => lerCsv('linha solta\noutra linha')).toThrow(/cabeçalho/);
   });
@@ -173,5 +196,21 @@ describe('lerExtrato', () => {
     const a = lerExtrato(OFX).linhas.map((l) => [l.data, l.valor]);
     const b = lerExtrato(CSV).linhas.map((l) => [l.data, l.valor]);
     expect(a).toEqual(b);
+  });
+});
+
+describe('textoDoExtrato', () => {
+  it('lê UTF-8, que é como a Nubank grava', () => {
+    expect(textoDoExtrato(new TextEncoder().encode('Transferência'))).toBe('Transferência');
+  });
+
+  it('lê Windows-1252, que é como Itaú, BB e Caixa gravam o OFX', () => {
+    // "Transferência" em 1252: o "ê" é o byte 0xEA sozinho, inválido em UTF-8.
+    const bytes = new Uint8Array([...'Transfer'].map((c) => c.charCodeAt(0)).concat([0xea, 0x6e, 0x63, 0x69, 0x61]));
+    expect(textoDoExtrato(bytes)).toBe('Transferência');
+  });
+
+  it('descarta a marca de ordem de bytes do início', () => {
+    expect(textoDoExtrato(new Uint8Array([0xef, 0xbb, 0xbf, 0x44]))).toBe('D');
   });
 });

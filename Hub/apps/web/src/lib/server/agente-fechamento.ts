@@ -168,7 +168,9 @@ export async function fecharMesResolvendo(
           });
         }
       } else if (o.id === 'guia_nao_provisionada') {
-        const feito = await provisionarGuia(companyId, referenceMonth, dados.receita);
+        // Sobre o faturamento COM NOTA: é só sobre ele que se paga imposto.
+        // Recebível sem nota é pendência do fechamento, não base de DAS.
+        const feito = await provisionarGuia(companyId, referenceMonth, dados.receitaComNota);
         if (feito) resolvido.push(feito);
       }
       // `extrato_nao_conciliado` fica para quando houver Open Finance: sem

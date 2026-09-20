@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       SELECT DISTINCT c.id::text, c.legal_name, c.cnpj
         FROM company c
         JOIN monthly_closure mc ON mc.company_id = c.id AND mc.stage = 'ENVIADO'
+       WHERE c.closed_at IS NULL
     `)) as unknown as { id: string; legal_name: string; cnpj: string }[];
 
     const relatorio: Record<string, unknown>[] = [];

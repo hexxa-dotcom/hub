@@ -168,7 +168,9 @@ export async function empresasComAgenteLigado(
 ): Promise<{ id: string; nome: string }[]> {
   const empresas = await tx
     .select({ id: company.id, nome: company.legalName, type: company.type })
-    .from(company);
+    .from(company)
+    // Cliente encerrado sai de toda a operação automática — ver 0065.
+    .where(isNull(company.closedAt));
 
   const [sistema] = await Promise.all([lerEscopo(tx, 'SYSTEM', null)]);
 
@@ -210,7 +212,9 @@ export async function empresasParaFecharHoje(
 ): Promise<{ id: string; nome: string; referenceMonth: string; diaDoFechamento: number }[]> {
   const empresas = await tx
     .select({ id: company.id, nome: company.legalName, type: company.type })
-    .from(company);
+    .from(company)
+    // Cliente encerrado sai de toda a operação automática — ver 0065.
+    .where(isNull(company.closedAt));
 
   const sistema = await lerEscopo(tx, 'SYSTEM', null);
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout } from '@hexxa/db';
 import { recurringExpense, financialEntry, category } from '@hexxa/db/schema';
-import { eq, and, lte } from 'drizzle-orm';
+import { eq, and, lte, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -27,7 +27,12 @@ export async function GET(request: Request) {
       db
         .select()
         .from(recurringExpense)
-        .where(and(eq(recurringExpense.active, true), lte(recurringExpense.startMonth, refMonth))),
+        .where(and(
+          eq(recurringExpense.active, true),
+          lte(recurringExpense.startMonth, refMonth),
+          // Cliente encerrado não ganha despesa nova todo mês — ver 0065.
+          sql`NOT EXISTS (SELECT 1 FROM company c WHERE c.id = ${recurringExpense.companyId} AND c.closed_at IS NOT NULL)`,
+        )),
       8000,
     );
 

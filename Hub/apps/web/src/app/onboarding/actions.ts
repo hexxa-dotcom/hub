@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { getDb, company, membership, eq, and, withDbTimeout } from '@hexxa/db';
+import { getDb, company, membership, appUser, eq, and, withDbTimeout } from '@hexxa/db';
 import { ne } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
 import { resolveAppUser } from '@/lib/server/tenant';
@@ -9,6 +9,18 @@ import { saveNfseConfig } from '@/lib/server/fiscal';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 
 export type OnboardingState = { ok: boolean; message: string };
+
+/** Dígitos verificadores do CPF. */
+function cpfValido(cpf: string): boolean {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const dv = (n: number) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(cpf[i]) * (n + 1 - i);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(9) === Number(cpf[9]) && dv(10) === Number(cpf[10]);
+}
 
 /** Consulta o CNPJ (CNPJá com fallback ReceitaWS) e devolve os campos que alimentam o sistema. */
 async function lookupCnpj(doc: string) {
@@ -94,6 +106,17 @@ export async function completeOnboardingAction(
   if (doc.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 caracteres).' };
   const existingCompanyId = String(formData.get('existingCompanyId') ?? '') || null;
 
+  // O responsável: o OneFlow exige CPF e celular para criar a empresa lá na
+  // aprovação. Pedir agora evita o contador ter que correr atrás depois.
+  const nome = String(formData.get('nome') ?? '').trim();
+  const cpf = String(formData.get('cpf') ?? '').replace(/\D/g, '');
+  const celular = String(formData.get('celular') ?? '').replace(/\D/g, '');
+  if (nome.split(/\s+/).length < 2) return { ok: false, message: 'Informe o nome completo do responsável.' };
+  if (!cpfValido(cpf)) return { ok: false, message: 'CPF do responsável inválido.' };
+  if (celular.length < 10 || celular.length > 11) {
+    return { ok: false, message: 'Informe o celular com DDD.' };
+  }
+
   let data;
   try {
     data = await lookupCnpj(doc);
@@ -106,6 +129,10 @@ export async function completeOnboardingAction(
 
   const db = getDb();
   const appUserRow = await resolveAppUser(user.id, user.email);
+  await withDbTimeout(
+    db.update(appUser).set({ name: nome, cpf, phone: celular }).where(eq(appUser.id, appUserRow.id)),
+    8000,
+  );
   const cnpjFormatado = formatDocument(doc);
   const addressFields = {
     legalName: data.razaoSocial,

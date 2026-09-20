@@ -28,6 +28,7 @@ async function getClientes(): Promise<Cliente[]> {
         city: company.city,
         state: company.state,
         createdAt: company.createdAt,
+        closedAt: company.closedAt,
         subscriptionId: subscription.id,
         status: subscription.status,
         planName: plan.name,
@@ -70,7 +71,8 @@ async function getClientes(): Promise<Cliente[]> {
       email: owner?.email ?? '—',
       telefone: '—',
       plano: s.planName ?? '—',
-      status: s.status ?? 'SEM_PLANO',
+      // Encerrado vale mais que o status da assinatura: a empresa saiu.
+      status: s.closedAt ? 'ENCERRADO' : (s.status ?? 'SEM_PLANO'),
       // Receita real: preço do plano menos o desconto combinado com o cliente.
       mrr: s.status === 'ACTIVE' ? Number(s.monthlyValue) - Number(s.discountValue ?? 0) : 0,
       desde: s.createdAt.toISOString().slice(0, 10),
@@ -78,7 +80,7 @@ async function getClientes(): Promise<Cliente[]> {
       regime: s.taxRegime,
       municipio: s.city && s.state ? `${s.city}/${s.state}` : '—',
       pendencias: pendByCompany.get(s.companyId) ?? 0,
-      semAcesso: (acessosPorEmpresa.get(s.companyId) ?? 0) === 0,
+      semAcesso: !s.closedAt && (acessosPorEmpresa.get(s.companyId) ?? 0) === 0,
       asaasCustomerId: s.asaasCustomerId ?? undefined,
       asaasSubscriptionId: s.asaasSubscriptionId ?? undefined,
     };
