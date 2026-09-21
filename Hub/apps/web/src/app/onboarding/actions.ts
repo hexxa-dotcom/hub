@@ -203,5 +203,8 @@ export async function completeOnboardingAction(
     },
   );
 
-  redirect('/cliente');
+  // O passo 1 entrega no passo 2. Mandar para o painel aqui era o que fazia a
+  // pessoa achar que tinha acabado — e ficar com nota fiscal não configurada
+  // sem saber disso.
+  redirect('/onboarding/fiscal');
 }

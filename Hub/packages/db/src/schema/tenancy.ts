@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, timestamp, boolean, date } from 'drizzle-orm/pg-core';
 import { companyType, taxRegime, userRole } from './_enums';
 
 /** Tenant raiz. CompanyType separa o fluxo SERVICE do HOLDING. */
@@ -36,6 +36,13 @@ export const company = pgTable('company', {
   closedAt: timestamp('closed_at', { withTimezone: true }),
   closedReason: text('closed_reason'),
   /** Quando o Hub criou ou vinculou a empresa no OneFlow, na aprovação. Ver 0066. */
+  /**
+   * Faturamento dos últimos 12 meses declarado no primeiro acesso, e quando.
+   * É ponto de partida para o termômetro enquanto não há histórico de notas
+   * — declaração, não escrituração. Ver 0068.
+   */
+  declaredRevenue12m: numeric('declared_revenue_12m', { precision: 14, scale: 2 }),
+  declaredRevenueAt: date('declared_revenue_at'),
   oneflowCreatedAt: timestamp('oneflow_created_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
