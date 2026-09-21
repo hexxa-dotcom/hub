@@ -7,3 +7,4 @@ export * from './ai-reconciliation.service';
 export * from './prolabore-autopilot.service';
 export * from './omie-integration.service';
 export * from './profit-distribution.service';
+export * from './fator-r-alavanca';
