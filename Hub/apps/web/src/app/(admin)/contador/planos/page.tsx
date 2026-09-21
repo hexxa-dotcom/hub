@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { PlanosBoard, type Plano } from './PlanosBoard';
 import type { PlanoFeatures } from './actions';
 
-const DEFAULT_FEATURES: PlanoFeatures = { descricao: '', cor: 'brand', ativo: true, recursos: [] };
+const DEFAULT_FEATURES: PlanoFeatures = { descricao: '', cor: 'brand', ativo: true, recursos: [], nomeComercial: '' };
 
 async function getPlanos(): Promise<Plano[]> {
   const db = getDb();
@@ -30,6 +30,7 @@ async function getPlanos(): Promise<Plano[]> {
       nome: p.name,
       preco: Number(p.monthlyValue),
       cor: features.cor ?? DEFAULT_FEATURES.cor,
+      nomeComercial: features.nomeComercial ?? '',
       descricao: features.descricao ?? DEFAULT_FEATURES.descricao,
       recursos: features.recursos ?? DEFAULT_FEATURES.recursos,
       ativo: features.ativo ?? DEFAULT_FEATURES.ativo,

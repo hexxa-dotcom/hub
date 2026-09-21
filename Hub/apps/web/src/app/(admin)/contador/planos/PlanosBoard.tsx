@@ -11,6 +11,8 @@ export type Plano = {
   nome: string;
   preco: number;
   cor: string;
+  /** O que o cliente vê na fatura e no portal. Vazio = usa o nome interno. */
+  nomeComercial: string;
   descricao: string;
   recursos: string[];
   ativo: boolean;
@@ -56,6 +58,18 @@ function EditModal({ plano, saving, onSave, onClose }: { plano: Plano; saving: b
               <input type="number" step="0.01" value={form.preco}
                 onChange={e => setForm(f => ({ ...f, preco: Number(e.target.value) }))} className={fi} />
             </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1">Nome comercial</p>
+            <input
+              value={form.nomeComercial}
+              onChange={e => setForm(f => ({ ...f, nomeComercial: e.target.value }))}
+              placeholder={form.nome}
+              className={fi}
+            />
+            <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
+              É este que aparece na fatura do cliente. Em branco, usa o nome interno.
+            </p>
           </div>
           <div>
             <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1">Descrição</p>
@@ -114,7 +128,7 @@ export function PlanosBoard({ initial }: { initial: Plano[] }) {
     const res = await updatePlanoAction(updated.id, {
       nome: updated.nome,
       preco: updated.preco,
-      features: { descricao: updated.descricao, cor: updated.cor, ativo: updated.ativo, recursos: updated.recursos },
+      features: { descricao: updated.descricao, cor: updated.cor, ativo: updated.ativo, recursos: updated.recursos, nomeComercial: updated.nomeComercial },
     });
     if (!('error' in res)) {
       setPlanos(prev => prev.map(p => p.id === updated.id ? updated : p));

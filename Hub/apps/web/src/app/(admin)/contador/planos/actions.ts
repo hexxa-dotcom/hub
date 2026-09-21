@@ -6,7 +6,22 @@ import { plan } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/server/admin-guard';
 
-export type PlanoFeatures = { descricao: string; cor: string; ativo: boolean; recursos: string[] };
+/**
+ * O plano tem dois nomes, e eles servem a públicos diferentes.
+ *
+ * `plan.name` é o nome de controle — "Com movimento", "Sem movimento" — que
+ * diz ao escritório em que caixa o cliente está. `nomeComercial` é o que o
+ * cliente vê, na fatura e no portal. Sem essa separação, ou a gestão interna
+ * fica com nomes de vitrine, ou o cliente recebe um boleto dizendo "Sem
+ * movimento", que soa como se ele não estivesse recebendo serviço nenhum.
+ */
+export type PlanoFeatures = {
+  descricao: string;
+  cor: string;
+  ativo: boolean;
+  recursos: string[];
+  nomeComercial?: string;
+};
 
 export async function updatePlanoAction(id: string, data: { nome: string; preco: number; features: PlanoFeatures }) {
   await requireAdmin();

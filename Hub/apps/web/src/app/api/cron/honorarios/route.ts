@@ -7,6 +7,13 @@ import { valorDosHonorarios, descricaoDosHonorarios } from '@hexxa/core';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+/** O nome do plano como o cliente o conhece, quando houver um. */
+function nomeComercial(features: unknown): string | null {
+  const f = features as { nomeComercial?: unknown } | null;
+  const nome = typeof f?.nomeComercial === 'string' ? f.nomeComercial.trim() : '';
+  return nome || null;
+}
+
 /**
  * FATURA MENSAL DE HONORÁRIOS.
  *
@@ -54,6 +61,7 @@ export async function GET(request: Request) {
           valorCombinado: subscription.customValue,
           motivoDesconto: subscription.discountReason,
           plano: plan.name,
+          features: plan.features,
         })
         .from(subscription)
         .innerJoin(plan, eq(subscription.planId, plan.id))
@@ -115,7 +123,10 @@ export async function GET(request: Request) {
             // A checagem de duplicidade acima procura por este prefixo.
             description: descricaoDosHonorarios({
               ...honorarios,
-              plano: a.plano,
+              // Na fatura vai o nome comercial. O interno ("Sem movimento")
+              // diz ao escritório em que caixa o cliente está, e soaria para
+              // ele como se não estivesse recebendo serviço nenhum.
+              plano: nomeComercial(a.features) ?? a.plano,
               motivoDoDesconto: a.motivoDesconto,
             }),
             value: valorFinal.toFixed(2),
