@@ -21,6 +21,15 @@ export type PlanoFeatures = {
   ativo: boolean;
   recursos: string[];
   nomeComercial?: string;
+  /**
+   * Os adicionais que a fatura soma sozinha. Em branco (ou zero), o plano não
+   * cobra adicional nenhum — nada é cobrado por omissão.
+   */
+  adicionalPorColaborador?: number;
+  /** Quantos sócios o plano já inclui. Padrão 2. */
+  sociosInclusos?: number;
+  /** Valor por admissão. Rescisão não é cobrada — ver `calcularAdicionais`. */
+  adicionalPorEvento?: number;
 };
 
 export async function updatePlanoAction(id: string, data: { nome: string; preco: number; features: PlanoFeatures }) {

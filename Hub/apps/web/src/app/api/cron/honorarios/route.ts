@@ -2,10 +2,26 @@ import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout, eq, and, sql } from '@hexxa/db';
 import { isNull } from 'drizzle-orm';
 import { accountingInvoice, subscription, plan, company } from '@hexxa/db/schema';
-import { valorDosHonorarios, descricaoDosHonorarios } from '@hexxa/core';
+import {
+  valorDosHonorarios,
+  descricaoDosHonorarios,
+  calcularAdicionais,
+  descricaoDosAdicionais,
+} from '@hexxa/core';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+
+/** As taxas de adicional que o plano define. Zero = não cobra. */
+function taxasDoPlano(features: unknown) {
+  const f = (features ?? {}) as Record<string, unknown>;
+  const num = (v: unknown, padrao: number) => (typeof v === 'number' && v >= 0 ? v : padrao);
+  return {
+    valorPorColaborador: num(f.adicionalPorColaborador, 0),
+    valorPorEvento: num(f.adicionalPorEvento, 0),
+    sociosInclusos: num(f.sociosInclusos, 2),
+  };
+}
 
 /** O nome do plano como o cliente o conhece, quando houver um. */
 function nomeComercial(features: unknown): string | null {
@@ -114,8 +130,43 @@ export async function GET(request: Request) {
           desconto: a.desconto,
           valorCombinado: a.valorCombinado,
         };
-        const valorFinal = valorDosHonorarios(honorarios);
+        const valorDoPlanoFinal = valorDosHonorarios(honorarios);
         const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        /**
+         * Os adicionais do mês: colaboradores, sócios além dos inclusos e
+         * admissões. Contados na data de hoje — quem foi admitido neste mês
+         * entra, quem já saiu da lista de ativos não conta mais.
+         *
+         * Um plano sem taxa configurada não cobra nada: o `taxasDoPlano`
+         * devolve zero, e `calcularAdicionais` ignora item com valor zero.
+         * Cobrança por omissão é o pior defeito que esta rotina poderia ter.
+         */
+        const taxas = taxasDoPlano(a.features);
+        const [contagem] = (await withDbTimeout(
+          db.execute(sql`
+            SELECT
+              count(*) FILTER (WHERE vinculo = 'CLT' AND status = 'ACTIVE')::int AS colaboradores,
+              count(*) FILTER (WHERE vinculo = 'Socio' AND status = 'ACTIVE')::int AS socios,
+              count(*) FILTER (
+                WHERE admission_date >= ${referenceMonth}::date
+                  AND admission_date < (${referenceMonth}::date + interval '1 month')
+              )::int AS admissoes
+            FROM employee WHERE company_id = ${a.companyId}
+          `),
+          8000,
+        )) as unknown as { colaboradores: number; socios: number; admissoes: number }[];
+
+        const adicionais = calcularAdicionais({
+          colaboradores: Number(contagem?.colaboradores ?? 0),
+          socios: Number(contagem?.socios ?? 0),
+          admissoes: Number(contagem?.admissoes ?? 0),
+          sociosInclusos: taxas.sociosInclusos,
+          valorPorColaborador: taxas.valorPorColaborador,
+          valorPorEvento: taxas.valorPorEvento,
+        });
+
+        const valorFinal = Math.round((valorDoPlanoFinal + adicionais.total) * 100) / 100;
 
         await withDbTimeout(
           db.insert(accountingInvoice).values({
@@ -128,7 +179,7 @@ export async function GET(request: Request) {
               // ele como se não estivesse recebendo serviço nenhum.
               plano: nomeComercial(a.features) ?? a.plano,
               motivoDoDesconto: a.motivoDesconto,
-            }),
+            }) + (adicionais.total > 0 ? ` + ${descricaoDosAdicionais(adicionais)}` : ''),
             value: valorFinal.toFixed(2),
             referenceMonth,
             dueDate,
