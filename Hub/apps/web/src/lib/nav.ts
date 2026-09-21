@@ -23,6 +23,10 @@ export const NAV: NavSection[] = [
       // Início, Panorama e Fechamento viraram vistas de /cliente (`?v=`), então
       // o menu aponta para a tela; a troca entre elas acontece no cabeçalho.
       { label: 'Início', href: '/cliente' },
+      // O cadastro da empresa vivia em Suporte > Configurações, três cliques
+      // longe e sob um título que ninguém associa a "a minha empresa". É a
+      // primeira coisa que alguém procura ao entrar.
+      { label: 'Minha Empresa', href: '/minha-empresa' },
     ],
   },
   {

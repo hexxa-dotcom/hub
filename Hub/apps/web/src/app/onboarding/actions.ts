@@ -49,6 +49,10 @@ async function lookupCnpj(doc: string) {
         email: (d.emails?.[0]?.address as string) ?? null,
         cnae: d.mainActivity?.id ? String(d.mainActivity.id) : null,
         optanteSimples: Boolean(d.company?.simples?.optant),
+        // A ficha da empresa (ver 0069). Vem de graça na mesma consulta.
+        capitalSocial: typeof d.company?.equity === 'number' ? d.company.equity : null,
+        abertura: (d.founded as string) ?? null,
+        atividade: d.mainActivity?.text ? String(d.mainActivity.text) : null,
       };
     }
   }
@@ -74,6 +78,12 @@ async function lookupCnpj(doc: string) {
     email: (d.email as string) || null,
     cnae: d.atividade_principal?.[0]?.code ? String(d.atividade_principal[0].code).replace(/\D/g, '') : null,
     optanteSimples: false,
+    capitalSocial: d.capital_social ? Number(d.capital_social) : null,
+    // A ReceitaWS devolve DD/MM/AAAA; o banco quer ISO.
+    abertura: typeof d.abertura === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(d.abertura)
+      ? d.abertura.split('/').reverse().join('-')
+      : null,
+    atividade: d.atividade_principal?.[0]?.text ? String(d.atividade_principal[0].text) : null,
   };
 }
 
@@ -144,6 +154,11 @@ export async function completeOnboardingAction(
     city: data.municipio,
     state: data.uf,
     zipcode: data.cep,
+    // A ficha que o empresário reconhece como "minha empresa" — ver 0069.
+    shareCapital: data.capitalSocial === null ? null : String(data.capitalSocial),
+    foundedAt: data.abertura,
+    mainActivityCode: data.cnae,
+    mainActivityText: data.atividade,
   };
 
   let companyId: string;

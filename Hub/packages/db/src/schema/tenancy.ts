@@ -41,6 +41,12 @@ export const company = pgTable('company', {
    * É ponto de partida para o termômetro enquanto não há histórico de notas
    * — declaração, não escrituração. Ver 0068.
    */
+  /** Capital social registrado, data de abertura e atividade principal —
+   *  vêm da consulta do CNPJ e alimentam a ficha da empresa. Ver 0069. */
+  shareCapital: numeric('share_capital', { precision: 14, scale: 2 }),
+  foundedAt: date('founded_at'),
+  mainActivityCode: text('main_activity_code'),
+  mainActivityText: text('main_activity_text'),
   declaredRevenue12m: numeric('declared_revenue_12m', { precision: 14, scale: 2 }),
   declaredRevenueAt: date('declared_revenue_at'),
   oneflowCreatedAt: timestamp('oneflow_created_at', { withTimezone: true }),
