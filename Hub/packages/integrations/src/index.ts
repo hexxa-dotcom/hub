@@ -48,3 +48,4 @@ export function makeSignaturePort(env = process.env): SignaturePort {
   }
   return new DocusealAdapter(apiKey);
 }
+export * from './nfse/ler-config-da-nfse';

@@ -1,11 +1,17 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Spinner, Warning } from '@phosphor-icons/react';
-import { salvarFiscal, type EstadoFiscal } from './actions';
+import { ArrowRight, CheckCircle, Spinner, UploadSimple, Warning } from '@phosphor-icons/react';
+import {
+  salvarFiscal,
+  lerNotaEnviada,
+  type EstadoFiscal,
+  type EstadoDaLeitura,
+} from './actions';
 
 const inicial: EstadoFiscal = { ok: true, message: '' };
+const inicialLeitura: EstadoDaLeitura = { ok: true, message: '', lido: null };
 
 export function FiscalOnboardingForm({
   dados,
@@ -20,6 +26,26 @@ export function FiscalOnboardingForm({
   };
 }) {
   const [estado, action, pendente] = useActionState(salvarFiscal, inicial);
+  const [leitura, lerAction, lendo] = useActionState(lerNotaEnviada, inicialLeitura);
+
+  /**
+   * Os campos são controlados porque a leitura da nota os preenche DEPOIS da
+   * primeira renderização — `defaultValue` ignoraria o que veio do XML.
+   */
+  const [item, setItem] = useState(dados.itemListaServico);
+  const [aliquota, setAliquota] = useState(
+    dados.aliquotaIss === null ? '' : String(dados.aliquotaIss),
+  );
+  const [codigoMun, setCodigoMun] = useState(dados.codigoTributacaoMunicipio);
+
+  useEffect(() => {
+    if (!leitura.lido) return;
+    // Só sobrescreve o que a nota trouxe: se ela não informa a alíquota
+    // (Simples sem retenção), o que a pessoa já digitou continua valendo.
+    if (leitura.lido.itemListaServico) setItem(leitura.lido.itemListaServico);
+    if (leitura.lido.aliquotaIss !== null) setAliquota(String(leitura.lido.aliquotaIss));
+    if (leitura.lido.codigoTributacaoMunicipio) setCodigoMun(leitura.lido.codigoTributacaoMunicipio);
+  }, [leitura]);
 
   const campo =
     'mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]';
@@ -42,6 +68,15 @@ export function FiscalOnboardingForm({
   }
 
   return (
+    <>
+      {/*
+        Formulário próprio para a leitura da nota. Os campos do upload ficam
+        dentro do formulário principal, mas pertencem a este pelo atributo
+        `form` — dois <form> aninhados não existem em HTML, e enviar a nota não
+        pode submeter (nem validar) o cadastro inteiro.
+      */}
+      <form id="ler-nota" action={lerAction} className="hidden" />
+
     <form
       action={action}
       className="rounded-3xl border border-black/5 bg-white p-6 dark:border-white/10 dark:bg-[#231F20] sm:p-8"
@@ -55,6 +90,42 @@ export function FiscalOnboardingForm({
         prefeitura sabe.
       </p>
 
+      <div className="mt-5 rounded-2xl border border-dashed border-black/15 p-4 dark:border-white/15">
+        <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+          Tem uma nota que você já emitiu?
+        </p>
+        <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          Envie o XML e eu preencho tudo daqui. Você só confere.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            name="nota"
+            accept=".xml,text/xml,application/xml"
+            form="ler-nota"
+            className="text-xs text-[#6E6A61] file:mr-2 file:rounded-full file:border-0 file:bg-[#EFFFD6] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2F4A3C] dark:text-[#A8A49C] dark:file:bg-[#2F4A3C] dark:file:text-[#DFFFAE]"
+          />
+          <button
+            type="submit"
+            form="ler-nota"
+            disabled={lendo}
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-bold text-[#231F20] disabled:opacity-40 dark:border-white/10 dark:text-[#F5F6F4]"
+          >
+            {lendo ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <UploadSimple className="h-3.5 w-3.5" />}
+            Ler nota
+          </button>
+        </div>
+        {leitura.message && (
+          <p
+            className={`mt-2 text-xs ${
+              leitura.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
+            }`}
+          >
+            {leitura.message}
+          </p>
+        )}
+      </div>
+
       <div className="mt-6 space-y-5">
         <label className="block">
           <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
@@ -67,7 +138,8 @@ export function FiscalOnboardingForm({
           <input
             name="itemListaServico"
             required
-            defaultValue={dados.itemListaServico}
+            value={item}
+            onChange={(e) => setItem(e.target.value)}
             placeholder="17.19"
             className={campo}
           />
@@ -84,7 +156,8 @@ export function FiscalOnboardingForm({
             name="aliquotaIss"
             inputMode="decimal"
             required
-            defaultValue={dados.aliquotaIss ?? ''}
+            value={aliquota}
+            onChange={(e) => setAliquota(e.target.value)}
             placeholder="5"
             className={campo}
           />
@@ -97,7 +170,8 @@ export function FiscalOnboardingForm({
           </span>
           <input
             name="codigoTributacaoMunicipio"
-            defaultValue={dados.codigoTributacaoMunicipio}
+            value={codigoMun}
+            onChange={(e) => setCodigoMun(e.target.value)}
             className={campo}
           />
         </label>
@@ -123,5 +197,6 @@ export function FiscalOnboardingForm({
         O certificado digital só é preciso na hora de emitir a primeira nota — pedimos lá.
       </p>
     </form>
+    </>
   );
 }

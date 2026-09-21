@@ -2,6 +2,8 @@
 
 import { getTenantContext } from '@/lib/server/tenant';
 import { getNfseConfig, saveNfseConfig } from '@/lib/server/fiscal';
+import { lerConfigDaNfse } from '@hexxa/integrations';
+import { normalizeDocument } from '@hexxa/core/document-br';
 import { revalidatePath } from 'next/cache';
 
 export type EstadoFiscal = { ok: boolean; message: string };
@@ -77,3 +79,90 @@ export async function lerFiscal() {
     codigoTributacaoMunicipio: cfg?.codigoTributacaoMunicipio ?? '',
   };
 }
+
+/**
+ * A última nota emitida preenche o passo inteiro.
+ *
+ * O que este passo pede já está dentro de qualquer nota que a empresa emitiu.
+ * Pedir para digitar é pedir que a pessoa procure numa nota antiga e copie à
+ * mão — com chance de errar um dígito que vira imposto errado em todas as
+ * notas seguintes.
+ *
+ * Só XML: o do Padrão Nacional tem estrutura definida em schema, e ler é
+ * determinístico. PDF é desenho, cada prefeitura faz o seu, e adivinhar dado
+ * fiscal é pior que perguntar.
+ */
+export async function lerNotaEnviada(
+  _prev: EstadoDaLeitura,
+  formData: FormData,
+): Promise<EstadoDaLeitura> {
+  const ctx = await getTenantContext();
+  const arquivo = formData.get('nota');
+
+  if (!(arquivo instanceof File) || arquivo.size === 0) {
+    return { ok: false, message: 'Escolha o arquivo XML da nota.', lido: null };
+  }
+  if (arquivo.size > 2_000_000) {
+    return { ok: false, message: 'Arquivo grande demais para ser uma NFS-e.', lido: null };
+  }
+
+  const texto = await arquivo.text();
+  if (!/<(?:\w+:)?(?:NFSe|DPS)\b/.test(texto)) {
+    return {
+      ok: false,
+      message: 'Não parece o XML de uma NFS-e. Se você tem só o PDF, preencha abaixo à mão.',
+      lido: null,
+    };
+  }
+
+  const lido = lerConfigDaNfse(texto);
+  const cfg = await getNfseConfig(ctx).catch(() => null);
+
+  /**
+   * A nota é desta empresa?
+   *
+   * Subir a nota de outro CNPJ — de um cliente, de outra empresa da pessoa —
+   * gravaria a alíquota e o item de serviço ERRADOS, e ninguém perceberia até
+   * a primeira emissão sair com imposto que não é o dela.
+   */
+  const daEmpresa = normalizeDocument(cfg?.cnpj ?? '');
+  if (lido.prestadorCnpj && daEmpresa && lido.prestadorCnpj !== daEmpresa) {
+    return {
+      ok: false,
+      message: `Esta nota foi emitida por outro CNPJ (${lido.prestadorCnpj}). Envie uma nota da sua empresa.`,
+      lido: null,
+    };
+  }
+
+  if (!lido.itemListaServico && lido.aliquotaIss === null) {
+    return {
+      ok: false,
+      message: 'Li o arquivo, mas ele não traz o item de serviço nem a alíquota. Preencha abaixo.',
+      lido: null,
+    };
+  }
+
+  return {
+    ok: true,
+    message: lido.numeroNota
+      ? `Nota ${lido.numeroNota} lida. Confira os campos abaixo antes de salvar.`
+      : 'Nota lida. Confira os campos abaixo antes de salvar.',
+    lido: {
+      itemListaServico: lido.itemListaServico,
+      aliquotaIss: lido.aliquotaIss,
+      codigoTributacaoMunicipio: lido.codigoTributacaoMunicipio,
+      descricaoServico: lido.descricaoServico,
+    },
+  };
+}
+
+export type EstadoDaLeitura = {
+  ok: boolean;
+  message: string;
+  lido: {
+    itemListaServico: string | null;
+    aliquotaIss: number | null;
+    codigoTributacaoMunicipio: string | null;
+    descricaoServico: string | null;
+  } | null;
+};
