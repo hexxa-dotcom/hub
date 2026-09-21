@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket } from '@hexxa/db/schema';
+import { valorDosHonorarios } from '@hexxa/core';
 import { ClientesTable, type Cliente } from './ClientesTable';
 
 /**
@@ -34,6 +35,7 @@ async function getClientes(): Promise<Cliente[]> {
         planName: plan.name,
         monthlyValue: plan.monthlyValue,
         discountValue: subscription.discountValue,
+        customValue: subscription.customValue,
         asaasCustomerId: subscription.asaasCustomerId,
         asaasSubscriptionId: subscription.asaasSubscriptionId,
       })
@@ -73,8 +75,15 @@ async function getClientes(): Promise<Cliente[]> {
       plano: s.planName ?? '—',
       // Encerrado vale mais que o status da assinatura: a empresa saiu.
       status: s.closedAt ? 'ENCERRADO' : (s.status ?? 'SEM_PLANO'),
-      // Receita real: preço do plano menos o desconto combinado com o cliente.
-      mrr: s.status === 'ACTIVE' ? Number(s.monthlyValue) - Number(s.discountValue ?? 0) : 0,
+      // Receita real: o que de fato vai na fatura deste cliente.
+      mrr:
+        s.status === 'ACTIVE'
+          ? valorDosHonorarios({
+              valorDoPlano: Number(s.monthlyValue),
+              desconto: s.discountValue,
+              valorCombinado: s.customValue,
+            })
+          : 0,
       desde: s.createdAt.toISOString().slice(0, 10),
       responsavel: owner?.name ?? '—',
       regime: s.taxRegime,

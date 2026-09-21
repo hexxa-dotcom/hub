@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
+import { valorDosHonorarios } from '@hexxa/core';
 import { ClienteStatusActions } from './ClienteStatusActions';
 import { HonorariosEditor } from './HonorariosEditor';
 import { EncerramentoCard } from './EncerramentoCard';
@@ -79,7 +80,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     SELECT bool_or(authorized) AS ok FROM membership WHERE company_id = ${companyId} AND role = 'OWNER'
   `)) as unknown as { ok: boolean | null }[];
 
-  let sub: { subscriptionId: string; status: string; planId: string; planName: string | null; monthlyValue: string | null; discountValue: string; discountReason: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
+  let sub: { subscriptionId: string; status: string; planId: string; planName: string | null; monthlyValue: string | null; discountValue: string; customValue: string | null; discountReason: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
   let planos: { id: string; nome: string; valor: number }[] = [];
   let owner: { name: string; email: string } | undefined;
   let openTickets: { id: string; subject: string; priority: string; createdAt: Date }[] = [];
@@ -97,6 +98,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
             planName: plan.name,
             monthlyValue: plan.monthlyValue,
             discountValue: subscription.discountValue,
+            customValue: subscription.customValue,
             discountReason: subscription.discountReason,
             asaasCustomerId: subscription.asaasCustomerId,
             asaasSubscriptionId: subscription.asaasSubscriptionId,
@@ -150,8 +152,14 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     console.error('[cliente] planos:', err);
   }
 
-  // Receita real do cliente: o preço do plano MENOS o desconto combinado.
-  const mrr = sub ? Number(sub.monthlyValue) - Number(sub.discountValue ?? 0) : 0;
+  // Receita real do cliente: o que de fato vai na fatura dele.
+  const mrr = sub
+    ? valorDosHonorarios({
+        valorDoPlano: Number(sub.monthlyValue),
+        desconto: sub.discountValue,
+        valorCombinado: sub.customValue,
+      })
+    : 0;
   const email = (fiscalContact?.email as string | null) || owner?.email || null;
   const telefone = (fiscalContact?.telefone as string | null) || null;
 
@@ -352,6 +360,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                 desconto: Number(sub?.discountValue ?? 0),
                 motivo: sub?.discountReason ?? null,
                 status: sub?.status ?? null,
+                valorCombinado: sub?.customValue != null ? Number(sub.customValue) : null,
               }}
             />
             {sub?.asaasSubscriptionId && (

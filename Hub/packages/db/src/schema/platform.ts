@@ -95,6 +95,15 @@ export const subscription = pgTable('subscription', {
    */
   discountValue: numeric('discount_value', { precision: 14, scale: 2 }).notNull().default('0'),
   discountReason: text('discount_reason'),
+  /**
+   * Honorário combinado caso a caso. Quando preenchido, ELE é o preço: a
+   * tabela do plano e o desconto saem da conta.
+   *
+   * Existe porque nem todo acordo é um abatimento sobre a tabela. Espremer um
+   * valor combinado na forma "R$ 500 − R$ 137" inventa um desconto que não
+   * foi combinado e o imprime na fatura do cliente. Ver `valorDosHonorarios`.
+   */
+  customValue: numeric('custom_value', { precision: 14, scale: 2 }),
 });
 
 /** Credenciais por empresa para cada integração (segredo fica em secret manager). */

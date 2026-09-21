@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout, eq, and, sql } from '@hexxa/db';
 import { isNull } from 'drizzle-orm';
 import { accountingInvoice, subscription, plan, company } from '@hexxa/db/schema';
+import { valorDosHonorarios, descricaoDosHonorarios } from '@hexxa/core';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
           nome: company.legalName,
           valor: plan.monthlyValue,
           desconto: subscription.discountValue,
+          valorCombinado: subscription.customValue,
           motivoDesconto: subscription.discountReason,
           plano: plan.name,
         })
@@ -99,20 +101,23 @@ export async function GET(request: Request) {
          * mostra ao cliente o benefício que ele tem — e o que evita que um
          * desconto esquecido vire, sem ninguém notar, o preço da tabela.
          */
-        const cheio = Number(a.valor);
-        const desconto = Number(a.desconto ?? 0);
-        const valorFinal = Math.max(0, cheio - desconto);
+        const honorarios = {
+          valorDoPlano: Number(a.valor),
+          desconto: a.desconto,
+          valorCombinado: a.valorCombinado,
+        };
+        const valorFinal = valorDosHonorarios(honorarios);
         const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
         await withDbTimeout(
           db.insert(accountingInvoice).values({
             companyId: a.companyId,
             // A checagem de duplicidade acima procura por este prefixo.
-            description:
-              desconto > 0
-                ? `Honorários Contábeis — ${a.plano} ${brl(cheio)} − desconto ${brl(desconto)}` +
-                  (a.motivoDesconto ? ` (${a.motivoDesconto})` : '')
-                : `Honorários Contábeis — ${a.plano}`,
+            description: descricaoDosHonorarios({
+              ...honorarios,
+              plano: a.plano,
+              motivoDoDesconto: a.motivoDesconto,
+            }),
             value: valorFinal.toFixed(2),
             referenceMonth,
             dueDate,

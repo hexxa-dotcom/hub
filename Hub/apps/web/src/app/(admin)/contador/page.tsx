@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getDb, eq, desc, withDbTimeout } from '@hexxa/db';
+import { valorDosHonorarios } from '@hexxa/core';
 import { company, subscription, plan, ticket } from '@hexxa/db/schema';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -84,7 +85,7 @@ export default async function AdminDashboard() {
   // Sem timeout aqui essa página já travou o /contador inteiro por até 5
   // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
   // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
-  let subs: { companyId: string; legalName: string; tradeName: string | null; useTradeName: boolean; planName: string; monthlyValue: string; status: string }[] = [];
+  let subs: { companyId: string; legalName: string; tradeName: string | null; useTradeName: boolean; planName: string; monthlyValue: string; discountValue: string; customValue: string | null; status: string }[] = [];
   let openTickets: { id: string; subject: string; priority: string; createdAt: Date; companyName: string; companyTradeName: string | null; companyUseTrade: boolean }[] = [];
   try {
     const db = getDb();
@@ -98,6 +99,8 @@ export default async function AdminDashboard() {
             useTradeName: company.useTradeName,
             planName: plan.name,
             monthlyValue: plan.monthlyValue,
+            discountValue: subscription.discountValue,
+            customValue: subscription.customValue,
             status: subscription.status,
           })
           .from(subscription)
@@ -126,15 +129,30 @@ export default async function AdminDashboard() {
   }
 
   const ativos = subs.filter(s => s.status === 'ACTIVE').length;
-  const mrr = subs.filter(s => s.status === 'ACTIVE').reduce((sum, s) => sum + Number(s.monthlyValue), 0);
+  // MRR pelo que de fato é cobrado de cada cliente. Somar o preço de tabela
+  // ignorava os descontos combinados e inflava a receita; com o plano
+  // Personalizado, cujo preço mora na assinatura, mostraria zero.
+  const precoDe = (s: { monthlyValue: string; discountValue: string; customValue: string | null }) =>
+    valorDosHonorarios({
+      valorDoPlano: Number(s.monthlyValue),
+      desconto: s.discountValue,
+      valorCombinado: s.customValue,
+    });
+  const mrr = subs.filter(s => s.status === 'ACTIVE').reduce((sum, s) => sum + precoDe(s), 0);
   const inadimplentes = subs.filter(s => s.status === 'PAST_DUE').length;
   const trials = subs.filter(s => s.status === 'TRIAL').length;
 
+  // No Personalizado não há "preço do plano" — cada cliente tem o seu, então
+  // o painel mostra a média do que esses clientes pagam.
   const porPlano = new Map<string, { count: number; monthlyValue: number }>();
   for (const s of subs) {
-    const entry = porPlano.get(s.planName) ?? { count: 0, monthlyValue: Number(s.monthlyValue) };
+    const entry = porPlano.get(s.planName) ?? { count: 0, monthlyValue: 0 };
     entry.count += 1;
+    entry.monthlyValue += precoDe(s);
     porPlano.set(s.planName, entry);
+  }
+  for (const entry of porPlano.values()) {
+    entry.monthlyValue = entry.count ? entry.monthlyValue / entry.count : 0;
   }
 
   const PLAN_COLORS = ['#2F4A3C', '#5F6E46', '#A2C1CD'];

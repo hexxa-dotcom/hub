@@ -20,22 +20,44 @@ export function HonorariosEditor({
 }: {
   companyId: string;
   planos: { id: string; nome: string; valor: number }[];
-  atual: { planId: string | null; desconto: number; motivo: string | null; status: string | null };
+  atual: {
+    planId: string | null;
+    desconto: number;
+    motivo: string | null;
+    status: string | null;
+    valorCombinado?: number | null;
+  };
 }) {
   const [planId, setPlanId] = useState(atual.planId ?? '');
   const [desconto, setDesconto] = useState(atual.desconto ? String(atual.desconto) : '');
+  const [combinado, setCombinado] = useState(
+    atual.valorCombinado != null ? String(atual.valorCombinado) : '',
+  );
   const [motivo, setMotivo] = useState(atual.motivo ?? '');
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [salvando, salvar] = useTransition();
 
   const plano = planos.find((p) => p.id === planId);
+  /**
+   * No Personalizado o preço é digitado, não calculado: o acordo com esse
+   * cliente não é um abatimento sobre a tabela, e escondê-lo dentro de um
+   * desconto imprimiria na fatura um benefício que não foi combinado.
+   */
+  const personalizado = plano?.nome === 'Personalizado';
   const valorDesconto = Number(desconto.replace(',', '.')) || 0;
-  const final = plano ? plano.valor - valorDesconto : null;
+  const valorCombinado = Number(combinado.replace(',', '.')) || 0;
+  const final = !plano ? null : personalizado ? valorCombinado : plano.valor - valorDesconto;
 
   function gravar() {
     setMsg(null);
     salvar(async () => {
-      const r = await definirHonorarios(companyId, planId, valorDesconto, motivo);
+      const r = await definirHonorarios(
+        companyId,
+        planId,
+        valorDesconto,
+        motivo,
+        personalizado ? valorCombinado : null,
+      );
       setMsg({ ok: r.ok, texto: r.mensagem });
     });
   }
@@ -57,12 +79,25 @@ export function HonorariosEditor({
 
       <div className="grid grid-cols-[7rem_1fr] gap-2">
         <label className="block text-xs">
-          <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">Desconto (R$)</span>
-          <input value={desconto} onChange={(e) => setDesconto(e.target.value)} inputMode="decimal" placeholder="0" className={campo} />
+          <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {personalizado ? 'Valor (R$)' : 'Desconto (R$)'}
+          </span>
+          {personalizado ? (
+            <input value={combinado} onChange={(e) => setCombinado(e.target.value)} inputMode="decimal" placeholder="0" className={campo} />
+          ) : (
+            <input value={desconto} onChange={(e) => setDesconto(e.target.value)} inputMode="decimal" placeholder="0" className={campo} />
+          )}
         </label>
         <label className="block text-xs">
-          <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">Motivo</span>
-          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="cliente antigo" className={campo} />
+          <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {personalizado ? 'Observação' : 'Motivo'}
+          </span>
+          <input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder={personalizado ? 'combinado na proposta' : 'cliente antigo'}
+            className={campo}
+          />
         </label>
       </div>
 
@@ -70,7 +105,12 @@ export function HonorariosEditor({
         <div className="rounded-2xl bg-[#EFFFD6] px-4 py-3 dark:bg-[#2F4A3C]/30">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">Vai na fatura</p>
           <p className="font-serif text-xl font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(final)}/mês</p>
-          {valorDesconto > 0 && (
+          {personalizado && (
+            <p className="text-xs text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">
+              Valor combinado — não acompanha reajuste da tabela.
+            </p>
+          )}
+          {!personalizado && valorDesconto > 0 && (
             <p className="text-xs text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">
               {BRL.format(plano!.valor)} − {BRL.format(valorDesconto)} de desconto
             </p>

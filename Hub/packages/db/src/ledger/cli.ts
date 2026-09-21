@@ -50,6 +50,7 @@ async function migrate() {
     '0064_resultado_motivo.sql',
     '0065_cliente_encerrado.sql',
     '0066_aprovacao_cadastro.sql',
+    '0067_plano_personalizado.sql',
   ]) {
     const sqlText = fs.readFileSync(path.resolve(process.cwd(), 'packages/db/migrations', nome), 'utf-8');
     // A migration inteira numa execução só: os triggers dependem das tabelas e
