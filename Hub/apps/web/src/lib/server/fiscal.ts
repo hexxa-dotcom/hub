@@ -361,7 +361,11 @@ export async function getSimplesInputs(
        */
       tx.execute(sql`
         SELECT rba12 FROM tax_history
-         WHERE company_id = ${ctx.companyId} AND source = 'ONEFLOW'
+         -- PGDAS é a apuração que a própria empresa transmitiu à Receita; o
+       -- OneFlow é a que o contábil calculou. As duas são oficiais, e
+       -- ignorar o PGDAS deixaria sem anexo apurado justamente o cliente
+       -- que subiu o extrato no primeiro acesso.
+       WHERE company_id = ${ctx.companyId} AND source IN ('ONEFLOW', 'PGDAS')
          ORDER BY reference_month DESC LIMIT 1
       `),
     ]);

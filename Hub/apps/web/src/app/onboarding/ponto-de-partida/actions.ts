@@ -123,3 +123,81 @@ export async function lerPontoDePartida(): Promise<{ saldo: number | null; fatur
     faturamento: r?.faturamento === null || r?.faturamento === undefined ? null : Number(r.faturamento),
   };
 }
+
+export type EstadoDaLeituraPgdas = {
+  ok: boolean;
+  message: string;
+  faturamento: number | null;
+};
+
+/**
+ * O extrato do PGDAS preenche o faturamento.
+ *
+ * O número que este passo pede — receita dos últimos 12 meses — é o RBT12 que
+ * a própria Receita calculou e imprimiu no extrato. Deixar a pessoa digitar de
+ * cabeça convida a um arredondamento que muda a faixa do Simples.
+ *
+ * Ler também GRAVA a apuração em `tax_history`, e isso importa mais do que
+ * parece: é daí que sai o anexo apurado, que decide se o card do Fator R pode
+ * ou não sugerir aumento de pró-labore.
+ */
+export async function lerPgdasEnviado(
+  _prev: EstadoDaLeituraPgdas,
+  formData: FormData,
+): Promise<EstadoDaLeituraPgdas> {
+  const ctx = await getTenantContext();
+  const arquivo = formData.get('pgdas');
+
+  if (!(arquivo instanceof File) || arquivo.size === 0) {
+    return { ok: false, message: 'Escolha o PDF do extrato.', faturamento: null };
+  }
+
+  let texto: string;
+  try {
+    // require() só aqui dentro: o pdf-parse referencia DOMMatrix na cadeia de
+    // import e um require de topo derruba o build do Next.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
+    texto = (await pdfParse(Buffer.from(await arquivo.arrayBuffer()))).text;
+  } catch (err) {
+    console.error('[ponto-de-partida/pgdas] falha ao abrir o PDF:', err);
+    return { ok: false, message: 'Não consegui abrir esse PDF.', faturamento: null };
+  }
+
+  const { lerExtratoPgdas } = await import('@hexxa/core');
+  const leitura = lerExtratoPgdas(texto);
+  if (!leitura.ok || !leitura.extrato) {
+    return { ok: false, message: leitura.motivo ?? 'Não consegui ler o extrato.', faturamento: null };
+  }
+
+  const e = leitura.extrato;
+  if (e.competencia && e.aliquotaEfetiva !== null) {
+    // A apuração oficial vale mais que qualquer estimativa nossa — e é ela
+    // que diz o anexo. Ver `enquadramentoApurado`.
+    await getDb()
+      .execute(sql`
+        INSERT INTO tax_history (company_id, reference_month, rba12, effective_rate, tax_bracket, source)
+        VALUES (${ctx.companyId}, ${`${e.competencia}-01`}::date, ${e.rbt12}, ${e.aliquotaEfetiva},
+                ${e.anexo ?? 'Anexo III'}, 'PGDAS')
+        ON CONFLICT (company_id, reference_month) DO UPDATE
+           SET rba12 = EXCLUDED.rba12, effective_rate = EXCLUDED.effective_rate,
+               tax_bracket = EXCLUDED.tax_bracket
+      `)
+      .catch((err) => console.error('[ponto-de-partida/pgdas] tax_history:', err));
+  }
+
+  const quando = e.competencia
+    ? new Date(`${e.competencia}-01T12:00:00Z`).toLocaleDateString('pt-BR', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
+  return {
+    ok: true,
+    message: quando
+      ? `Extrato de ${quando} lido${e.anexo ? ` — ${e.anexo}` : ''}. Confira o valor abaixo.`
+      : 'Extrato lido. Confira o valor abaixo.',
+    faturamento: e.rbt12,
+  };
+}

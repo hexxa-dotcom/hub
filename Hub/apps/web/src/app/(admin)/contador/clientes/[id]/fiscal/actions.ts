@@ -1,6 +1,7 @@
 'use server';
 
 import { taxHistory, getDb, eq, and, withDbTimeout } from '@hexxa/db';
+import { lerExtratoPgdas } from '@hexxa/core';
 import { integrationCredential } from '@hexxa/db/schema';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/server/admin-guard';
@@ -98,50 +99,23 @@ export async function processPGDAS(companyId: string, formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const pdfData = await pdfParse(buffer);
-    const text = pdfData.text;
 
-    // Extrai os dados do texto do PGDAS via regex. Se algum campo essencial
-    // não for encontrado, falha explicitamente em vez de gravar um valor
-    // fabricado — dado fiscal errado é pior do que nenhum dado.
-    let rba12 = 0;
-    let aliquota = 0;
-    let anexo = 'Anexo III'; // default
-    let referenceMonth = new Date().toISOString().slice(0, 7); // default YYYY-MM
-
-    // Regex to extract RBA12
-    const rbaMatch = text.match(/(?:RBA12|Receita Bruta Acumulada).*?(?:R\$)?\s*([\d\.]+,\d{2})/i);
-    if (rbaMatch) {
-      rba12 = parseFloat(rbaMatch[1].replace(/\./g, '').replace(',', '.'));
-    } else {
-      return {
-        success: false,
-        error: 'Não foi possível encontrar a Receita Bruta Acumulada (RBA12) no PDF. Confira se é um PGDAS válido ou lance os dados manualmente.',
-      };
+    /**
+     * A leitura mora em `lerExtratoPgdas`, testada, e não mais aqui.
+     *
+     * Estava inline, com as regex no meio da gravação no banco e sem teste
+     * nenhum — um parser de documento fiscal sem teste funciona no PDF de
+     * quem o escreveu e ninguém sabe o que faz no próximo. A mesma função
+     * atende o cliente no primeiro acesso.
+     */
+    const leitura = lerExtratoPgdas(pdfData.text);
+    if (!leitura.ok || !leitura.extrato) {
+      return { success: false, error: leitura.motivo ?? 'Não consegui ler o extrato.' };
     }
-
-    // Regex to extract aliquota
-    const aliquotaMatch = text.match(/Alíquota.*?(?:efetiva|nominal).*?(\d+,\d{2})\s*%/i);
-    if (aliquotaMatch) {
-      aliquota = parseFloat(aliquotaMatch[1].replace(',', '.'));
-    } else {
-      return {
-        success: false,
-        error: 'Não foi possível encontrar a alíquota efetiva/nominal no PDF. Confira se é um PGDAS válido ou lance os dados manualmente.',
-      };
-    }
-
-    // Reference month regex "Período de Apuração (PA): 05/2024"
-    const paMatch = text.match(/Período de Apuração[^\d]*?(\d{2})\/(\d{4})/i);
-    if (paMatch) {
-      referenceMonth = `${paMatch[2]}-${paMatch[1]}`;
-    }
-
-    // Determine tax bracket (Anexo) based on text.
-    if (text.match(/Anexo I\b/i)) anexo = 'Anexo I';
-    else if (text.match(/Anexo II\b/i)) anexo = 'Anexo II';
-    else if (text.match(/Anexo III\b/i)) anexo = 'Anexo III';
-    else if (text.match(/Anexo IV\b/i)) anexo = 'Anexo IV';
-    else if (text.match(/Anexo V\b/i)) anexo = 'Anexo V';
+    const rba12 = leitura.extrato.rbt12;
+    const aliquota = leitura.extrato.aliquotaEfetiva ?? 0;
+    const anexo = leitura.extrato.anexo ?? 'Anexo III';
+    const referenceMonth = leitura.extrato.competencia ?? new Date().toISOString().slice(0, 7);
 
     // Insert into database
     const db = getDb();

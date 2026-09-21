@@ -1,11 +1,17 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Spinner, Warning } from '@phosphor-icons/react';
-import { salvarPontoDePartida, type EstadoDoPontoDePartida } from './actions';
+import { ArrowRight, CheckCircle, Spinner, UploadSimple, Warning } from '@phosphor-icons/react';
+import {
+  salvarPontoDePartida,
+  lerPgdasEnviado,
+  type EstadoDoPontoDePartida,
+  type EstadoDaLeituraPgdas,
+} from './actions';
 
 const inicial: EstadoDoPontoDePartida = { ok: true, message: '' };
+const inicialPgdas: EstadoDaLeituraPgdas = { ok: true, message: '', faturamento: null };
 
 /**
  * Passo 3: de onde o Hub começa a contar.
@@ -24,6 +30,16 @@ export function PontoDePartidaForm({
   faturamentoAtual: number | null;
 }) {
   const [estado, action, pendente] = useActionState(salvarPontoDePartida, inicial);
+  const [pgdas, pgdasAction, lendo] = useActionState(lerPgdasEnviado, inicialPgdas);
+
+  // Controlado porque a leitura do extrato chega DEPOIS da primeira
+  // renderização — `defaultValue` ignoraria o valor lido.
+  const [faturamento, setFaturamento] = useState(
+    faturamentoAtual === null ? '' : String(faturamentoAtual),
+  );
+  useEffect(() => {
+    if (pgdas.faturamento !== null) setFaturamento(String(pgdas.faturamento));
+  }, [pgdas]);
 
   const campo =
     'w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm tabular dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]';
@@ -49,6 +65,11 @@ export function PontoDePartidaForm({
   }
 
   return (
+    <>
+      {/* Formulário próprio para a leitura — <form> não aninha, e ler o
+          extrato não pode submeter (nem validar) o passo inteiro. */}
+      <form id="ler-pgdas" action={pgdasAction} className="hidden" />
+
     <form
       action={action}
       className="rounded-3xl border border-black/5 bg-white p-6 dark:border-white/10 dark:bg-[#231F20] sm:p-8"
@@ -91,11 +112,49 @@ export function PontoDePartidaForm({
             name="faturamento"
             inputMode="decimal"
             required
-            defaultValue={faturamentoAtual ?? ''}
+            value={faturamento}
+            onChange={(e) => setFaturamento(e.target.value)}
             placeholder="0,00"
             className={campo}
           />
+
         </label>
+
+        <div className="mt-3 rounded-2xl border border-dashed border-black/15 p-3 dark:border-white/15">
+            <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">
+              Tem o extrato do Simples?
+            </p>
+            <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+              Envie o PDF do PGDAS e eu leio o valor exato que a Receita calculou.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                name="pgdas"
+                accept=".pdf,application/pdf"
+                form="ler-pgdas"
+                className="text-xs text-[#6E6A61] file:mr-2 file:rounded-full file:border-0 file:bg-[#EFFFD6] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2F4A3C] dark:text-[#A8A49C] dark:file:bg-[#2F4A3C] dark:file:text-[#DFFFAE]"
+              />
+              <button
+                type="submit"
+                form="ler-pgdas"
+                disabled={lendo}
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-bold text-[#231F20] disabled:opacity-40 dark:border-white/10 dark:text-[#F5F6F4]"
+              >
+                {lendo ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <UploadSimple className="h-3.5 w-3.5" />}
+                Ler extrato
+              </button>
+            </div>
+            {pgdas.message && (
+              <p
+                className={`mt-2 text-xs ${
+                  pgdas.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
+                }`}
+              >
+                {pgdas.message}
+              </p>
+            )}
+          </div>
 
         <label className="block">
           <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
@@ -125,5 +184,6 @@ export function PontoDePartidaForm({
         Dá para corrigir depois — e quando chegar seu extrato ou balancete, o contador ajusta.
       </p>
     </form>
+    </>
   );
 }
