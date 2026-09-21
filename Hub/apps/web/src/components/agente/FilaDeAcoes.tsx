@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
-import { decidir } from './actions';
+import { decidir } from '@/lib/server/fila-agente';
 import { CheckCircle2, XCircle, AlertTriangle, ArrowRight, Bot } from 'lucide-react';
 
 interface Acao {
@@ -223,10 +223,28 @@ function ItemAcao({
   );
 }
 
-export function FilasClient({
+/**
+ * A fila de decisões do agente, onde o trabalho já mora.
+ *
+ * Isto era uma tela própria chamada "O que a IA fez", sob Contabilidade. Dois
+ * problemas: 98% da fila era classificação de lançamento — assunto da
+ * Conciliação, que vive em outra seção do menu —, e o nome falava do
+ * mecanismo em vez do trabalho. O cliente não quer saber o que a IA fez; quer
+ * saber o que falta ele conferir.
+ *
+ * Agora o componente é montado onde o assunto está: as classificações dentro
+ * da Conciliação, o fechamento dentro do Fechamento. Os textos vêm de fora
+ * porque cada lugar fala de uma coisa.
+ */
+export function FilaDeAcoes({
   inicial,
+  titulos,
 }: {
   inicial: { aprovacao: Acao[]; revisao: Acao[]; categorias: { id: string; nome: string }[] };
+  titulos: {
+    aprovacao: { titulo: string; descricao: string; vazio: string };
+    revisao: { titulo: string; descricao: string; vazio: string };
+  };
 }) {
   const [aprovacao, setAprovacao] = useState(inicial.aprovacao);
   const [revisao, setRevisao] = useState(inicial.revisao);
@@ -240,16 +258,14 @@ export function FilasClient({
     <div className="space-y-8">
       <section className="space-y-4">
         <div>
-          <h2 className="font-serif font-bold text-lg text-ink">Esperando você decidir</h2>
-          <p className="text-xs text-ink-soft mt-0.5">
-            Ações sensíveis com movimentação de valores ou comunicação externa aguardando sua validação.
-          </p>
+          <h2 className="font-serif font-bold text-lg text-ink">{titulos.aprovacao.titulo}</h2>
+          <p className="text-xs text-ink-soft mt-0.5">{titulos.aprovacao.descricao}</p>
         </div>
 
         {aprovacao.length === 0 ? (
           <Card level={1} className="p-6 text-center text-xs text-ink-soft">
             <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-2 opacity-80" />
-            Nenhuma ação pendente de aprovação no momento.
+            {titulos.aprovacao.vazio}
           </Card>
         ) : (
           <div className="space-y-4">
@@ -262,16 +278,14 @@ export function FilasClient({
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-serif font-bold text-lg text-ink">Executado com autonomia (auditoria)</h2>
-          <p className="text-xs text-ink-soft mt-0.5">
-            Ações com alta confiança executadas de forma autônoma. Confirmar ou corrigir aqui refina as regras do modelo.
-          </p>
+          <h2 className="font-serif font-bold text-lg text-ink">{titulos.revisao.titulo}</h2>
+          <p className="text-xs text-ink-soft mt-0.5">{titulos.revisao.descricao}</p>
         </div>
 
         {revisao.length === 0 ? (
           <Card level={1} className="p-6 text-center text-xs text-ink-soft">
             <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-2 opacity-80" />
-            Todas as rotinas autônomas já foram auditadas.
+            {titulos.revisao.vazio}
           </Card>
         ) : (
           <div className="space-y-4">

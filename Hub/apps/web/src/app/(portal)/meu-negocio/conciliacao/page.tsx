@@ -6,14 +6,21 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { SectionInfo } from '@/components/ui/SectionInfo';
+import { FilaDeAcoes } from '@/components/agente/FilaDeAcoes';
+import { listarFilas } from '@/lib/server/fila-agente';
 
 export const metadata = {
   title: 'Conciliação Bancária | Hexxa Hub',
 };
 
 export default async function Page() {
-  const [data, contas, desde] = await Promise.all([
-    getReconciliationData(), contasDaEmpresa(), janelaDeHistorico(),
+  const [data, contas, desde, filas] = await Promise.all([
+    getReconciliationData(),
+    contasDaEmpresa(),
+    janelaDeHistorico(),
+    // Só a classificação de lançamento: o fechamento de mês é decidido na
+    // tela de Fechamento, não aqui no meio do extrato.
+    listarFilas(['CLASSIFICAR_LANCAMENTO']).catch(() => null),
   ]);
 
   return (
@@ -43,6 +50,26 @@ export default async function Page() {
       <SubirExtrato contas={contas} desde={desde} />
 
       <ConciliacaoClient transactions={data.transactions} entries={data.entries} />
+
+      {filas && (filas.aprovacao.length > 0 || filas.revisao.length > 0) && (
+        <FilaDeAcoes
+          inicial={filas}
+          titulos={{
+            aprovacao: {
+              titulo: 'Esperando você decidir',
+              descricao:
+                'Lançamentos que a classificação automática não teve confiança para resolver sozinha.',
+              vazio: 'Nenhum lançamento esperando decisão.',
+            },
+            revisao: {
+              titulo: 'Classificado automaticamente',
+              descricao:
+                'Já lançado na conta indicada. Confirmar ou corrigir aqui melhora as próximas classificações.',
+              vazio: 'Tudo o que foi classificado sozinho já passou pela sua conferência.',
+            },
+          }}
+        />
+      )}
     </div>
   );
 }

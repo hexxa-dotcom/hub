@@ -19,7 +19,15 @@ import { getDb, sql } from '@hexxa/db';
  * rotulado que a confiança medida lê na próxima vez.
  */
 
-export async function listarFilas() {
+/**
+ * As filas, opcionalmente só de um tipo de ação.
+ *
+ * Existe filtro porque as duas metades da fila moram em telas diferentes: a
+ * classificação de lançamento na Conciliação, o fechamento de mês no
+ * Fechamento. Sem o filtro, cada tela mostraria a pendência da outra, e o
+ * cliente decidiria sobre fechamento numa tela de extrato.
+ */
+export async function listarFilas(kinds?: string[]) {
   const ctx = await getTenantContext();
   const [aprovacao, revisao, categorias] = await Promise.all([
     listarFilaAprovacao(ctx.companyId),
@@ -28,7 +36,14 @@ export async function listarFilas() {
       SELECT id::text, name FROM category WHERE company_id = ${ctx.companyId} ORDER BY name
     `) as unknown as Promise<{ id: string; name: string }[]>,
   ]);
-  return { aprovacao, revisao, categorias: categorias.map((c) => ({ id: c.id, nome: c.name })) };
+  const doTipo = <T extends { kind: string }>(lista: T[]) =>
+    kinds?.length ? lista.filter((a) => kinds.includes(a.kind)) : lista;
+
+  return {
+    aprovacao: doTipo(aprovacao),
+    revisao: doTipo(revisao),
+    categorias: categorias.map((c) => ({ id: c.id, nome: c.name })),
+  };
 }
 
 export async function decidir(
@@ -49,6 +64,9 @@ export async function decidir(
     categoriaCorretaId,
   );
 
-  revalidatePath('/mais/ia');
+  // As duas telas que hospedam a fila. Revalidar só uma deixaria a outra
+  // mostrando um item já decidido.
+  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/relatorios/fechamento');
   return { ok: r.ok, message: r.mensagem };
 }

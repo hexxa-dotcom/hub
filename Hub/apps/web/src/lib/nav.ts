@@ -32,10 +32,12 @@ export const NAV: NavSection[] = [
       { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
       { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
-      // Fila de decisões sobre o que a IA fez ou quer fazer. Sem tela, as
-      // tabelas de trilha existiriam e ninguém veria — e o ciclo de
-      // aprendizado não fecharia.
-      { label: 'O que a IA fez', href: '/mais/ia' },
+      // A fila de decisões do agente NÃO é um item de menu. Era "O que a IA
+      // fez", e 98% dela era classificação de lançamento — assunto da
+      // Conciliação, duas seções abaixo. O nome também falava do mecanismo em
+      // vez do trabalho: o cliente não quer saber o que a IA fez, quer saber o
+      // que falta ele conferir. Agora cada metade aparece onde o assunto mora
+      // (ver FilaDeAcoes).
     ],
   },
   {

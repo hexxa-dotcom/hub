@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { SectionInfo } from '@/components/ui/SectionInfo';
 import { ControlesDoRelatorio } from './ControlesDoRelatorio';
+import { FilaDeAcoes } from '@/components/agente/FilaDeAcoes';
+import { listarFilas } from '@/lib/server/fila-agente';
 
 const ROTULO_DO_ESTAGIO: Record<string, string> = {
   ABERTO: 'EM ABERTO',
@@ -70,8 +72,38 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
   const result = totalRev - totalExp;
   const isProfit = result >= 0;
 
+  /**
+   * O fechamento que o agente quer dar por encerrado e está travado.
+   *
+   * Fica aqui, e não numa tela própria de "o que a IA fez": a decisão é sobre
+   * este mês, e quem decide precisa ver o mês na frente. A classificação de
+   * lançamento, que é o outro tipo de pendência, mora na Conciliação.
+   */
+  const fila = await listarFilas(['FECHAR_MES']).catch(() => null);
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-10">
+      {fila && fila.aprovacao.length > 0 && (
+        <div className="print:hidden">
+          <FilaDeAcoes
+            inicial={fila}
+            titulos={{
+              aprovacao: {
+                titulo: 'Esperando você decidir',
+                descricao:
+                  'O fechamento só é concluído depois da sua aprovação — nada é enviado à contabilidade antes disso.',
+                vazio: 'Nenhum fechamento esperando decisão.',
+              },
+              revisao: {
+                titulo: 'Fechamentos concluídos sozinhos',
+                descricao: 'Concluídos dentro do que o agente pode fazer sem perguntar.',
+                vazio: 'Nenhum.',
+              },
+            }}
+          />
+        </div>
+      )}
+
       {/* Header com botões */}
       <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
