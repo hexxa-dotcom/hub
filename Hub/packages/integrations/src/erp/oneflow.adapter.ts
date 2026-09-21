@@ -614,10 +614,10 @@ export class OneflowAdapter {
    * Os únicos planos que existem no escritório (BM3, Nathalia) nasceram pelo
    * assistente da TELA do OneFlow.
    *
-   * Como o assistente roda UMA vez por empresa, chamar isto não é inofensivo:
-   * queima a única chance e deixa a empresa sem plano e sem conserto pela API
-   * ("O onboarding do contábil já foi concluído!(5114)"). Só o reset pela tela
-   * devolve a escolha, e ele apaga os lançamentos contábeis.
+   * Chamar isto não é inofensivo: deixa a empresa sem plano e sem conserto
+   * pela API ("O onboarding do contábil já foi concluído!(5114)"). Quem
+   * devolve a escolha é o reset pela tela, e ele apaga os lançamentos
+   * contábeis — então cada rodada tem custo, mesmo não sendo a única.
    *
    * Fica no adaptador como registro do que foi testado. O caminho válido é o
    * contador configurar pela tela; `conferirPlanoDoOneflow` é quem verifica.

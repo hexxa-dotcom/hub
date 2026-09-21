@@ -229,10 +229,11 @@ export async function aprovarCadastro(
    * HEXX, três vezes, inclusive com a competência correta. Os únicos planos
    * que existem (BM3, Nathalia) nasceram pelo assistente da TELA do OneFlow.
    *
-   * Como o assistente roda UMA vez por empresa, chamá-lo aqui não é só
-   * inútil: queima a única chance. A empresa fica com o onboarding concluído,
-   * sem plano, e a API recusa refazer ("onboarding já concluído") — só o reset
-   * pela tela devolve a escolha, e ele apaga os lançamentos contábeis.
+   * Chamá-lo aqui conclui o onboarding sem plano. A API passa a recusar
+   * refazer ("onboarding já concluído"); quem devolve a escolha é o reset
+   * pela tela, que apaga os lançamentos contábeis. O assistente não é de uma
+   * vez só — com reset ele roda de novo e troca o plano —, mas cada rodada
+   * custa os lançamentos que estiverem lá.
    *
    * Então a aprovação cria a empresa lá e deixa a configuração do contábil
    * como PENDÊNCIA EXPLÍCITA do contador, que já vai ao OneFlow definir as
@@ -241,10 +242,11 @@ export async function aprovarCadastro(
    */
   if (escolhas.modulos.includes('CTL')) {
     avisos.push(
-      'Configure o contábil desta empresa NO ONEFLOW, pela tela, escolhendo o ' +
-        'Plano de Contas Dinâmico. O assistente roda uma vez só, e pela API ele ' +
-        'conclui sem criar plano. Sem plano, o contábil não recebe lançamento ' +
-        'nenhum — nem do fiscal, nem da folha, nem do Hub.',
+      'Configure o contábil desta empresa NO ONEFLOW, pela tela, com o Plano ' +
+        'de Contas Dinâmico — o mesmo modelo que as outras já usam, não um ' +
+        'plano novo e vazio. Pela API o assistente conclui sem criar plano. ' +
+        'Sem plano, o contábil não recebe lançamento nenhum — nem do fiscal, ' +
+        'nem da folha, nem do Hub.',
     );
   }
 
