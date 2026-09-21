@@ -62,3 +62,63 @@ export function buildMtlsAgent(cert: CertMaterial): https.Agent {
   const certChain = [cert.certPem, ...cert.caPems].join('\n');
   return new https.Agent({ key: cert.keyPem, cert: certChain, keepAlive: true, rejectUnauthorized: true });
 }
+
+/**
+ * FICHA DO CERTIFICADO: quem é, e até quando vale.
+ *
+ * ── Por que isto existe ────────────────────────────────────────────────
+ *
+ * Um certificado A1 vale um ano e vence sem avisar. Quando vence, a emissão
+ * de nota para de funcionar — e o cliente descobre no pior momento possível,
+ * com a nota para emitir e o prazo correndo. O arquivo carrega a data de
+ * validade dentro dele; não havia motivo para ninguém ler.
+ *
+ * Também confere o titular. Subir por engano o certificado de OUTRA empresa é
+ * comum quando alguém cuida de mais de um CNPJ, e o erro só apareceria na
+ * primeira emissão, como uma recusa incompreensível do Emissor Nacional.
+ */
+export interface FichaDoCertificado {
+  /** Nome no certificado, como "FULANO LTDA:12345678000199". */
+  titular: string;
+  /** CNPJ extraído do titular, só dígitos — vazio quando não há. */
+  cnpj: string;
+  /** ISO (AAAA-MM-DD). */
+  validoDe: string;
+  validoAte: string;
+  diasParaVencer: number;
+  vencido: boolean;
+}
+
+export function inspecionarCertificado(
+  pfxBase64: string,
+  password: string,
+  hoje = new Date(),
+): FichaDoCertificado {
+  const der = forge.util.decode64(pfxBase64);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(der), false, password);
+  const CERTBAG = forge.pki.oids.certBag as string;
+  const cert = p12.getBags({ bagType: CERTBAG })[CERTBAG]?.[0]?.cert;
+  if (!cert) throw new Error('Certificado A1: certificado não encontrado no arquivo.');
+
+  const titular = cert.subject.getField('CN')?.value ?? '';
+  // O padrão ICP-Brasil põe o CNPJ depois de ":" no CN do e-CNPJ.
+  const cnpj = (String(titular).split(':')[1] ?? '').replace(/\D/g, '');
+
+  const dia = (d: Date) => d.toISOString().slice(0, 10);
+  const ate = cert.validity.notAfter;
+  // Dias inteiros, pela data — comparar com hora faria "vence hoje" virar
+  // "venceu" às 00h01 do próprio dia de validade.
+  const umDia = 24 * 60 * 60 * 1000;
+  const diasParaVencer = Math.floor(
+    (Date.parse(dia(ate)) - Date.parse(dia(hoje))) / umDia,
+  );
+
+  return {
+    titular: String(titular),
+    cnpj,
+    validoDe: dia(cert.validity.notBefore),
+    validoAte: dia(ate),
+    diasParaVencer,
+    vencido: diasParaVencer < 0,
+  };
+}
