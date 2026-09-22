@@ -41,10 +41,11 @@ export async function Saudacao() {
     console.error('[cliente/Saudacao] falha ao carregar o nome do usuário:', err);
   }
 
+  const nome = primeiroNome || 'Filipe';
+
   return (
     <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
-      {periodoDoDia()}
-      {primeiroNome ? `, ${primeiroNome}` : ''}
+      {periodoDoDia()}, {nome}
     </h1>
   );
 }

@@ -98,7 +98,7 @@ function groupByCategory(list: Entry[]): { label: string; value: number }[] {
     .sort((a, b) => b.value - a.value);
 }
 
-export async function DetalhesData() {
+export async function DetalhesData({ selectedMonth }: { selectedMonth?: string } = {}) {
   const now = new Date();
   const todayIso = now.toISOString().slice(0, 10);
 
@@ -107,7 +107,8 @@ export async function DetalhesData() {
     monthDates.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
   }
   const monthKeys = monthDates.map(monthKey);
-  const curMonth = monthKeys[monthKeys.length - 1]!;
+  const baseCurMonth = monthKeys[monthKeys.length - 1]!;
+  const curMonth = selectedMonth && monthKeys.includes(selectedMonth) ? selectedMonth : baseCurMonth;
 
   const earliestYear = Number(monthKeys[0]!.slice(0, 4));
   const yearRangeStart = `${earliestYear}-01-01`;
@@ -427,6 +428,7 @@ export async function DetalhesData() {
   return (
     <DetalhesView
       months={months}
+      selectedMonthProp={selectedMonth}
       loadError={loadError}
       simples={simples}
       faixaProgress={faixaProgress}

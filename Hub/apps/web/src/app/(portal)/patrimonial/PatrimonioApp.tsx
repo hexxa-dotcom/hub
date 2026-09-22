@@ -42,8 +42,8 @@ export function PatrimonioApp({
   const router = useRouter();
 
   return (
-    <div className="space-y-6">
-      <div className="flex">
+    <div className="space-y-8">
+      <div className="flex overflow-x-auto no-scrollbar py-1">
         <SegmentedTabs
           tabs={TABS}
           activeTab={tab}
@@ -83,7 +83,7 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
   return (
     <div className="space-y-6 animate-in fade-in">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card level={2} tone="deep" className="p-6 text-white shadow-(--elev-2) relative overflow-hidden">
+        <Card level={2} tone="forest" className="p-6 shadow-(--elev-2) relative overflow-hidden">
           <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Patrimônio Consolidado</h3>
           <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL0.format(total)}</p>
           <span className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-hexxa-lime">Empresa + Sócios</span>
@@ -218,7 +218,7 @@ function Dividendos({
       </Card>
 
       <section className="space-y-4">
-        <Card level={2} tone="deep" className="p-6 text-white shadow-(--elev-2)">
+        <Card level={2} tone="forest" className="p-6 shadow-(--elev-2)">
           <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Máximo Distribuível (Sem Descapitalizar)</h3>
           <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL.format(calc.max)}</p>
         </Card>

@@ -3,7 +3,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getInformeDeRendimentos } from '@/lib/server/informe-rendimentos';
 import { Info, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import { PrintButton } from './PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -32,49 +32,41 @@ export default async function InformeRendimentosPage({
   const semCpf = informe.socios.filter((s) => s.lancamentos.length > 0 && !s.socio.cpf);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-10">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
-          <div className="flex items-center gap-4">
+    <div className="mx-auto max-w-3xl space-y-16 pb-10 animate-fade-up">
+      <SectionHero
+        title="Lucros e Rendimentos"
+        infoTitle="Sobre Lucros e Rendimentos"
+        infoDescription={`Lucros distribuídos aos sócios em ${informe.ano}. O documento que o sócio usa na sua declaração de IRPF.`}
+        className="print:hidden"
+        rightSlot={
+          <div className="flex items-center gap-2">
             <Link 
               href="/meu-negocio/relatorios" 
               className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Relatórios
             </Link>
-            <SectionInfo
-              title="Sobre Lucros e Rendimentos"
-              description={`Lucros distribuídos aos sócios em ${informe.ano}. O documento que o sócio usa na sua declaração de IRPF.`}
-            />
+            {informe.anosDisponiveis.length > 1 && (
+              <div className="flex gap-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
+                {informe.anosDisponiveis.map((a) => (
+                  <Link
+                    key={a}
+                    href={`/meu-negocio/relatorios/informe-rendimentos?ano=${a}` as never}
+                    className={`rounded-full px-3 py-1 text-footnote font-semibold transition-all ${
+                      a === informe.ano
+                        ? 'bg-surface text-ink shadow-(--elev-1)'
+                        : 'text-ink-soft hover:text-ink'
+                    }`}
+                  >
+                    {a}
+                  </Link>
+                ))}
+              </div>
+            )}
+            <PrintButton />
           </div>
-
-          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Lucros e Rendimentos
-            </h1>
-            <div className="flex items-center gap-2">
-              {informe.anosDisponiveis.length > 1 && (
-                <div className="flex gap-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
-                  {informe.anosDisponiveis.map((a) => (
-                    <Link
-                      key={a}
-                      href={`/meu-negocio/relatorios/informe-rendimentos?ano=${a}` as never}
-                      className={`rounded-full px-3 py-1 text-footnote font-semibold transition-all ${
-                        a === informe.ano
-                          ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
-                          : 'text-ink-soft hover:text-ink'
-                      }`}
-                    >
-                      {a}
-                    </Link>
-                  ))}
-                </div>
-              )}
-              <PrintButton />
-            </div>
-          </div>
-        </div>
-      </Card>
+        }
+      />
 
       <div className="rounded-3xl border border-line bg-surface-card shadow-(--elev-1) card-finish p-6 sm:p-8 print:border-0 print:p-0">
         <header className="border-b border-line pb-5">

@@ -393,22 +393,17 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
             className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs sm:text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all"
           />
         </div>
-        <div className="flex gap-1.5">
-          {(['todos','PJ','PF'] as const).map(f => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all shadow-(--elev-1) ${
-                filter === f
-                  ? 'bg-hexxa-forest text-hexxa-lime'
-                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink'
-              }`}
-            >
-              {f === 'todos' ? `Todos (${clientes.length})` : f === 'PJ' ? `PJ (${clientes.filter(c=>c.type==='PJ').length})` : `PF (${clientes.filter(c=>c.type==='PF').length})`}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          size="sm"
+          tabs={[
+            { id: 'todos', label: `Todos (${clientes.length})` },
+            { id: 'PJ', label: `PJ (${clientes.filter(c => c.type === 'PJ').length})` },
+            { id: 'PF', label: `PF (${clientes.filter(c => c.type === 'PF').length})` },
+          ]}
+          activeTab={filter}
+          onChange={setFilter}
+          layoutId="clientesFilterIndicator"
+        />
         <button
           type="button"
           onClick={() => setShowForm(v => !v)}
@@ -939,22 +934,18 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {([['todas', 'Todas'], ['pendente', 'Pendentes'], ['em_andamento', 'Em Andamento'], ['concluida', 'Concluídas']] as const).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all shadow-(--elev-1) ${
-                filter === key
-                  ? 'bg-hexxa-forest text-hexxa-lime'
-                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink'
-              }`}
-            >
-              {label} ({counts[key]})
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          size="sm"
+          tabs={[
+            { id: 'todas', label: `Todas (${counts.todas ?? 0})` },
+            { id: 'pendente', label: `Pendentes (${counts.pendente ?? 0})` },
+            { id: 'em_andamento', label: `Em Andamento (${counts.em_andamento ?? 0})` },
+            { id: 'concluida', label: `Concluídas (${counts.concluida ?? 0})` },
+          ]}
+          activeTab={filter}
+          onChange={setFilter}
+          layoutId="tarefasFilterIndicator"
+        />
         <button
           type="button"
           onClick={() => setShowForm(v => !v)}
@@ -1019,7 +1010,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                     </div>
                     <div>
                       <p className={`${lbl} mb-2`}>Alterar Status</p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
                         {(['pendente', 'em_andamento', 'concluida'] as TarefaStatus[]).map(s => {
                           const c = TAREFA_STATUS_CONFIG[s];
                           return (
@@ -1027,10 +1018,10 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                               key={s}
                               type="button"
                               onClick={() => changeStatus(t.id, s)}
-                              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                              className={`tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                                 t.status === s
-                                  ? `${c.cls} ring-2 ring-current/30`
-                                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
+                                  ? 'bg-surface text-ink shadow-(--elev-1)'
+                                  : 'text-ink-soft hover:text-ink'
                               }`}
                             >
                               <c.icon className="h-3.5 w-3.5" />{c.label}
@@ -1090,8 +1081,8 @@ export function HubRelacionamento({
   const tarefas = initialTarefas;
 
   return (
-    <div className="space-y-6">
-      <div className="flex">
+    <div className="space-y-8">
+      <div className="flex overflow-x-auto no-scrollbar py-1">
         <SegmentedTabs
           tabs={TABS}
           activeTab={tab}

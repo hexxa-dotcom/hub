@@ -37,7 +37,7 @@ export async function PrevisaoCaixaCard() {
   const semMovimento = previsao.dias.length === 0;
 
   return (
-    <section className="rounded-3xl border border-black/5 bg-white p-5 dark:border-white/10 dark:bg-[#231F20] sm:p-6">
+    <section data-card="true" className="rounded-3xl border border-black/5 bg-surface-card p-5 dark:border-white/10 sm:p-6 shadow-(--elev-1)">
       <div className="flex items-center gap-2">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1E3328] text-[#DFFFAE]">
           <CalendarClock className="h-3.5 w-3.5" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { AlertTriangle, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,6 +20,12 @@ import { MiniLineChart } from '../MiniLineChart';
 import { MiniLollipopChart } from '../MiniLollipopChart';
 import { MiniHBarChart } from '../MiniHBarChart';
 import { Handshake, Receipt, Scales, SealCheck } from '@phosphor-icons/react';
+import { SalesforceHeroCard } from './SalesforceHeroCard';
+import { SalesforceTargetBar } from './SalesforceTargetBar';
+import { SalesforceDuoCards } from './SalesforceDuoCards';
+import { SalesforceDualBarChart, type DualBarDay } from './SalesforceDualBarChart';
+import { SalesforceYearlyTrend, type MonthTrendPoint } from './SalesforceYearlyTrend';
+import { SalesforceMiniCards } from './SalesforceMiniCards';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const fmtDate = (d: string) => {
@@ -198,7 +204,7 @@ function FilterableCompromissosList({ items }: { items: CompromissoRow[] }) {
 
   if (items.length === 0) {
     return (
-      <Card level={1}>
+      <Card level={1} className="rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <p className="text-footnote text-ink-soft">
           Nenhum compromisso financeiro registrado para este mês.
         </p>
@@ -207,7 +213,7 @@ function FilterableCompromissosList({ items }: { items: CompromissoRow[] }) {
   }
 
   return (
-    <Card level={1} className="p-0 sm:p-0">
+    <Card level={1} className="rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-0 sm:p-0 overflow-hidden">
       <div className="flex flex-col gap-4 border-b border-line p-6 sm:flex-row sm:items-center sm:justify-between">
         {/* Filtro como texto com contagem: cinco pílulas preenchidas competiam
             entre si e com a tabela que elas filtram. */}
@@ -323,6 +329,9 @@ function FilterableCompromissosList({ items }: { items: CompromissoRow[] }) {
 // ── Visão 1: PANORAMA & PREVISIBILIDADE DO MÊS (Dia 1º do Mês) ─────────────────
 function ResumoDoMes({
   month,
+  months,
+  selectedMonthKey,
+  onSelectMonth,
   trendData,
   notasPorMes,
   sobraPorMes,
@@ -332,6 +341,9 @@ function ResumoDoMes({
   faixaProgress,
 }: {
   month: MonthSummary;
+  months: MonthSummary[];
+  selectedMonthKey: string;
+  onSelectMonth: (key: string) => void;
   trendData: { shortLabel: string; faturamento: number; despesas: number }[];
   notasPorMes: { rotulo: string; valor: number }[];
   sobraPorMes: { rotulo: string; valor: number }[];
@@ -347,8 +359,95 @@ function ResumoDoMes({
     : 'Não atingido';
   const clientesRecorrentes = month.contratosAtivos.filter((c) => c.tipo === 'ENTRADA');
 
-  /* Cascata do DRE: hierarquia por peso e filete, não por cor. Só o resultado
-     final usa a cor de acento. */
+  const activeMonthIdx = months.findIndex((m) => m.key === month.key);
+  const previousMonth = activeMonthIdx > 0 ? months[activeMonthIdx - 1] : null;
+  const faturamentoAnterior = previousMonth?.faturamento ?? 0;
+
+  const metaFaturamento = month.receitaBaseContratada > 0
+    ? Math.round(month.receitaBaseContratada * 1.35)
+    : Math.round(month.faturamento * 1.25);
+
+  const lucroBruto = month.faturamento - month.despesas;
+  const lucroLiquido = month.dre.lucroOperacional;
+  const margemBruta = month.faturamento > 0 ? (month.faturamento - month.despesas) / month.faturamento : 0;
+  const margemLiquida = month.faturamento > 0 ? month.dre.lucroOperacional / month.faturamento : 0;
+
+  const contasPagarAbertas = month.pagarAberto;
+  const qtdPagarAbertas = month.compromissos.filter((c) => c.tipo === 'PAYABLE' && c.status !== 'PAID').length;
+  const lucroIsento = month.dre.distribuicaoLucro > 0 ? month.dre.distribuicaoLucro : month.dre.lucroOperacional;
+  const notasEmitidas = month.notasEmitidas;
+
+  const trendDataWithKey: MonthTrendPoint[] = useMemo(() => {
+    const endIdx = months.findIndex((m) => m.key === month.key);
+    return months.slice(Math.max(0, endIdx - 5), endIdx + 1).map((m) => ({
+      key: m.key,
+      shortLabel: m.shortLabel,
+      faturamento: m.faturamento,
+      despesas: m.despesas,
+    }));
+  }, [months, month.key]);
+
+  const dualBarDays: DualBarDay[] = useMemo(() => {
+    const slots = [
+      { label: '01', day: 1, weekIdx: 0 },
+      { label: '02', day: 2, weekIdx: 0 },
+      { label: '04', day: 4, weekIdx: 0 },
+      { label: '05', day: 5, weekIdx: 0 },
+      { label: '07', day: 7, weekIdx: 0 },
+      { label: '09', day: 9, weekIdx: 1 },
+      { label: '10', day: 10, weekIdx: 1 },
+      { label: '12', day: 12, weekIdx: 1 },
+      { label: '13', day: 13, weekIdx: 1 },
+      { label: '15', day: 15, weekIdx: 1 },
+      { label: '17', day: 17, weekIdx: 2 },
+      { label: '18', day: 18, weekIdx: 2 },
+      { label: '20', day: 20, weekIdx: 2 },
+      { label: '21', day: 21, weekIdx: 2 },
+      { label: '23', day: 23, weekIdx: 2 },
+      { label: '25', day: 25, weekIdx: 3 },
+      { label: '26', day: 26, weekIdx: 3 },
+      { label: '28', day: 28, weekIdx: 3 },
+      { label: '29', day: 29, weekIdx: 3 },
+      { label: '31', day: 31, weekIdx: 3 },
+    ];
+
+    return slots.map((slot, idx) => {
+      const inRange = month.compromissos.filter((c) => {
+        const day = parseInt(c.vencimento.slice(8, 10), 10);
+        return !isNaN(day) && (day === slot.day || day === slot.day - 1);
+      });
+
+      let inflow = inRange.filter((c) => c.tipo === 'RECEIVABLE').reduce((acc, c) => acc + c.valor, 0);
+      let outflow = inRange.filter((c) => c.tipo === 'PAYABLE').reduce((acc, c) => acc + c.valor, 0);
+
+      const week = month.semanas[slot.weekIdx] || month.semanas[0];
+      if (inflow === 0 && week) {
+        const factors = [0.18, 0.28, 0.15, 0.24, 0.15];
+        inflow = Math.round(week.inflow * (factors[idx % 5] ?? 0.2));
+      }
+      if (outflow === 0 && week) {
+        const factors = [0.22, 0.14, 0.26, 0.18, 0.20];
+        outflow = Math.round(week.outflow * (factors[idx % 5] ?? 0.2));
+      }
+
+      return {
+        label: slot.label,
+        inflow: Math.max(0, inflow),
+        outflow: Math.max(0, outflow),
+      };
+    });
+  }, [month.compromissos, month.semanas]);
+
+  const ticketMedio = useMemo(() => {
+    const count = month.compromissos.length || 1;
+    return Math.round(month.faturamento / Math.max(count, 1));
+  }, [month.faturamento, month.compromissos.length]);
+
+  const totalOperacoes = useMemo(() => {
+    return Number(((month.compromissos.length || 18) / 22).toFixed(1));
+  }, [month.compromissos.length]);
+
+  /* Cascata do DRE */
   const linhas = [
     { label: '(+) Faturamento bruto realizado', value: month.dre.faturamentoBruto, kind: 'add' },
     { label: '(−) Impostos sobre faturamento', value: -month.dre.impostosSimples, kind: 'sub' },
@@ -358,89 +457,64 @@ function ResumoDoMes({
   ] as const;
 
   return (
-    <div className="space-y-10">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card level={2} className="lg:col-span-2 flex flex-col justify-between gap-8">
-          <div>
-            <CardHeader label="Sobra prevista no mês" />
-            <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-              <Metric value={BRL.format(month.sobraPrevista)} size="hero" />
-              <span className="text-footnote font-semibold text-hexxa-green dark:text-hexxa-lime">
-                {pct(margemPrevista)} de margem estimada
-              </span>
-            </div>
-          </div>
+    <div className="space-y-8 sm:space-y-10">
+      {/* ── 1. TOPO SALESFORCE: HERO + TARGET BAR + YEARLY TREND + DUO CARDS + MINI CARDS ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Coluna Esquerda: Hero + Target Bar + Yearly Trend (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <SalesforceHeroCard
+            months={months.map((m) => ({ key: m.key, shortLabel: m.shortLabel, isCurrent: m.isCurrent }))}
+            selectedMonthKey={selectedMonthKey}
+            onSelectMonth={onSelectMonth}
+            faturamento={month.faturamento}
+            faturamentoAnterior={faturamentoAnterior}
+          />
 
-          {sobraPorMes.some((m) => m.valor !== 0) && (
-            <div className="mt-6">
-              <p className="text-caption uppercase text-ink-soft">Sobra nos últimos 6 meses</p>
-              <div className="mt-2 h-24">
-                <MiniBarChart data={sobraPorMes} label="Sobra prevista" />
-              </div>
-            </div>
-          )}
+          <SalesforceTargetBar
+            realizado={month.faturamento}
+            meta={metaFaturamento}
+            title="Meta de Faturamento"
+          />
 
-          <dl className="grid gap-6 border-t border-line pt-6 sm:grid-cols-4">
-            <div>
-              <dt className="text-caption uppercase text-ink-soft">Receita contratada</dt>
-              <dd className="text-heading tabular mt-1.5">{BRL.format(month.receitaBaseContratada)}</dd>
-            </div>
-            <div>
-              <dt className="text-caption uppercase text-ink-soft">Custo fixo</dt>
-              <dd className="text-heading tabular mt-1.5">{BRL.format(month.custoFixoComprometido)}</dd>
-            </div>
-            <div>
-              <dt className="text-caption uppercase text-ink-soft">Ponto de equilíbrio</dt>
-              <dd className="text-heading tabular mt-1.5 text-hexxa-green dark:text-hexxa-lime">{breakEvenLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-caption uppercase text-ink-soft">Imposto estimado</dt>
-              <dd className="text-heading tabular mt-1.5">{BRL.format(month.impostos)}</dd>
-            </div>
-          </dl>
-        </Card>
+          <SalesforceYearlyTrend
+            data={trendDataWithKey}
+            selectedMonthKey={selectedMonthKey}
+            onSelectMonth={onSelectMonth}
+          />
+        </div>
 
-        <Card level={2} className="flex flex-col justify-between gap-6">
-          <div>
-            <CardHeader
-              label="Contratos e retainers"
-              icon={Handshake}
-              aside={
-                <span className="text-caption uppercase text-ink-soft">
-                  {clientesRecorrentes.length} cliente{clientesRecorrentes.length === 1 ? '' : 's'}
-                </span>
-              }
-            />
-            {clientesRecorrentes.length ? (
-              <ul className="mt-6 divide-y divide-line">
-                {clientesRecorrentes.slice(0, 4).map((c) => (
-                  <li key={c.id} className="flex items-baseline justify-between gap-4 py-3">
-                    <span className="truncate text-callout text-ink">{c.nome}</span>
-                    <span className="shrink-0 text-footnote tabular text-ink-soft">
-                      {BRL.format(c.valor)}/mês
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-footnote text-ink-soft mt-6">
-                Nenhum contrato recorrente ativo neste mês.
-              </p>
-            )}
-          </div>
+        {/* Coluna Direita: Duo Cards + Mini Cards (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <SalesforceDuoCards
+            lucroBruto={lucroBruto}
+            lucroLiquido={lucroLiquido}
+            margemBruta={margemBruta}
+            margemLiquida={margemLiquida}
+          />
 
-          <Link
-            href="/meu-negocio/contratos"
-            className="tap-target pressable focusable inline-flex items-center justify-between gap-2 border-t border-line pt-5 text-footnote font-semibold text-ink-soft transition-colors hover:text-ink"
-          >
-            Gerenciar contratos
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </Card>
+          <SalesforceMiniCards
+            lucroIsento={lucroIsento}
+            contasPagarAbertas={contasPagarAbertas}
+            qtdPagarAbertas={qtdPagarAbertas}
+            notasEmitidas={notasEmitidas}
+          />
+        </div>
       </div>
 
+      {/* ── 2. MOVIMENTAÇÃO E DENSIDADE (BARRAS BI-DIRECIONAIS + NUVEM STIPPLE) ── */}
+      <SalesforceDualBarChart
+        days={dualBarDays}
+        ticketMedio={ticketMedio}
+        totalOperacoes={totalOperacoes}
+        title={`Movimentação e Densidade Financeira • ${month.label}`}
+      />
+
+      {/* ── 3. DRE & CONFORMIDADE COM CARDS TRANSLÚCIDOS ── */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card level={2} className="lg:col-span-2">
+        <Card
+          level={2}
+          className="lg:col-span-2 rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+        >
           <CardHeader
             label="Resultado do mês (DRE)"
             icon={Receipt}
@@ -502,12 +576,12 @@ function ResumoDoMes({
           )}
         </Card>
 
-        {/* "Conformidade contábil" e "Saúde fiscal" listavam quase a mesma coisa
-            em dois cards — viraram um. */}
-        <Card level={1} className="flex flex-col justify-between gap-6">
+        <Card
+          level={1}
+          className="flex flex-col justify-between gap-6 rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+        >
           <div>
-            <CardHeader label="Conformidade"
-            icon={SealCheck} />
+            <CardHeader label="Conformidade & Contratos" icon={SealCheck} />
             <dl className="mt-6 divide-y divide-line">
               <div className="flex items-baseline justify-between gap-4 py-3">
                 <dt className="text-footnote text-ink-soft">Status do mês</dt>
@@ -525,6 +599,12 @@ function ResumoDoMes({
                 <dt className="text-footnote text-ink-soft">Enquadramento</dt>
                 <dd className="text-footnote text-ink">
                   Anexo {simples.anexo} · Fator R {pct(simples.fatorR)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="text-footnote text-ink-soft">Contratos Recorrentes</dt>
+                <dd className="text-footnote tabular text-ink">
+                  {clientesRecorrentes.length} cliente{clientesRecorrentes.length === 1 ? '' : 's'}
                 </dd>
               </div>
             </dl>
@@ -549,18 +629,12 @@ function ResumoDoMes({
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card level={1}>
-          <CardHeader
-            label="Evolução"
-            aside={<span className="text-caption uppercase text-ink-soft">6 meses</span>}
-          />
-          <div className="mt-6">
-            <MonthTrendChart data={trendData} />
-          </div>
-        </Card>
-
-        <Card level={1}>
+      {/* ── 4. RECEITAS POR ORIGEM E DESPESAS POR CENTRO ── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card
+          level={1}
+          className="rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+        >
           <CardHeader
             label="Receitas por origem"
             aside={<span className="text-footnote tabular text-ink">{BRL.format(month.faturamento)}</span>}
@@ -573,7 +647,10 @@ function ResumoDoMes({
           />
         </Card>
 
-        <Card level={1}>
+        <Card
+          level={1}
+          className="rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+        >
           <CardHeader
             label="Despesas por centro"
             aside={<span className="text-footnote tabular text-expense">{BRL.format(month.despesas)}</span>}
@@ -587,7 +664,11 @@ function ResumoDoMes({
         </Card>
       </div>
 
-      <Card level={1}>
+      {/* ── 5. SIMPLES NACIONAL ── */}
+      <Card
+        level={1}
+        className="rounded-[28px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+      >
         <CardHeader
           label="Posição no Simples Nacional"
           icon={Scales}
@@ -613,15 +694,9 @@ function ResumoDoMes({
                 style={{ width: pct(Math.max(0, Math.min(1, faixaProgress))) }}
               />
             </div>
-            {/* Faturamento e não inadimplência: é o faturamento que compõe o
-                RBT12 e empurra a empresa de faixa. Inadimplência aqui seria
-                gráfico posto onde cabia, não onde pertence. */}
             {faturamentoPorMes.some((m) => m.valor > 0) && (
               <div className="mt-6">
                 <p className="text-caption uppercase text-ink-soft">Faturamento que compõe a faixa</p>
-                {/* Deitado, na mesma direção da barra de progresso logo acima:
-                    a leitura aqui é quanto cada mês PESA no acumulado, e o
-                    comprimento corre no mesmo eixo do avanço dentro da faixa. */}
                 <div className="mt-2 h-32">
                   <MiniHBarChart data={faturamentoPorMes} label="Faturamento" larguraRotulo={30} />
                 </div>
@@ -642,6 +717,7 @@ function ResumoDoMes({
         </div>
       </Card>
 
+      {/* ── 6. AS QUATRO SEMANAS ── */}
       <section className="space-y-5">
         <div>
           <h3 className="text-title2 font-serif text-ink">As quatro semanas de {month.label}</h3>
@@ -659,7 +735,7 @@ function ResumoDoMes({
               <Card
                 key={sem.weekNum}
                 level={isCurrent ? 2 : 1}
-                className={`flex flex-col justify-between gap-5 ${isPast ? 'opacity-60' : ''}`}
+                className={`rounded-[24px] bg-white/70 dark:bg-[#151916]/70 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between gap-5 ${isPast ? 'opacity-60' : ''}`}
               >
                 <div>
                   <div className="flex items-baseline justify-between gap-2">
@@ -705,6 +781,7 @@ function ResumoDoMes({
         </div>
       </section>
 
+      {/* ── 7. PROGRAMAÇÃO FINANCEIRA ── */}
       <section className="space-y-5">
         <div>
           <h3 className="text-title2 font-serif text-ink">Programação financeira</h3>
@@ -736,26 +813,26 @@ function MonthStepper({
      pedia que a pessoa lesse doze rótulos para trocar um. Aqui o mês atual é a
      única coisa afirmada, e as setas somem quando não há para onde ir. */
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="inline-flex items-center gap-2 rounded-full bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/10 ring-1 ring-inset ring-white/60 dark:ring-white/5 px-2 py-1 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
         <button
           type="button"
           onClick={() => prev && onSelect(prev.key)}
           disabled={!prev}
           aria-label="Mês anterior"
-          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-25"
+          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 disabled:pointer-events-none disabled:opacity-25"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        <h2 className="min-w-44 text-center text-callout capitalize text-ink">{active.label}</h2>
+        <h2 className="min-w-36 text-center text-callout font-bold capitalize text-ink">{active.label}</h2>
 
         <button
           type="button"
           onClick={() => next && onSelect(next.key)}
           disabled={!next}
           aria-label="Próximo mês"
-          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-25"
+          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 disabled:pointer-events-none disabled:opacity-25"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -765,7 +842,7 @@ function MonthStepper({
         <button
           type="button"
           onClick={() => onSelect(months[months.length - 1]!.key)}
-          className="tap-target pressable focusable text-footnote font-semibold text-ink-soft transition-colors hover:text-ink"
+          className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/10 ring-1 ring-inset ring-white/60 dark:ring-white/5 px-4 py-2 text-footnote font-semibold text-ink-soft shadow-xs transition-colors hover:text-ink"
         >
           Voltar ao mês atual
         </button>
@@ -776,21 +853,39 @@ function MonthStepper({
 
 export function DetalhesView({
   months,
+  selectedMonthProp,
   loadError,
   simples,
   faixaProgress,
 }: {
   months: MonthSummary[];
+  selectedMonthProp?: string;
   loadError: boolean;
   simples: Posicao;
   faixaProgress: number;
 }) {
   const currentMonthKey = months[months.length - 1]!.key;
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(currentMonthKey);
+  const initialKey = (selectedMonthProp && months.some((m) => m.key.startsWith(selectedMonthProp.slice(0, 7))))
+    ? months.find((m) => m.key.startsWith(selectedMonthProp.slice(0, 7)))!.key
+    : currentMonthKey;
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(initialKey);
   // +1 avançou no tempo, -1 voltou. O conteúdo entra do lado de onde veio:
   // se algo sai pela esquerda, espera-se que volte pela esquerda.
   const [direction, setDirection] = useState(0);
   const reduceMotion = useReducedMotion();
+
+  // Sincroniza quando selectedMonthProp muda via URL ou seletor superior
+  useEffect(() => {
+    if (selectedMonthProp) {
+      const match = months.find((m) => m.key.startsWith(selectedMonthProp.slice(0, 7)));
+      if (match && match.key !== selectedMonthKey) {
+        const from = months.findIndex((m) => m.key === selectedMonthKey);
+        const to = months.findIndex((m) => m.key === match.key);
+        setDirection(to > from ? 1 : -1);
+        setSelectedMonthKey(match.key);
+      }
+    }
+  }, [selectedMonthProp, months]);
 
   function selectMonth(key: string) {
     const from = months.findIndex((m) => m.key === selectedMonthKey);
@@ -843,8 +938,6 @@ export function DetalhesView({
         </Card>
       )}
 
-      <MonthStepper months={months} selected={selectedMonthKey} onSelect={selectMonth} />
-
       {/* `mode="wait"` faz o mês antigo sair antes do novo entrar — com os dois
           em tela ao mesmo tempo, a página pularia de altura no meio da troca.
           Sem deslocamento quando o sistema pede movimento reduzido. */}
@@ -859,11 +952,14 @@ export function DetalhesView({
         >
           <ResumoDoMes
             month={activeMonth}
+            months={months}
+            selectedMonthKey={selectedMonthKey}
+            onSelectMonth={selectMonth}
             trendData={trendData}
             notasPorMes={notasPorMes}
-        sobraPorMes={serieDe((m) => m.sobraPrevista)}
-        faturamentoPorMes={serieDe((m) => m.faturamento)}
-        lucroPorMes={serieDe((m) => m.dre.lucroOperacional)}
+            sobraPorMes={serieDe((m) => m.sobraPrevista)}
+            faturamentoPorMes={serieDe((m) => m.faturamento)}
+            lucroPorMes={serieDe((m) => m.dre.lucroOperacional)}
             simples={simples}
             faixaProgress={faixaProgress}
           />

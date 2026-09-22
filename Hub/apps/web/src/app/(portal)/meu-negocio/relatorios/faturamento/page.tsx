@@ -3,7 +3,7 @@ import { getFaturamentoData } from '@/lib/server/reports';
 import { Info } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import { ReportToolbar } from '../ReportToolbar';
 
 export const dynamic = 'force-dynamic';
@@ -26,55 +26,53 @@ export default async function FaturamentoReportPage({
   const maxMes = Math.max(...meses.map((m) => m.valor), 1);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-10">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre o Faturamento"
-            description="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
-          />
-
-          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              {visao === 'mensal' ? `Faturamento Mensal · ${ano}` : 'Faturamento Anual'}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
-                <Link
-                  href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'mensal', ano } } as never}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'mensal' ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)' : 'text-ink-soft hover:text-ink'}`}
-                >
-                  Mensal
-                </Link>
-                <Link
-                  href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'anual' } } as never}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'anual' ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)' : 'text-ink-soft hover:text-ink'}`}
-                >
-                  Anual
-                </Link>
-              </div>
-              {visao === 'mensal' && (
-                <form method="get" className="flex items-center gap-2">
-                  <input type="hidden" name="visao" value="mensal" />
-                  <select name="ano" defaultValue={ano} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
-                    {anosDisponiveis.map((a) => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
-                  <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
-                    Ver
-                  </button>
-                </form>
-              )}
-              <ReportToolbar
-                reportType="faturamento"
-                query={{ visao, ...(visao === 'mensal' ? { ano } : {}) }}
-                documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
-              />
+    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
+      <SectionHero
+        title={visao === 'mensal' ? `Faturamento Mensal · ${ano}` : 'Faturamento Anual'}
+        infoTitle="Sobre o Faturamento"
+        infoDescription="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
+        className="print:hidden"
+        rightSlot={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
+              <Link
+                href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'mensal', ano } } as never}
+                className={`tap-target pressable focusable rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'mensal' ? 'bg-surface text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'}`}
+              >
+                Mensal
+              </Link>
+              <Link
+                href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'anual' } } as never}
+                className={`tap-target pressable focusable rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'anual' ? 'bg-surface text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'}`}
+              >
+                Anual
+              </Link>
             </div>
+            {visao === 'mensal' && (
+              <form method="get" className="flex items-center gap-1.5">
+                <input type="hidden" name="visao" value="mensal" />
+                <select
+                  name="ano"
+                  defaultValue={ano}
+                  className="appearance-none rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-1.5 text-xs font-bold text-ink outline-none cursor-pointer"
+                >
+                  {anosDisponiveis.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                <button type="submit" className="tap-target pressable focusable rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer">
+                  Ver
+                </button>
+              </form>
+            )}
+            <ReportToolbar
+              reportType="faturamento"
+              query={{ visao, ...(visao === 'mensal' ? { ano } : {}) }}
+              documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
+            />
           </div>
-        </div>
-      </Card>
+        }
+      />
 
       {visao === 'mensal' ? (
         <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">

@@ -34,11 +34,11 @@ export function QuickActionsMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 rounded-full bg-[#DFFFAE] hover:bg-[#c9f58c] text-[#1E3328] px-3.5 py-2 text-xs sm:text-sm font-bold shadow-sm transition-all duration-200 hover:scale-105"
+        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#DFFFAE] hover:bg-[#c9f58c] text-[#1E3328] px-3 text-xs font-bold shadow-(--elev-1) transition-all duration-200 hover:scale-105 cursor-pointer"
       >
-        <Plus className="h-4 w-4 shrink-0 stroke-[2.5]" />
+        <Plus className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
         <span className="hidden sm:inline">Nova Ação</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (

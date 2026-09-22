@@ -8,7 +8,7 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,25 +83,17 @@ export default async function Page() {
   ].join('\n');
 
   return (
-    <div className="mx-auto w-full space-y-7 animate-fade-up">
+    <div className="mx-auto w-full space-y-16 animate-fade-up">
       {companyId && (
         <Suspense fallback={null}>
           <NotasInsight companyId={companyId} insightContext={insightContext} />
         </Suspense>
       )}
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
-        <div className="flex items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre as Notas Fiscais"
-            description="Emissão simplificada, acompanhamento no Emissor Nacional e gestão de tomadores."
-          />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Notas Fiscais de Serviço
-            </h1>
-          </div>
-        </div>
-      </Card>
+      <SectionHero
+        title="Notas Fiscais de Serviço"
+        infoTitle="Sobre as Notas Fiscais"
+        infoDescription="Emissão simplificada, acompanhamento no Emissor Nacional e gestão de tomadores."
+      />
 
       <HubNotas
         recent={recent as never}

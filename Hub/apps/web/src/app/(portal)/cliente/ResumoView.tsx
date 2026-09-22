@@ -9,6 +9,8 @@ import { DueDatesTimeline } from './DueDatesTimeline';
 import { CashflowForecast, type CashflowDay } from './CashflowForecast';
 import { InadimplenciaChart } from './InadimplenciaChart';
 import { MiniBarChart } from './MiniBarChart';
+import { ChunkyBarChart } from './ChunkyBarChart';
+import { TimeTrackerCard } from './TimeTrackerCard';
 import { Suspense } from 'react';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
@@ -42,9 +44,11 @@ type Entry = {
 };
 
 
-export async function ResumoView() {
+export async function ResumoView({ selectedMonth }: { selectedMonth?: string } = {}) {
   const now = new Date();
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const curMonth = selectedMonth
+    ? (selectedMonth.length === 7 ? `${selectedMonth}-01` : selectedMonth)
+    : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const todayIso = now.toISOString().slice(0, 10);
 
   let entries: Entry[] = [];
@@ -56,7 +60,8 @@ export async function ResumoView() {
   let loadError = false;
   let companyId = '';
   let ctxResumo: TenantContext | null = null;
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const [curY, curM] = curMonth.split('-').map(Number);
+  const lastMonth = new Date(curY!, curM! - 2, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
 
   try {
@@ -165,6 +170,21 @@ export async function ResumoView() {
   });
   const temSobraHistorica = sobraPorMes.some((m) => m.valor !== 0);
 
+  const chunkySobraItems = sobraPorMes.map((m, i) => {
+    const isCurrent = i === sobraPorMes.length - 1;
+    return {
+      label: m.rotulo.toUpperCase(),
+      value: m.valor,
+      formattedValue: BRL.format(m.valor),
+      isHighlight: isCurrent,
+      pattern: isCurrent
+        ? ('solid' as const)
+        : i % 2 === 0
+        ? ('hatched' as const)
+        : ('muted' as const),
+    };
+  });
+
   const lucroIsentoDisponivel = Math.max(0, saldoProjetado);
   const economiaIRPF = lucroIsentoDisponivel * 0.275;
 
@@ -253,7 +273,6 @@ export async function ResumoView() {
   if (vencidas.length) avisos.push({ tone: 'critical', text: `${vencidas.length} conta${vencidas.length > 1 ? 's' : ''} a pagar vencida${vencidas.length > 1 ? 's' : ''} — ${BRL.format(vencidas.reduce((s, e) => s + Number(e.amount), 0))}` });
   if (vencendo.length) avisos.push({ tone: 'warn', text: `${vencendo.length} conta${vencendo.length > 1 ? 's' : ''} a pagar vence${vencendo.length > 1 ? 'm' : ''} nos próximos 7 dias` });
   if (issuingCount) avisos.push({ tone: 'info', text: `${issuingCount} nota${issuingCount > 1 ? 's' : ''} aguardando processamento no Emissor Nacional` });
-  const tudoEmDia = vencidas.length === 0 && qtdInadimplentes === 0;
 
   const timelineItems = [
     ...(openDasGuide
@@ -299,19 +318,7 @@ export async function ResumoView() {
         </Suspense>
       )}
 
-      <div className="flex justify-end">
-        {tudoEmDia ? (
-          <p className="inline-flex items-center gap-2 text-footnote font-semibold text-ok dark:text-hexxa-lime">
-            <CheckCircle2 className="h-4 w-4" />
-            Operação em dia
-          </p>
-        ) : (
-          <p className="inline-flex items-center gap-2 text-footnote font-semibold text-warn">
-            <AlertCircle className="h-4 w-4" />
-            Atenção a prazos
-          </p>
-        )}
-      </div>
+
 
       {loadError && (
         <Card level={1} className="flex items-center gap-3 border-critical/30">
@@ -323,16 +330,16 @@ export async function ResumoView() {
       )}
 
       {lastClosureDate && (
-        <Card level={1} className="flex flex-wrap items-center justify-between gap-4">
+        <Card level={1} className="card-finish p-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-heading text-ink">O fechamento contábil do mês anterior está pronto</p>
-            <p className="text-footnote text-ink-soft mt-1">
-              Resumo contábil e notas fiscais consolidadas.
+            <p className="font-serif font-bold text-base sm:text-lg text-ink">O fechamento contábil do mês anterior está pronto</p>
+            <p className="text-xs sm:text-sm text-ink-soft mt-1">
+              Resumo contábil e notas fiscais consolidadas pela contabilidade.
             </p>
           </div>
           <Link
             href={`/meu-negocio/relatorios/fechamento?month=${lastClosureDate}`}
-            className="tap-target pressable focusable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-hexxa-green-dark px-5 py-2.5 text-footnote font-semibold text-hexxa-cream transition-colors hover:bg-hexxa-green"
+            className="tap-target pressable focusable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-hexxa-forest px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:bg-hexxa-green"
           >
             Ver relatório
             <ArrowRight className="h-3.5 w-3.5" />
@@ -340,86 +347,106 @@ export async function ResumoView() {
         </Card>
       )}
 
-      {/* O faturamento do mês saiu daqui: agora é o card principal da tela,
-          acima do seletor de vista, porque serve às duas. */}
-      <Card level={2} className="flex flex-col justify-between gap-6">
+      {/* 1. Sobra para Você + Time Tracker de Gestão (Estilo Donezo) */}
+      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
+        <div className="lg:col-span-2 flex flex-col">
+          <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between gap-6 h-full">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-full bg-surface shadow-(--elev-inset) text-hexxa-forest dark:text-hexxa-lime">
+                    <HandCoins className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Sobra para Você</p>
+                    <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
+                      {BRL.format(lucroIsentoDisponivel)}
+                    </p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                  Isento de IRPF
+                </span>
+              </div>
+
+              <p className="text-xs text-ink-soft mt-3">
+                Livre de imposto de renda — valor disponível para transferência à conta pessoal no mês.
+              </p>
+
+              {temSobraHistorica && (
+                <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5">
+                  <ChunkyBarChart
+                    items={chunkySobraItems}
+                    title="Evolução da Sobra Líquida"
+                    subtitle="Histórico semestral de lucros isentos para sócios"
+                    height={150}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t border-black/5 dark:border-white/5 pt-4">
+              <div>
+                <p className="text-caption uppercase text-ink-soft">Economia no IRPF</p>
+                <p className="font-serif text-lg font-bold tabular text-ink mt-0.5">~{BRL.format(economiaIRPF)}</p>
+              </div>
+              <Link
+                href="/minha-contabilidade/socios"
+                className="tap-target pressable focusable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/10 shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink hover:text-hexxa-forest dark:hover:text-hexxa-lime transition-all"
+              >
+                Gerenciar Retiradas
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1 flex flex-col">
+          <TimeTrackerCard />
+        </div>
+      </div>
+
+      {/* 2. Inadimplência e projeção de caixa. */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between gap-6">
           <div>
-            <CardHeader label="Sobra para você" icon={HandCoins} />
-            <Metric
-              value={BRL.format(lucroIsentoDisponivel)}
-              size="display"
-              className="mt-4 text-hexxa-green dark:text-hexxa-lime"
-            />
-            <p className="text-footnote text-ink-soft mt-3">
-              Livre de imposto de renda — o que pode ir para a sua conta pessoal este mês.
+            <div className="flex items-center gap-3">
+              <div className={`grid h-10 w-10 place-items-center rounded-full shrink-0 ${
+                totalInadimplente > 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-surface shadow-(--elev-inset) text-hexxa-forest dark:text-hexxa-lime'
+              }`}>
+                <ClockCountdown className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Contas Atrasadas</p>
+                <p className={`font-serif text-2xl sm:text-3xl font-bold tabular mt-0.5 ${
+                  totalInadimplente > 0 ? 'text-expense' : 'text-ink'
+                }`}>
+                  {totalInadimplente > 0 ? BRL.format(totalInadimplente) : 'Tudo em dia'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-ink-soft mt-3">
+              {totalInadimplente > 0
+                ? `${qtdInadimplentes} cobrança(s) em atraso neste mês.`
+                : 'Todos os clientes pagaram no prazo neste mês.'}
             </p>
 
-            {temSobraHistorica && (
-              <div className="mt-6">
-                <p className="text-caption uppercase text-ink-soft">Evolução da sobra</p>
-                <div className="mt-2 h-20">
-                  <MiniBarChart data={sobraPorMes} label="Sobra" />
+            {totalInadimplente > 0 && (
+              <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5">
+                <p className="text-caption uppercase text-ink-soft">Por tempo de atraso</p>
+                <div className="mt-2 h-24">
+                  <InadimplenciaChart data={atrasoPorFaixa} />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-end justify-between gap-4 border-t border-line pt-5">
-            <div>
-              <p className="text-caption uppercase text-ink-soft">Economia no IRPF</p>
-              <p className="text-heading tabular text-ink mt-1">~{BRL.format(economiaIRPF)}</p>
-            </div>
-            <Link
-              href="/minha-contabilidade/socios"
-              className="tap-target pressable focusable inline-flex shrink-0 items-center gap-1 text-footnote font-semibold text-ink-soft transition-colors hover:text-ink"
-            >
-              Retiradas
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </Card>
-
-      {/* 2. Inadimplência e projeção de caixa. */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card level={1} className="flex flex-col justify-between gap-6">
-          <div>
-            <CardHeader label="Contas atrasadas" icon={ClockCountdown} />
-            {totalInadimplente > 0 ? (
-              <>
-                <Metric
-                  value={BRL.format(totalInadimplente)}
-                  size="display"
-                  className="mt-4 text-critical"
-                />
-                <p className="text-footnote text-ink-soft mt-3">
-                  {qtdInadimplentes} cobrança{qtdInadimplentes > 1 ? 's' : ''} passou do vencimento.
-                </p>
-                <div className="mt-6">
-                  <p className="text-caption uppercase text-ink-soft">Por tempo de atraso</p>
-                  <div className="mt-2 h-24">
-                    <InadimplenciaChart data={atrasoPorFaixa} />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <Metric
-                  value="Tudo em dia"
-                  size="title2"
-                  className="mt-4 text-ok dark:text-hexxa-lime"
-                />
-                <p className="text-footnote text-ink-soft mt-3">
-                  Todos os clientes pagaram no prazo neste mês.
-                </p>
-              </>
-            )}
-          </div>
-
           <Link
             href="/meu-negocio/contas-a-receber"
-            className="tap-target pressable focusable inline-flex items-center justify-between gap-2 border-t border-line pt-5 text-footnote font-semibold text-ink-soft transition-colors hover:text-ink"
+            className="tap-target pressable focusable inline-flex items-center justify-between gap-2 border-t border-black/5 dark:border-white/5 pt-4 text-xs font-bold text-ink-soft transition-colors hover:text-ink"
           >
-            Cobrar clientes
+            <span>Cobrar clientes</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Card>

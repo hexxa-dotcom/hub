@@ -5,9 +5,6 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 
-import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
-
 export const dynamic = 'force-dynamic';
 
 // Isolado em Suspense pra não travar o dashboard inteiro esperando a
@@ -36,25 +33,14 @@ async function HubFinanceiroInsight() {
 
 export default async function Page() {
   return (
-    <div className="mx-auto w-full space-y-7 animate-fade-up">
-      <Suspense fallback={null}>
-        <HubFinanceiroInsight />
-      </Suspense>
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
-        <div className="flex items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre o Hub Financeiro"
-            description="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
-          />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Hub Financeiro
-            </h1>
-          </div>
-        </div>
-      </Card>
-
-      <HubFinanceiro />
+    <div className="mx-auto w-full space-y-16 animate-fade-up">
+      <HubFinanceiro
+        insightSlot={
+          <Suspense fallback={null}>
+            <HubFinanceiroInsight />
+          </Suspense>
+        }
+      />
     </div>
   );
 }

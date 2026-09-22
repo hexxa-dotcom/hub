@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { BarChart3, Scale, Users, Clock, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,20 +41,12 @@ const REPORTS: { href: string; icon: LucideIcon; title: string; description: str
 
 export default function RelatoriosHubPage() {
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-7 animate-fade-up">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
-        <div className="flex items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre os Relatórios"
-            description="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
-          />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Relatórios Financeiros
-            </h1>
-          </div>
-        </div>
-      </Card>
+    <div className="mx-auto w-full max-w-4xl space-y-16 animate-fade-up">
+      <SectionHero
+        title="Relatórios Financeiros"
+        infoTitle="Sobre os Relatórios"
+        infoDescription="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {REPORTS.map((r) => (

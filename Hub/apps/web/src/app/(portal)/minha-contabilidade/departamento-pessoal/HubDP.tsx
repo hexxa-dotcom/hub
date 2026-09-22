@@ -711,8 +711,8 @@ export function HubDP({
   const [tab, setTab] = useState<TabKey>('geral');
 
   return (
-    <div className="space-y-6">
-      <div className="flex">
+    <div className="space-y-8">
+      <div className="flex overflow-x-auto no-scrollbar py-1">
         <SegmentedTabs
           tabs={TABS}
           activeTab={tab}

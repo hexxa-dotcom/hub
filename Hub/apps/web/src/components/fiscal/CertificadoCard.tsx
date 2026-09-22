@@ -104,7 +104,7 @@ export async function CertificadoCard({ href = '/meu-negocio/fiscal' }: { href?:
 
           {status.nivel !== 'OK' && (
             <Link
-              href={href}
+              href={href as never}
               className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2F4A3C] px-4 py-2 text-xs font-bold text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#231F20]"
             >
               <Upload className="h-3.5 w-3.5" />

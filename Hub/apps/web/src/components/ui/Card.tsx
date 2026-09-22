@@ -14,7 +14,7 @@ import { ArrowRight } from 'lucide-react';
  */
 
 type Level = 1 | 2 | 3;
-type Tone = 'default' | 'deep';
+type Tone = 'default' | 'deep' | 'forest';
 
 const LEVEL: Record<Level, string> = {
   1: 'shadow-(--elev-1)',
@@ -23,15 +23,12 @@ const LEVEL: Record<Level, string> = {
 };
 
 const TONE: Record<Tone, string> = {
-  default: 'bg-surface-card text-ink',
-  // O tom escuro carrega o número principal da tela. `hero-surface` traz o
-  // gradiente e o próprio acabamento — ele é escuro nos dois temas, então não
-  // pode herdar o brilho e o grão que são definidos por tema. O bisel continua
-  // vindo da escala de elevação: box-shadow declarado em dois lugares se
-  // sobrescreve em vez de somar.
-  // No neumorfismo não existe card escuro: tudo é a mesma superfície, e o
-  // destaque vem do relevo, não da cor.
-  deep: 'bg-surface-card text-ink',
+  default:
+    'bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl border border-white/60 dark:border-white/10 ring-1 ring-inset ring-white/50 dark:ring-white/5 text-ink shadow-[0_8px_30px_rgba(0,0,0,0.04)]',
+  deep:
+    'bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/15 ring-1 ring-inset ring-white/60 dark:ring-white/10 text-ink shadow-[0_12px_36px_rgba(0,0,0,0.06)]',
+  forest:
+    'bg-[#1E3328]/90 dark:bg-[#1E3328]/80 backdrop-blur-xl border border-emerald-500/30 text-white shadow-(--shadow-highlight)',
 };
 
 export function Card({
@@ -51,8 +48,11 @@ export function Card({
 }) {
   return (
     <section
+      data-card="true"
+      data-tone={tone}
+      data-level={level}
       className={twMerge(
-        'rounded-3xl p-6 sm:p-7',
+        'rounded-[28px] p-6 sm:p-7',
         TONE[tone],
         LEVEL[level],
         // Acabamento (brilho + grão) só nos cards que carregam a tela. Em card

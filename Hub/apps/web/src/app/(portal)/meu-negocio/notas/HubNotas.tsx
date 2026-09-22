@@ -163,21 +163,12 @@ function Dashboard({
 
       {/* Navegação de Meses & Ações */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          {allMonths.map((m) => (
-            <button
-              key={m}
-              onClick={() => setSelectedMonth(m)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                selectedMonth === m
-                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
-                  : 'bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) text-ink-soft hover:text-ink'
-              }`}
-            >
-              {m === currentMonth ? 'Este Mês' : m}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          tabs={allMonths.map(m => ({ id: m, label: m === currentMonth ? 'Este Mês' : m }))}
+          activeTab={selectedMonth}
+          onChange={setSelectedMonth}
+          layoutId="notasMonthTabs"
+        />
         
         {/* CTA Nova Nota Slim */}
         <button

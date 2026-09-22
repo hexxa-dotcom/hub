@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { ChevronDown, Menu, X, Bell, MessageCircle, Search, Pin, LogOut } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ChevronDown, Menu, PanelLeft, X, Bell, BellOff, MessageCircle, Search, Pin, LogOut, ArrowUpRight } from 'lucide-react';
 import {
   SquaresFour,
   Notebook,
@@ -15,7 +16,8 @@ import {
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import type { NavSection } from '@/lib/nav';
-import { ThemeToggle } from '@/components/theme/ThemeControls';
+import { ThemeHeaderSelector } from '@/components/theme/ThemeControls';
+import { getStoredTheme, resolveTheme } from '@/lib/theme';
 import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
@@ -26,6 +28,7 @@ const GROUP_ICONS: Record<string, PhosphorIcon> = {
   'Financeiro': ArrowsDownUp,
   'Relacionamento': Handshake,
   'Gestão de Pessoas': IdentificationBadge,
+  'Patrimônio': Buildings,
   'Gestão do Patrimônio': Buildings,
   'Suporte': ChatCircleDots,
 };
@@ -37,7 +40,7 @@ const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá!
 function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const s = size === 'sm' ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm';
   return (
-    <span className={`grid ${s} shrink-0 place-items-center rounded-2xl bg-[#1E3328] font-bold text-[#DFFFAE] border border-[#2F4A3C] shadow-sm`}>
+    <span className={`grid ${s} shrink-0 place-items-center rounded-full bg-[#1E3328] font-bold text-[#DFFFAE] border border-[#2F4A3C] shadow-sm`}>
       H
     </span>
   );
@@ -56,16 +59,12 @@ function itemClass(active: boolean, isDarkOverlay: boolean = false) {
   const base =
     'flex w-full items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2 text-xs transition-all duration-200';
   if (active) {
-    // A página em que você está fica AFUNDADA na superfície. Usa o relevo que
-    // o sistema já tem, em vez de gastar cor: cor guardada rende mais quando
-    // aparece uma vez só — aqui ela fica reservada para marcar a SEÇÃO.
-    return `${base} font-bold text-(--sidebar-ink) shadow-(--sidebar-elev-inset)`;
+    return `${base} font-medium text-(--sidebar-ink) bg-black/5 dark:bg-white/10`;
   }
   if (isDarkOverlay) {
     return `${base} font-medium text-[#F5F6F4]/75 hover:bg-white/10 hover:text-[#F5F6F4]`;
   }
-  // Hover afunda em vez de pintar: é a mesma gramática do resto do sistema.
-  return `${base} font-medium text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:shadow-(--sidebar-elev-inset)`;
+  return `${base} font-medium text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5`;
 }
 
 function NavList({
@@ -91,6 +90,10 @@ function NavList({
 
         return (
           <li key={i.href} className="group relative list-none">
+            {/* Indicador lateral no item ativo */}
+            {active && (
+              <span className="absolute left-1 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-hexxa-forest dark:bg-hexxa-lime" />
+            )}
             <Link
               href={i.href as never}
               onClick={onNavigate}
@@ -111,6 +114,96 @@ function NavList({
         );
       })}
     </ul>
+  );
+}
+
+/** Barra de Busca em tamanho reduzido com expansão suave e fluida no hover */
+function HeaderSearchBar({ onOpenCommand }: { onOpenCommand: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Pequeno debounce de 80ms apenas para evitar flicker em bordas, mantendo resposta imediata e fluida
+    timeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+      setIsFocused(false);
+    }, 80);
+  };
+
+  const isExpanded = isHovered || isFocused;
+
+  // Transição física suave e contínua no padrão Apple (critically damped spring)
+  const springTransition = reduceMotion
+    ? { duration: 0.15 }
+    : { type: 'spring', stiffness: 240, damping: 26, mass: 0.8 };
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="flex items-center justify-end"
+    >
+      <motion.button
+        type="button"
+        onClick={onOpenCommand}
+        onFocus={() => setIsFocused(true)}
+        onBlur={(e) => {
+          if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+            setIsFocused(false);
+            setIsHovered(false);
+          }
+        }}
+        initial={false}
+        animate={{
+          width: isExpanded ? 340 : 100,
+        }}
+        transition={springTransition}
+        title="Buscar por comandos, clientes ou páginas (⌘K)"
+        aria-label="Buscar por comandos, clientes ou páginas (⌘K)"
+        className="group tap-target pressable focusable relative flex h-8 items-center justify-between rounded-full bg-surface border border-black/8 dark:border-white/10 px-3 shadow-(--elev-inset) hover:border-black/15 dark:hover:border-white/20 transition-colors cursor-pointer overflow-hidden"
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+          {/* Rótulo 'Buscar' fixo e estável à esquerda */}
+          <span className="text-xs font-semibold text-black dark:text-white shrink-0 select-none">
+            Buscar
+          </span>
+
+          {/* Texto expandido com reveal suave por maxWidth para a esquerda */}
+          <motion.span
+            initial={false}
+            animate={{
+              opacity: isExpanded ? 1 : 0,
+              maxWidth: isExpanded ? 200 : 0,
+            }}
+            transition={
+              reduceMotion
+                ? { duration: 0.1 }
+                : { duration: isExpanded ? 0.28 : 0.18, ease: [0.16, 1, 0.3, 1] }
+            }
+            className="overflow-hidden truncate text-xs font-medium text-ink-soft whitespace-nowrap pl-1 pointer-events-none inline-block select-none"
+          >
+            comandos, páginas...
+          </motion.span>
+        </div>
+
+        {/* Lado direito: Apenas o ícone da Lupa em preto nítido */}
+        <div className="flex items-center shrink-0 ml-2">
+          <Search className="h-3.5 w-3.5 shrink-0 stroke-[2.4] text-black dark:text-white transition-transform group-hover:scale-105" />
+        </div>
+      </motion.button>
+    </div>
   );
 }
 
@@ -172,7 +265,35 @@ function AppShellInner({
     if (searchParams.get('aviso') === 'sem-acesso-contador') setAvisoAdmin(true);
   }, [searchParams]);
 
-  useEffect(() => setIsPinned(localStorage.getItem(STORAGE_KEY) !== '1'), []);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [focusPinned, setFocusPinned] = useState(false);
+
+  useEffect(() => {
+    const updateThemeState = () => {
+      const isFocus =
+        (typeof document !== 'undefined' && document.documentElement.classList.contains('theme-focus')) ||
+        resolveTheme(getStoredTheme()) === 'focus';
+      setIsFocusMode(isFocus);
+      if (isFocus) {
+        setFocusPinned(false);
+      } else {
+        setIsPinned(localStorage.getItem(STORAGE_KEY) !== '1');
+      }
+    };
+    updateThemeState();
+
+    const observer = new MutationObserver(updateThemeState);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    window.addEventListener('storage', updateThemeState);
+    window.addEventListener('themechange', updateThemeState);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('storage', updateThemeState);
+      window.removeEventListener('themechange', updateThemeState);
+    };
+  }, []);
+
   useEffect(() => setMobileOpen(false), [pathname]);
 
   useEffect(() => {
@@ -188,19 +309,29 @@ function AppShellInner({
 
   const sair = useSignOut('cliente');
 
-  // Título da barra de topo derivado da própria navegação: evita uma segunda
-  // lista de nomes de página para manter em sincronia com o menu.
   const breadcrumb = (() => {
     for (const s of sections) {
       const item = s.items.find(
         (i) => pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`)),
       );
-      if (item) return { section: s.title === item.label ? null : s.title, page: item.label };
+      if (item) {
+        const isInicio = item.label.toLowerCase() === 'início' || s.title.toLowerCase() === 'início' || pathname === '/cliente';
+        if (isInicio) {
+          return { section: null, page: null };
+        }
+        return {
+          section: s.title === item.label ? null : s.title,
+          page: item.label,
+        };
+      }
     }
     return { section: null, page: null };
   })();
 
-  const isCollapsed = !isPinned && !isHovered;
+  // No Modo Foco, a barra lateral recolhe automaticamente para maximizar a área útil (estilo Zen Shell), abrindo sob hover
+  const isCollapsed = isFocusMode
+    ? (!focusPinned && !isHovered)
+    : (!isPinned && !isHovered);
 
   // Aplicativo emoldurado: a casca escura é o "fora", e o conteúdo é um painel
   // claro arredondado flutuando dentro dela. A trilha de ícones vive sobre a
@@ -210,161 +341,24 @@ function AppShellInner({
   // No celular a moldura some (`lg:`): margem sobrando é espaço que a tela
   // pequena não tem para dar.
   return (
-    <div className="flex h-screen bg-surface text-ink lg:bg-(--shell-frame)">
+    <div className="relative flex h-screen bg-transparent text-ink overflow-hidden">
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
-      {/* Desktop Sidebar (Nibo Style - Secondary Panel Only) */}
-      <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`z-40 hidden h-full shrink-0 flex-col overflow-hidden bg-(image:--sidebar-bg) text-(--sidebar-ink) transition-all duration-300 ease-in-out lg:flex ${
-          isCollapsed ? 'w-[72px]' : 'w-[264px]'
-        }`}
-      >
-        {/* Header / Brand & Company */}
-        <div className="h-[68px] flex items-center justify-between px-3 shrink-0 overflow-hidden">
-          <div className={`flex items-center justify-between rounded-xl p-2 shadow-(--sidebar-elev-1) transition-all ${isCollapsed ? 'w-12 justify-center' : 'w-[232px]'}`}>
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-hexxa-lime text-hexxa-green-dark font-bold text-xs">
-                {company
-                  ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
-                  : 'H'}
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col items-start overflow-hidden text-left w-[140px]">
-                  <span className="w-full truncate text-xs font-bold leading-tight text-(--sidebar-ink)">
-                    {company
-                      ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
-                      : 'Hexxa Solutions'}
-                  </span>
-                </div>
-              )}
-            </div>
+      {/* Fundo com iluminação atmosférica suave que banha o fundo da aplicação e a sidebar */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden atmospheric-glow">
+        <div className="absolute -top-32 left-10 h-[560px] w-[560px] rounded-full bg-[#D4FF00]/12 dark:bg-[#D4FF00]/5 blur-[150px]" />
+        <div className="absolute top-1/3 -left-20 h-[640px] w-[640px] rounded-full bg-emerald-500/10 dark:bg-emerald-500/4 blur-[160px]" />
+        <div className="absolute bottom-10 right-10 h-[520px] w-[520px] rounded-full bg-emerald-700/8 dark:bg-emerald-700/4 blur-[140px]" />
+      </div>
 
-            {/* PIN BUTTON */}
-            {!isCollapsed && (
-              <button
-                onClick={() => {
-                  const newVal = !isPinned;
-                  setIsPinned(newVal);
-                  localStorage.setItem(STORAGE_KEY, newVal ? '0' : '1');
-                }}
-                title={isPinned ? "Desafixar menu" : "Fixar menu"}
-                className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors ${
-                  isPinned 
-                    ? 'bg-[#1E3328] text-[#DFFFAE]' 
-                    : 'text-[#6E6A61] hover:bg-black/10 dark:text-[#A8A49C] dark:hover:bg-white/10'
-                }`}
-              >
-                <Pin className={`h-4 w-4 transition-transform ${isPinned ? '' : 'rotate-45 opacity-50'}`} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation Sections */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-4 pt-[120px] pb-20 w-full flex flex-col">
-          {/* `w-full`, não largura fixa: 248px dentro de 232px de espaço útil
-                 fazia a seleção vazar para fora da barra. */}
-          <div className={`space-y-2 transition-all ${isCollapsed ? 'w-12' : 'w-full'}`}>
-            {sections.map(s => {
-              const hasSubmenu = s.title !== 'Início' && (s.items.length > 1 || (s.items.length === 1 && s.title !== s.items[0]?.label));
-              const firstItem = s.items[0];
-              const isExpanded = expandedSections[s.title] ?? (s.title === activeGroup); // Default to active group
-              const GroupIcon = GROUP_ICONS[s.title] ?? SquaresFour;
-              const isActiveGroup = s.title === activeGroup;
-              
-              if (!hasSubmenu && firstItem) {
-                return (
-                  <div key={s.title} className="flex flex-col">
-                    <Link
-                      href={firstItem.href as never}
-                      onClick={() => {
-                        setActiveGroup(s.title);
-                      }}
-                      title={isCollapsed ? s.title : undefined}
-                      className={`tap-target pressable focusable mb-1 group flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-bold transition-all hover:shadow-(--sidebar-elev-inset) ${
-                        isActiveGroup
-                          ? 'text-(--sidebar-ink) shadow-(--sidebar-elev-inset)'
-                          : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
-                      }`}
-                    >
-                      <GroupIcon
-                        weight="duotone"
-                        className={`h-7 w-7 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                          isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
-                        }`}
-                      />
-                      {!isCollapsed && (
-                        <span className="flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight">
-                          {s.title}
-                        </span>
-                      )}
-                    </Link>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={s.title} className="flex flex-col">
-                  <div
-                    className={`mb-1 group flex w-full items-center overflow-hidden rounded-xl transition-all hover:shadow-(--sidebar-elev-inset) ${
-                      isActiveGroup
-                        ? 'text-(--sidebar-ink)'
-                        : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
-                    }`}
-                  >
-                    <Link
-                      href={(firstItem?.href ?? '#') as never}
-                      onClick={() => {
-                        setExpandedSections(prev => ({ ...prev, [s.title]: true }));
-                        setActiveGroup(s.title);
-                      }}
-                      title={isCollapsed ? s.title : undefined}
-                      className="tap-target pressable focusable flex flex-1 items-center gap-3 overflow-hidden px-3 py-2.5 min-w-0"
-                    >
-                      <GroupIcon
-                        weight="duotone"
-                        className={`h-7 w-7 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                          isActiveGroup ? 'text-hexxa-lime dark:text-hexxa-green' : ''
-                        }`}
-                      />
-                      {!isCollapsed && (
-                        <span className="flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight">
-                          {s.title}
-                        </span>
-                      )}
-                    </Link>
-                    {!isCollapsed && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleSection(s.title);
-                        }}
-                        title={isExpanded ? 'Recolher' : 'Expandir'}
-                        className="tap-target pressable flex items-center justify-center p-2 text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) transition-colors"
-                      >
-                        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <div className="w-full relative">
-                      {!isCollapsed && (
-                        <div className="absolute left-[22px] top-0 bottom-2 w-px bg-current opacity-10" />
-                      )}
-                      <NavList items={s.items} pathname={pathname} collapsed={isCollapsed} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </aside>
+      {/* Zona discreta na borda esquerda no Modo Foco para expandir com o mouse */}
+      {isFocusMode && isCollapsed && (
+        <div
+          onMouseEnter={() => setIsHovered(true)}
+          className="fixed left-0 top-0 bottom-0 w-3 z-50 cursor-pointer"
+          title="Mover cursor para a borda esquerda para abrir navegação"
+        />
+      )}
 
       {/* Drawer mobile + backdrop */}
       {mobileOpen && (
@@ -403,8 +397,8 @@ function AppShellInner({
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
                       active
-                        ? 'text-(--sidebar-ink) shadow-(--sidebar-elev-inset)'
-                        : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink)'
+                        ? 'text-(--sidebar-ink) bg-black/5 dark:bg-white/10'
+                        : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
                     <GroupIcon
@@ -437,77 +431,317 @@ function AppShellInner({
         </div>
       </aside>
 
-      {/* Painel de conteúdo: a peça clara que flutua dentro da moldura.
-          É ELE que rola, não a página — por isso `overflow-hidden` aqui e
-          `overflow-y-auto` no `main`. Assim os cantos arredondados cortam o
-          conteúdo de verdade e a barra de topo fica fixa sem depender de
-          `sticky` (que quebraria dentro de um ancestral com overflow). */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface lg:m-2 lg:rounded-[1.75rem] lg:shadow-(--panel-float)">
-        {/* Top bar desktop */}
-        <header className="z-30 hidden shrink-0 items-center justify-between gap-4 border-b border-line px-8 py-3.5 lg:flex">
+      {/* BLOCO UNIFICADO DO SISTEMA: Inteiriço de ponta a ponta, sem cantos arredondados externos ou moldura encapsulada */}
+      <div className="relative flex min-w-0 flex-1 overflow-hidden bg-surface/50 dark:bg-surface/30 backdrop-blur-2xl">
+        {/* Fundo com iluminação atmosférica verde e vibrante unificada */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden atmospheric-glow">
+          <div className="absolute -top-32 right-1/4 h-[580px] w-[580px] rounded-full bg-[#D4FF00]/18 dark:bg-[#D4FF00]/10 blur-[130px]" />
+          <div className="absolute top-1/3 -left-20 h-[640px] w-[640px] rounded-full bg-emerald-500/16 dark:bg-emerald-500/8 blur-[150px]" />
+          <div className="absolute bottom-10 right-10 h-[540px] w-[540px] rounded-full bg-emerald-700/14 dark:bg-emerald-700/8 blur-[140px]" />
+        </div>
+
+        {/* Desktop Sidebar integrada ao bloco com animação física fluida Apple via Framer Motion */}
+        <motion.aside
+          initial={false}
+          animate={{
+            width: isFocusMode
+              ? (isCollapsed ? 0 : 264)
+              : (isCollapsed ? 72 : 264),
+            opacity: isFocusMode && isCollapsed ? 0 : 1,
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 350,
+            damping: 34,
+            mass: 0.6,
+          }}
+          style={{ overflow: 'hidden' }}
+          className={`z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex ${
+            isFocusMode && isCollapsed ? 'pointer-events-none' : ''
+          }`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Container interno de largura fixa (264px) para eliminar reflow durante o spring */}
+          <div className="flex h-full w-[264px] flex-col shrink-0 overflow-hidden">
+            {/* Header / Brand & Company */}
+            <div className="h-[72px] flex items-center px-3 shrink-0">
+              <div className="flex w-full items-center justify-between rounded-2xl p-1.5">
+                <Link
+                  href="/minha-empresa"
+                  title="Ver perfil da empresa"
+                  className="flex items-center gap-3 overflow-hidden rounded-xl p-1 -m-1 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group select-none flex-1 min-w-0"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime font-extrabold text-sm shadow-sm border border-white/10 group-hover:scale-105 transition-transform duration-200">
+                    {company
+                      ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
+                      : 'H'}
+                  </div>
+                  <div
+                    className={`flex flex-col items-start overflow-hidden text-left w-[135px] transition-opacity duration-150 ${
+                      isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                  >
+                    <span className="w-full truncate text-sm font-extrabold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
+                      {company
+                        ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
+                        : 'Hexxa Hub'}
+                    </span>
+                    <span className="text-[10px] font-medium text-(--sidebar-ink-soft) group-hover:text-ink truncate flex items-center gap-1 transition-colors">
+                      Painel da Empresa
+                      <ArrowUpRight className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </span>
+                  </div>
+                </Link>
+
+                {/* PIN BUTTON */}
+                <button
+                  onClick={() => {
+                    if (isFocusMode) {
+                      setFocusPinned(prev => !prev);
+                    } else {
+                      const newVal = !isPinned;
+                      setIsPinned(newVal);
+                      localStorage.setItem(STORAGE_KEY, newVal ? '0' : '1');
+                    }
+                  }}
+                  title={
+                    (isFocusMode ? focusPinned : isPinned)
+                      ? "Desafixar menu"
+                      : "Fixar menu"
+                  }
+                  className={`grid h-7 w-7 shrink-0 place-items-center bg-transparent transition-all duration-150 ${
+                    isCollapsed ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'
+                  } ${
+                    (isFocusMode ? focusPinned : isPinned)
+                      ? 'text-hexxa-forest dark:text-hexxa-lime' 
+                      : 'text-ink-soft/60 hover:text-ink'
+                  }`}
+                >
+                  <Pin className={`h-4 w-4 transition-transform duration-200 ${(isFocusMode ? focusPinned : isPinned) ? 'rotate-0' : 'rotate-45 opacity-50'}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation Sections: pt-16 para posicionar os ícones harmoniosamente mais para baixo */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-3 pt-16 pb-20 w-full flex flex-col">
+              <div className="space-y-2 w-full">
+                {sections.map(s => {
+                  const hasSubmenu = s.title !== 'Início' && (s.items.length > 1 || (s.items.length === 1 && s.title !== s.items[0]?.label));
+                  const firstItem = s.items[0];
+                  const isExpanded = expandedSections[s.title] ?? (s.title === activeGroup); // Default to active group
+                  const GroupIcon = GROUP_ICONS[s.title] ?? SquaresFour;
+                  const isActiveGroup = s.title === activeGroup;
+                  
+                  if (!hasSubmenu && firstItem) {
+                    return (
+                      <div key={s.title} className="flex flex-col">
+                        <Link
+                          href={firstItem.href as never}
+                          onClick={() => {
+                            setActiveGroup(s.title);
+                          }}
+                          title={isCollapsed ? s.title : undefined}
+                          className={`relative tap-target pressable focusable mb-1 group flex items-center gap-3 overflow-hidden py-2.5 text-sm font-bold transition-all duration-200 ${
+                            isCollapsed
+                              ? '-ml-3 w-[64px] rounded-l-none rounded-r-xl pl-5 pr-2'
+                              : 'w-full rounded-xl px-3'
+                          } ${
+                            isActiveGroup
+                              ? 'text-(--sidebar-ink) bg-black/5 dark:bg-white/10'
+                              : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          {/* Indicador lateral no grupo ativo */}
+                          {isActiveGroup && (
+                            <span className={`absolute top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-hexxa-forest dark:bg-hexxa-lime z-10 ${
+                              isCollapsed ? 'left-1.5' : 'left-1'
+                            }`} />
+                          )}
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+                            <GroupIcon
+                              weight="duotone"
+                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                                isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
+                              }`}
+                            />
+                          </div>
+                          <span
+                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                              isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                            }`}
+                          >
+                            {s.title}
+                          </span>
+                        </Link>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={s.title} className="flex flex-col">
+                      <div
+                        className={`relative mb-1 group flex items-center overflow-hidden transition-all duration-200 ${
+                          isCollapsed
+                            ? '-ml-3 w-[64px] rounded-l-none rounded-r-xl'
+                            : 'w-full rounded-xl'
+                        } ${
+                          isActiveGroup
+                            ? 'text-(--sidebar-ink) bg-black/5 dark:bg-white/10'
+                            : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {/* Indicador lateral no grupo ativo */}
+                        {isActiveGroup && (
+                          <span className={`absolute top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-hexxa-forest dark:bg-hexxa-lime z-10 ${
+                            isCollapsed ? 'left-1.5' : 'left-1'
+                          }`} />
+                        )}
+                        <Link
+                          href={(firstItem?.href ?? '#') as never}
+                          onClick={() => {
+                            setExpandedSections(prev => ({ ...prev, [s.title]: true }));
+                            setActiveGroup(s.title);
+                          }}
+                          title={isCollapsed ? s.title : undefined}
+                          className={`tap-target pressable focusable flex flex-1 items-center gap-3 overflow-hidden py-2.5 min-w-0 ${
+                            isCollapsed ? 'pl-5 pr-2' : 'px-3'
+                          }`}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+                            <GroupIcon
+                              weight="duotone"
+                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                                isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
+                              }`}
+                            />
+                          </div>
+                          <span
+                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                              isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                            }`}
+                          >
+                            {s.title}
+                          </span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleSection(s.title);
+                          }}
+                          title={isExpanded ? 'Recolher' : 'Expandir'}
+                          className={`tap-target pressable flex items-center justify-center text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) transition-all duration-150 ${
+                            isCollapsed ? 'opacity-0 pointer-events-none w-0 p-0 overflow-hidden' : 'p-2 opacity-100'
+                          }`}
+                        >
+                          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                      
+                      {/* Submenu Accordion */}
+                      <div
+                        className={`overflow-hidden transition-all duration-200 ease-out ${
+                          isExpanded && !isCollapsed
+                            ? 'max-h-[1000px] opacity-100 mb-2'
+                            : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        <div className="w-full relative pl-4 pr-1 py-1 space-y-1">
+                          {!isCollapsed && (
+                            <div className="absolute left-[22px] top-0 bottom-2 w-px bg-current opacity-10" />
+                          )}
+                          <NavList items={s.items} pathname={pathname} collapsed={isCollapsed} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.aside>
+
+        {/* Painel de conteúdo: Header + Main */}
+        <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* Top bar desktop com efeito translúcido */}
+          <header className="z-30 hidden h-[72px] shrink-0 items-center justify-between gap-4 border-b border-black/5 dark:border-white/5 bg-transparent px-8 lg:flex">
           {/* Esquerda: onde você está. A empresa não entra aqui porque a
               sidebar já a exibe no próprio cabeçalho — repetir seria gastar a
               posição de leitura primária com informação que já está na tela.
               "Onde estou" era justamente o que faltava. */}
           <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {/* Botão de acesso ao menu lateral no desktop: exclusivo do Modo Foco com ícone indicando barra lateral */}
+            {isFocusMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFocusPinned(prev => !prev);
+                  setIsHovered(prev => !prev);
+                }}
+                title={(focusPinned || isHovered) ? "Recolher menu lateral" : "Abrir menu lateral"}
+                className="tap-target pressable focusable grid h-8 w-8 shrink-0 place-items-center rounded-xl text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors mr-1 cursor-pointer"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+            )}
             {breadcrumb.section && (
               <>
                 <span className="text-footnote text-ink-soft">{breadcrumb.section}</span>
                 <span className="text-footnote text-ink-soft opacity-40">/</span>
               </>
             )}
-            <h2 className="truncate text-callout font-semibold text-ink">
-              {breadcrumb.page ?? 'Hexxa Hub'}
-            </h2>
+            {breadcrumb.page && (
+              <h2 className="truncate text-callout font-semibold text-ink">
+                {breadcrumb.page}
+              </h2>
+            )}
           </div>
 
-          {/* Centro: Barra de Busca Centralizada com Espaço */}
-          <div className="flex-1 flex justify-center max-w-md mx-auto px-4">
-            <button
-              type="button"
-              onClick={() => setCommandOpen(true)}
-              className="group flex w-full items-center justify-between gap-2.5 rounded-full bg-surface px-4 py-2 text-footnote text-ink-soft shadow-(--elev-inset) transition-colors hover:text-ink"
-            >
-              <div className="flex items-center gap-2 truncate">
-                <Search className="h-3.5 w-3.5 text-[#6E6A61] group-hover:text-[#231F20] dark:group-hover:text-[#F5F6F4] shrink-0" />
-                <span className="truncate">Buscar comandos, clientes ou páginas...</span>
-              </div>
-              <kbd className="hidden sm:inline-flex items-center rounded-md bg-black/5 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6A61] dark:text-[#A8A49C] shrink-0">
-                ⌘K
-              </kbd>
-            </button>
-          </div>
+          {/* Espaçador flexível que permite à busca expandir para a esquerda */}
+          <div className="flex-1 min-w-4" />
 
-          {/* Direita, na ordem em que se usa: ação principal → o que pede
-              atenção → preferência → conta. A conta fica no extremo porque é
-              onde todo produto a coloca, e previsibilidade vale mais que
-              originalidade em barra de topo. */}
+          {/* Direita: Buscar → Nova Ação → Seleção do tema → Notificação (da direita para a esquerda: Notificação é o primeiro) */}
           <div className="flex items-center gap-2 shrink-0">
+            <HeaderSearchBar onOpenCommand={() => setCommandOpen(true)} />
             <QuickActionsMenu />
+            <ThemeHeaderSelector />
 
             <div className="relative group">
               <button
-                aria-label="Notificações"
-                className="tap-target pressable focusable relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-ink-soft shadow-(--elev-1) transition-all hover:text-ink active:shadow-(--elev-inset)"
+                aria-label={isFocusMode ? "Notificações silenciadas (Modo Foco)" : "Notificações"}
+                title={isFocusMode ? "Modo Não Perturbe: Notificações silenciadas" : "Notificações"}
+                className="tap-target pressable focusable relative grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/8 dark:border-white/10 bg-surface/80 text-ink-soft shadow-(--elev-1) transition-all hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 active:shadow-(--elev-inset)"
               >
-                <Bell className="h-4 w-4" />
-                {/* Sem bolinha de não-lido: era fixa no código e acendia mesmo
-                    com a lista vazia. Marcador que sempre acende ensina a
-                    ignorar o marcador. Volta quando houver contagem real. */}
+                {isFocusMode ? (
+                  <BellOff className="h-3.5 w-3.5 text-ink-soft opacity-75" />
+                ) : (
+                  <Bell className="h-3.5 w-3.5" />
+                )}
               </button>
               
               <div className="invisible absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-3xl bg-surface p-4 opacity-0 shadow-(--elev-3) transition-all group-hover:visible group-hover:opacity-100">
                 <div className="border-b border-black/5 dark:border-white/5 pb-2 mb-2 flex items-center justify-between">
                   <span className="font-bold text-xs text-[#231F20] dark:text-[#F5F6F4]">Notificações</span>
-                  <span className="text-[11px] text-[#2F4A3C] dark:text-[#DFFFAE] font-bold cursor-pointer hover:underline">Marcar lidas</span>
+                  {!isFocusMode && (
+                    <span className="text-[11px] text-[#2F4A3C] dark:text-[#DFFFAE] font-bold cursor-pointer hover:underline">Marcar lidas</span>
+                  )}
                 </div>
                 <div className="text-center py-4 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-                  Nenhuma notificação nova no momento.
+                  {isFocusMode ? (
+                    <div className="flex flex-col items-center gap-1.5 py-1">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-ink">
+                        Modo Não Perturbe
+                      </span>
+                      <span className="text-[11px] text-ink-soft">Notificações e alertas sonoros/visuais silenciados no Modo Foco.</span>
+                    </div>
+                  ) : (
+                    'Nenhuma notificação nova no momento.'
+                  )}
                 </div>
               </div>
             </div>
-
-            <ThemeToggle collapsed />
 
             {/* Conta: só o nome. O e-mail embaixo, a 10px, era ruído — quem
                 está logado já sabe o próprio e-mail, e ele reaparece inteiro
@@ -520,9 +754,9 @@ function AppShellInner({
                 type="button"
                 onClick={sair}
                 title="Sair"
-                className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/10"
+                className="tap-target pressable focusable grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/10"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -548,7 +782,7 @@ function AppShellInner({
             >
               <Search className="h-4 w-4" />
             </button>
-            <ThemeToggle collapsed />
+            <ThemeHeaderSelector compact />
             <button
               type="button"
               onClick={sair}
@@ -566,7 +800,8 @@ function AppShellInner({
             <button onClick={() => setAvisoAdmin(false)} className="shrink-0 text-orange-500 hover:text-orange-700">✕</button>
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1600px] flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5 lg:p-8">{children}</main>
+        <main className="w-full flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5 lg:p-8">{children}</main>
+        </div>
       </div>
 
       {/* Atendimento rápido via WhatsApp */}

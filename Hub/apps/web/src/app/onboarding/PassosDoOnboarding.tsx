@@ -48,7 +48,7 @@ export function PassosDoOnboarding({ passos, atual }: { passos: Passo[]; atual: 
         return (
           <li key={p.id} className="flex-1">
             {feito && !aqui ? (
-              <Link href={p.href} className="block h-full">
+              <Link href={p.href as never} className="block h-full">
                 {conteudo}
               </Link>
             ) : (

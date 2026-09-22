@@ -41,19 +41,19 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
   }
 
   return (
-    <Card level={1} className="h-full">
+    <Card level={1} className="h-full card-finish p-6 sm:p-7">
       <CardHeader
         label="Próximos vencimentos"
         icon={CalendarBlank}
         aside={
-          <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset) p-1">
             {FILTERS.map(([k, l]) => (
               <button
                 key={k}
                 type="button"
                 onClick={() => setFilter(k)}
-                className={`tap-target pressable focusable text-caption uppercase transition-colors ${
-                  filter === k ? 'font-semibold text-ink' : 'text-ink-soft hover:text-ink'
+                className={`tap-target pressable focusable rounded-full px-3 py-1 text-[11px] font-bold transition-all cursor-pointer ${
+                  filter === k ? 'bg-surface-card text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'
                 }`}
               >
                 {l}

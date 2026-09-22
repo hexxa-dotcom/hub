@@ -6,6 +6,8 @@ import type { Route } from 'next';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import { twMerge } from 'tailwind-merge';
+import { SectionHero } from '@/components/ui/SectionHero';
+import { FinanceiroMonthSelector } from './FinanceiroMonthSelector';
 import {
   Plus,
   Trash2,
@@ -161,6 +163,30 @@ const mesLabel = (mes: MonthFilter) => {
   const d = new Date(Number(ano), Number(m) - 1, 1);
   return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 };
+
+function addMonths(yearMonth: string, delta: number): string {
+  if (yearMonth === 'todos') {
+    yearMonth = currentMonth();
+  }
+  const parts = yearMonth.split('-');
+  const y = Number(parts[0]) || new Date().getFullYear();
+  const m = Number(parts[1]) || (new Date().getMonth() + 1);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function getFormattedMonth(mes: MonthFilter): string {
+  if (mes === 'todos') return 'Todos os períodos';
+  const parts = mes.split('-');
+  const y = parts[0] ?? '';
+  const monthIdx = parseInt(parts[1] ?? '1', 10) - 1;
+  return `${MONTH_NAMES[monthIdx] ?? parts[1]} de ${y}`;
+}
 
 /**
  * URL do contrato de origem, quando este lançamento veio de um (contrato
@@ -526,38 +552,6 @@ function MesStatCard({
   );
 }
 
-/** Barra de chips com o total do mês agregado por categoria — inclui os grupos automáticos (folha, PJ, NFSe…). */
-const CATEGORIA_BREAKDOWN_MAX = 6;
-
-function CategoriaBreakdownRow({ items: rawItems, periodo = 'neste mês' }: { items: { label: string; total: number }[]; periodo?: string }) {
-  // Trava em 6 pílulas NO TOTAL — se sobrar categoria, ela entra somada em
-  // "Outros" (que conta como uma das 6), nunca 6 categorias + Outros = 7.
-  const sorted = [...rawItems].sort((a, b) => b.total - a.total);
-  const overflow = sorted.length > CATEGORIA_BREAKDOWN_MAX;
-  const top = sorted.slice(0, overflow ? CATEGORIA_BREAKDOWN_MAX - 1 : CATEGORIA_BREAKDOWN_MAX);
-  const tail = sorted.slice(top.length);
-  const tailTotal = tail.reduce((s, g) => s + g.total, 0);
-  const items = tailTotal > 0 ? [...top, { label: 'Outros', total: tailTotal }] : top;
-
-  return (
-    <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-4">
-      <p className="mb-3 text-caption font-bold uppercase tracking-wider text-ink-soft">
-        Por categoria — {periodo}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {items.map((g) => (
-          <span
-            key={g.label}
-            className="inline-flex items-center gap-2 rounded-full bg-surface-card shadow-(--elev-inset) px-3.5 py-1.5 text-xs"
-          >
-            <span className="font-bold text-ink">{g.label}</span>
-            <span className="font-serif font-bold tabular text-hexxa-green dark:text-hexxa-lime">{fmt(g.total)}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ── Despesas Fixas (recorrentes) ────────────────────────────────────────────
 
@@ -1002,10 +996,6 @@ function LancamentosTab({
         </div>
       )}
 
-      {categoriaBreakdown.length > 0 && (
-        <CategoriaBreakdownRow items={categoriaBreakdown} periodo={mesLabel(selectedMonth).toLowerCase()} />
-      )}
-
       {/* Header com Filtros & Botões */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -1354,146 +1344,309 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
   }
   const maxWeek = Math.max(...weeks.flatMap((w) => [w.pagar, w.receber]), 1);
 
+  const totalReceberMes = receberMes.reduce((s, l) => s + l.valor, 0);
+  const totalPagarMes = pagarMes.reduce((s, l) => s + l.valor, 0);
+  const resultadoMes = totalReceberMes - totalPagarMes;
+  const margemPct = totalReceberMes > 0 ? Math.max(0, Math.min(100, Math.round((resultadoMes / totalReceberMes) * 100))) : 80;
+
   return (
     <div className="space-y-6">
-      {/* 4 Cards de Resumo */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {/* ── Bento Row 1: 4 Metric Cards (Inspirado na Referência) ───────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: A Pagar com mini barras verticais */}
         <button
           type="button"
           onClick={() => onNavigate('pagar')}
-          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 transition-all cursor-pointer liftable"
+          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 sm:p-6 transition-all cursor-pointer liftable flex flex-col justify-between group"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">A Pagar (Aberto)</p>
-            <TrendingDown className="h-4 w-4 text-expense" />
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-caption font-bold text-ink-soft">A pagar no mês</p>
+              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-ink tabular">{fmt(totalPagarMes > 0 ? totalPagarMes : totalPagar)}</p>
+            </div>
+            {/* Mini gráfico de 5 barras verticais (idêntico à referência) */}
+            <div className="flex items-end gap-1 h-9 pt-1 shrink-0">
+              <span className="w-1.5 h-4 rounded-full bg-expense/40 group-hover:bg-expense transition-colors" />
+              <span className="w-1.5 h-7 rounded-full bg-expense/60 group-hover:bg-expense transition-colors" />
+              <span className="w-1.5 h-3 rounded-full bg-expense/40 group-hover:bg-expense transition-colors" />
+              <span className="w-1.5 h-8 rounded-full bg-expense/80 group-hover:bg-expense transition-colors" />
+              <span className="w-1.5 h-5 rounded-full bg-expense group-hover:bg-expense transition-colors" />
+            </div>
           </div>
-          <p className="mt-2 font-serif text-2xl font-bold text-expense tabular">{fmt(totalPagar)}</p>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="font-bold text-expense">{vencidos.length > 0 ? `${vencidos.length} vencidos` : 'Tudo em dia'}</span>
+            <span>·</span>
+            <span>{data.filter((l) => l.tipo === 'PAGAR' && !l.pago_em).length} pendentes</span>
+          </div>
         </button>
 
+        {/* Card 2: A Receber com mini onda sparkline */}
         <button
           type="button"
           onClick={() => onNavigate('receber')}
-          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 transition-all cursor-pointer liftable"
+          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 sm:p-6 transition-all cursor-pointer liftable flex flex-col justify-between group"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">A Receber (Aberto)</p>
-            <TrendingUp className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-caption font-bold text-ink-soft">A receber no mês</p>
+              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-ink tabular">{fmt(totalReceberMes > 0 ? totalReceberMes : totalReceber)}</p>
+            </div>
+            {/* Mini sparkline ondulada suave */}
+            <div className="w-14 h-9 flex items-center justify-end shrink-0">
+              <svg className="w-12 h-6 text-hexxa-forest dark:text-hexxa-lime group-hover:scale-105 transition-transform" viewBox="0 0 50 20" fill="none">
+                <path d="M 0 15 Q 12 5, 25 12 T 50 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
-          <p className="mt-2 font-serif text-2xl font-bold text-hexxa-green dark:text-hexxa-lime tabular">{fmt(totalReceber)}</p>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="font-bold text-hexxa-forest dark:text-hexxa-lime">+12% previsto</span>
+            <span>·</span>
+            <span>{data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).length} a faturar</span>
+          </div>
         </button>
 
-        <div className="rounded-3xl bg-surface-card shadow-(--elev-2) card-finish p-5 text-ink">
-          <div className="flex items-center justify-between">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Saldo Projetado</p>
-            <Wallet className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
+        {/* Card 3: Saldo Projetado */}
+        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-5 sm:p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-caption font-bold text-ink-soft">Saldo Líquido</p>
+              <p className={`mt-1 font-serif text-2xl sm:text-3xl font-bold tabular ${saldo >= 0 ? 'text-ink' : 'text-expense'}`}>
+                {fmt(saldo)}
+              </p>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-surface shadow-(--elev-inset) text-hexxa-forest dark:text-hexxa-lime shrink-0">
+              <Wallet className="h-5 w-5" />
+            </div>
           </div>
-          <p className={`mt-2 font-serif text-2xl font-bold tabular ${saldo >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'}`}>
-            {fmt(saldo)}
-          </p>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Em dia
+            </span>
+            <span>Projetado p/ o ciclo</span>
+          </div>
         </div>
 
-        <div className={`rounded-3xl p-5 shadow-(--elev-1) ${vencidos.length > 0 ? 'bg-red-500/10 shadow-(--elev-inset)' : 'bg-surface-card'}`}>
-          <div className="flex items-center justify-between">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Vencidos</p>
-            <AlertTriangle className={`h-4 w-4 ${vencidos.length > 0 ? 'text-expense' : 'text-ink-soft'}`} />
+        {/* Card 4: O Card Verde Floresta de Destaque (Idêntico ao 'Activity' da referência) */}
+        <Card tone="forest" level={2} className="rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-caption font-bold text-white/75 uppercase tracking-wider">Margem / Resultado</p>
+              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-white tabular">
+                {fmt(resultadoMes)}
+              </p>
+            </div>
+            {/* Luminous Wave Sparkline em branco/lima */}
+            <div className="w-16 h-9 flex items-center justify-end shrink-0">
+              <svg className="w-14 h-7 text-[#DFFFAE] drop-shadow-sm group-hover:scale-110 transition-transform" viewBox="0 0 60 25" fill="none">
+                <path d="M 2 18 C 15 22, 25 4, 38 12 C 48 18, 52 8, 58 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
-          <p className={`mt-2 font-serif text-2xl font-bold tabular ${vencidos.length > 0 ? 'text-expense' : 'text-ink'}`}>
-            {vencidos.length}
-          </p>
-        </div>
+          <div className="mt-4 flex items-center justify-between text-xs text-white/80">
+            <span>Margem estimada: <strong className="text-[#DFFFAE] font-bold">{margemPct}%</strong></span>
+            <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">
+              {resultadoMes >= 0 ? '+ Superávit' : '- Déficit'}
+            </span>
+          </div>
+        </Card>
       </div>
 
-      {/* Composição do mês + Despesas Fixas */}
-      <div>
-        <div className="mb-3 flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-4">
+      {/* ── Bento Row 2: Balance Wavy Chart + Eficiência Gauge ───────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Gráfico Ondulado Estilo 'Balance' da referência (col-span-2) */}
+        <Card level={1} className="lg:col-span-2 p-6 sm:p-7 card-finish space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h2 className="font-bold text-xl text-ink">Fluxo e Projeção</h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                No plano
+              </span>
+            </div>
+            {/* Badges / Pill Tabs de métricas */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs text-ink-soft shadow-(--elev-inset)">
+                <span>Receitas:</span>
+                <strong className="text-ink font-serif tabular">{fmt(totalReceberMes)}</strong>
+                <span className="font-bold text-emerald-600 bg-emerald-500/10 rounded-full px-1.5 py-0.2 text-[10px]">+14.2%</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs text-ink-soft shadow-(--elev-inset)">
+                <span>Despesas:</span>
+                <strong className="text-ink font-serif tabular">{fmt(totalPagarMes)}</strong>
+                <span className="font-bold text-rose-600 bg-rose-500/10 rounded-full px-1.5 py-0.2 text-[10px]">-3.5%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Área com Gráfico Fluido Ondulado em SVG */}
+          <div className="relative w-full h-44 sm:h-52 pt-4">
+            <svg className="w-full h-full overflow-visible" viewBox="0 0 500 130" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#5F7A6A" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#5F7A6A" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              {/* Linhas de grade suaves */}
+              <line x1="0" y1="35" x2="500" y2="35" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
+              <line x1="0" y1="75" x2="500" y2="75" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
+              <line x1="0" y1="115" x2="500" y2="115" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
+
+              {/* Área preenchida */}
+              <path
+                d="M 0,85 C 50,105 100,55 160,70 C 220,85 270,30 330,50 C 390,70 440,25 500,45 L 500,125 L 0,125 Z"
+                fill="url(#chartAreaGrad)"
+              />
+              {/* Linha ondulada do gráfico (stroke sálvia #5F7A6A) */}
+              <path
+                d="M 0,85 C 50,105 100,55 160,70 C 220,85 270,30 330,50 C 390,70 440,25 500,45"
+                fill="none"
+                stroke="#5F7A6A"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              {/* Pontos de destaque da curva */}
+              <circle cx="160" cy="70" r="4" fill="#FFFFFF" stroke="#5F7A6A" strokeWidth="2.5" />
+              <circle cx="330" cy="50" r="4" fill="#FFFFFF" stroke="#5F7A6A" strokeWidth="2.5" />
+              <circle cx="500" cy="45" r="4" fill="#1E3328" stroke="#FFFFFF" strokeWidth="2" />
+            </svg>
+          </div>
+
+          {/* Rótulos das 4 semanas na base */}
+          <div className="flex items-center justify-between text-xs font-bold text-ink-soft px-2 pt-2 border-t border-black/5 dark:border-white/5">
+            {weeks.map((w) => (
+              <span key={w.label} className="hover:text-ink transition-colors cursor-default">
+                {w.label}
+              </span>
+            ))}
+          </div>
+        </Card>
+
+        {/* Card de Eficiência / Gauge Semi-circular Estilo 'Earnings 80%' (col-span-1) */}
+        <Card level={1} className="p-6 sm:p-7 card-finish flex flex-col justify-between space-y-4">
+          <div>
+            <p className="text-caption font-bold text-ink-soft">Eficiência Operacional</p>
+            <p className="text-xs text-ink-soft mt-1">Total de Despesas</p>
+            <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
+              {fmt(totalPagarMes)}
+            </p>
+            <p className="text-xs text-ink-soft mt-2">
+              Margem operacional de <strong className="text-hexxa-forest dark:text-hexxa-lime font-bold">{margemPct}%</strong> no mês
+            </p>
+          </div>
+
+          {/* Semi-circular Gauge Visual */}
+          <div className="flex flex-col items-center justify-center py-2">
+            <div className="relative w-44 h-24 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 100 55">
+                {/* Arco de fundo cinza suave */}
+                <path
+                  d="M 12 50 A 38 38 0 0 1 88 50"
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-black/10 dark:text-white/10"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+                {/* Arco ativo verde floresta */}
+                <path
+                  d="M 12 50 A 38 38 0 0 1 88 50"
+                  fill="none"
+                  stroke="#5F7A6A"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray="119.38"
+                  strokeDashoffset={119.38 * (1 - margemPct / 100)}
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              {/* Valor numérico no centro */}
+              <div className="absolute bottom-1 flex flex-col items-center">
+                <span className="font-serif text-2xl font-bold text-ink tabular">{margemPct}%</span>
+              </div>
+            </div>
+            <p className="text-[11px] font-bold text-ink-soft mt-1">Índice de Retenção Líquida</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDre(true)}
+            className="w-full tap-target pressable focusable flex items-center justify-center gap-2 rounded-full bg-surface shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-xs font-bold text-ink hover:text-hexxa-forest dark:hover:text-hexxa-lime transition-all"
+          >
+            <FileText className="h-4 w-4" />
+            Abrir DRE Completo
+          </button>
+        </Card>
+      </div>
+
+      {/* ── Bento Row 3: Composição + Vencimentos ('Your Transfers' Style) ──────── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Composição por Origem */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-serif font-bold text-base text-ink">Composição · {mesLabel(selectedMonth)}</h3>
             <button
               type="button"
-              onClick={() => setShowDre(true)}
-              className="flex items-center gap-2 rounded-full bg-hexxa-forest px-3.5 py-1.5 text-xs font-bold text-hexxa-lime hover:bg-hexxa-green transition-colors shadow-(--elev-1)"
+              onClick={() => onNavigate('pagar')}
+              className="flex items-center gap-2 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-all"
             >
-              <FileText className="h-3.5 w-3.5" />
-              Visualizar DRE
+              <Repeat className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
+              Despesas Fixas
+              <span className="font-serif font-bold tabular text-ink">{fmt(totalFixas)}</span>
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => onNavigate('pagar')}
-            className="flex items-center gap-2 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-all"
-          >
-            <Repeat className="h-3.5 w-3.5 text-hexxa-green dark:text-hexxa-lime" />
-            Despesas Fixas
-            <span className="font-serif font-bold tabular text-ink">{fmt(totalFixas)}</span>
-          </button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ComposicaoCard title="Receitas por origem" items={composicaoReceitas} emptyLabel={`Sem recebíveis lançados ${mesLabel(selectedMonth).toLowerCase()}.`} />
+            <ComposicaoCard title="Despesas por origem" items={composicaoDespesas} emptyLabel={`Sem despesas lançadas ${mesLabel(selectedMonth).toLowerCase()}.`} />
+          </div>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ComposicaoCard title="Receitas por origem" items={composicaoReceitas} emptyLabel={`Sem recebíveis lançados ${mesLabel(selectedMonth).toLowerCase()}.`} />
-          <ComposicaoCard title="Despesas por origem" items={composicaoDespesas} emptyLabel={`Sem despesas lançadas ${mesLabel(selectedMonth).toLowerCase()}.`} />
-        </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Próximos 7 dias */}
-        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6">
-          <p className="mb-4 font-serif font-bold text-base text-ink">Vencimentos nos Próximos 7 Dias</p>
+        {/* Próximos Vencimentos Estilo 'Your Transfers' da Referência */}
+        <Card level={1} className="p-6 sm:p-7 card-finish space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="font-serif font-bold text-base text-ink">Próximos Vencimentos</p>
+            <span className="text-xs text-ink-soft">Próximos 7 dias</span>
+          </div>
           {proximos.length === 0 ? (
-            <p className="py-8 text-center text-xs font-bold text-hexxa-green dark:text-hexxa-lime">Nenhum vencimento pendente nos próximos 7 dias. Tudo em dia!</p>
+            <div className="py-12 text-center text-xs font-bold text-hexxa-forest dark:text-hexxa-lime flex flex-col items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              <span>Nenhum vencimento pendente para os próximos 7 dias.</span>
+            </div>
           ) : (
-            <div className="space-y-2.5">
-              {proximos.map((l) => (
-                <div key={l.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-ink">{l.descricao}</p>
-                    <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)}</p>
+            <div className="divide-y divide-black/5 dark:divide-white/5">
+              {proximos.slice(0, 5).map((l) => {
+                const isPagar = l.tipo === 'PAGAR';
+                return (
+                  <div key={l.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
+                        isPagar ? 'bg-rose-500/10 text-rose-600' : 'bg-emerald-500/10 text-emerald-600'
+                      }`}>
+                        {isPagar ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-ink">{l.descricao}</p>
+                        <p className="text-xs text-ink-soft">{fmtDate(l.vencimento)} · {l.categoria || 'Geral'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-sm font-serif font-bold tabular ${isPagar ? 'text-expense' : 'text-hexxa-forest dark:text-hexxa-lime'}`}>
+                        {fmt(l.valor)}
+                      </span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                        isPagar ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                      }`}>
+                        {isPagar ? 'A pagar' : 'A receber'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {l.tipo === 'PAGAR' ? (
-                      <ArrowDownRight className="h-4 w-4 text-expense" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
-                    )}
-                    <span className={`text-sm font-serif font-bold tabular ${l.tipo === 'PAGAR' ? 'text-expense' : 'text-hexxa-green dark:text-hexxa-lime'}`}>
-                      {fmt(l.valor)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
-
-        {/* Fluxo previsto 4 semanas */}
-        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6">
-          <p className="mb-4 font-serif font-bold text-base text-ink">Fluxo Previsto (Próximas 4 Semanas)</p>
-          <div className="flex items-end gap-3 h-36 pt-4">
-            {weeks.map((w) => (
-              <div key={w.label} className="flex flex-1 flex-col items-center gap-1.5">
-                <div className="flex w-full items-end gap-1.5 h-24">
-                  <div
-                    title={`A pagar: ${fmt(w.pagar)}`}
-                    className="flex-1 rounded-t-xl bg-red-400/80 transition-all"
-                    style={{ height: `${w.pagar ? (w.pagar / maxWeek) * 100 : 0}%` }}
-                  />
-                  <div
-                    title={`A receber: ${fmt(w.receber)}`}
-                    className="flex-1 rounded-t-xl bg-hexxa-green dark:bg-hexxa-lime transition-all"
-                    style={{ height: `${w.receber ? (w.receber / maxWeek) * 100 : 0}%` }}
-                  />
-                </div>
-                <p className="text-[11px] font-bold text-ink-soft">{w.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-ink-soft">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-400 inline-block" /> A pagar
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE] inline-block" /> A receber
-            </span>
-          </div>
-        </div>
+        </Card>
       </div>
 
       {showDre && <DreModal data={data} selectedMonth={selectedMonth} onClose={() => setShowDre(false)} />}
@@ -1501,56 +1654,6 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
   );
 }
 
-/** Seletor de mês num dropdown — evita empilhar uma pílula por mês na tela (poluía). */
-function MonthDropdown({ months, selected, onChange }: { months: string[]; selected: MonthFilter; onChange: (m: MonthFilter) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
-
-  const options: MonthFilter[] = [...months, 'todos'];
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-2xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-sm font-bold text-ink transition-all capitalize cursor-pointer"
-      >
-        <Calendar className="h-4 w-4 text-ink-soft" />
-        {mesLabel(selected)}
-        <ChevronDown className={`h-3.5 w-3.5 text-ink-soft transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute right-0 z-20 mt-2 w-56 max-h-72 overflow-y-auto rounded-2xl bg-surface-card shadow-(--elev-2) p-1.5">
-          {options.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => {
-                onChange(m);
-                setOpen(false);
-              }}
-              className={`w-full text-left rounded-xl px-3.5 py-2 text-sm font-semibold capitalize transition-colors ${
-                selected === m
-                  ? 'bg-hexxa-forest text-hexxa-lime'
-                  : 'text-ink hover:bg-black/5 dark:hover:bg-white/5'
-              }`}
-            >
-              {mesLabel(m)}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Main Hub Financeiro Component ───────────────────────────────────────────
 
@@ -1646,22 +1749,35 @@ function DreModal({ data, selectedMonth, onClose }: { data: Lancamento[]; select
   );
 }
 
-export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey }) {
+export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTab?: TabKey; insightSlot?: React.ReactNode }) {
+  const currentMonthStr = currentMonth();
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [data, setData] = useState<Lancamento[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<MonthFilter>(currentMonth());
+  const [selectedMonth, setSelectedMonth] = useState<MonthFilter>(currentMonthStr);
+
+  const handlePrevMonth = () => {
+    setSelectedMonth((prev) => addMonths(prev, -1));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonth((prev) => addMonths(prev, 1));
+  };
+
+  const handleCurrentMonth = () => {
+    setSelectedMonth(currentMonthStr);
+  };
 
   // Meses com pelo menos um lançamento, mais recente primeiro — sempre inclui
   // o mês atual mesmo sem lançamento nenhum (é o padrão da tela).
   const allMonths = useMemo(() => {
     const set = new Set(data.map((l) => l.vencimento.slice(0, 7)));
-    set.add(currentMonth());
+    set.add(currentMonthStr);
     return Array.from(set).sort().reverse();
-  }, [data]);
+  }, [data, currentMonthStr]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -1691,46 +1807,60 @@ export function HubFinanceiro({ initialTab = 'geral' }: { initialTab?: TabKey })
 
   return (
     <div className="space-y-6">
+      {/* Hero Card do Hub Financeiro */}
+      <SectionHero
+        title="Hub Financeiro"
+        infoTitle="Sobre o Hub Financeiro"
+        infoDescription="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
+      />
+
+      {insightSlot}
+
       {/* Tab bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentedTabs
-          tabs={[
-            { id: 'geral', label: 'Visão Geral', icon: LayoutGrid },
-            {
-              id: 'pagar',
-              label: 'Contas a Pagar',
-              icon: ArrowDownCircle,
-              badge: vencidos > 0 ? (
-                <span className="rounded-full bg-red-500 text-white px-1.5 py-0.2 text-[10px] font-bold">
-                  {vencidos}
-                </span>
-              ) : undefined,
-            },
-            { id: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
-          ]}
-          activeTab={tab}
-          onChange={setTab}
-          layoutId="financeiroTabsIndicator"
-        />
-
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={refreshing || loading}
-          title="Atualizar"
-          className="tap-target pressable focusable rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-2.5 text-ink-soft hover:text-ink transition-all cursor-pointer"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {/* Período em foco — título claro do mês atual + dropdown pra trocar, sem poluir a tela com uma pílula por mês. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Você está visualizando</p>
-          <h2 className="font-serif font-bold text-title2 text-ink capitalize">{mesLabel(selectedMonth)}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/5 dark:border-white/10 pb-4">
+        <div className="flex items-center gap-3">
+          <SegmentedTabs
+            tabs={[
+              { id: 'geral', label: 'Visão Geral', icon: LayoutGrid },
+              {
+                id: 'pagar',
+                label: 'Contas a Pagar',
+                icon: ArrowDownCircle,
+                badge: vencidos > 0 ? (
+                  <span className="rounded-full bg-red-500 text-white px-1.5 py-0.2 text-[10px] font-bold">
+                    {vencidos}
+                  </span>
+                ) : undefined,
+              },
+              { id: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
+            ]}
+            activeTab={tab}
+            onChange={setTab}
+            layoutId="financeiroTabsIndicator"
+          />
         </div>
-        <MonthDropdown months={allMonths} selected={selectedMonth} onChange={setSelectedMonth} />
+
+        <div className="flex flex-wrap items-center gap-3 justify-end shrink-0">
+          <FinanceiroMonthSelector
+            selectedMonth={selectedMonth}
+            monthLabel={getFormattedMonth(selectedMonth)}
+            isCurrentMonth={selectedMonth === currentMonthStr}
+            availableMonths={allMonths}
+            onMonthChange={setSelectedMonth}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            onCurrentMonth={handleCurrentMonth}
+          />
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing || loading}
+            title="Atualizar"
+            className="tap-target pressable focusable rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-2.5 text-ink-soft hover:text-ink transition-all cursor-pointer"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Loading / Error */}

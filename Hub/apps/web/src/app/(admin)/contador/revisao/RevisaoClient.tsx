@@ -279,8 +279,13 @@ function LinhaAprovacao({
         <p className="text-[11px] font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
           {item.empresa} · {NOME_ACAO[item.kind] ?? item.kind}
         </p>
-        <p className="mt-0.5 whitespace-pre-line text-xs leading-relaxed text-[#231F20] dark:text-[#F5F6F4]">
-          {item.rationale}
+        {item.categoriaEscolhida && (
+          <p className="mt-1 text-xs text-[#231F20] dark:text-[#F5F6F4]">
+            Categorizado como <strong className="font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">“{item.categoriaEscolhida}”</strong>
+          </p>
+        )}
+        <p className="mt-0.5 whitespace-pre-line text-xs leading-relaxed text-[#6E6A61] dark:text-[#A8A49C]">
+          <strong className="font-semibold text-[#231F20] dark:text-[#F5F6F4]">Motivo:</strong> {item.rationale}
         </p>
       </div>
       <div className="flex shrink-0 gap-1.5">

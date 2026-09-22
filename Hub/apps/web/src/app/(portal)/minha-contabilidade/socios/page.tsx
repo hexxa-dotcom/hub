@@ -56,7 +56,7 @@ export default async function Page() {
   ].join('\n');
 
   return (
-    <div className="mx-auto w-full space-y-6">
+    <div className="mx-auto w-full space-y-16">
       <SectionHero
         title="Gestão de Sócios"
         infoTitle="Sobre a Gestão de Sócios"

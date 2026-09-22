@@ -2,7 +2,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getBalancoDreData, monthLabel, monthLabelShort } from '@/lib/server/reports';
 import { Info, TrendingDown, Scale, Receipt } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import { PrintButton } from './PrintButton';
 import { ReportToolbar } from '../ReportToolbar';
 
@@ -25,7 +25,7 @@ export default async function BalancoInstantaneoPage({
   } = await getBalancoDreData(ctx, params);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-10">
+    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
       <style>{`
         @media print {
           .print-scope-balanco #secao-dre { display: none !important; }
@@ -33,43 +33,39 @@ export default async function BalancoInstantaneoPage({
         }
       `}</style>
 
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre Balanço e DRE"
-            description="Gerado em tempo real com base nos lançamentos conciliados no sistema."
-          />
-
-          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Balanço e DRE — <span className="capitalize">{periodoLabel}</span>
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <form method="get" className="flex flex-wrap items-center gap-2">
-                <select name="de" defaultValue={deOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+      <SectionHero
+        title={`Balanço e DRE — ${periodoLabel}`}
+        infoTitle="Sobre Balanço e DRE"
+        infoDescription="Gerado em tempo real com base nos lançamentos conciliados no sistema."
+        className="print:hidden"
+        rightSlot={
+          <div className="flex flex-wrap items-center gap-2">
+            <form method="get" className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-1.5 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
+                <select name="de" defaultValue={deOrdered} className="rounded-full bg-transparent px-3 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
                   {options.map((m) => (
                     <option key={m} value={m}>{monthLabel(m)}</option>
                   ))}
                 </select>
-                <span className="text-caption text-ink-soft">até</span>
-                <select name="ate" defaultValue={ateOrdered} className="appearance-none rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2 text-xs font-bold text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
+                <span className="text-caption text-ink-soft text-[11px]">até</span>
+                <select name="ate" defaultValue={ateOrdered} className="rounded-full bg-transparent px-3 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
                   {options.map((m) => (
                     <option key={m} value={m}>{monthLabel(m)}</option>
                   ))}
                 </select>
-                <button type="submit" className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold transition-all">
-                  Filtrar
-                </button>
-              </form>
-              <ReportToolbar
-                reportType="balanco"
-                query={{ de: deOrdered, ate: ateOrdered }}
-                documentTitle={`Balanço e DRE — ${periodoLabel}`}
-              />
-            </div>
+              </div>
+              <button type="submit" className="tap-target pressable focusable rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all cursor-pointer">
+                Filtrar
+              </button>
+            </form>
+            <ReportToolbar
+              reportType="balanco"
+              query={{ de: deOrdered, ate: ateOrdered }}
+              documentTitle={`Balanço e DRE — ${periodoLabel}`}
+            />
           </div>
-        </div>
-      </Card>
+        }
+      />
 
       {/* ===================== Seção: Balanço ===================== */}
       <section id="secao-balanco" className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden print:shadow-none print:border-none print:bg-transparent">

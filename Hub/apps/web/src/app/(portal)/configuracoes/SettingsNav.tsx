@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Building2, Users, FileCode, Plug, SlidersHorizontal } from 'lucide-react';
+import { Users, FileCode, Plug, SlidersHorizontal, Building2, ArrowUpRight } from 'lucide-react';
 import { spring, crossFade } from '@/lib/motion';
 
 const MENU = [
-  { label: 'Geral & Empresa', href: '/configuracoes', icon: Building2 },
   { label: 'Equipe e Acessos', href: '/configuracoes/equipe', icon: Users },
   { label: 'Fiscal e Tributário', href: '/configuracoes/fiscal', icon: FileCode },
   { label: 'Integrações & ERPs', href: '/configuracoes/integracoes', icon: Plug },
@@ -19,14 +18,11 @@ export function SettingsNav() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <nav className="mb-6 flex">
+    <nav className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="segmented-track relative inline-flex max-w-full gap-1 overflow-x-auto rounded-full p-1 no-scrollbar">
         {MENU.map((item) => {
-          const isActive = 
-            item.href === '/configuracoes' 
-              ? pathname === '/configuracoes'
-              : pathname.startsWith(item.href);
-              
+          const isActive = pathname.startsWith(item.href);
+
           return (
             <Link
               key={item.href}
@@ -50,6 +46,15 @@ export function SettingsNav() {
           );
         })}
       </div>
+
+      <Link
+        href="/minha-empresa"
+        className="tap-target pressable inline-flex items-center gap-1.5 self-start sm:self-center text-xs font-bold text-ink-soft hover:text-ink transition-colors px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+      >
+        <Building2 className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
+        <span>Perfil da Empresa</span>
+        <ArrowUpRight className="h-3 w-3 opacity-60" />
+      </Link>
     </nav>
   );
 }

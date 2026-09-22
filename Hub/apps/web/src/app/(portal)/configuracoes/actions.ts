@@ -35,4 +35,6 @@ export async function updateCompanyAction(formData: FormData) {
   }
 
   revalidatePath('/configuracoes');
+  revalidatePath('/minha-empresa');
+  revalidatePath('/minha-empresa/editar');
 }

@@ -30,3 +30,5 @@ npm-debug.log*
 # drizzle
 packages/db/drizzle/meta/_journal_backup*
 .vercel
+*.code-workspace
+sonda.mjs

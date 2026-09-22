@@ -72,7 +72,7 @@ export function SectionHero({
   onNextMonth,
   onCurrentMonth,
   onMonthChange,
-  showMonthSelector = true,
+  showMonthSelector = false,
   rightSlot,
   className = '',
 }: SectionHeroProps) {
@@ -119,13 +119,24 @@ export function SectionHero({
 
   return (
     <Card
-      level={2}
-      tone="deep"
-      className={`relative z-30 min-h-[76px] sm:min-h-[84px] py-3.5 px-6 sm:px-8 rounded-2xl sm:rounded-full card-finish flex items-center shadow-(--elev-2) ${className}`}
+      level={1}
+      className={`hero-section-card relative z-30 py-4 sm:py-5 px-6 sm:px-8 rounded-[2rem] sm:rounded-full card-finish flex items-center shadow-(--elev-1) transition-all ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-        {/* Canto Esquerdo: Seleção do Mês + Ícone (i) de Informação ao seu lado direito */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
+        <div className="hero-title-block flex items-center gap-3 min-w-0">
+          <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+            {title}
+          </h1>
+          {/* Ícone de informação (i) */}
+          <SectionInfo
+            title={infoTitle || `Sobre ${title}`}
+            description={infoDescription}
+          />
+        </div>
+
+        {/* Canto Direito: Seleção do Mês + Ícone (i) + Ações */}
+        <div className="hero-actions-block flex items-center gap-2.5 sm:gap-3 shrink-0 self-start sm:self-center">
           {showMonthSelector && (
             <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset)">
               <button
@@ -158,25 +169,15 @@ export function SectionHero({
               type="button"
               onClick={handleCurrent}
               title="Voltar ao mês atual"
-              className="tap-target pressable focusable rounded-full bg-hexxa-forest/10 hover:bg-hexxa-forest/20 text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime/25 dark:text-hexxa-lime px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer shadow-xs"
+              className="tap-target pressable focusable rounded-full bg-hexxa-forest/10 hover:bg-hexxa-forest/20 text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime/25 dark:text-hexxa-lime px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
             >
               Mês atual
             </button>
           )}
 
-          {/* Ícone de informação (i) posicionado ao lado direito da seleção do mês */}
-          <SectionInfo
-            title={infoTitle || `Sobre ${title}`}
-            description={infoDescription}
-          />
-        </div>
 
-        {/* Canto Direito: Título amplo, proeminente e com balanço impecável */}
-        <div className="shrink-0 flex items-center gap-3 text-left sm:text-right">
+
           {rightSlot}
-          <h1 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-ink tracking-tight">
-            {title}
-          </h1>
         </div>
       </div>
     </Card>

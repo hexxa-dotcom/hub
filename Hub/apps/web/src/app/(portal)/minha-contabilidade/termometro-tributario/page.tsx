@@ -57,7 +57,7 @@ export default async function TermometroTributarioPage() {
   const isOverSublimite = rbt12 >= LIMITE_SUBLIMITE;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-16">
       <SectionHero
         title="Bússola Tributária"
         infoTitle="Sobre a Bússola Tributária"

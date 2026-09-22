@@ -79,7 +79,7 @@ export const NAV: NavSection[] = [
     ],
   },
   {
-    title: 'Gestão do Patrimônio',
+    title: 'Patrimônio',
     items: [
       { label: 'Imóveis', href: '/patrimonial' },
     ],

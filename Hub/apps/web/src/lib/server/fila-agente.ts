@@ -70,3 +70,31 @@ export async function decidir(
   revalidatePath('/meu-negocio/relatorios/fechamento');
   return { ok: r.ok, message: r.mensagem };
 }
+
+export async function decidirTodas(
+  itens: { acaoId: string; decisao: 'aprovar' | 'rejeitar'; categoriaCorretaId?: string }[],
+): Promise<{ ok: boolean; message: string }> {
+  if (itens.length === 0) return { ok: true, message: 'Nenhuma ação a processar.' };
+
+  const ctx = await getTenantContext();
+  const userId = autorOuNulo(ctx.userId);
+
+  for (const item of itens) {
+    try {
+      await decidirAcao(
+        ctx.companyId,
+        item.acaoId,
+        item.decisao === 'aprovar' ? 'APPROVED' : 'REJECTED',
+        userId,
+        undefined,
+        item.categoriaCorretaId,
+      );
+    } catch (err) {
+      console.error(`Erro ao decidir ação ${item.acaoId} em lote:`, err);
+    }
+  }
+
+  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/relatorios/fechamento');
+  return { ok: true, message: `${itens.length} ação(ões) confirmada(s) com sucesso.` };
+}

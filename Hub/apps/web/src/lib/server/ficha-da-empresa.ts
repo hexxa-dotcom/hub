@@ -20,6 +20,7 @@ export interface Socio {
   cpf: string | null;
   participacao: number;
   proLabore: number;
+  lucroDistribuidoMes: number;
 }
 
 export interface FichaDaEmpresa {
@@ -36,6 +37,10 @@ export interface FichaDaEmpresa {
   atividadeCodigo: string | null;
   atividadeTexto: string | null;
   endereco: string | null;
+  city: string | null;
+  state: string | null;
+  neighborhood: string | null;
+  zipcode: string | null;
   socios: Socio[];
   /** Notas emitidas no ano corrente. */
   notasNoAno: number;
@@ -94,16 +99,30 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
         )
       : null;
 
+    const hasNumberAlready = Boolean(
+      empresa.address_number && empresa.address_line1?.includes(empresa.address_number),
+    );
     const endereco =
       [
         empresa.address_line1,
-        empresa.address_number,
+        hasNumberAlready ? null : empresa.address_number,
         empresa.neighborhood,
-        empresa.city,
-        empresa.state,
+        empresa.city ? `${empresa.city}${empresa.state ? ` - ${empresa.state}` : ''}` : empresa.state,
       ]
         .filter(Boolean)
         .join(', ') || null;
+
+    const mesAtual = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+    const inicioMesAtual = `${mesAtual}-01`;
+
+    const lucrosMes = (await tx.execute(sql`
+      SELECT partner_name, COALESCE(SUM(amount), 0) AS total_mes
+        FROM profit_distribution
+       WHERE company_id = ${ctx.companyId}
+         AND distributed_at >= ${inicioMesAtual}::date
+       GROUP BY partner_name
+    `)) as unknown as { partner_name: string; total_mes: string }[];
+    const lucrosMap = new Map(lucrosMes.map(l => [l.partner_name, Number(l.total_mes)]));
 
     return {
       razaoSocial: String(empresa.legal_name ?? ''),
@@ -118,11 +137,16 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
       atividadeCodigo: empresa.main_activity_code ?? null,
       atividadeTexto: empresa.main_activity_text ?? null,
       endereco,
+      city: empresa.city ?? null,
+      state: empresa.state ?? null,
+      neighborhood: empresa.neighborhood ?? null,
+      zipcode: empresa.zipcode ?? null,
       socios: socios.map((s) => ({
         nome: s.name,
         cpf: s.cpf,
         participacao: Number(s.ownership_pct),
         proLabore: Number(s.pro_labore),
+        lucroDistribuidoMes: lucrosMap.get(s.name) || 0,
       })),
       notasNoAno: Number(movimento?.notas ?? 0),
       faturamentoNoAno: Number(movimento?.total ?? 0),

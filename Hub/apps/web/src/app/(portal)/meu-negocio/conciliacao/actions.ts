@@ -41,6 +41,17 @@ export async function getReconciliationData() {
       )
       .orderBy(financialEntry.dueDate);
 
+    // Busca categorias da empresa para permitir edição e exibição correta
+    const categories = await tx
+      .select({
+        id: category.id,
+        name: category.name,
+        kind: category.kind,
+      })
+      .from(category)
+      .where(eq(category.companyId, ctx.companyId))
+      .orderBy(category.name);
+
     return {
       transactions: transactions.map(t => ({
         ...t,
@@ -49,7 +60,8 @@ export async function getReconciliationData() {
       entries: entries.map(e => ({
         ...e,
         amount: Number(e.amount)
-      }))
+      })),
+      categories,
     };
   });
 }
@@ -139,10 +151,14 @@ export async function ignoreTransaction(bankTransactionId: string) {
  * pra cada transação não conciliada; quem confirma é o usuário, via
  * applyAiMatchAction/applyAiNewEntryAction.
  */
+export type EnrichedAiSuggestion = AIReconciliationResult & {
+  categoryName?: string;
+};
+
 export async function suggestAiMatchesAction(): Promise<{
   ok: boolean;
   message?: string;
-  suggestions?: AIReconciliationResult[];
+  suggestions?: EnrichedAiSuggestion[];
 }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -170,7 +186,14 @@ export async function suggestAiMatchesAction(): Promise<{
         categories.map((c) => ({ id: c.id, name: c.name, kind: c.kind === 'INCOME' ? 'REVENUE' : 'EXPENSE' })),
         entries.map((e) => ({ id: e.id, amount: Number(e.amount), type: e.type, dueDate: e.dueDate })),
       );
-      return { ok: true, suggestions };
+
+      const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+      const enrichedSuggestions: EnrichedAiSuggestion[] = (suggestions ?? []).map((s) => ({
+        ...s,
+        categoryName: categoryMap.get(s.suggestedCategoryId) || 'Não identificada',
+      }));
+
+      return { ok: true, suggestions: enrichedSuggestions };
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : 'Falha ao consultar a IA.' };
     }
@@ -243,5 +266,97 @@ export async function applyAiNewEntryAction(
     revalidatePath('/meu-negocio/hub-financeiro');
   }
   return result;
+}
+
+/** Aplica múltiplas sugestões de uma só vez (Aceitar todas). */
+export async function applyBatchAiSuggestionsAction(
+  items: {
+    transactionId: string;
+    categoryId: string;
+    action: 'MATCH_EXISTING' | 'CREATE_NEW';
+    matchedEntryId?: string;
+  }[],
+): Promise<{ ok: boolean; count: number; message?: string }> {
+  if (items.length === 0) return { ok: true, count: 0 };
+
+  const ctx = await getTenantContext();
+  let appliedCount = 0;
+
+  await withTenant(ctx.companyId, async (tx) => {
+    for (const item of items) {
+      try {
+        if (item.action === 'MATCH_EXISTING' && item.matchedEntryId) {
+          const [txn] = await tx
+            .select({ amount: bankTransaction.amount, companyId: bankTransaction.companyId })
+            .from(bankTransaction)
+            .where(eq(bankTransaction.id, item.transactionId));
+          const [entry] = await tx
+            .select({ amount: financialEntry.amount, type: financialEntry.type, companyId: financialEntry.companyId })
+            .from(financialEntry)
+            .where(eq(financialEntry.id, item.matchedEntryId));
+
+          if (txn && entry) {
+            await tx.insert(reconciliationMatch).values({
+              companyId: ctx.companyId,
+              bankTransactionId: item.transactionId,
+              financialEntryId: item.matchedEntryId,
+            });
+            await tx
+              .update(financialEntry)
+              .set({ categoryId: item.categoryId, status: 'PAID' })
+              .where(and(eq(financialEntry.id, item.matchedEntryId), eq(financialEntry.companyId, ctx.companyId)));
+            await tx
+              .update(bankTransaction)
+              .set({ reconciliationStatus: 'MATCHED' })
+              .where(eq(bankTransaction.id, item.transactionId));
+            appliedCount++;
+          }
+        } else {
+          const [txn] = await tx
+            .select()
+            .from(bankTransaction)
+            .where(and(eq(bankTransaction.id, item.transactionId), eq(bankTransaction.companyId, ctx.companyId)));
+          if (txn) {
+            const amount = Number(txn.amount);
+            const [entry] = await tx
+              .insert(financialEntry)
+              .values({
+                companyId: ctx.companyId,
+                bankAccountId: txn.bankAccountId,
+                categoryId: item.categoryId,
+                type: amount > 0 ? 'RECEIVABLE' : 'PAYABLE',
+                status: 'PAID',
+                description: txn.description,
+                amount: String(Math.abs(amount)),
+                dueDate: txn.postedAt,
+                referenceMonth: `${txn.postedAt.slice(0, 7)}-01`,
+                paidAt: txn.postedAt,
+                source: 'RECONCILIATION',
+              })
+              .returning({ id: financialEntry.id });
+
+            if (entry) {
+              await tx.insert(reconciliationMatch).values({
+                companyId: ctx.companyId,
+                bankTransactionId: item.transactionId,
+                financialEntryId: entry.id,
+              });
+              await tx
+                .update(bankTransaction)
+                .set({ reconciliationStatus: 'MATCHED' })
+                .where(eq(bankTransaction.id, item.transactionId));
+              appliedCount++;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Erro ao aplicar sugestão na transação ${item.transactionId}:`, err);
+      }
+    }
+  });
+
+  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/hub-financeiro');
+  return { ok: true, count: appliedCount };
 }
 

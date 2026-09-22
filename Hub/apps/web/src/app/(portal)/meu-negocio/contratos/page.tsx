@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import { ContratosClient } from './ContratosClient';
 import { makeContractSignatureService } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
@@ -60,20 +60,12 @@ export default async function Page() {
   ].join('\n');
 
   return (
-    <div className="mx-auto w-full space-y-6">
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center">
-        <div className="flex items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre a Gestão de Contratos"
-            description="Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais."
-          />
-          <div className="shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right">
-              Gestão de Contratos de Serviços
-            </h1>
-          </div>
-        </div>
-      </Card>
+    <div className="mx-auto w-full space-y-16">
+      <SectionHero
+        title="Gestão de Contratos de Serviços"
+        infoTitle="Sobre a Gestão de Contratos"
+        infoDescription="Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais."
+      />
 
       <Suspense fallback={null}>
         <ContratosInsight companyId={ctx.companyId} insightContext={insightContext} />

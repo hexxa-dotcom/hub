@@ -574,8 +574,8 @@ export function HubSocios({
   const router = useRouter();
 
   return (
-    <div className="space-y-6">
-      <div className="flex">
+    <div className="space-y-8">
+      <div className="flex overflow-x-auto no-scrollbar py-1">
         <SegmentedTabs
           tabs={[
             { id: 'prolabore', label: 'Pró-labore', icon: Coins },

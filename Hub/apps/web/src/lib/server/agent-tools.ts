@@ -447,8 +447,8 @@ export async function decidirAcao(
   const ehClassificacao = acao.kind === 'CLASSIFICAR_LANCAMENTO' && Boolean(acao.targetId);
   const proposta = (acao.proposal ?? {}) as { categoriaId?: string; categoriaNome?: string };
 
-  /* ── Rejeitar classificação: corrigir, não só anotar ─────────────────── */
-  if (decision === 'REJECTED' && ehClassificacao && acao.status === 'APPLIED') {
+  /* ── Rejeitar ou alterar classificação: corrigir, não só anotar ─────── */
+  if (ehClassificacao && ((decision === 'REJECTED' && (acao.status === 'APPLIED' || (acao.status === 'AWAITING_APPROVAL' && categoriaCorretaId))) || (acao.status === 'APPLIED' && categoriaCorretaId && categoriaCorretaId !== proposta.categoriaId))) {
     if (!categoriaCorretaId) {
       return {
         ok: false,
@@ -493,27 +493,39 @@ export async function decidirAcao(
 
   /* ── Aprovar classificação que esperava: aplicar agora ───────────────── */
   if (decision === 'APPROVED' && ehClassificacao && acao.status === 'AWAITING_APPROVAL') {
-    if (!proposta.categoriaId) {
+    const catIdParaAplicar = categoriaCorretaId || proposta.categoriaId;
+    if (!catIdParaAplicar) {
       return { ok: false, situacao: 'erro', mensagem: 'A proposta não diz qual categoria aplicar.' };
     }
+    const [cat] = await db
+      .select({ id: category.id, name: category.name })
+      .from(category)
+      .where(and(eq(category.id, catIdParaAplicar), eq(category.companyId, companyId)));
+    if (!cat) return { ok: false, situacao: 'erro', mensagem: 'Categoria não encontrada nesta empresa.' };
+
+    const nomeCatAplicada = cat.name;
+    const notaDecisao = categoriaCorretaId
+      ? `[alterada para: ${nomeCatAplicada}] ${nota ?? ''}`.trim()
+      : (nota || undefined);
+
     // A aprovação precisa existir ANTES de aplicar: o trigger do banco recusa
     // aplicar ação de nível APPROVAL sem aprovação registrada.
-    await decidir(db, companyId, acaoId, 'APPROVED', userId, nota);
+    await decidir(db, companyId, acaoId, 'APPROVED', userId, notaDecisao);
     try {
       await db
         .update(financialEntry)
-        .set({ categoryId: proposta.categoriaId })
+        .set({ categoryId: cat.id })
         .where(and(eq(financialEntry.id, acao.targetId!), eq(financialEntry.companyId, companyId)));
       const re = await reescriturarLancamento(
         db, companyId, acao.targetId!,
-        `classificado como "${proposta.categoriaNome ?? ''}" — aprovado pelo contador`,
+        `classificado como "${nomeCatAplicada}" — aprovado pelo usuário`,
         { createdByUserId: userId },
       );
       await marcarAplicada(db, acaoId);
       return {
         ok: true,
         situacao: 'aplicado',
-        mensagem: `Aprovado e aplicado: "${proposta.categoriaNome}". ${re.gravadas} partida(s) no razão.`,
+        mensagem: `Aprovado e aplicado: "${nomeCatAplicada}". ${re.gravadas} partida(s) no razão.`,
         acaoId,
       };
     } catch (err) {

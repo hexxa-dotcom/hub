@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import {
   Plus,
   Trash2,
@@ -208,24 +209,19 @@ export function ContratosClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* 🟢 BARRA DE ABAS PADRÃO */}
-      <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/5 pb-4">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setActiveTab(t.key)}
-            className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all ${
-              activeTab === t.key
-                ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
-                : 'bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) border border-black/5 dark:border-white/5'
-            }`}
-          >
-            <t.icon className="h-3.5 w-3.5" />
-            {t.label}
-          </button>
-        ))}
+      <div className="flex overflow-x-auto no-scrollbar py-1">
+        <SegmentedTabs
+          tabs={TABS.map(t => ({
+            id: t.key,
+            label: t.label,
+            icon: t.icon,
+          }))}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          layoutId="contratosTabIndicator"
+        />
       </div>
 
       {actionMessage && (

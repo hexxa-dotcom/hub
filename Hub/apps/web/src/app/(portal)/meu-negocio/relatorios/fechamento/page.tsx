@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { FileText, CheckCircle2, TrendingUp, TrendingDown, Clock, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { SectionInfo } from '@/components/ui/SectionInfo';
+import { SectionHero } from '@/components/ui/SectionHero';
 import { ControlesDoRelatorio } from './ControlesDoRelatorio';
 import { FilaDeAcoes } from '@/components/agente/FilaDeAcoes';
 import { listarFilas } from '@/lib/server/fila-agente';
@@ -82,7 +82,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
   const fila = await listarFilas(['FECHAR_MES']).catch(() => null);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-10">
+    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
       {fila && fila.aprovacao.length > 0 && (
         <div className="print:hidden">
           <FilaDeAcoes
@@ -105,30 +105,24 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
       )}
 
       {/* Header com botões */}
-      <Card level={2} tone="deep" className="relative z-30 min-h-[96px] sm:min-h-[104px] px-6 sm:px-8 card-finish flex items-center print:hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 w-full">
-          <SectionInfo
-            title="Sobre o Fechamento Mensal"
-            description="Dados consolidados e enviados para a rotina contábil mensal."
+      <SectionHero
+        title={`Relatório de Fechamento — ${monthName}`}
+        infoTitle="Sobre o Fechamento Mensal"
+        infoDescription="Dados consolidados e enviados para a rotina contábil mensal."
+        className="print:hidden capitalize"
+        rightSlot={
+          <ControlesDoRelatorio
+            atual={closure.referenceMonth}
+            meses={closures.map((c) => {
+              const [y, m] = String(c.referenceMonth).split('-');
+              return {
+                valor: c.referenceMonth,
+                rotulo: new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
+              };
+            })}
           />
-
-          <div className="flex flex-col sm:items-end gap-2 shrink-0 pr-4 sm:pr-8 lg:pr-12">
-            <h1 className="font-bold text-3xl sm:text-4xl text-ink tracking-tight text-right capitalize">
-              Relatório de Fechamento — {monthName}
-            </h1>
-            <ControlesDoRelatorio
-              atual={closure.referenceMonth}
-              meses={closures.map((c) => {
-                const [y, m] = String(c.referenceMonth).split('-');
-                return {
-                  valor: c.referenceMonth,
-                  rotulo: new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-                };
-              })}
-            />
-          </div>
-        </div>
-      </Card>
+        }
+      />
 
       {/* Relatório (Printable Area) */}
       <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden print:shadow-none print:border-none print:bg-transparent">

@@ -80,7 +80,7 @@ export async function PrimeirosPassosCard() {
 
           return (
             <li key={p.id}>
-              {feito ? linha : <Link href={p.href}>{linha}</Link>}
+              {feito ? linha : <Link href={p.href as never}>{linha}</Link>}
             </li>
           );
         })}

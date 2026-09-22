@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import type { DocRow } from './actions';
 import { createDocumentAction, deleteDocumentAction } from './actions';
 
@@ -97,7 +98,7 @@ export function ArquivosClient({ initialDocs }: { initialDocs: DocRow[] }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {alerts > 0 && (
         <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs font-bold text-amber-800 dark:text-amber-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -105,30 +106,27 @@ export function ArquivosClient({ initialDocs }: { initialDocs: DocRow[] }) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                filter === f
-                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
-                  : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
-              }`}
-            >
-              {f === 'TODOS' ? 'Todos' : CATS[f].label}
-            </button>
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/5 dark:border-white/10 pb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <SegmentedTabs
+            tabs={FILTERS.map((f) => ({
+              id: f,
+              label: f === 'TODOS' ? 'Todos' : CATS[f].label,
+              icon: f === 'TODOS' ? undefined : CATS[f].icon,
+            }))}
+            activeTab={filter}
+            onChange={setFilter}
+            layoutId="arquivosFilterIndicator"
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 text-hexxa-lime shadow-(--elev-1) active:scale-95 px-5 py-2 text-xs font-bold transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" /> Novo Documento
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold shadow-(--elev-1) transition-all"
-        >
-          <Plus className="h-4 w-4" /> Novo Documento
-        </button>
       </div>
 
       {showForm && (

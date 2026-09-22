@@ -43,13 +43,14 @@ export function GlassCard({
 }: Props) {
   return (
     <section
+      data-card="true"
       className={twMerge(
         'rounded-3xl p-5 md:p-6 transition-all duration-300',
         highlight
-          ? 'bg-[#1E3328] text-[#F5F6F4] shadow-lg border border-[#2F4A3C]'
+          ? 'bg-[#1E3328]/90 dark:bg-[#1E3328]/80 backdrop-blur-xl text-[#F5F6F4] shadow-(--shadow-highlight) border border-emerald-500/30'
           : glass
             ? 'glass text-[#231F20] dark:text-[#F5F6F4]'
-            : 'bg-[#E7EAE5] dark:bg-[#1A201C] border border-black/5 dark:border-white/10 text-[#231F20] dark:text-[#F5F6F4] shadow-sm hover:border-black/10 dark:hover:border-white/20',
+            : 'bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl border border-white/60 dark:border-white/10 ring-1 ring-inset ring-white/50 dark:ring-white/5 text-[#231F20] dark:text-[#F5F6F4] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:border-white/80 dark:hover:border-white/20',
         href && 'hover:-translate-y-1 hover:shadow-md cursor-pointer',
         className,
       )}
