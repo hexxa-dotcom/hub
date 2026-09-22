@@ -10,9 +10,9 @@ import { formatDocument, isCompleteDocument } from '@hexxa/core/document-br';
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white';
-const labelCls = 'block text-sm font-medium text-slate-700 dark:text-slate-300';
-const hintCls = 'mt-0.5 text-xs text-slate-400';
+  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none transition placeholder:text-ink-soft/40 focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime';
+const labelCls = 'block text-xs font-bold text-ink uppercase tracking-wider mb-1';
+const hintCls = 'mt-1 text-xs text-ink-soft';
 
 const initial: FiscalState = { ok: false, message: '' };
 const certInitial: FiscalState = { ok: false, message: '' };
