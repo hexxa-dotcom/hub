@@ -753,6 +753,7 @@ function AppShellInner({
                 user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
                 companyName={company?.tradeName || company?.legalName}
                 companyCnpj={company?.cnpj}
+                companyLogoUrl={company?.logoUrl}
                 onSignOut={sair}
               />
             </div>
@@ -785,6 +786,7 @@ function AppShellInner({
               user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
               companyName={company?.tradeName || company?.legalName}
               companyCnpj={company?.cnpj}
+              companyLogoUrl={company?.logoUrl}
               onSignOut={sair}
             />
           </div>

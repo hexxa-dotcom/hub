@@ -28,6 +28,7 @@ interface UserMenuProps {
   user?: CurrentUserProfile | null;
   companyName?: string;
   companyCnpj?: string;
+  companyLogoUrl?: string | null;
   onSignOut?: () => void;
   compact?: boolean;
 }
@@ -125,7 +126,7 @@ function formatRole(role?: string, isPartner?: boolean) {
   }
 }
 
-export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = false }: UserMenuProps) {
+export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSignOut, compact = false }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -249,12 +250,17 @@ export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = 
               </div>
             </div>
 
-            {/* Empresa em Acesso */}
+            {/* Você está acessando: Card Clicável da Empresa */}
             {(companyName || companyCnpj) && (
-              <div className="my-2.5 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3">
+              <Link
+                href={'/minha-empresa' as never}
+                onClick={() => setIsOpen(false)}
+                title="Acessar Perfil da Empresa"
+                className="group/comp my-2.5 flex flex-col rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3 transition-all hover:bg-black/5 dark:hover:bg-white/5 hover:border-black/10 dark:border-white/10"
+              >
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                    Empresa em Acesso
+                    Você está acessando
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -262,14 +268,22 @@ export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = 
                   </span>
                 </div>
 
-                <div className="flex items-start gap-2.5">
-                  <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime">
-                    <Building2 className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-xl border border-black/10 dark:border-white/15 bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime shadow-xs">
+                    {companyLogoUrl ? (
+                      <img src={companyLogoUrl} alt={companyName || ''} className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-4 w-4" />
+                    )}
                   </div>
+
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-ink leading-tight">
-                      {companyName || 'Empresa Conectada'}
-                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="truncate text-xs font-bold text-ink leading-tight group-hover/comp:text-hexxa-forest dark:group-hover/comp:text-hexxa-lime transition-colors">
+                        {companyName || 'Empresa Conectada'}
+                      </p>
+                      <ArrowRight className="h-3 w-3 text-ink-soft opacity-50 group-hover/comp:opacity-100 group-hover/comp:translate-x-0.5 transition-all shrink-0" />
+                    </div>
                     {companyCnpj && (
                       <p className="mt-0.5 text-[11px] font-mono text-ink-soft">
                         CNPJ: {formatCnpj(companyCnpj)}
@@ -277,7 +291,7 @@ export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = 
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Ações do Menu */}
@@ -296,19 +310,6 @@ export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = 
                   <span>Editar dados</span>
                   <ArrowRight className="h-3 w-3 opacity-60" />
                 </div>
-              </Link>
-
-              <Link
-                href="/minha-empresa"
-                prefetch={false}
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Building2 className="h-4 w-4 text-ink-soft group-hover:text-ink" />
-                  <span>Perfil da Empresa</span>
-                </div>
-                <ArrowRight className="h-3 w-3 opacity-60" />
               </Link>
 
               <Link
