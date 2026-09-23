@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Receipt, Eye, Download, CheckCircle2, Clock, AlertTriangle, ExternalLink, Calendar } from 'lucide-react';
+import { Receipt, Eye, Download, CheckCircle2, ExternalLink, Calendar } from 'lucide-react';
 import type { Entrega } from '@/lib/server/entregas';
 import type { AsaasPayment } from '@/lib/asaas';
 import { confirmarRecebimentoAction } from './entregas-actions';
@@ -15,10 +15,6 @@ import { confirmarRecebimentoAction } from './entregas-actions';
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dia = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
-export const SELO = {
-  DOCUMENTO: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20',
-  HONORARIOS: 'bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime border border-hexxa-forest/20',
-};
 
 const HONORARIO_PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
 
@@ -27,10 +23,11 @@ export function situacaoDoHonorario(status: string): 'OPEN' | 'PAID' | 'OVERDUE'
   return status === 'OVERDUE' ? 'OVERDUE' : 'OPEN';
 }
 
+// A situação aparece pela cor da data, como na linha de guia — sem pílula.
 const SITUACAO = {
-  OPEN: { label: 'Pendente', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20', icon: Clock },
-  PAID: { label: 'Paga', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
-  OVERDUE: { label: 'Em atraso', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20', icon: AlertTriangle },
+  OPEN: { texto: 'text-ink-soft' },
+  PAID: { texto: 'text-emerald-700 dark:text-emerald-400' },
+  OVERDUE: { texto: 'text-rose-600 dark:text-rose-400 font-bold' },
 };
 
 const acao =
@@ -43,14 +40,14 @@ export function LinhaDocumento({ doc }: { doc: Entrega }) {
 
   return (
     <div className="flex w-full flex-wrap items-center gap-3 px-5 py-4 sm:flex-nowrap">
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${SELO.DOCUMENTO}`}>Documento</span>
+      <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Documento</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">
           {doc.titulo}
-          {novo && <span className="ml-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">Novo</span>}
+          {novo && <span className="ml-2 inline-block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-amber-500" title="Ainda não aberto" />}
         </p>
         <p className="truncate text-xs text-ink-soft">
-          Protocolo {doc.protocolo}
+          {confirmado ? 'Recebimento confirmado' : novo ? 'Não aberto' : 'Aberto'} · protocolo {doc.protocolo}
           {doc.descricao ? ` · ${doc.descricao}` : ''}
           {aviso ? ` · ${aviso}` : ''}
         </p>
@@ -61,17 +58,6 @@ export function LinhaDocumento({ doc }: { doc: Entrega }) {
           Recebido {dia(doc.enviadoEm)}
         </p>
       </div>
-      <span className="hidden w-28 shrink-0 justify-center sm:inline-flex">
-        {confirmado ? (
-          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${SITUACAO.PAID.cls}`}>
-            <CheckCircle2 className="h-3 w-3" /> Confirmado
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full border border-black/10 px-3 py-1 text-xs font-bold text-ink-soft dark:border-white/10">
-            <FileText className="h-3 w-3" /> {novo ? 'Não aberto' : 'Aberto'}
-          </span>
-        )}
-      </span>
       <div className="flex shrink-0 items-center justify-end gap-1.5 sm:w-52">
         {doc.temArquivo && (
           <>
@@ -107,23 +93,18 @@ export function LinhaHonorario({ hon }: { hon: AsaasPayment }) {
   const pago = situacaoDoHonorario(hon.status) === 'PAID';
   return (
     <div className="flex w-full flex-wrap items-center gap-3 px-5 py-4 sm:flex-nowrap">
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${SELO.HONORARIOS}`}>Honorários</span>
+      <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Honorários</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">Honorários da contabilidade</p>
         <p className="text-xs text-ink-soft">Cobrança mensal</p>
       </div>
       <div className="w-28 shrink-0 text-right">
         <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(hon.value)}</p>
-        <p className="text-[11px] text-ink-soft sm:text-xs">
+        <p className={`text-[11px] sm:text-xs ${s.texto}`}>
           <Calendar className="mr-1 inline h-3 w-3" />
-          {pago ? 'Paga' : `Vence ${dia(hon.dueDate)}`}
+          {pago ? 'Paga' : `${situacaoDoHonorario(hon.status) === 'OVERDUE' ? 'Venceu' : 'Vence'} ${dia(hon.dueDate)}`}
         </p>
       </div>
-      <span className="hidden w-28 shrink-0 justify-center sm:inline-flex">
-        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${s.cls}`}>
-          <s.icon className="h-3 w-3" /> {s.label}
-        </span>
-      </span>
       <div className="flex shrink-0 items-center justify-end gap-1.5 sm:w-52">
         {!pago && hon.bankSlipUrl && (
           <a href={hon.bankSlipUrl} target="_blank" rel="noreferrer" className={acao}>

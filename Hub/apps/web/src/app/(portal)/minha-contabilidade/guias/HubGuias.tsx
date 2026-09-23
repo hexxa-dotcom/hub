@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Layers,
   EyeOff,
+  ArrowUpRight,
 } from 'lucide-react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
@@ -507,7 +508,7 @@ export function HubGuias({
           onClick={() => setExpanded(isExp ? null : g.id)}
           className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
         >
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${cat.cls}`}>{cat.label}</span>
+          <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">{cat.label}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-ink">{g.taxName}</p>
             <p className="text-xs text-ink-soft">Competência: {competencia}</p>
@@ -516,15 +517,9 @@ export function HubGuias({
             <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(g.amount)}</p>
             <p className={`text-[11px] sm:text-xs ${vencClass(g.dueDate, g.status)}`}>
               <Calendar className="mr-1 inline h-3 w-3" />
-              {g.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(g.dueDate)}`}
+              {g.status === 'PAID' ? 'Paga' : `${g.status === 'OVERDUE' ? 'Venceu' : 'Vence'} ${fmtDate(g.dueDate)}`}
             </p>
           </div>
-          <span className="hidden w-28 shrink-0 justify-center sm:inline-flex">
-            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>
-              <StatusIcon className="h-3 w-3" />
-              {st.label}
-            </span>
-          </span>
 
           {/* Ações Rápidas direto na linha (1 clique para Pix ou Baixar) — largura
               fixa, igual nas linhas de documento e honorários, para as colunas
@@ -646,50 +641,6 @@ export function HubGuias({
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
         onCurrentMonth={handleCurrentMonth}
-        rightSlot={
-          <div className="shrink-0 flex items-center justify-end">
-            {isOk ? (
-              <span className="focus-hide-ok-tag inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-3.5 py-1.5 text-xs font-bold shadow-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Tudo em dia
-              </span>
-            ) : isDismissed ? (
-              <button
-                type="button"
-                onClick={() => setIsDismissed(false)}
-                title="Clique para ver os detalhes da pendência"
-                className={`tap-target pressable focusable group inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-xs transition-all cursor-pointer ${currentStatusConfig.tagClass}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${currentStatusConfig.dotClass}`} />
-                <span>{currentStatusConfig.badgeLabel}</span>
-                <span className="text-[11px] font-normal opacity-60 group-hover:opacity-100 transition-opacity ml-0.5">
-                  · Ver detalhes
-                </span>
-              </button>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2 rounded-2xl sm:rounded-full bg-surface-card border border-black/5 dark:border-white/10 px-4 py-1.5 shadow-(--elev-inset) animate-in fade-in">
-                <span className={`font-bold text-xs ${currentStatusConfig.prefixColor}`}>
-                  Aviso:
-                </span>
-                <span className="font-semibold text-xs text-ink">
-                  {currentStatusConfig.headline}
-                </span>
-                <span className="text-xs text-ink-soft hidden lg:inline">
-                  — {currentStatusConfig.detail}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsDismissed(true)}
-                  title="Ocultar detalhes e exibir apenas a tag"
-                  className="tap-target pressable focusable inline-flex items-center gap-1 text-[11px] font-medium text-ink-soft hover:text-ink px-2 py-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer ml-1"
-                >
-                  <EyeOff className="h-3 w-3" />
-                  <span>Ocultar</span>
-                </button>
-              </div>
-            )}
-          </div>
-        }
       />
 
       {insightSlot}
@@ -733,12 +684,24 @@ export function HubGuias({
             </button>
           </div>
 
+          {/*
+            A situação do mês, no lugar do antigo "Registrar guia" — esta é uma
+            via de mão única: a contabilidade envia, o cliente recebe e paga.
+            Texto com um ponto de cor, não pílula; clicar filtra a lista.
+          */}
           <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 text-hexxa-lime shadow-(--elev-1) active:scale-95 px-5 py-2 text-xs font-bold transition-all"
+            onClick={() => {
+              if (isOk) return;
+              setStatusFilter(isOverdue ? 'OVERDUE' : 'OPEN');
+              setCatFilter('todas');
+              setMainTab('guias');
+            }}
+            title={isOk ? undefined : currentStatusConfig.headline}
+            className={`inline-flex items-center gap-2 px-1 text-xs font-semibold ${currentStatusConfig.prefixColor} ${isOk ? 'cursor-default' : 'hover:underline'}`}
           >
-            <Plus className="h-4 w-4" /> Registrar Guia
+            <span className={`h-1.5 w-1.5 rounded-full ${currentStatusConfig.dotClass}`} />
+            {currentStatusConfig.badgeLabel}
           </button>
         </div>
 
@@ -891,11 +854,11 @@ export function HubGuias({
       {mainTab === 'guias' && (
         <>
           {/*
-            O resumo do mês, num painel só. Três números separados por linhas
-            finas — sem ícone, sem pílula, sem cor de fundo. A cor aparece só
-            onde ela diz alguma coisa: o valor em atraso, quando existe. A barra
-            embaixo é a única imagem, e responde à pergunta que os três números
-            juntos fazem: quanto do mês já está resolvido.
+            O resumo do mês no padrão do Início: quatro cards pequenos, o
+            primeiro escuro com o número principal, e a seta no canto — que
+            aqui filtra a lista pelo que o card mostra. Sem pílulas: a linha de
+            baixo é texto. O último card troca a barra por um anel, que diz
+            num relance quanto do mês já foi pago.
           */}
           {(() => {
             // honAbertos já inclui os honorários vencidos.
@@ -904,45 +867,91 @@ export function HubGuias({
             const qtdPago = pagas.length + honPagos.length;
             const totalDoMes = totalAberto + totalPago;
             const pctPago = totalDoMes > 0 ? Math.round((totalPago / totalDoMes) * 100) : 0;
-            const coluna = 'flex flex-col gap-1 px-6 py-5 sm:px-7 sm:py-6';
-            const rotulo = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft';
-            const valor = 'font-serif text-[28px] sm:text-[32px] font-semibold leading-none tracking-tight tabular';
-            const nota = 'text-xs text-ink-soft';
             const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+            const filtrar = (f: StatusFilter) => {
+              setStatusFilter(f);
+              setCatFilter('todas');
+            };
+            const seta =
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-ink-soft shadow-xs group-hover:bg-[#0E1310] group-hover:text-[#D4FF00] transition-all cursor-pointer';
+            const R = 22;
+            const C = 2 * Math.PI * R;
             return (
-              <Card level={1} className="card-finish overflow-hidden">
-                <div className="grid grid-cols-1 divide-y divide-black/5 dark:divide-white/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                  <div className={coluna}>
-                    <span className={rotulo}>A pagar</span>
-                    <span className={`${valor} mt-2 text-ink`}>{BRL.format(totalAberto)}</span>
-                    <span className={nota}>{qtdAberto === 0 ? 'Nada pendente' : plural(qtdAberto, 'item em aberto', 'itens em aberto')}</span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-emerald-500/20 bg-[#0A0D0B]/85 p-5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-xl sm:p-6 dark:bg-[#0A0D0B]/75">
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl" />
+                  <div className="relative z-10 flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-caption font-bold text-white/70">A pagar no mês</p>
+                      <p className="mt-3 font-serif text-3xl font-extrabold leading-none tracking-tight text-[#D4FF00] tabular sm:text-4xl">
+                        {BRL.format(totalAberto)}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => filtrar('OPEN')} title="Ver o que está a pagar" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[#D4FF00] shadow-sm backdrop-blur-sm transition-all group-hover:bg-[#D4FF00] group-hover:text-black">
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className={coluna}>
-                    <span className={`${rotulo} ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : ''}`}>
-                      {qtdVencido > 0 && <span className="mr-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-rose-500" />}
-                      Em atraso
-                    </span>
-                    <span className={`${valor} mt-2 ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-ink'}`}>{BRL.format(totalVencido)}</span>
-                    <span className={nota}>{qtdVencido > 0 ? `${plural(qtdVencido, 'vencido', 'vencidos')} — regularize para evitar juros` : 'Nenhum atraso'}</span>
-                  </div>
-                  <div className={coluna}>
-                    <span className={rotulo}>Pago</span>
-                    <span className={`${valor} mt-2 text-ink`}>{BRL.format(totalPago)}</span>
-                    <span className={nota}>{qtdPago === 0 ? 'Nenhum pagamento ainda' : plural(qtdPago, 'pagamento', 'pagamentos')}</span>
-                  </div>
+                  <p className="relative z-10 mt-5 text-xs text-white/70">
+                    {qtdAberto === 0 ? 'Nada pendente' : plural(qtdAberto, 'item em aberto', 'itens em aberto')}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3 border-t border-black/5 px-6 py-3 dark:border-white/10 sm:px-7">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-hexxa-forest transition-[width] duration-700 ease-out dark:bg-hexxa-lime"
-                      style={{ width: `${pctPago}%` }}
+
+                <Card level={1} className="group flex flex-col justify-between p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-caption font-bold text-ink-soft">Em atraso</p>
+                      <p className={`mt-2 font-serif text-2xl font-bold tracking-tight tabular sm:text-3xl ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-ink'}`}>
+                        {BRL.format(totalVencido)}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => filtrar('OVERDUE')} title="Ver o que está em atraso" className={seta}>
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-5 text-xs text-ink-soft">
+                    {qtdVencido > 0 ? `${plural(qtdVencido, 'vencido', 'vencidos')} · evite juros` : 'Nenhum atraso'}
+                  </p>
+                </Card>
+
+                <Card level={1} className="group flex flex-col justify-between p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-caption font-bold text-ink-soft">Pago no mês</p>
+                      <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{BRL.format(totalPago)}</p>
+                    </div>
+                    <button type="button" onClick={() => filtrar('PAID')} title="Ver o que já foi pago" className={seta}>
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-5 text-xs text-ink-soft">
+                    {qtdPago === 0 ? 'Nenhum pagamento ainda' : plural(qtdPago, 'pagamento', 'pagamentos')}
+                  </p>
+                </Card>
+
+                <Card level={1} className="flex items-center gap-4 p-5 sm:p-6">
+                  <svg viewBox="0 0 56 56" className="h-16 w-16 shrink-0 -rotate-90" aria-hidden>
+                    <circle cx="28" cy="28" r={R} fill="none" strokeWidth="6" className="stroke-black/5 dark:stroke-white/10" />
+                    <circle
+                      cx="28"
+                      cy="28"
+                      r={R}
+                      fill="none"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={C * (1 - pctPago / 100)}
+                      className="stroke-hexxa-forest transition-[stroke-dashoffset] duration-700 ease-out dark:stroke-hexxa-lime"
                     />
+                  </svg>
+                  <div className="min-w-0">
+                    <p className="text-caption font-bold text-ink-soft">Mês quitado</p>
+                    <p className="mt-1 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{pctPago}%</p>
+                    <p className="mt-1 text-xs text-ink-soft">
+                      {totalDoMes === 0 ? 'Sem valores no mês' : totalAberto > 0 ? `faltam ${BRL.format(totalAberto)}` : 'tudo pago'}
+                    </p>
                   </div>
-                  <span className="shrink-0 text-xs tabular text-ink-soft">
-                    {totalDoMes > 0 ? `${pctPago}% do mês pago` : 'Sem valores no período'}
-                  </span>
-                </div>
-              </Card>
+                </Card>
+              </div>
             );
           })()}
 
@@ -992,7 +1001,6 @@ export function HubGuias({
             </div>
           </div>
 
-          {showForm && <NovaGuiaForm onClose={() => setShowForm(false)} onAdded={refetch} />}
 
           {/* CNPJ MEI para emissão de DAS */}
           {!showCnpjConfig ? (
