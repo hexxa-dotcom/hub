@@ -5,7 +5,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { getSimplesInputs, posicaoSimples } from '@/lib/server/fiscal';
 import type { TenantContext } from '@hexxa/core';
 import { withTenant, sql } from '@hexxa/db';
-import { DueDatesTimeline } from './DueDatesTimeline';
+import { DueDatesTimeline, type TimelineItem } from './DueDatesTimeline';
 import { MiniBarChart } from './MiniBarChart';
 import { ChunkyBarChart } from './ChunkyBarChart';
 import { HalfDonutGauge } from './HalfDonutGauge';
@@ -248,7 +248,7 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
   if (vencendo.length) avisos.push({ tone: 'warn', text: `${vencendo.length} conta${vencendo.length > 1 ? 's' : ''} a pagar vence${vencendo.length > 1 ? 'm' : ''} nos próximos 7 dias` });
   if (issuingCount) avisos.push({ tone: 'info', text: `${issuingCount} nota${issuingCount > 1 ? 's' : ''} aguardando processamento no Emissor Nacional` });
 
-  const timelineItems = [
+  const timelineItems: TimelineItem[] = [
     ...(openDasGuide
       ? [
           {
@@ -258,13 +258,15 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
             amount: openDasGuide.amount,
             dueDate: openDasGuide.dueDate,
             status: openDasGuide.dueDate < todayIso ? ('overdue' as const) : ('pending' as const),
+            category: 'Imposto Federal',
             link: '/minha-contabilidade/guias',
           },
         ]
       : []),
     ...entries
       .filter((e) => e.due_date && e.status === 'PENDING')
-      .slice(0, 8)
+      .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
+      .slice(0, 10)
       .map((e) => ({
         id: String(e.id || Math.random()),
         type: e.type === 'PAYABLE' ? ('payable' as const) : ('receivable' as const),
@@ -272,6 +274,7 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
         amount: Number(e.amount),
         dueDate: e.due_date!,
         status: e.due_date! < todayIso ? ('overdue' as const) : ('pending' as const),
+        category: e.category_name || (e.type === 'PAYABLE' ? 'Despesa' : 'Receita'),
         link: e.type === 'PAYABLE' ? '/meu-negocio/contas-a-pagar' : '/meu-negocio/contas-a-receber',
       })),
   ];
@@ -321,7 +324,119 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
         </Card>
       )}
 
-      {/* 1. Sobra para Você + Time Tracker de Gestão (Estilo Donezo) */}
+      {/* 1. Próximos Vencimentos (Trabalhado e Ampliado) + Avisos e Guias */}
+      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
+        <div className="lg:col-span-2 flex flex-col">
+          <DueDatesTimeline items={timelineItems} />
+        </div>
+
+        <div className="lg:col-span-1 flex flex-col">
+          <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between gap-6 h-full">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-full bg-surface shadow-(--elev-inset) text-amber-600 dark:text-amber-400 shrink-0">
+                    <BellSimple className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Avisos e Guias</p>
+                    <p className="font-serif text-xl sm:text-2xl font-bold text-ink tabular mt-0.5">
+                      {openDasGuide ? '1 Guia Aberta' : avisos.length > 0 ? `${avisos.length} Alerta(s)` : 'Tudo em dia'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  openDasGuide || vencidas.length > 0
+                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                    : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                }`}>
+                  {openDasGuide || vencidas.length > 0 ? 'Atenção' : 'Regular'}
+                </span>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {openDasGuide && (
+                  <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-ink">Guia DAS (Simples Nacional)</span>
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">A vencer</span>
+                    </div>
+                    <p className="font-serif font-bold text-lg text-ink tabular">
+                      {BRL.format(openDasGuide.amount)}
+                    </p>
+                    <p className="text-[11px] text-ink-soft">
+                      Vencimento em {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
+                    </p>
+                    <Link
+                      href="/minha-contabilidade/guias"
+                      className="tap-target pressable focusable inline-flex items-center gap-1 text-xs font-semibold text-hexxa-forest dark:text-hexxa-lime hover:underline pt-1"
+                    >
+                      Visualizar e pagar guia <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                )}
+
+                {avisos.map((a) => (
+                  <div
+                    key={a.text}
+                    className={`flex items-start gap-2.5 p-3 rounded-xl text-xs font-medium ${
+                      a.tone === 'critical'
+                        ? 'bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                        : a.tone === 'warn'
+                          ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                          : 'bg-surface text-ink'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full mt-1 shrink-0 ${
+                      a.tone === 'critical' ? 'bg-rose-500' : a.tone === 'warn' ? 'bg-amber-500' : 'bg-hexxa-forest'
+                    }`} />
+                    <span className="flex-1 leading-snug">{a.text}</span>
+                  </div>
+                ))}
+
+                {!openDasGuide && avisos.length === 0 && (
+                  <p className="text-xs text-ink-soft py-4 text-center">Nenhum aviso ou pendência fiscal no momento.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-black/5 dark:border-white/5 pt-4 flex items-center justify-between">
+              <span className="text-caption text-ink-soft">Dúvidas com guias?</span>
+              <Link
+                href="/suporte"
+                className="tap-target pressable focusable inline-flex items-center gap-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline"
+              >
+                Falar com contador <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* 2. Evolução do Faturamento & Eficiência Operacional (migradas do topo) */}
+      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
+        <div className="lg:col-span-2">
+          <ChunkyBarChart
+            items={chunkyFatItems}
+            title="Evolução do Faturamento"
+            subtitle="Histórico semestral com barras espessas hachuradas"
+            height={180}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <HalfDonutGauge
+            percentage={margemOp > 0 ? margemOp : 75}
+            title="Eficiência Operacional"
+            subtitle="Margem de lucro sobre receita do mês"
+            realizadoLabel="Sobra Líquida"
+            restanteLabel="Custos / DAS"
+            margemLabel="Margem"
+            margemValue={pct(margemOp > 0 ? margemOp / 100 : 0.748)}
+          />
+        </div>
+      </div>
+
+      {/* 3. Sobra para Você + Time Tracker de Gestão */}
       <div className="grid gap-6 lg:grid-cols-3 items-stretch">
         <div className="lg:col-span-2 flex flex-col">
           <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between gap-6 h-full">
@@ -378,81 +493,6 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
         <div className="lg:col-span-1 flex flex-col">
           <TimeTrackerCard />
         </div>
-      </div>
-
-      {/* 2. Evolução do Faturamento & Eficiência Operacional (migradas do topo) */}
-      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
-        <div className="lg:col-span-2">
-          <ChunkyBarChart
-            items={chunkyFatItems}
-            title="Evolução do Faturamento"
-            subtitle="Histórico semestral com barras espessas hachuradas"
-            height={180}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <HalfDonutGauge
-            percentage={margemOp > 0 ? margemOp : 75}
-            title="Eficiência Operacional"
-            subtitle="Margem de lucro sobre receita do mês"
-            realizadoLabel="Sobra Líquida"
-            restanteLabel="Custos / DAS"
-            margemLabel="Margem"
-            margemValue={pct(margemOp > 0 ? margemOp / 100 : 0.748)}
-          />
-        </div>
-      </div>
-
-      {/* 4. Vencimentos e avisos. */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <DueDatesTimeline items={timelineItems} />
-        </div>
-
-        <Card level={1} className="lg:col-span-2">
-          <CardHeader label="Avisos e guias" icon={BellSimple} href="/suporte" hrefLabel="Suporte" />
-
-          <div className="mt-6 space-y-5">
-            {openDasGuide && (
-              <div>
-                <p className="text-heading text-ink">Guia do DAS disponível</p>
-                <p className="text-footnote text-ink-soft mt-1.5">
-                  <span className="tabular text-ink">{BRL.format(openDasGuide.amount)}</span>
-                  {' · vence em '}
-                  {new Date(`${openDasGuide.dueDate}T00:00:00`).toLocaleDateString('pt-BR')}
-                </p>
-                <Link
-                  href="/minha-contabilidade/guias"
-                  className="tap-target pressable focusable mt-2.5 inline-flex items-center gap-1 text-footnote font-semibold text-hexxa-green dark:text-hexxa-lime hover:underline"
-                >
-                  Ver guia
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            )}
-
-            {/* Aviso como filete lateral, não como caixa preenchida: a cor
-                marca a severidade sem virar mais um bloco na tela. */}
-            {avisos.map((a) => (
-              <p
-                key={a.text}
-                className={`border-l-2 pl-4 text-footnote text-ink ${
-                  a.tone === 'critical'
-                    ? 'border-critical'
-                    : a.tone === 'warn'
-                      ? 'border-warn'
-                      : 'border-line'
-                }`}
-              >
-                {a.text}
-              </p>
-            ))}
-
-            {!openDasGuide && avisos.length === 0 && (
-              <p className="text-footnote text-ink-soft">Nenhum aviso pendente.</p>
-            )}
-          </div>
-        </Card>
       </div>
 
     </div>
