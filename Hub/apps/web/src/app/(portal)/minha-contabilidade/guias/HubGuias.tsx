@@ -890,90 +890,61 @@ export function HubGuias({
 
       {mainTab === 'guias' && (
         <>
-          {/* Summary KPIs */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-caption font-bold text-ink-soft">Total a Pagar</p>
-                  <p className="mt-1 font-serif font-bold text-2xl sm:text-3xl text-ink tabular">{BRL.format(totalAberto)}</p>
-                </div>
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 shrink-0">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-xs text-ink-soft">
-                <span className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-bold">
-                  {pendentes.length + vencidas.length} guia(s)
-                </span>
-                <span>no período selecionado</span>
-              </div>
-            </Card>
-
-            <Card level={1} className={`p-6 sm:p-7 card-finish flex flex-col justify-between ${
-              vencidas.length > 0 ? 'border-rose-500/30' : ''
-            }`}>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-caption font-bold text-ink-soft">Guias em Atraso</p>
-                  <p className={`mt-1 font-serif font-bold text-2xl sm:text-3xl tabular ${vencidas.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-ink'}`}>
-                    {BRL.format(totalVencido)}
-                  </p>
-                </div>
-                <div className={`grid h-10 w-10 place-items-center rounded-full shrink-0 ${
-                  vencidas.length > 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-surface text-ink-soft shadow-(--elev-inset)'
-                }`}>
-                  <AlertTriangle className="h-5 w-5" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-xs text-ink-soft">
-                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  vencidas.length > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                }`}>
-                  {vencidas.length > 0 ? `${vencidas.length} guia(s) vencida(s)` : 'Nenhuma pendência'}
-                </span>
-                <span>{vencidas.length > 0 ? 'ação imediata' : 'regularidade fiscal'}</span>
-              </div>
-            </Card>
-
-            <Card
-              tone={pagas.length > 0 && vencidas.length === 0 ? "forest" : "default"}
-              level={1}
-              className="p-6 sm:p-7 card-finish flex flex-col justify-between group"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className={`text-caption font-bold ${pagas.length > 0 && vencidas.length === 0 ? 'text-white/75' : 'text-ink-soft'}`}>
-                    Total Quitado
-                  </p>
-                  <p className={`mt-1 font-serif font-bold text-2xl sm:text-3xl tabular ${
-                    pagas.length > 0 && vencidas.length === 0 ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {BRL.format(totalPago)}
-                  </p>
-                </div>
-                {pagas.length > 0 && vencidas.length === 0 ? (
-                  <div className="w-12 h-8 flex items-center justify-end shrink-0">
-                    <svg className="w-10 h-6 text-[#DFFFAE]" viewBox="0 0 50 20" fill="none">
-                      <path d="M 0 15 Q 12 5, 25 12 T 50 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                    </svg>
+          {/*
+            O resumo do mês, num painel só. Três números separados por linhas
+            finas — sem ícone, sem pílula, sem cor de fundo. A cor aparece só
+            onde ela diz alguma coisa: o valor em atraso, quando existe. A barra
+            embaixo é a única imagem, e responde à pergunta que os três números
+            juntos fazem: quanto do mês já está resolvido.
+          */}
+          {(() => {
+            // honAbertos já inclui os honorários vencidos.
+            const qtdAberto = pendentes.length + vencidas.length + honAbertos.length;
+            const qtdVencido = vencidas.length + honVencidos.length;
+            const qtdPago = pagas.length + honPagos.length;
+            const totalDoMes = totalAberto + totalPago;
+            const pctPago = totalDoMes > 0 ? Math.round((totalPago / totalDoMes) * 100) : 0;
+            const coluna = 'flex flex-col gap-1 px-6 py-5 sm:px-7 sm:py-6';
+            const rotulo = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft';
+            const valor = 'font-serif text-[28px] sm:text-[32px] font-semibold leading-none tracking-tight tabular';
+            const nota = 'text-xs text-ink-soft';
+            const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+            return (
+              <Card level={1} className="card-finish overflow-hidden">
+                <div className="grid grid-cols-1 divide-y divide-black/5 dark:divide-white/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                  <div className={coluna}>
+                    <span className={rotulo}>A pagar</span>
+                    <span className={`${valor} mt-2 text-ink`}>{BRL.format(totalAberto)}</span>
+                    <span className={nota}>{qtdAberto === 0 ? 'Nada pendente' : plural(qtdAberto, 'item em aberto', 'itens em aberto')}</span>
                   </div>
-                ) : (
-                  <div className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 shrink-0">
-                    <CheckCircle2 className="h-5 w-5" />
+                  <div className={coluna}>
+                    <span className={`${rotulo} ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : ''}`}>
+                      {qtdVencido > 0 && <span className="mr-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-rose-500" />}
+                      Em atraso
+                    </span>
+                    <span className={`${valor} mt-2 ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-ink'}`}>{BRL.format(totalVencido)}</span>
+                    <span className={nota}>{qtdVencido > 0 ? `${plural(qtdVencido, 'vencido', 'vencidos')} — regularize para evitar juros` : 'Nenhum atraso'}</span>
                   </div>
-                )}
-              </div>
-              <div className={`mt-4 flex items-center gap-2 text-xs ${pagas.length > 0 && vencidas.length === 0 ? 'text-white/80' : 'text-ink-soft'}`}>
-                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  pagas.length > 0 && vencidas.length === 0 ? 'bg-white/15 text-white' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                }`}>
-                  {pagas.length} guia(s) paga(s)
-                </span>
-                <span>comprovantes arquivados</span>
-              </div>
-            </Card>
-          </div>
+                  <div className={coluna}>
+                    <span className={rotulo}>Pago</span>
+                    <span className={`${valor} mt-2 text-ink`}>{BRL.format(totalPago)}</span>
+                    <span className={nota}>{qtdPago === 0 ? 'Nenhum pagamento ainda' : plural(qtdPago, 'pagamento', 'pagamentos')}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 border-t border-black/5 px-6 py-3 dark:border-white/10 sm:px-7">
+                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-hexxa-forest transition-[width] duration-700 ease-out dark:bg-hexxa-lime"
+                      style={{ width: `${pctPago}%` }}
+                    />
+                  </div>
+                  <span className="shrink-0 text-xs tabular text-ink-soft">
+                    {totalDoMes > 0 ? `${pctPago}% do mês pago` : 'Sem valores no período'}
+                  </span>
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* Unified Filters Toolbar */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-1">

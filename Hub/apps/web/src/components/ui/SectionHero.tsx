@@ -30,6 +30,11 @@ export interface SectionHeroProps {
   showMonthSelector?: boolean;
   /** Conteúdo adicional opcional à direita ou esquerda */
   rightSlot?: React.ReactNode;
+  /**
+   * `false` tira o cartão em volta: fica só o título da seção, solto na
+   * página. É o desenho novo — as seções migram uma a uma.
+   */
+  moldura?: boolean;
   className?: string;
 }
 
@@ -74,6 +79,7 @@ export function SectionHero({
   onMonthChange,
   showMonthSelector = false,
   rightSlot,
+  moldura = true,
   className = '',
 }: SectionHeroProps) {
   const currentMonthStr = getCurrentMonthStr();
@@ -117,10 +123,15 @@ export function SectionHero({
     }
   };
 
+  const Moldura = moldura ? Card : 'div';
   return (
-    <Card
-      level={1}
-      className={`hero-section-card relative z-30 py-4 sm:py-5 px-6 sm:px-8 rounded-[2rem] sm:rounded-full card-finish flex items-center shadow-(--elev-1) transition-all ${className}`}
+    <Moldura
+      {...(moldura ? { level: 1 as const } : {})}
+      className={
+        moldura
+          ? `hero-section-card relative z-30 py-4 sm:py-5 px-6 sm:px-8 rounded-[2rem] sm:rounded-full card-finish flex items-center shadow-(--elev-1) transition-all ${className}`
+          : `relative z-30 flex items-center ${className}`
+      }
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
         {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
@@ -180,6 +191,6 @@ export function SectionHero({
           {rightSlot}
         </div>
       </div>
-    </Card>
+    </Moldura>
   );
 }
