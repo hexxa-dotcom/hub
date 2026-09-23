@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server';
 import { resolveAppUser, modoSemLogin } from '@/lib/server/tenant';
 import { gravarEmpresaSemLogin } from '@/lib/server/company-switch';
 import { saveNfseConfig } from '@/lib/server/fiscal';
+import { lerDadosDoECnpj } from '@hexxa/integrations';
+import { configurarPelaUltimaNota } from '@/lib/server/perfil-de-servico';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 
 export type OnboardingState = { ok: boolean; message: string };
@@ -101,46 +103,20 @@ async function lookupCnpj(doc: string) {
 }
 
 /**
- * Conclui o onboarding: consulta o CNPJ na Receita e cria (ou completa) a
- * empresa + o cadastro fiscal (nfse_config) + a membership OWNER do usuário.
- *
- * `existingCompanyId` só vem preenchido no caso legado: usuário já tinha uma
- * membership pré-Supabase (backfill da migração de auth) apontando pra uma
- * empresa com CNPJ placeholder — aqui só completamos o CNPJ real dela, sem
- * criar uma empresa nova.
+ * Cria (ou completa) a empresa a partir do CNPJ: consulta a Receita, grava a
+ * empresa, o responsável como dono e o cadastro fiscal. Serve aos dois
+ * começos do cadastro — pelo formulário e pelo certificado digital.
  */
-export async function completeOnboardingAction(
-  _prev: OnboardingState,
-  formData: FormData,
-): Promise<OnboardingState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const semLogin = !user && modoSemLogin();
-  if (!user && !semLogin) {
-    return { ok: false, message: 'Sessão expirada. Faça login novamente.' };
-  }
-
-  // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
-  // novos CNPJs a partir de jul/2026) tem os 12 primeiros caracteres
-  // podendo ser letra OU dígito; um replace(/\D/g,'') bloquearia o onboarding
-  // de qualquer empresa nova constituída depois disso.
-  const doc = normalizeDocument(String(formData.get('cnpj') ?? ''));
-  if (doc.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 caracteres).' };
-  const existingCompanyId = String(formData.get('existingCompanyId') ?? '') || null;
-
-  // O responsável: o OneFlow exige CPF e celular para criar a empresa lá na
-  // aprovação. Pedir agora evita o contador ter que correr atrás depois.
-  const nome = String(formData.get('nome') ?? '').trim();
-  const cpf = String(formData.get('cpf') ?? '').replace(/\D/g, '');
-  const celular = String(formData.get('celular') ?? '').replace(/\D/g, '');
-  if (nome.split(/\s+/).length < 2) return { ok: false, message: 'Informe o nome completo do responsável.' };
-  if (!cpfValido(cpf)) return { ok: false, message: 'CPF do responsável inválido.' };
-  if (celular.length < 10 || celular.length > 11) {
-    return { ok: false, message: 'Informe o celular com DDD.' };
-  }
-
+async function registrarEmpresa(input: {
+  doc: string;
+  nome: string;
+  cpf: string;
+  celular: string;
+  existingCompanyId: string | null;
+  user: { id: string; email?: string } | null;
+  semLogin: boolean;
+}): Promise<{ ok: false; message: string } | { ok: true; companyId: string; userId: string }> {
+  const { doc, nome, cpf, celular, existingCompanyId, user, semLogin } = input;
   let data;
   try {
     data = await lookupCnpj(doc);
@@ -148,7 +124,7 @@ export async function completeOnboardingAction(
     data = null;
   }
   if (!data || !data.razaoSocial) {
-    return { ok: false, message: 'Não foi possível consultar este CNPJ na Receita. Confira o número e tente novamente.' };
+    return { ok: false as const, message: 'Não foi possível consultar este CNPJ na Receita. Confira o número e tente novamente.' };
   }
 
   const db = getDb();
@@ -189,7 +165,7 @@ export async function completeOnboardingAction(
       8000,
     );
     if (dup) {
-      return { ok: false, message: 'Este CNPJ já pertence a outra empresa cadastrada. Peça um convite ao responsável.' };
+      return { ok: false as const, message: 'Este CNPJ já pertence a outra empresa cadastrada. Peça um convite ao responsável.' };
     }
     await withDbTimeout(db.update(company).set(addressFields).where(eq(company.id, existingCompanyId)), 8000);
     companyId = existingCompanyId;
@@ -199,7 +175,7 @@ export async function completeOnboardingAction(
       const [existingMembership] = await db.select({ id: membership.id }).from(membership).where(eq(membership.companyId, dup.id));
       if (existingMembership) {
         return {
-          ok: false,
+          ok: false as const,
           message: 'Este CNPJ já pertence a outra empresa cadastrada. Peça um convite ao responsável.',
         };
       }
@@ -238,9 +214,140 @@ export async function completeOnboardingAction(
   );
 
   if (semLogin) await gravarEmpresaSemLogin(companyId);
+  return { ok: true as const, companyId, userId: appUserRow.id };
+}
+
+/**
+ * Conclui o onboarding: consulta o CNPJ na Receita e cria (ou completa) a
+ * empresa + o cadastro fiscal (nfse_config) + a membership OWNER do usuário.
+ *
+ * `existingCompanyId` só vem preenchido no caso legado: usuário já tinha uma
+ * membership pré-Supabase (backfill da migração de auth) apontando pra uma
+ * empresa com CNPJ placeholder — aqui só completamos o CNPJ real dela, sem
+ * criar uma empresa nova.
+ */
+export async function completeOnboardingAction(
+  _prev: OnboardingState,
+  formData: FormData,
+): Promise<OnboardingState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const semLogin = !user && modoSemLogin();
+  if (!user && !semLogin) {
+    return { ok: false, message: 'Sessão expirada. Faça login novamente.' };
+  }
+
+  // normalizeDocument PRESERVA letras — CNPJ alfanumérico (obrigatório pra
+  // novos CNPJs a partir de jul/2026) tem os 12 primeiros caracteres
+  // podendo ser letra OU dígito; um replace(/\D/g,'') bloquearia o onboarding
+  // de qualquer empresa nova constituída depois disso.
+  const doc = normalizeDocument(String(formData.get('cnpj') ?? ''));
+  if (doc.length !== 14) return { ok: false, message: 'Informe um CNPJ válido (14 caracteres).' };
+  const existingCompanyId = String(formData.get('existingCompanyId') ?? '') || null;
+
+  // O responsável: o OneFlow exige CPF e celular para criar a empresa lá na
+  // aprovação. Pedir agora evita o contador ter que correr atrás depois.
+  const nome = String(formData.get('nome') ?? '').trim();
+  const cpf = String(formData.get('cpf') ?? '').replace(/\D/g, '');
+  const celular = String(formData.get('celular') ?? '').replace(/\D/g, '');
+  if (nome.split(/\s+/).length < 2) return { ok: false, message: 'Informe o nome completo do responsável.' };
+  if (!cpfValido(cpf)) return { ok: false, message: 'CPF do responsável inválido.' };
+  if (celular.length < 10 || celular.length > 11) {
+    return { ok: false, message: 'Informe o celular com DDD.' };
+  }
+
+  const r = await registrarEmpresa({ doc, nome, cpf, celular, existingCompanyId, user, semLogin });
+  if (!r.ok) return r;
 
   // O passo 1 entrega no passo 2. Mandar para o painel aqui era o que fazia a
   // pessoa achar que tinha acabado — e ficar com nota fiscal não configurada
   // sem saber disso.
   redirect('/onboarding/fiscal');
+}
+
+export type EstadoDoCertificado = {
+  ok: boolean;
+  message: string;
+  /** Preenchido quando a empresa foi criada. */
+  empresa?: { razaoSocial: string; responsavel: string };
+  /** O perfil de emissão montado a partir da última nota, quando houve nota. */
+  perfil?: { nome: string; item: string | null; aliquota: number | null };
+};
+
+/**
+ * O CADASTRO QUE COMEÇA PELO CERTIFICADO.
+ *
+ * Um e-CNPJ traz o CNPJ, a razão social, o responsável e o CPF dele — ver
+ * `lerDadosDoECnpj`. Com o arquivo e a senha, o passo 1 inteiro se preenche
+ * sozinho (só o celular não está no certificado), e o passo 2 também: o Hub
+ * busca no Emissor Nacional a última nota emitida e monta o perfil de
+ * emissão. Quem tem o certificado vai direto para o último passo.
+ */
+export async function cadastrarPeloCertificado(
+  _prev: EstadoDoCertificado,
+  formData: FormData,
+): Promise<EstadoDoCertificado> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const semLogin = !user && modoSemLogin();
+  if (!user && !semLogin) return { ok: false, message: 'Sessão expirada. Faça login novamente.' };
+
+  const arquivo = formData.get('pfx');
+  const senha = String(formData.get('senha') ?? '').trim();
+  const celular = String(formData.get('celular') ?? '').replace(/\D/g, '');
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { ok: false, message: 'Escolha o arquivo do certificado.' };
+  if (!/\.(pfx|p12)$/i.test(arquivo.name)) return { ok: false, message: 'O certificado é um arquivo .pfx ou .p12.' };
+  if (arquivo.size > 1024 * 1024) return { ok: false, message: 'Arquivo grande demais para um certificado.' };
+  if (!senha) return { ok: false, message: 'Informe a senha do certificado.' };
+  if (celular.length < 10 || celular.length > 11) return { ok: false, message: 'Informe o celular com DDD.' };
+
+  const b64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64');
+  let dados;
+  try {
+    dados = lerDadosDoECnpj(b64, senha);
+  } catch {
+    return { ok: false, message: 'Não consegui abrir o certificado. Confira a senha.' };
+  }
+  if (dados.vencido) return { ok: false, message: `Este certificado venceu em ${dados.validoAte}. Renove e envie de novo.` };
+  if (dados.cnpj.length !== 14) {
+    return { ok: false, message: 'Este não é o certificado de uma empresa (e-CNPJ). Use a opção sem certificado.' };
+  }
+  if (!dados.responsavelCpf || !cpfValido(dados.responsavelCpf) || !dados.responsavelNome) {
+    return { ok: false, message: 'O certificado não traz o CPF do responsável. Use a opção sem certificado.' };
+  }
+
+  const r = await registrarEmpresa({
+    doc: dados.cnpj,
+    nome: dados.responsavelNome,
+    cpf: dados.responsavelCpf,
+    celular,
+    existingCompanyId: null,
+    user,
+    semLogin,
+  });
+  if (!r.ok) return r;
+
+  const ctx = { companyId: r.companyId, companyType: 'SERVICE' as const, userId: r.userId };
+  await saveNfseConfig(ctx, { certPfxB64: b64, certPassword: senha });
+
+  const empresa = { razaoSocial: dados.razaoSocial, responsavel: dados.responsavelNome };
+  try {
+    const perfil = await configurarPelaUltimaNota(ctx);
+    if (perfil.ok && perfil.perfil) {
+      return {
+        ok: true,
+        message: perfil.message,
+        empresa,
+        perfil: { nome: perfil.perfil.nome, item: perfil.lido?.itemListaServico ?? null, aliquota: perfil.lido?.aliquotaIss ?? null },
+      };
+    }
+    return { ok: true, message: perfil.message, empresa };
+  } catch (err) {
+    console.error('[onboarding/certificado] busca da última nota falhou:', err);
+    return { ok: true, message: 'Não consegui consultar o Emissor Nacional agora.', empresa };
+  }
 }

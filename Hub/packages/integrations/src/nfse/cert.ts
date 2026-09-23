@@ -122,3 +122,63 @@ export function inspecionarCertificado(
     vencido: diasParaVencer < 0,
   };
 }
+
+export interface DadosDoECnpj extends FichaDoCertificado {
+  /** Razão social: o CN antes do ":". */
+  razaoSocial: string;
+  /** Pessoa física responsável pelo e-CNPJ, como consta no certificado. */
+  responsavelNome: string | null;
+  /** CPF do responsável, só dígitos. */
+  responsavelCpf: string | null;
+}
+
+/**
+ * O QUE UM e-CNPJ DIZ SOBRE A EMPRESA E QUEM RESPONDE POR ELA.
+ *
+ * A norma ICP-Brasil (DOC-ICP-04) obriga o e-CNPJ a carregar, no
+ * subjectAltName, campos "otherName" identificados por OID:
+ *
+ *   2.16.76.1.3.2 — nome do responsável pelo certificado
+ *   2.16.76.1.3.3 — CNPJ da empresa
+ *   2.16.76.1.3.4 — nascimento (8) + CPF (11) + NIS (11) + RG... do responsável
+ *
+ * É o que permite o cadastro começar pelo certificado: um arquivo e a senha
+ * trazem CNPJ, razão social, responsável e CPF, sem nada digitado.
+ */
+export function lerDadosDoECnpj(pfxBase64: string, password: string, hoje = new Date()): DadosDoECnpj {
+  const ficha = inspecionarCertificado(pfxBase64, password, hoje);
+  const der = forge.util.decode64(pfxBase64);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(der), false, password);
+  const CERTBAG = forge.pki.oids.certBag as string;
+  const cert = p12.getBags({ bagType: CERTBAG })[CERTBAG]?.[0]?.cert;
+
+  const campos = new Map<string, string>();
+  const ext = cert?.extensions.find((e: { name?: string }) => e.name === 'subjectAltName') as { value?: string } | undefined;
+  if (ext?.value) {
+    // Percorre a árvore ASN.1: cada otherName é um OID seguido do valor.
+    let oid: string | null = null;
+    const andar = (no: forge.asn1.Asn1) => {
+      if (Array.isArray(no.value)) {
+        for (const filho of no.value) andar(filho);
+      } else if (no.type === forge.asn1.Type.OID) {
+        oid = forge.asn1.derToOid(no.value as string);
+      } else if (oid && typeof no.value === 'string') {
+        if (!campos.has(oid)) campos.set(oid, no.value.replace(/[^\x20-\x7e]/g, '').trim());
+        oid = null;
+      }
+    };
+    andar(forge.asn1.fromDer(ext.value));
+  }
+
+  const dadosPf = campos.get('2.16.76.1.3.4') ?? '';
+  const cpf = dadosPf.slice(8, 19).replace(/\D/g, '');
+  const cnpjSan = (campos.get('2.16.76.1.3.3') ?? '').replace(/\D/g, '');
+
+  return {
+    ...ficha,
+    cnpj: ficha.cnpj || cnpjSan,
+    razaoSocial: ficha.titular.split(':')[0]?.trim() ?? '',
+    responsavelNome: campos.get('2.16.76.1.3.2') || null,
+    responsavelCpf: cpf.length === 11 && cpf !== '00000000000' ? cpf : null,
+  };
+}
