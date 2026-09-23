@@ -138,7 +138,7 @@ export function SectionHero({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
         {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
-        <div className="hero-title-block min-w-0">
+        <div className="hero-title-block w-fit min-w-0">
           <div className="flex items-center gap-3">
             <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
               {title}
@@ -149,7 +149,13 @@ export function SectionHero({
               description={infoDescription}
             />
           </div>
-          {subtitulo && <div className="mt-1.5">{subtitulo}</div>}
+          {subtitulo && (
+            <>
+              {/* Um traço fino entre título e linha de apoio, da largura do bloco. */}
+              <div className="mt-2 h-px w-full bg-black/25 dark:bg-white/25" />
+              <div className="mt-2">{subtitulo}</div>
+            </>
+          )}
         </div>
 
         {/* Canto Direito: Seleção do Mês + Ícone (i) + Ações */}
