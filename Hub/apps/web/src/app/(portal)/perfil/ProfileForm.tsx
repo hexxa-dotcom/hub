@@ -21,7 +21,9 @@ import {
   KeyRound,
   ArrowUpRight,
   Sparkles,
+  Clock,
 } from 'lucide-react';
+import { useTimeTracker } from '@/lib/client/useTimeTracker';
 import { updateUserProfileAction } from './actions';
 import { formatDocument, normalizeDocument, isCompleteDocument } from '@hexxa/core/document-br';
 
@@ -73,6 +75,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
   const [tempUrl, setTempUrl] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isEnabled: timeTrackerEnabled, setIsEnabled: setTimeTrackerEnabled } = useTimeTracker();
 
   const isPartner = !!initialData.isPartner || !!initialData.partnerInfo;
   const isSocioAdmin = isPartner && (initialData.role === 'ADMIN' || initialData.role === 'OWNER');
@@ -342,6 +345,49 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
                       className="w-full rounded-2xl border border-black/10 dark:border-white/10 bg-surface-card px-4 py-2.5 pl-10 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all font-mono"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Configuração de Time Tracker no Perfil */}
+              <div className="rounded-2xl border border-black/8 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime shadow-xs">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-ink">Time Tracker de Gestão</span>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.2 text-[10px] font-bold ${
+                          timeTrackerEnabled
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-black/5 dark:bg-white/10 text-ink-soft'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${timeTrackerEnabled ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
+                          {timeTrackerEnabled ? 'Habilitado' : 'Oculto'}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-ink-soft leading-snug">
+                        Exibir o cronômetro no menu do seu perfil (canto superior direito) para controle das horas dedicadas à gestão.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setTimeTrackerEnabled(!timeTrackerEnabled)}
+                    role="switch"
+                    aria-checked={timeTrackerEnabled}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime ${
+                      timeTrackerEnabled ? 'bg-hexxa-forest dark:bg-hexxa-lime' : 'bg-black/20 dark:bg-white/20'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        timeTrackerEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>

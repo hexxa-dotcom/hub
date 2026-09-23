@@ -1,51 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Clock } from 'lucide-react';
+import { useTimeTracker } from '@/lib/client/useTimeTracker';
 
 export function TimeTrackerCard() {
-  const [seconds, setSeconds] = useState<number>(() => {
-    if (typeof window === 'undefined') return 5048; // fallback 01:24:08
-    const saved = localStorage.getItem('hexxa_business_timer_sec');
-    return saved ? parseInt(saved, 10) : 5048;
-  });
-  const [isRunning, setIsRunning] = useState<boolean>(true);
+  const { formattedTime, isRunning, isEnabled, toggleRunning, reset } = useTimeTracker();
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((prev) => {
-          const next = prev + 1;
-          localStorage.setItem('hexxa_business_timer_sec', String(next));
-          return next;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning]);
-
-  const formatTime = (totalSec: number) => {
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const handleToggle = () => {
-    setIsRunning((prev) => !prev);
-  };
-
-  const handleReset = () => {
-    setIsRunning(false);
-    setSeconds(0);
-    localStorage.setItem('hexxa_business_timer_sec', '0');
-  };
+  if (!isEnabled) return null;
 
   return (
     <div data-card="true" className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-[#111c15]/85 dark:bg-[#111c15]/75 p-5 sm:p-6 text-white shadow-lg border border-emerald-500/20 flex flex-col justify-between min-h-[220px] group">
@@ -86,7 +47,7 @@ export function TimeTrackerCard() {
       {/* Display do Timer digital grande */}
       <div className="relative z-10 my-4 text-center">
         <div className="font-mono text-3xl sm:text-4xl font-extrabold tracking-wider text-white drop-shadow-sm tabular">
-          {formatTime(seconds)}
+          {formattedTime}
         </div>
         <p className="text-[11px] text-white/65 mt-1 font-medium">
           Dedicado à gestão estratégica hoje
@@ -97,7 +58,7 @@ export function TimeTrackerCard() {
       <div className="relative z-10 flex items-center justify-center gap-3">
         <button
           type="button"
-          onClick={handleToggle}
+          onClick={toggleRunning}
           title={isRunning ? 'Pausar cronômetro' : 'Iniciar cronômetro'}
           className="tap-target pressable flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#111c15] shadow-md hover:bg-[#DFFFAE] hover:scale-105 active:scale-95 transition-all"
         >
@@ -106,7 +67,7 @@ export function TimeTrackerCard() {
 
         <button
           type="button"
-          onClick={handleReset}
+          onClick={reset}
           title="Zerar cronômetro de hoje"
           className="tap-target pressable flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm hover:bg-rose-500/30 hover:scale-105 active:scale-95 transition-all"
         >

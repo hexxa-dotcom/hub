@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ArrowRight,
 } from 'lucide-react';
+import { CompactTimeTracker } from './CompactTimeTracker';
 
 export interface CurrentUserProfile {
   id?: string;
@@ -215,7 +216,7 @@ export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSig
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-4 shadow-(--elev-3) backdrop-blur-2xl"
+            className="absolute right-0 top-full z-50 mt-2 w-84 origin-top-right rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-4 shadow-(--elev-3) backdrop-blur-2xl"
           >
             {/* Cabeçalho do Perfil */}
             <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 pb-3">
@@ -293,6 +294,9 @@ export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSig
                 </div>
               </Link>
             )}
+
+            {/* Time Tracker Executivo (quando habilitado para o usuário) */}
+            <CompactTimeTracker userEmail={user?.email} />
 
             {/* Ações do Menu */}
             <div className="space-y-1 py-1">
