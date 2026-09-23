@@ -3,15 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  User,
-  Building2,
-  Users,
-  LogOut,
-  ChevronDown,
-  ArrowRight,
-} from 'lucide-react';
-import { CompactTimeTracker } from './CompactTimeTracker';
+import { ChevronDown, ArrowRight } from 'lucide-react';
+import { CompactTimeTracker, MostrarCronometro } from './CompactTimeTracker';
 
 export interface CurrentUserProfile {
   id?: string;
@@ -30,6 +23,8 @@ interface UserMenuProps {
   companyName?: string;
   companyCnpj?: string;
   companyLogoUrl?: string | null;
+  /** Empresa encerrada/inativa também acessa o Hub — o menu diz qual é o caso. */
+  companyActive?: boolean;
   onSignOut?: () => void;
   compact?: boolean;
 }
@@ -117,7 +112,7 @@ function formatRole(role?: string, isPartner?: boolean) {
     case 'VIEWER':
     default:
       return {
-        label: 'Visualizador (Terceiro)',
+        label: 'Visualizador',
         subtitle: 'Consulta e Relatórios (Apenas Leitura)',
         badge: 'Visualizador',
         color: 'bg-black/5 dark:bg-white/10 text-ink-soft border-black/10 dark:border-white/10',
@@ -127,12 +122,14 @@ function formatRole(role?: string, isPartner?: boolean) {
   }
 }
 
-export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSignOut, compact = false }: UserMenuProps) {
+export function UserMenu({ user, companyName, companyCnpj, companyActive = true, onSignOut, compact = false }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const displayName = user?.name || 'Minha Conta';
-  const roleInfo = formatRole(user?.role, user?.isPartner);
+  // Sem perfil conhecido (ex.: acesso por código, sem login) não se inventa
+  // um: a linha simplesmente não aparece.
+  const roleInfo = user?.role ? formatRole(user.role, user.isPartner) : null;
   const initials = getInitials(user?.name);
 
   // Fecha ao clicar fora
@@ -216,145 +213,85 @@ export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSig
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-50 mt-2 w-84 origin-top-right rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-4 shadow-(--elev-3) backdrop-blur-2xl"
+            className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-3 shadow-(--elev-3) backdrop-blur-2xl"
           >
-            {/* Cabeçalho do Perfil */}
-            <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 pb-3">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-[#1E3328] shadow-sm">
+            {/*
+              O menu do usuário, no padrão do sistema: sem ícones decorativos,
+              sem pílulas. Quem está acessando, a empresa (com a situação dela),
+              o cronômetro numa linha e as ações em texto.
+            */}
+            <div className="flex items-center gap-3 px-1 pb-3">
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#1E3328]">
                 {user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={user.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center font-bold text-base text-[#DFFFAE]">
-                    {initials}
-                  </div>
+                  <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[#DFFFAE]">{initials}</div>
                 )}
               </div>
-
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-bold text-ink">
-                  {displayName}
-                </span>
-                <span className="truncate text-xs text-ink-soft">
-                  {user?.email || 'email@empresa.com.br'}
-                </span>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.2 text-[10px] font-bold uppercase tracking-wider ${roleInfo.color}`}
-                  >
-                    {roleInfo.label}
-                  </span>
-                </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-ink">{displayName}</p>
+                {user?.email && <p className="truncate text-xs text-ink-soft">{user.email}</p>}
+                {roleInfo && <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">{roleInfo.label}</p>}
               </div>
             </div>
 
-            {/* Você está acessando: Card Clicável da Empresa */}
             {(companyName || companyCnpj) && (
               <Link
                 href={'/minha-empresa' as never}
                 onClick={() => setIsOpen(false)}
-                title="Acessar Perfil da Empresa"
-                className="group/comp my-2.5 flex flex-col rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3 transition-all hover:bg-black/5 dark:hover:bg-white/5 hover:border-black/10 dark:border-white/10"
+                className="group/comp block border-t border-black/5 px-1 py-3 dark:border-white/10"
               >
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                    Você está acessando
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Ativa
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Você está acessando</span>
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${companyActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${companyActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    {companyActive ? 'Ativa' : 'Inativa'}
                   </span>
                 </div>
-
-                <div className="flex items-center gap-2.5">
-                  <div className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-xl border border-black/10 dark:border-white/15 bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime shadow-xs">
-                    {companyLogoUrl ? (
-                      <img src={companyLogoUrl} alt={companyName || ''} className="h-full w-full object-cover" />
-                    ) : (
-                      <Building2 className="h-4 w-4" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="truncate text-xs font-bold text-ink leading-tight group-hover/comp:text-hexxa-forest dark:group-hover/comp:text-hexxa-lime transition-colors">
-                        {companyName || 'Empresa Conectada'}
-                      </p>
-                      <ArrowRight className="h-3 w-3 text-ink-soft opacity-50 group-hover/comp:opacity-100 group-hover/comp:translate-x-0.5 transition-all shrink-0" />
-                    </div>
-                    {companyCnpj && (
-                      <p className="mt-0.5 text-[11px] font-mono text-ink-soft">
-                        CNPJ: {formatCnpj(companyCnpj)}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                <p className="mt-1.5 truncate text-sm font-bold text-ink transition-colors group-hover/comp:underline group-hover/comp:underline-offset-4">
+                  {companyName || 'Empresa'}
+                </p>
+                {companyCnpj && <p className="font-mono text-[11px] text-ink-soft">{formatCnpj(companyCnpj)}</p>}
               </Link>
             )}
 
-            {/* Time Tracker Executivo (quando habilitado para o usuário) */}
-            <CompactTimeTracker userEmail={user?.email} />
-
-            {/* Ações do Menu */}
-            <div className="space-y-1 py-1">
-              <Link
-                href={'/perfil' as never}
-                prefetch={false}
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <User className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime" />
-                  <span>Meu Perfil</span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-ink-soft group-hover:text-ink">
-                  <span>Editar dados</span>
-                  <ArrowRight className="h-3 w-3 opacity-60" />
-                </div>
-              </Link>
-
-              <Link
-                href={'/auth/empresa' as never}
-                prefetch={false}
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Building2 className="h-4 w-4 text-ink-soft group-hover:text-ink" />
-                  <span>Trocar de empresa</span>
-                </div>
-                <ArrowRight className="h-3 w-3 opacity-60" />
-              </Link>
-
-              <Link
-                href="/configuracoes/equipe"
-                prefetch={false}
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Users className="h-4 w-4 text-ink-soft group-hover:text-ink" />
-                  <span>Equipe & Permissões</span>
-                </div>
-                <ArrowRight className="h-3 w-3 opacity-60" />
-              </Link>
+            <div className="border-t border-black/5 dark:border-white/10">
+              <CompactTimeTracker userEmail={user?.email} />
             </div>
 
-            {/* Rodapé: Sair da Conta */}
-            <div className="mt-2 border-t border-black/5 dark:border-white/5 pt-2">
+            <nav className="border-t border-black/5 py-1.5 dark:border-white/10">
+              {[
+                { href: '/perfil', label: 'Meu perfil' },
+                { href: '/auth/empresa', label: 'Trocar de empresa' },
+                { href: '/configuracoes/equipe', label: 'Equipe e permissões' },
+              ].map((i) => (
+                <Link
+                  key={i.href}
+                  href={i.href as never}
+                  prefetch={false}
+                  onClick={() => setIsOpen(false)}
+                  className="group/item flex items-center justify-between rounded-xl px-2 py-2 text-sm text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  {i.label}
+                  <ArrowRight className="h-3.5 w-3.5 text-ink-soft opacity-0 transition-opacity group-hover/item:opacity-100" />
+                </Link>
+              ))}
+              <MostrarCronometro
+                userEmail={user?.email}
+                className="flex w-full items-center rounded-xl px-2 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/5"
+              />
+            </nav>
+
+            <div className="border-t border-black/5 pt-1.5 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
                   onSignOut?.();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 transition-colors hover:bg-rose-500/10"
+                className="flex w-full items-center rounded-xl px-2 py-2 text-left text-sm text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Sair do Hexx Hub</span>
+                Sair do Hexx Hub
               </button>
             </div>
           </motion.div>

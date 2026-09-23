@@ -754,6 +754,7 @@ function AppShellInner({
                 companyName={company?.tradeName || company?.legalName}
                 companyCnpj={company?.cnpj}
                 companyLogoUrl={company?.logoUrl}
+                companyActive={!company?.closedAt}
                 onSignOut={sair}
               />
             </div>
@@ -787,6 +788,7 @@ function AppShellInner({
               companyName={company?.tradeName || company?.legalName}
               companyCnpj={company?.cnpj}
               companyLogoUrl={company?.logoUrl}
+                companyActive={!company?.closedAt}
               onSignOut={sair}
             />
           </div>
