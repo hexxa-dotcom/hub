@@ -50,7 +50,7 @@ export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativ
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-caption font-bold text-white/70">{rotulo}</p>
-          <p className="mt-3 font-serif text-3xl font-extrabold leading-none tracking-tight text-[#D4FF00] tabular sm:text-4xl">{valor}</p>
+          <p className="mt-3 break-words font-serif text-[28px] font-extrabold leading-none tracking-tight text-[#D4FF00] tabular xl:text-[32px]">{valor}</p>
         </div>
         {lateral}
       </div>

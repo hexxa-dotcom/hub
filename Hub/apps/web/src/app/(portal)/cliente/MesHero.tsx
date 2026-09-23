@@ -1,4 +1,5 @@
 import { getTenantContext } from '@/lib/server/tenant';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { withTenant, sql } from '@hexxa/db';
 import { Card } from '@/components/ui/Card';
 import { ArrowUpRight, TrendingUp, TrendingDown, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -207,142 +208,44 @@ export async function MesHero({ selectedMonth }: { selectedMonth?: string } = {}
   return (
     <div className="space-y-6">
       {/* ── 4 Top Cards (Estilo Donezo com Card 1 em destaque escuro) ───────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Faturamento do Mês com número ampliado para maior ênfase */}
-        <div data-card="true" className="relative overflow-hidden rounded-[28px] backdrop-blur-xl bg-[#0A0D0B]/85 dark:bg-[#0A0D0B]/75 p-5 sm:p-6 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] border border-emerald-500/20 ring-1 ring-inset ring-white/10 flex flex-col justify-between group transition-all hover:scale-[1.01]">
-          {/* Brilho verde sutil atmosférico no card */}
-          <div className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl atmospheric-glow" />
-          <div className="relative z-10 flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-white/70">Faturamento do Mês</p>
-              <p className="mt-3 font-serif text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#D4FF00] tabular tracking-tight leading-none">
-                {BRL.format(faturamento)}
-              </p>
-            </div>
-            <Link
-              href="/meu-negocio/notas"
-              title="Ver notas fiscais e faturamento"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[#D4FF00] shadow-sm backdrop-blur-sm group-hover:bg-[#D4FF00] group-hover:text-black transition-all cursor-pointer"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="mt-5 flex items-center gap-2">
-            {tendencia !== null && tendencia !== 0 ? (
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                tendencia >= 0
-                  ? 'bg-[#D4FF00]/20 text-[#D4FF00]'
-                  : 'bg-rose-500/20 text-rose-300'
-              }`}>
-                {tendencia >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {pct(Math.abs(tendencia))}
-              </span>
-            ) : (
-              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-white/80">
-                Estável
-              </span>
-            )}
-            <span className="text-xs text-white/70">vs. mês anterior</span>
-          </div>
-        </div>
-
-        {/* Card 2: Ticket Médio */}
-        <Card level={1} className="p-5 sm:p-6 flex flex-col justify-between group">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">Ticket Médio</p>
-              <p className="mt-2 font-serif text-2xl sm:text-3xl font-bold text-ink tabular tracking-tight">
-                {BRL.format(ticketMedio)}
-              </p>
-            </div>
-            <Link
-              href="/meu-negocio/contas-a-receber"
-              title="Ver recebimentos"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-ink-soft shadow-xs group-hover:bg-[#0E1310] group-hover:text-[#D4FF00] transition-all cursor-pointer"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="mt-5 flex items-center gap-2 text-xs text-ink-soft">
-            {tendenciaTicket !== null && tendenciaTicket !== 0 ? (
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                tendenciaTicket >= 0
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
-              }`}>
-                {tendenciaTicket >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {pct(Math.abs(tendenciaTicket))}
-              </span>
-            ) : (
-              <span className="rounded-full bg-black/5 dark:bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-ink-soft">
-                {qtdReceitas} entrada{qtdReceitas === 1 ? '' : 's'}
-              </span>
-            )}
-            <span>{qtdReceitas > 0 ? `${qtdReceitas} recebível(is)` : 'Sem entradas'}</span>
-          </div>
-        </Card>
-
-        {/* Card 3: Total de Despesas Já Pago */}
-        <Card level={1} className="p-5 sm:p-6 flex flex-col justify-between group">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">Total de Despesas Já Pago</p>
-              <p className="mt-2 font-serif text-2xl sm:text-3xl font-bold text-ink tabular tracking-tight">
-                {BRL.format(despesasPagas)}
-              </p>
-            </div>
-            <Link
-              href="/meu-negocio/hub-financeiro"
-              title="Ver despesas e pagamentos"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-ink-soft shadow-xs group-hover:bg-[#0E1310] group-hover:text-[#D4FF00] transition-all cursor-pointer"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between text-xs text-ink-soft">
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-              <CheckCircle2 className="h-3 w-3" /> Pago no mês
-            </span>
-            <span title={`Total orçado: ${BRL.format(despesas)}`}>
-              {despesasPendentes > 0 ? `${BRL.format(despesasPendentes)} pendente` : 'Tudo quitado'}
-            </span>
-          </div>
-        </Card>
-
-        {/* Card 4: Lucro Líquido com Margem Líquida % e Valor Disponível para Saque dos Sócios */}
-        <Card level={1} className="p-5 sm:p-6 flex flex-col justify-between group">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">Lucro Líquido</p>
-              <p className={`mt-2 font-serif text-2xl sm:text-3xl font-bold tabular tracking-tight ${saldo >= 0 ? 'text-ink' : 'text-expense'}`}>
-                {BRL.format(saldo)}
-              </p>
-            </div>
-            <Link
-              href="/minha-contabilidade/socios"
-              title="Gerenciar retiradas de sócios"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-ink-soft shadow-xs group-hover:bg-[#0E1310] group-hover:text-[#D4FF00] transition-all cursor-pointer"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between text-xs">
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-              Margem {margem}%
-            </span>
-            <div className="text-right">
-              <span className="text-[10px] text-ink-soft block leading-tight">Disponível p/ saque</span>
-              <span className="font-serif font-bold text-xs text-hexxa-forest dark:text-hexxa-lime tabular">
-                {BRL.format(valorDisponivelSaque)}
-              </span>
-            </div>
-          </div>
-        </Card>
-      </div>
+      {/*
+        Os quatro números do mês no padrão CardResumo: sem a seta no canto e
+        sem pílulas — a tendência e o contexto vão em texto, na linha de baixo.
+      */}
+      <GradeDeResumo>
+        <CardResumo
+          destaque
+          rotulo="Faturamento do mês"
+          valor={BRL.format(faturamento)}
+          nota={tendencia !== null && tendencia !== 0 ? `${tendencia >= 0 ? '+' : '−'}${pct(Math.abs(tendencia))} vs. mês anterior` : 'Estável vs. mês anterior'}
+          href="/meu-negocio/notas"
+        />
+        <CardResumo
+          rotulo="Ticket médio"
+          valor={BRL.format(ticketMedio)}
+          nota={
+            tendenciaTicket !== null && tendenciaTicket !== 0
+              ? `${tendenciaTicket >= 0 ? '+' : '−'}${pct(Math.abs(tendenciaTicket))} · ${qtdReceitas} recebível(is)`
+              : qtdReceitas > 0
+                ? `${qtdReceitas} recebível(is)`
+                : 'Sem entradas'
+          }
+          href="/meu-negocio/contas-a-receber"
+        />
+        <CardResumo
+          rotulo="Despesas pagas"
+          valor={BRL.format(despesasPagas)}
+          nota={despesasPendentes > 0 ? `${BRL.format(despesasPendentes)} ainda pendente` : 'Tudo quitado'}
+          href="/meu-negocio/hub-financeiro"
+        />
+        <CardResumo
+          rotulo="Lucro líquido"
+          valor={BRL.format(saldo)}
+          tom={saldo < 0 ? 'negativo' : 'padrao'}
+          nota={`Margem ${margem}% · ${BRL.format(valorDisponivelSaque)} para saque`}
+          href="/minha-contabilidade/socios"
+        />
+      </GradeDeResumo>
 
       {/* ── Linha Inferior do Hero: Próximos 14 Dias (CashflowForecast) + Contas Atrasadas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">

@@ -1,5 +1,6 @@
 'use client';
 
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
@@ -82,23 +83,11 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card level={2} tone="forest" className="p-6 shadow-(--elev-2) relative overflow-hidden">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Patrimônio Consolidado</h3>
-          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL0.format(total)}</p>
-          <span className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-hexxa-lime">Empresa + Sócios</span>
-        </Card>
-        <Card level={1} className="p-6">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Patrimônio da Empresa (PJ)</h3>
-          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-ink">{BRL0.format(totalPJ)}</p>
-          <p className="mt-1 text-xs text-ink-soft">{ativosPJ.length} bem(ns) — valor contábil líquido</p>
-        </Card>
-        <Card level={1} className="p-6">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Patrimônio Pessoal (PF)</h3>
-          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-ink">{BRL0.format(totalPF)}</p>
-          <p className="mt-1 text-xs text-ink-soft">{ativosPF.length} bem(ns) dos sócios</p>
-        </Card>
-      </div>
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo="Patrimônio consolidado" valor={BRL0.format(total)} nota="Empresa e sócios" />
+        <CardResumo rotulo="Patrimônio da empresa (PJ)" valor={BRL0.format(totalPJ)} nota={`${ativosPJ.length} bem(ns) · valor contábil líquido`} />
+        <CardResumo rotulo="Patrimônio pessoal (PF)" valor={BRL0.format(totalPF)} nota={`${ativosPF.length} bem(ns) dos sócios`} />
+      </GradeDeResumo>
 
       {ativosPJ.length > 0 && (
         <Card level={1} className="p-6 sm:p-8 space-y-4">
@@ -344,7 +333,7 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Mini label="Valor de Aquisição" value={BRL0.format(tot.acq)} />
         <Mini label="Depreciação Acumulada" value={BRL0.format(tot.depr)} tone="warn" />
         <Mini label="Valor Contábil Líquido" value={BRL0.format(tot.contabil)} />
@@ -462,11 +451,6 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
 }
 
 function Mini({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
-  return (
-    <Card level={1} className="p-5">
-      <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 font-serif tabular text-xl sm:text-2xl font-bold tracking-tight ${tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{value}</p>
-    </Card>
-  );
+  return <CardResumo rotulo={label} valor={value} tom={tone === 'warn' ? 'alerta' : 'padrao'} />;
 }
 

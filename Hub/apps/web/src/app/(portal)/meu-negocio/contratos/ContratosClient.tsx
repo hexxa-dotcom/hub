@@ -1,5 +1,6 @@
 'use client';
 
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -235,41 +236,28 @@ export function ContratosClient({
       {(activeTab === 'entrada' || activeTab === 'saida' || activeTab === 'mutuo') && (
         <div className="space-y-6 animate-in fade-in">
           {/* Cards KPI */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">
-                {activeTab === 'entrada' ? 'Receita Contratual Prevista' : 'Total Pago a Fornecedores'}
-              </p>
-              <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${activeTab === 'entrada' ? 'text-status-success' : 'text-status-danger'}`}>
-                {BRL.format(activeTab === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">
-                {activeTab === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)
-              </p>
-            </div>
-
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Contratos Ativos</p>
-              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
-                {(activeTab === 'entrada' ? entradas : saidas).filter(c => c.status === 'ATIVO').length}
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">Gerando lançamentos recorrentes</p>
-            </div>
-
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">
-                {activeTab === 'entrada' ? 'Faturamento com Nota Emitida' : activeTab === 'saida' ? 'Provisão de Saída Comprometida' : 'Mútuos Faturados (Risco DDL)'}
-              </p>
-              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-hexxa-green dark:text-hexxa-lime">
-                {BRL.format(
-                  (activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos)
-                    .filter(c => c.lastNfseEmitted)
-                    .reduce((sum, c) => sum + c.value, 0)
-                )}
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">Status fiscal atualizado</p>
-            </div>
-          </div>
+          <GradeDeResumo colunas={3}>
+            <CardResumo
+              destaque
+              rotulo={activeTab === 'entrada' ? 'Receita contratual prevista' : 'Total pago a fornecedores'}
+              valor={`${BRL.format(activeTab === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês`}
+              nota={`${activeTab === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)`}
+            />
+            <CardResumo
+              rotulo="Contratos ativos"
+              valor={(activeTab === 'entrada' ? entradas : saidas).filter((c) => c.status === 'ATIVO').length}
+              nota="Gerando lançamentos recorrentes"
+            />
+            <CardResumo
+              rotulo={activeTab === 'entrada' ? 'Faturamento com nota emitida' : activeTab === 'saida' ? 'Provisão de saída comprometida' : 'Mútuos faturados'}
+              valor={BRL.format(
+                (activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos)
+                  .filter((c) => c.lastNfseEmitted)
+                  .reduce((sum, c) => sum + c.value, 0),
+              )}
+              nota="Situação fiscal atualizada"
+            />
+          </GradeDeResumo>
 
           {/* Botão de Adicionar Contrato */}
           <div className="flex items-center justify-between">
@@ -443,29 +431,24 @@ export function ContratosClient({
       {/* 💰 ABA REPASSES (INTEGRAÇÃO SAAS) */}
       {activeTab === 'repasses' && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Total a Pagar Este Mês</p>
-              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-status-danger">
-                {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesPendente + r.valorExtraMesPendente, 0))}
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">Pendente, integração + extras</p>
-            </div>
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Faturado Via Integração Este Mês</p>
-              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
-                {BRL.format(repasses.reduce((sum, r) => sum + r.valorMesTotal, 0))}
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">Pago + pendente, soma de todos os prestadores</p>
-            </div>
-            <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-5 card-finish">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Prestadores Vinculados</p>
-              <p className="mt-2 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">
-                {repasses.filter((r) => r.status === 'ATIVO').length}
-              </p>
-              <p className="mt-0.5 text-footnote text-ink-soft">Com contrato ativo e repasse configurado</p>
-            </div>
-          </div>
+          <GradeDeResumo colunas={3}>
+            <CardResumo
+              destaque
+              rotulo="A pagar este mês"
+              valor={BRL.format(repasses.reduce((sum, r) => sum + r.valorMesPendente + r.valorExtraMesPendente, 0))}
+              nota="Pendente · integração e extras"
+            />
+            <CardResumo
+              rotulo="Faturado via integração"
+              valor={BRL.format(repasses.reduce((sum, r) => sum + r.valorMesTotal, 0))}
+              nota="Pago e pendente, todos os prestadores"
+            />
+            <CardResumo
+              rotulo="Prestadores vinculados"
+              valor={repasses.filter((r) => r.status === 'ATIVO').length}
+              nota="Com contrato ativo e repasse configurado"
+            />
+          </GradeDeResumo>
 
           <h2 className="font-serif font-bold text-base text-ink">Valor a Pagar por Prestador</h2>
 

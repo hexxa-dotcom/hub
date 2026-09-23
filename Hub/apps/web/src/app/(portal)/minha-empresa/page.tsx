@@ -1,3 +1,4 @@
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -281,96 +282,37 @@ export default async function Page() {
         </div>
       </div>
 
-      {/* DASHBOARD METRIC STRIP: 4 Métricas Executivas Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* KPI 1: Faturamento & Teto Simples */}
-        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Faturamento Anual</span>
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <TrendingUp className="h-4 w-4" />
-            </span>
-          </div>
-          <div>
-            <div className="text-2xl font-black font-mono text-ink tracking-tight">
-              {BRL.format(ficha.faturamentoNoAno)}
-            </div>
-            <p className="text-[11px] text-ink-soft mt-1">
-              {ficha.notasNoAno} {ficha.notasNoAno === 1 ? 'NFS-e emitida' : 'NFS-e emitidas'} em {ficha.ano}
-            </p>
-          </div>
-          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
-            <span className="text-ink-soft">Teto Simples</span>
-            <span className="font-mono font-bold text-ink">R$ 4.800.000</span>
-          </div>
-        </div>
-
-        {/* KPI 2: Capital Social Integralizado */}
-        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Capital Social</span>
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Coins className="h-4 w-4" />
-            </span>
-          </div>
-          <div>
-            <div className="text-2xl font-black font-mono text-ink tracking-tight">
-              {capitalSocialTotal > 0 ? BRL.format(capitalSocialTotal) : 'R$ 0,00'}
-            </div>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> 100% Integralizado
-            </p>
-          </div>
-          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
-            <span className="text-ink-soft">Modalidade</span>
-            <span className="font-semibold text-ink">Moeda corrente</span>
-          </div>
-        </div>
-
-        {/* KPI 3: Lucros Distribuídos no Mês */}
-        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Lucro do Mês</span>
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Wallet className="h-4 w-4" />
-            </span>
-          </div>
-          <div>
-            <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
-              {BRL.format(lucroDistribuidoMesConsolidado)}
-            </div>
-            <p className="text-[11px] text-ink-soft mt-1">
-              Distribuído aos sócios este mês
-            </p>
-          </div>
-          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
-            <span className="text-ink-soft">Tributação</span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Isento de IR</span>
-          </div>
-        </div>
-
-        {/* KPI 4: Pró-Labore & Eficiência Tributária */}
-        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Pró-labore Mensal</span>
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-hexxa-forest/10 dark:bg-hexxa-lime/15 text-hexxa-forest dark:text-hexxa-lime">
-              <ShieldCheck className="h-4 w-4" />
-            </span>
-          </div>
-          <div>
-            <div className="text-2xl font-black font-mono text-ink tracking-tight">
-              {BRL.format(proLaboreConsolidado)}
-            </div>
-            <p className="text-[11px] text-ink-soft mt-1">
-              Folha societária declarada
-            </p>
-          </div>
-          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
-            <span className="text-ink-soft">Alíquota Inicial</span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400">6,00% (Anexo III)</span>
-          </div>
-        </div>
-      </div>
+      {/*
+        As quatro métricas no padrão CardResumo. Saíram textos fixos que
+        valiam para qualquer empresa — "100% integralizado", "moeda corrente",
+        "100% isento de IR", "6,00% (Anexo III)" — sem vir do cadastro.
+      */}
+      <GradeDeResumo>
+        <CardResumo
+          destaque
+          rotulo={`Faturamento em ${ficha.ano}`}
+          valor={BRL.format(ficha.faturamentoNoAno)}
+          nota={`${ficha.notasNoAno} ${ficha.notasNoAno === 1 ? 'nota emitida' : 'notas emitidas'} · teto do Simples R$ 4,8 mi`}
+          href="/meu-negocio/relatorios/faturamento"
+        />
+        <CardResumo
+          rotulo="Capital social"
+          valor={capitalSocialTotal > 0 ? BRL.format(capitalSocialTotal) : 'Não informado'}
+          nota="Conforme o contrato social"
+        />
+        <CardResumo
+          rotulo="Lucro distribuído no mês"
+          valor={BRL.format(lucroDistribuidoMesConsolidado)}
+          nota="Aos sócios, neste mês"
+          href="/minha-contabilidade/socios"
+        />
+        <CardResumo
+          rotulo="Pró-labore mensal"
+          valor={BRL.format(proLaboreConsolidado)}
+          nota="Declarado dos sócios"
+          href="/minha-contabilidade/socios"
+        />
+      </GradeDeResumo>
 
       {/* SEÇÃO PRINCIPAL EM 2 COLUNAS: Sócios & Capital Social (Esquerda) e Canais Oficiais, Localização & Certificado (Direita) */}
       <div className="grid gap-6 lg:grid-cols-12 items-start">

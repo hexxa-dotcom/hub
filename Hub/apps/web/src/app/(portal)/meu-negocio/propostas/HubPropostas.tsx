@@ -1,5 +1,6 @@
 'use client';
 
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
@@ -242,30 +243,20 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card level={1} className="card-finish p-5">
-          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Total de Propostas</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-ink tabular">{propostas.length}</p>
-        </Card>
-        <Card level={1} className="card-finish p-5">
-          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Aprovadas</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400 tabular">{aprovadas.length}</p>
-          <p className="mt-0.5 text-caption text-ink-soft tabular">{BRL.format(valorAprovado)}</p>
-        </Card>
-        <Card level={1} className="card-finish p-5">
-          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Em Negociação</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-hexxa-green dark:text-hexxa-lime tabular">{emNeg.length}</p>
-          <p className="mt-0.5 text-caption text-ink-soft tabular">{BRL.format(valorNeg)}</p>
-        </Card>
-        <Card level={1} className="card-finish p-5">
-          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Taxa de Conversão</p>
-          <p className="mt-2 font-serif font-bold text-2xl sm:text-3xl text-ink tabular">
-            {propostas.filter(p => p.status !== 'rascunho').length > 0
-              ? `${Math.round((aprovadas.length / propostas.filter(p => p.status !== 'rascunho').length) * 100)}%`
-              : '—'}
-          </p>
-        </Card>
-      </div>
+      <GradeDeResumo>
+        <CardResumo destaque rotulo="Em negociação" valor={BRL.format(valorNeg)} nota={`${emNeg.length} proposta(s) em aberto`} />
+        <CardResumo rotulo="Aprovadas" valor={BRL.format(valorAprovado)} tom={aprovadas.length > 0 ? 'positivo' : 'padrao'} nota={`${aprovadas.length} proposta(s)`} />
+        <CardResumo rotulo="Total de propostas" valor={propostas.length} nota="Todas as situações" />
+        <CardResumo
+          rotulo="Taxa de conversão"
+          valor={
+            propostas.filter((p) => p.status !== 'rascunho').length > 0
+              ? `${Math.round((aprovadas.length / propostas.filter((p) => p.status !== 'rascunho').length) * 100)}%`
+              : '—'
+          }
+          nota="Aprovadas sobre as enviadas"
+        />
+      </GradeDeResumo>
 
       {/* Filters + new */}
       <div className="flex flex-wrap items-center justify-between gap-3">

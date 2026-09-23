@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import {
   Users,
@@ -166,73 +167,35 @@ function VisaoGeral({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <button
-          type="button"
+      <GradeDeResumo>
+        <CardResumo
+          destaque
+          rotulo="Clientes"
+          valor={customers.length}
+          nota={`${customers.filter((c) => c.type === 'PJ').length} PJ · ${customers.filter((c) => c.type === 'PF').length} PF`}
           onClick={() => onTab('clientes')}
-          className="text-left"
-        >
-          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover group">
-            <div className="flex items-center justify-between">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Clientes</p>
-              <div className="p-2 rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime">
-                <Users className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">{customers.length}</p>
-            <p className="mt-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">Ver todos →</p>
-          </Card>
-        </button>
-
-        <Link
+        />
+        <CardResumo
+          rotulo="Contratos ativos"
+          valor={ativos}
+          nota={`${expirados} expirado${expirados !== 1 ? 's' : ''}`}
           href="/meu-negocio/contratos"
-          className="text-left"
-        >
-          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
-            <div className="flex items-center justify-between">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Contratos Ativos</p>
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <FileText className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-emerald-600 dark:text-emerald-400">{ativos}</p>
-            <p className="mt-1 text-xs text-ink-soft">{expirados} expirado{expirados !== 1 ? 's' : ''}</p>
-          </Card>
-        </Link>
-
-        <Link
+        />
+        <CardResumo
+          rotulo="Renovar em breve"
+          valor={renovar}
+          tom={renovar > 0 ? 'alerta' : 'padrao'}
+          nota="Nos próximos 30 dias"
           href="/meu-negocio/contratos"
-          className="text-left"
-        >
-          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
-            <div className="flex items-center justify-between">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Renovar em Breve</p>
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-            </div>
-            <p className={`mt-3 font-serif tabular font-bold text-2xl sm:text-3xl ${renovar > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{renovar}</p>
-            <p className="mt-1 text-xs text-ink-soft">nos próximos 30 dias</p>
-          </Card>
-        </Link>
-
-        <button
-          type="button"
+        />
+        <CardResumo
+          rotulo="Aguardando assinatura"
+          valor={pendingAssin}
+          tom={pendingAssin > 0 ? 'alerta' : 'padrao'}
+          nota={`${contracts.length} documento${contracts.length !== 1 ? 's' : ''} no total`}
           onClick={() => onTab('assinatura')}
-          className="text-left"
-        >
-          <Card level={1} interactive className="p-6 transition-all hover:bg-surface-card-hover">
-            <div className="flex items-center justify-between">
-              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">Aguardando Assinatura</p>
-              <div className="p-2 rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:text-hexxa-lime">
-                <FilePenLine className="h-4 w-4" />
-              </div>
-            </div>
-            <p className={`mt-3 font-serif tabular font-bold text-2xl sm:text-3xl ${pendingAssin > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>{pendingAssin}</p>
-            <p className="mt-1 text-xs text-ink-soft">{contracts.length} documento{contracts.length !== 1 ? 's' : ''}</p>
-          </Card>
-        </button>
-      </div>
+        />
+      </GradeDeResumo>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Clientes recentes */}

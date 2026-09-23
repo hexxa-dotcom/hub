@@ -1,5 +1,6 @@
 'use client';
 
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -379,23 +380,11 @@ export function AlugueisTab({ properties, leases }: { properties: PropertyRow[];
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card level={2} tone="forest" className="p-6 shadow-(--elev-2)">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Renda de Aluguel (mensal)</h3>
-          <p className="mt-2 font-serif tabular text-2xl sm:text-3xl font-bold tracking-tight text-hexxa-lime">{BRL.format(rendaMensal)}</p>
-          <p className="mt-1 text-[11px] text-hexxa-lime/70">{ativos.length} contrato(s) ativo(s)</p>
-        </Card>
-        <Card level={1} className="p-6">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Imposto Estimado (a.a.)</h3>
-          <p className="mt-2 font-serif tabular text-2xl sm:text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{BRL.format(impostoAnual)}</p>
-          <p className="mt-1 text-[11px] text-ink-soft">Lucro Presumido — 7,68% sobre a receita bruta</p>
-        </Card>
-        <Card level={1} className="p-6">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Disponível em Caixa (a.a.)</h3>
-          <p className="mt-2 font-serif tabular text-2xl sm:text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{BRL.format(rendaMensal * 12 - impostoAnual)}</p>
-          <p className="mt-1 text-[11px] text-ink-soft">Base pro simulador de dividendos</p>
-        </Card>
-      </div>
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo="Renda de aluguel (mensal)" valor={BRL.format(rendaMensal)} nota={`${ativos.length} contrato(s) ativo(s)`} />
+        <CardResumo rotulo="Imposto estimado (ano)" valor={BRL.format(impostoAnual)} tom="alerta" nota="Lucro Presumido · 7,68% sobre a receita bruta" />
+        <CardResumo rotulo="Disponível em caixa (ano)" valor={BRL.format(rendaMensal * 12 - impostoAnual)} nota="Base do simulador de dividendos" />
+      </GradeDeResumo>
 
       <div className="flex items-center justify-between">
         <h2 className="font-serif font-bold text-base text-ink">Contratos de Aluguel</h2>

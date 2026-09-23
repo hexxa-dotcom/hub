@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import {
   Users,
   Wallet,
@@ -80,46 +81,23 @@ function VisaoGeral({ colaboradores, onTab }: { colaboradores: EmployeeRow[]; on
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <button
-          type="button"
+      <GradeDeResumo colunas={3}>
+        <CardResumo
+          destaque
+          rotulo="Colaboradores ativos"
+          valor={ativos.length}
+          nota={`${colaboradores.length} no quadro total`}
           onClick={() => onTab('colaboradores')}
-          className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish p-6 text-left hover:brightness-105 active:scale-[0.99] transition-all group"
-        >
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">Colaboradores Ativos</p>
-            <div className="p-2 rounded-xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-ink">{ativos.length}</p>
-          <p className="mt-1 text-xs text-ink-soft">{colaboradores.length} no quadro total</p>
-        </button>
-
-        <Card level={1} className="p-6 text-left card-finish">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">Folha Mensal Estimada</p>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Wallet className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="mt-3 font-serif tabular font-bold text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-400">{BRL.format(totalFolha)}</p>
-          <p className="mt-1 text-xs text-ink-soft">colaboradores em atividade</p>
-        </Card>
-
-        <Card level={1} className="p-6 text-left card-finish">
-          <div className="flex items-start justify-between">
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">Em Férias</p>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Calendar className="h-4 w-4" />
-            </div>
-          </div>
-          <p className={`mt-3 font-serif tabular font-bold text-2xl sm:text-3xl ${emFerias.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink'}`}>
-            {emFerias.length}
-          </p>
-          <p className="mt-1 text-xs text-ink-soft">período de recesso atual</p>
-        </Card>
-      </div>
+        />
+        <CardResumo rotulo="Folha mensal estimada" valor={BRL.format(totalFolha)} nota="Dos colaboradores em atividade" onClick={() => onTab('folha')} />
+        <CardResumo
+          rotulo="Em férias"
+          valor={emFerias.length}
+          tom={emFerias.length > 0 ? 'alerta' : 'padrao'}
+          nota="Neste momento"
+          onClick={() => onTab('ferias')}
+        />
+      </GradeDeResumo>
 
       {colaboradores.length === 0 ? (
         <Card level={1} className="border-dashed p-12 text-center card-finish">

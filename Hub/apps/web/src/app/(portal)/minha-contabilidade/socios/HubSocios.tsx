@@ -1,5 +1,6 @@
 'use client';
 
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
@@ -245,19 +246,12 @@ function ProLaboreTab({
       </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: 'Pró-labore Bruto', value: totalBruto, cls: 'text-ink' },
-          { label: 'INSS (11%)', value: totalINSS, cls: 'text-amber-600 dark:text-amber-400' },
-          { label: 'IRRF', value: totalIRRF, cls: 'text-red-600 dark:text-red-400' },
-          { label: 'Líquido Total', value: totalLiq, cls: 'text-emerald-700 dark:text-emerald-400' },
-        ].map(c => (
-          <Card key={c.label} level={1} className="p-5 card-finish">
-            <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">{c.label}</p>
-            <p className={`mt-2 font-serif tabular font-bold text-xl sm:text-2xl ${c.cls}`}>{BRL.format(c.value)}</p>
-          </Card>
-        ))}
-      </div>
+      <GradeDeResumo>
+        <CardResumo destaque rotulo="Pró-labore líquido" valor={BRL.format(totalLiq)} nota="O que os sócios recebem no mês" />
+        <CardResumo rotulo="Pró-labore bruto" valor={BRL.format(totalBruto)} nota="Antes dos descontos" />
+        <CardResumo rotulo="INSS (11%)" valor={BRL.format(totalINSS)} tom={totalINSS > 0 ? 'alerta' : 'padrao'} nota="Retido na fonte" />
+        <CardResumo rotulo="IRRF" valor={BRL.format(totalIRRF)} tom={totalIRRF > 0 ? 'negativo' : 'padrao'} nota="Imposto de renda retido" />
+      </GradeDeResumo>
 
       <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
         <div className="flex items-center justify-between px-6 py-4">

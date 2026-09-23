@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card } from '@/components/ui/Card';
 import {
@@ -445,27 +446,31 @@ export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Soli
   return (
     <div className="space-y-6">
       {/* Stats rápidos */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card level={1} className="p-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Em Andamento</p>
-          <p className={`mt-1 font-serif tabular text-3xl font-bold tracking-tight ${pendentes > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-ink'}`}>{pendentes}</p>
-        </Card>
-        <Card level={1} className="p-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Concluídas</p>
-          <p className="mt-1 font-serif tabular text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400">{solicitacoes.filter(s => s.status === 'concluido').length}</p>
-        </Card>
-        <Card level={1} className="p-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Serviços no Catálogo</p>
-          <p className="mt-1 font-serif tabular text-3xl font-bold tracking-tight text-ink">{CATALOGO.reduce((s, c) => s + c.servicos.length, 0)}</p>
-        </Card>
-      </div>
+      <GradeDeResumo colunas={3}>
+        <CardResumo
+          destaque
+          rotulo="Em andamento"
+          valor={pendentes}
+          nota={pendentes === 0 ? 'Nenhuma solicitação aberta' : 'Com a sua contabilidade'}
+          onClick={() => setTab('solicitacoes')}
+        />
+        <CardResumo
+          rotulo="Concluídas"
+          valor={solicitacoes.filter((s) => s.status === 'concluido').length}
+          nota="Solicitações entregues"
+          onClick={() => setTab('solicitacoes')}
+        />
+        <CardResumo
+          rotulo="Serviços no catálogo"
+          valor={CATALOGO.reduce((s, c) => s + c.servicos.length, 0)}
+          nota="Prontos para pedir"
+          onClick={() => setTab('catalogo')}
+        />
+      </GradeDeResumo>
 
       {/* Banner de contato */}
       <Card level={2} tone="deep" className="card-finish flex flex-wrap items-center justify-between gap-4 p-6 shadow-(--elev-2)">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime">
-            <MessageSquare className="h-5 w-5" />
-          </div>
           <div>
             <p className="font-serif font-bold text-sm text-ink">Precisa de um serviço sob medida?</p>
             <p className="text-xs text-ink-soft">Fale diretamente com nossa consultoria pelo chat ou agende uma reunião com seu time contábil.</p>
