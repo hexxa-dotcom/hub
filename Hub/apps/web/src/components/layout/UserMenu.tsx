@@ -9,10 +9,6 @@ import {
   Users,
   LogOut,
   ChevronDown,
-  ShieldCheck,
-  Eye,
-  CheckCircle2,
-  Lock,
   ArrowRight,
 } from 'lucide-react';
 
@@ -31,8 +27,16 @@ export interface CurrentUserProfile {
 interface UserMenuProps {
   user?: CurrentUserProfile | null;
   companyName?: string;
+  companyCnpj?: string;
   onSignOut?: () => void;
   compact?: boolean;
+}
+
+function formatCnpj(cnpj?: string | null): string {
+  if (!cnpj) return '';
+  const digits = cnpj.replace(/\D/g, '');
+  if (digits.length !== 14) return cnpj;
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
 
 function getInitials(name?: string | null): string {
@@ -121,7 +125,7 @@ function formatRole(role?: string, isPartner?: boolean) {
   }
 }
 
-export function UserMenu({ user, companyName, onSignOut, compact = false }: UserMenuProps) {
+export function UserMenu({ user, companyName, companyCnpj, onSignOut, compact = false }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -245,53 +249,36 @@ export function UserMenu({ user, companyName, onSignOut, compact = false }: User
               </div>
             </div>
 
-            {/* Bloco de Poderes / Permissões nesta Empresa */}
-            <div className="my-3 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                {roleInfo.isAdmin ? (
-                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <Eye className="h-4 w-4 text-ink-soft" />
-                )}
-                <span className="text-[11px] font-bold uppercase tracking-wider text-ink">
-                  Poderes no Sistema
-                </span>
-              </div>
+            {/* Empresa em Acesso */}
+            {(companyName || companyCnpj) && (
+              <div className="my-2.5 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                    Empresa em Acesso
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Ativa
+                  </span>
+                </div>
 
-              <p className="text-xs text-ink-soft mb-2">
-                {roleInfo.subtitle}
-              </p>
-
-              <div className="space-y-1 text-[11px]">
-                {roleInfo.isAdmin ? (
-                  <>
-                    <div className="flex items-center gap-1.5 text-ink font-medium">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                      <span>Gestão cadastral, logo e sócios</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-ink font-medium">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                      <span>Financeiro, notas e conciliação</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-ink font-medium">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                      <span>Fiscal, guias e Fator R</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5 text-ink-soft">
-                      <CheckCircle2 className="h-3 w-3 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
-                      <span>Visualização de relatórios e extratos</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-ink-soft">
-                      <Lock className="h-3 w-3 text-amber-500 shrink-0" />
-                      <span>Edições restritas a administradores</span>
-                    </div>
-                  </>
-                )}
+                <div className="flex items-start gap-2.5">
+                  <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-hexxa-forest/10 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime">
+                    <Building2 className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-ink leading-tight">
+                      {companyName || 'Empresa Conectada'}
+                    </p>
+                    {companyCnpj && (
+                      <p className="mt-0.5 text-[11px] font-mono text-ink-soft">
+                        CNPJ: {formatCnpj(companyCnpj)}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ações do Menu */}
             <div className="space-y-1 py-1">

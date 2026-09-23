@@ -747,11 +747,12 @@ function AppShellInner({
               </div>
             </div>
 
-            {/* Menu do Usuário Logado: Foto, Nome, Poderes (Admin / Visualizador) e Dropdown */}
+            {/* Menu do Usuário Logado: Foto, Nome e Dropdown com contexto da Empresa */}
             <div className="ml-1 flex items-center border-l border-line pl-3">
               <UserMenu
                 user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
-                companyName={company?.legalName}
+                companyName={company?.tradeName || company?.legalName}
+                companyCnpj={company?.cnpj}
                 onSignOut={sair}
               />
             </div>
@@ -782,7 +783,8 @@ function AppShellInner({
             <UserMenu
               compact
               user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
-              companyName={company?.legalName}
+              companyName={company?.tradeName || company?.legalName}
+              companyCnpj={company?.cnpj}
               onSignOut={sair}
             />
           </div>
