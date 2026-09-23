@@ -305,10 +305,12 @@
   --panel-bg: rgba(255, 255, 255, 0.92);
   --panel-blur: blur(12px);
 
-  --segmented-track: #D9DCD7;
-  --segmented-track-inset: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  /* Trilho em vidro, como os cards — o cinza sólido destoava do modo claro.
+     O item selecionado é o branco pleno, com sombra curta. */
+  --segmented-track: rgba(255, 255, 255, 0.45);
+  --segmented-track-inset: inset 0 0 0 1px rgba(35, 31, 32, 0.06);
   --segmented-thumb: #FFFFFF;
-  --segmented-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --segmented-thumb-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(35, 31, 32, 0.05);
 
   --hero-from: #CCD8CC;
   --hero-to: #C0CCC0;
@@ -701,10 +703,12 @@
 
   /* No escuro a trilha afunda por transparência (preto sobre escuro some) e o
      polegar sobe por ser MAIS CLARO que o fundo, não por sombra. */
-  --segmented-track: #1C201E;
-  --segmented-track-inset: var(--elev-inset);
-  --segmented-thumb: #242826;
-  --segmented-thumb-shadow: var(--elev-2);
+  /* O selecionado era #242826 sobre #1C201E — indistinguível. Agora o trilho
+     some no fundo e o selecionado acende, com um contorno claro. */
+  --segmented-track: rgba(255, 255, 255, 0.04);
+  --segmented-track-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --segmented-thumb: rgba(255, 255, 255, 0.14);
+  --segmented-thumb-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 1px 3px rgba(0, 0, 0, 0.4);
 
   --hero-from: #26332B;
   --hero-to: #1E2A23;

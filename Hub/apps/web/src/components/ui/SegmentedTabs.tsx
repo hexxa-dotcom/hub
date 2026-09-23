@@ -34,7 +34,7 @@ export function SegmentedTabs<T extends string = string>({
 
   return (
     <div
-      className={`segmented-track relative inline-flex max-w-full gap-1 overflow-x-auto rounded-full p-1 border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) no-scrollbar ${className}`}
+      className={`segmented-track relative inline-flex max-w-full gap-1 overflow-x-auto rounded-full p-1 no-scrollbar ${className}`}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
