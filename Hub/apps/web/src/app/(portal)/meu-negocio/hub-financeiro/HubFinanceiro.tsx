@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import { GraficoEntradasSaidas, periodosPorDia } from '@/components/ui/GraficoEntradasSaidas';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
@@ -1330,61 +1331,16 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
 
       {/* ── Bento Row 2: Balance Wavy Chart + Eficiência Gauge ───────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico Ondulado Estilo 'Balance' da referência (col-span-2) */}
-        <Card level={1} className="lg:col-span-2 p-6 sm:p-7 card-finish space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="font-bold text-xl text-ink">Fluxo e Projeção</h2>
-            {/* Os percentuais e o "No plano" que ficavam aqui eram fixos no código. */}
-            <p className="text-xs text-ink-soft">
-              Receitas <strong className="font-serif tabular text-ink">{fmt(totalReceberMes)}</strong>
-              <span className="mx-2">·</span>
-              Despesas <strong className="font-serif tabular text-ink">{fmt(totalPagarMes)}</strong>
-            </p>
-          </div>
-
-          {/* Área com Gráfico Fluido Ondulado em SVG */}
-          <div className="relative w-full h-44 sm:h-52 pt-4">
-            <svg className="w-full h-full overflow-visible" viewBox="0 0 500 130" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5F7A6A" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#5F7A6A" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              {/* Linhas de grade suaves */}
-              <line x1="0" y1="35" x2="500" y2="35" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
-              <line x1="0" y1="75" x2="500" y2="75" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
-              <line x1="0" y1="115" x2="500" y2="115" stroke="currentColor" strokeOpacity="0.06" strokeDasharray="4 4" />
-
-              {/* Área preenchida */}
-              <path
-                d="M 0,85 C 50,105 100,55 160,70 C 220,85 270,30 330,50 C 390,70 440,25 500,45 L 500,125 L 0,125 Z"
-                fill="url(#chartAreaGrad)"
-              />
-              {/* Linha ondulada do gráfico (stroke sálvia #5F7A6A) */}
-              <path
-                d="M 0,85 C 50,105 100,55 160,70 C 220,85 270,30 330,50 C 390,70 440,25 500,45"
-                fill="none"
-                stroke="#5F7A6A"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              {/* Pontos de destaque da curva */}
-              <circle cx="160" cy="70" r="4" fill="#FFFFFF" stroke="#5F7A6A" strokeWidth="2.5" />
-              <circle cx="330" cy="50" r="4" fill="#FFFFFF" stroke="#5F7A6A" strokeWidth="2.5" />
-              <circle cx="500" cy="45" r="4" fill="#1E3328" stroke="#FFFFFF" strokeWidth="2" />
-            </svg>
-          </div>
-
-          {/* Rótulos das 4 semanas na base */}
-          <div className="flex items-center justify-between text-xs font-bold text-ink-soft px-2 pt-2 border-t border-black/5 dark:border-white/5">
-            {weeks.map((w) => (
-              <span key={w.label} className="hover:text-ink transition-colors cursor-default">
-                {w.label}
-              </span>
-            ))}
-          </div>
-        </Card>
+        {/* Entradas e saídas do mês, dia a dia — dado real (ver GraficoEntradasSaidas).
+            Aqui ficava uma curva desenhada à mão, igual para toda empresa. */}
+        <GraficoEntradasSaidas
+          className="lg:col-span-2"
+          titulo={`Entradas e saídas · ${mesLabel(selectedMonth)}`}
+          periodos={periodosPorDia(
+            /^\d{4}-\d{2}$/.test(String(selectedMonth)) ? String(selectedMonth) : new Date().toISOString().slice(0, 7),
+            [...receberMes, ...pagarMes].map((l) => ({ data: l.vencimento, valor: l.valor, entrada: l.tipo === 'RECEBER' })),
+          )}
+        />
 
         {/* Card de Eficiência / Gauge Semi-circular Estilo 'Earnings 80%' (col-span-1) */}
         <Card level={1} className="p-6 sm:p-7 card-finish flex flex-col justify-between space-y-4">

@@ -23,7 +23,7 @@ import { Handshake, Receipt, Scales, SealCheck } from '@phosphor-icons/react';
 import { SalesforceHeroCard } from './SalesforceHeroCard';
 import { SalesforceTargetBar } from './SalesforceTargetBar';
 import { SalesforceDuoCards } from './SalesforceDuoCards';
-import { SalesforceDualBarChart, type DualBarDay } from './SalesforceDualBarChart';
+import { GraficoEntradasSaidas, periodosPorDia } from '@/components/ui/GraficoEntradasSaidas';
 import { SalesforceYearlyTrend, type MonthTrendPoint } from './SalesforceYearlyTrend';
 import { SalesforceMiniCards } from './SalesforceMiniCards';
 
@@ -387,65 +387,16 @@ function ResumoDoMes({
     }));
   }, [months, month.key]);
 
-  const dualBarDays: DualBarDay[] = useMemo(() => {
-    const slots = [
-      { label: '01', day: 1, weekIdx: 0 },
-      { label: '02', day: 2, weekIdx: 0 },
-      { label: '04', day: 4, weekIdx: 0 },
-      { label: '05', day: 5, weekIdx: 0 },
-      { label: '07', day: 7, weekIdx: 0 },
-      { label: '09', day: 9, weekIdx: 1 },
-      { label: '10', day: 10, weekIdx: 1 },
-      { label: '12', day: 12, weekIdx: 1 },
-      { label: '13', day: 13, weekIdx: 1 },
-      { label: '15', day: 15, weekIdx: 1 },
-      { label: '17', day: 17, weekIdx: 2 },
-      { label: '18', day: 18, weekIdx: 2 },
-      { label: '20', day: 20, weekIdx: 2 },
-      { label: '21', day: 21, weekIdx: 2 },
-      { label: '23', day: 23, weekIdx: 2 },
-      { label: '25', day: 25, weekIdx: 3 },
-      { label: '26', day: 26, weekIdx: 3 },
-      { label: '28', day: 28, weekIdx: 3 },
-      { label: '29', day: 29, weekIdx: 3 },
-      { label: '31', day: 31, weekIdx: 3 },
-    ];
-
-    return slots.map((slot, idx) => {
-      const inRange = month.compromissos.filter((c) => {
-        const day = parseInt(c.vencimento.slice(8, 10), 10);
-        return !isNaN(day) && (day === slot.day || day === slot.day - 1);
-      });
-
-      let inflow = inRange.filter((c) => c.tipo === 'RECEIVABLE').reduce((acc, c) => acc + c.valor, 0);
-      let outflow = inRange.filter((c) => c.tipo === 'PAYABLE').reduce((acc, c) => acc + c.valor, 0);
-
-      const week = month.semanas[slot.weekIdx] || month.semanas[0];
-      if (inflow === 0 && week) {
-        const factors = [0.18, 0.28, 0.15, 0.24, 0.15];
-        inflow = Math.round(week.inflow * (factors[idx % 5] ?? 0.2));
-      }
-      if (outflow === 0 && week) {
-        const factors = [0.22, 0.14, 0.26, 0.18, 0.20];
-        outflow = Math.round(week.outflow * (factors[idx % 5] ?? 0.2));
-      }
-
-      return {
-        label: slot.label,
-        inflow: Math.max(0, inflow),
-        outflow: Math.max(0, outflow),
-      };
-    });
-  }, [month.compromissos, month.semanas]);
-
-  const ticketMedio = useMemo(() => {
-    const count = month.compromissos.length || 1;
-    return Math.round(month.faturamento / Math.max(count, 1));
-  }, [month.faturamento, month.compromissos.length]);
-
-  const totalOperacoes = useMemo(() => {
-    return Number(((month.compromissos.length || 18) / 22).toFixed(1));
-  }, [month.compromissos.length]);
+  // Entradas e saídas do mês, dia a dia, só com os compromissos reais. A
+  // versão anterior preenchia dia vazio com uma fração inventada da semana.
+  const periodosDoMes = useMemo(
+    () =>
+      periodosPorDia(
+        month.key.slice(0, 7),
+        month.compromissos.map((c) => ({ data: c.vencimento, valor: c.valor, entrada: c.tipo === 'RECEIVABLE' })),
+      ),
+    [month.key, month.compromissos],
+  );
 
   /* Cascata do DRE */
   const linhas = [
@@ -502,12 +453,7 @@ function ResumoDoMes({
       </div>
 
       {/* ── 2. MOVIMENTAÇÃO E DENSIDADE (BARRAS BI-DIRECIONAIS + NUVEM STIPPLE) ── */}
-      <SalesforceDualBarChart
-        days={dualBarDays}
-        ticketMedio={ticketMedio}
-        totalOperacoes={totalOperacoes}
-        title={`Movimentação e Densidade Financeira • ${month.label}`}
-      />
+      <GraficoEntradasSaidas titulo={`Entradas e saídas · ${month.label}`} periodos={periodosDoMes} />
 
       {/* ── 3. DRE & CONFORMIDADE COM CARDS TRANSLÚCIDOS ── */}
       <div className="grid gap-6 lg:grid-cols-3">

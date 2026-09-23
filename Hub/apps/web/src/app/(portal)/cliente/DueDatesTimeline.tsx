@@ -1,5 +1,6 @@
 'use client';
 
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
@@ -75,23 +76,12 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
             </div>
           </div>
 
-          {/* Filtros em Pílula */}
-          <div className="flex items-center gap-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset) p-1">
-            {FILTERS.map(([k, l]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setFilter(k)}
-                className={`tap-target pressable focusable rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
-                  filter === k
-                    ? 'bg-surface-card text-ink shadow-(--elev-1)'
-                    : 'text-ink-soft hover:text-ink'
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+          {/* Filtros em texto — o padrão do sistema (FiltrosEmTexto). */}
+          <FiltrosEmTexto
+            filtros={FILTERS.map(([k, l]) => ({ id: k, label: l }))}
+            ativo={filter}
+            onChange={setFilter}
+          />
         </div>
 
         <p className="text-xs text-ink-soft">
