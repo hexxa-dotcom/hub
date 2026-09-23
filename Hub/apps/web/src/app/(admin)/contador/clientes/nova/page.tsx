@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { NovaEmpresaClient } from './NovaEmpresaClient';
+import { ClientesDoNibo } from './ClientesDoNibo';
+import { listarClientesDoNibo } from '@/lib/server/clientes-do-nibo';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +11,7 @@ export const metadata = { title: 'Novo cliente | Hexxa Hub' };
 
 export default async function Page() {
   await requireAdmin();
+  const clientesDoNibo = await listarClientesDoNibo().catch(() => []);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -24,6 +27,7 @@ export default async function Page() {
         </h1>
       </div>
 
+      <ClientesDoNibo clientes={clientesDoNibo} />
       <NovaEmpresaClient />
     </div>
   );

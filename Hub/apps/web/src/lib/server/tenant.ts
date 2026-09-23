@@ -5,6 +5,7 @@ import type { TenantContext } from '@hexxa/core';
 import { getDb, company, appUser, membership, eq, and, withDbTimeout } from '@hexxa/db';
 import { isNull } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminUser } from './admin-guard';
 
 /**
  * Lançada quando o usuário está autenticado mas ainda não tem nenhuma
@@ -158,6 +159,18 @@ export const getTenantContext = cache(async function getTenantContext(): Promise
     .from(membership)
     .innerJoin(company, eq(company.id, membership.companyId))
     .where(eq(membership.userId, appUserRow.id));
+
+  // O contador entra na área de qualquer cliente pela área do contador, que
+  // grava a empresa no cookie. Ele não é membro de cada empresa, então a
+  // permissão vem da lista de administradores, conferida a cada requisição.
+  const escolhidaPeloContador = (await cookies()).get(ACTIVE_COMPANY_COOKIE)?.value;
+  if (escolhidaPeloContador && !rows.some((r) => r.companyId === escolhidaPeloContador) && (await isAdminUser())) {
+    const [alvo] = await db
+      .select({ companyId: company.id, companyType: company.type })
+      .from(company)
+      .where(eq(company.id, escolhidaPeloContador));
+    if (alvo) return { companyId: alvo.companyId, companyType: alvo.companyType, userId: appUserRow.id };
+  }
 
   if (rows.length === 0) {
     throw new NoActiveOrganizationError();

@@ -15,6 +15,7 @@ import {
   DollarSign,
   BarChart3,
   Send,
+  LogIn,
   Clock,
   Receipt,
   Sliders,
@@ -27,6 +28,7 @@ import { ClienteStatusActions } from './ClienteStatusActions';
 import { HonorariosEditor } from './HonorariosEditor';
 import { EncerramentoCard } from './EncerramentoCard';
 import { AprovacaoCard } from './AprovacaoCard';
+import { entrarNaAreaDoClienteAction } from '../actions';
 import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -202,14 +204,22 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
             {comp.city && comp.state ? ` · ${comp.city}/${comp.state}` : ''}
           </p>
         </div>
-        {email && (
-          <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0">
+          <form action={entrarNaAreaDoClienteAction.bind(null, comp.id)}>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-xs hover:bg-[#2F4A3C]"
+            >
+              <LogIn className="h-3.5 w-3.5" /> Entrar na área do cliente
+            </button>
+          </form>
+          {email && (
             <a href={`mailto:${email}`}
               className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
               <Send className="h-3.5 w-3.5" /> E-mail
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* KPIs */}

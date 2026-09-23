@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Sparkles,
   Plus,
+  LogIn,
 } from 'lucide-react';
 import { AsaasModal } from '@/components/contador/AsaasModal';
 import { ManualAuthorization } from './ManualAuthorization';
@@ -24,6 +25,7 @@ import {
   changeSubscriptionStatusAction,
   linkAsaasSubscriptionAction,
   unlinkAsaasSubscriptionAction,
+  entrarNaAreaDoClienteAction,
 } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -271,6 +273,13 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Ver Detalhe
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => entrarNaAreaDoClienteAction(c.companyId)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3328] px-4 py-2 text-xs font-bold text-[#1E3328] hover:bg-[#1E3328] hover:text-[#DFFFAE] dark:border-[#DFFFAE] dark:text-[#DFFFAE]"
+                    >
+                      <LogIn className="h-3.5 w-3.5" /> Entrar na área do cliente
+                    </button>
 
                     {editPlano === c.id ? (
                       <div className="flex items-center gap-2">

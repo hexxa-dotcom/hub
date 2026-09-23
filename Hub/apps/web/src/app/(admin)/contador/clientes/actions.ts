@@ -5,6 +5,11 @@ import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { company, membership, subscription, plan } from '@hexxa/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/server/admin-guard';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { modoSemLogin } from '@/lib/server/tenant';
+import { gravarEmpresaSemLogin } from '@/lib/server/company-switch';
+import { habilitarClienteDoNibo } from '@/lib/server/clientes-do-nibo';
 
 export async function authorizeClientByCnpjAction(cnpj: string) {
   await requireAdmin();
@@ -148,5 +153,38 @@ export async function unlinkAsaasSubscriptionAction(subscriptionId: string) {
   } catch (error: any) {
     console.error('Erro ao desvincular assinatura Asaas:', error);
     return { error: 'Erro ao cancelar o vínculo com o Asaas.' };
+  }
+}
+
+/**
+ * Abre a área do cliente como o cliente a vê. Sem login, troca a empresa
+ * aberta (o cookie do modo sem login); com login, grava a empresa ativa, que
+ * o tenant aceita porque quem pede é administrador.
+ */
+export async function entrarNaAreaDoClienteAction(companyId: string) {
+  await requireAdmin();
+  if (modoSemLogin()) {
+    await gravarEmpresaSemLogin(companyId);
+  } else {
+    (await cookies()).set('hexx_active_company', companyId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 8,
+      path: '/',
+    });
+  }
+  redirect('/cliente' as never);
+}
+
+export async function habilitarClienteDoNiboAction(document: string): Promise<{ ok: boolean; message: string; companyId?: string }> {
+  await requireAdmin();
+  try {
+    const r = await habilitarClienteDoNibo(document);
+    revalidatePath('/contador/clientes');
+    revalidatePath('/contador/clientes/nova');
+    return { ok: true, message: `${r.nome} habilitada no Hub.`, companyId: r.companyId };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Não consegui habilitar.' };
   }
 }
