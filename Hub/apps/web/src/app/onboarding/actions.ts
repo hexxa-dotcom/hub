@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { getDb, company, membership, appUser, eq, and, withDbTimeout } from '@hexxa/db';
 import { ne } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
-import { resolveAppUser } from '@/lib/server/tenant';
+import { resolveAppUser, modoSemLogin } from '@/lib/server/tenant';
+import { gravarEmpresaSemLogin } from '@/lib/server/company-switch';
 import { saveNfseConfig } from '@/lib/server/fiscal';
 import { normalizeDocument, formatDocument } from '@hexxa/core/document-br';
 
@@ -23,6 +24,18 @@ function cpfValido(cpf: string): boolean {
 }
 
 /** Consulta o CNPJ (CNPJá com fallback ReceitaWS) e devolve os campos que alimentam o sistema. */
+async function responsavelSemLogin(cpf: string, nome: string): Promise<{ id: string }> {
+  const db = getDb();
+  const authUid = `SEM-LOGIN-${cpf}`;
+  const [existente] = await db.select({ id: appUser.id }).from(appUser).where(eq(appUser.authUid, authUid));
+  if (existente) return existente;
+  const [criado] = await db
+    .insert(appUser)
+    .values({ authUid, name: nome, email: `${cpf}@sem-login.invalido`, cpf })
+    .returning({ id: appUser.id });
+  return criado!;
+}
+
 async function lookupCnpj(doc: string) {
   const key = process.env.CNPJA_API_KEY;
   if (key) {
@@ -104,7 +117,8 @@ export async function completeOnboardingAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
+  const semLogin = !user && modoSemLogin();
+  if (!user && !semLogin) {
     return { ok: false, message: 'Sessão expirada. Faça login novamente.' };
   }
 
@@ -138,7 +152,12 @@ export async function completeOnboardingAction(
   }
 
   const db = getDb();
-  const appUserRow = await resolveAppUser(user.id, user.email);
+  // Sem login, o responsável vira um usuário sem conta, identificado pelo CPF.
+  // Quando o login voltar, é ele quem a empresa terá como dono — e o e-mail
+  // de verdade entra no lugar do provisório no primeiro acesso.
+  const appUserRow = user
+    ? await resolveAppUser(user.id, user.email)
+    : await responsavelSemLogin(cpf, nome);
   await withDbTimeout(
     db.update(appUser).set({ name: nome, cpf, phone: celular }).where(eq(appUser.id, appUserRow.id)),
     8000,
@@ -217,6 +236,8 @@ export async function completeOnboardingAction(
       optanteSimples: data.optanteSimples,
     },
   );
+
+  if (semLogin) await gravarEmpresaSemLogin(companyId);
 
   // O passo 1 entrega no passo 2. Mandar para o painel aqui era o que fazia a
   // pessoa achar que tinha acabado — e ficar com nota fiscal não configurada

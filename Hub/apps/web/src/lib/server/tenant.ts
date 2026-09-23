@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type { TenantContext } from '@hexxa/core';
 import { getDb, company, appUser, membership, eq, and, withDbTimeout } from '@hexxa/db';
+import { isNull } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -53,27 +54,54 @@ const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_S
  */
 const SKIP_AUTH_TEMP = (process.env.SKIP_AUTH_TEMP ?? '').trim().toLowerCase() === 'true';
 
+/** `true` enquanto o sistema roda sem login (acesso por código). */
+export function modoSemLogin(): boolean {
+  return DEV_SKIP_AUTH || SKIP_AUTH_TEMP;
+}
+
+/**
+ * EMPRESA ABERTA NO MODO SEM LOGIN.
+ *
+ * Sem sessão não há de quem perguntar "qual é a sua empresa", então quem
+ * escolhe é um cookie, gravado pela tela `/auth/empresa` ou ao terminar o
+ * passo 1 do cadastro. Sem ele, abre a HEXX — a empresa da própria
+ * contabilidade, que é onde o sistema é usado de verdade hoje. Antes abria
+ * sempre a mais antiga do banco, que era uma empresa de teste.
+ */
+export const EMPRESA_SEM_LOGIN_COOKIE = 'hexx_empresa_sem_login';
+const CNPJ_EMPRESA_PADRAO = '62.414.421/0001-16';
+
 async function getDevTenantContext(): Promise<TenantContext> {
-  // Sem ORDER BY o Postgres não garante qual linha volta primeiro — precisa
-  // ser determinístico aqui, senão o bypass local cai numa empresa aleatória.
-  // DEV_ACTIVE_COMPANY_ID (opcional): força qual empresa abre no bypass local,
-  // em vez de sempre a mais antiga — útil pra testar uma empresa específica
-  // sem precisar de login real. Nunca afeta produção (guardado por NODE_ENV).
-  const forcedId = process.env.DEV_ACTIVE_COMPANY_ID;
-  let first: { id: string; type: 'SERVICE' | 'HOLDING' } | undefined;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const query = forcedId
-        ? getDb().select({ id: company.id, type: company.type }).from(company).where(eq(company.id, forcedId)).limit(1)
-        : getDb().select({ id: company.id, type: company.type }).from(company).orderBy(company.createdAt).limit(1);
-      [first] = await withDbTimeout(query, 8000);
-      break;
-    } catch (err) {
-      if (attempt === 2) throw err;
+  const db = getDb();
+  const escolhida = (await cookies()).get(EMPRESA_SEM_LOGIN_COOKIE)?.value;
+  const campos = { id: company.id, type: company.type };
+  const candidatas = [
+    // O cookie só vale para empresa que existe e não foi encerrada.
+    escolhida && /^[0-9a-f-]{36}$/i.test(escolhida)
+      ? () => db.select(campos).from(company).where(and(eq(company.id, escolhida), isNull(company.closedAt))).limit(1)
+      : null,
+    process.env.DEV_ACTIVE_COMPANY_ID
+      ? () => db.select(campos).from(company).where(eq(company.id, process.env.DEV_ACTIVE_COMPANY_ID!)).limit(1)
+      : null,
+    () => db.select(campos).from(company).where(eq(company.cnpj, CNPJ_EMPRESA_PADRAO)).limit(1),
+    // Sem ORDER BY o Postgres não garante qual linha volta primeiro.
+    () => db.select(campos).from(company).orderBy(company.createdAt).limit(1),
+  ];
+
+  for (const consulta of candidatas) {
+    if (!consulta) continue;
+    let linha: { id: string; type: 'SERVICE' | 'HOLDING' } | undefined;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        [linha] = await withDbTimeout(consulta(), 8000);
+        break;
+      } catch (err) {
+        if (attempt === 2) throw err;
+      }
     }
+    if (linha) return { companyId: linha.id, companyType: linha.type, userId: 'dev-skip-auth' };
   }
-  if (!first) throw new NoActiveOrganizationError();
-  return { companyId: first.id, companyType: first.type, userId: 'dev-skip-auth' };
+  throw new NoActiveOrganizationError();
 }
 
 /** Busca (ou cria) o appUser correspondente ao usuário autenticado no Supabase. */
@@ -109,7 +137,7 @@ export async function resolveAppUser(authUid: string, email: string | undefined)
  * tenant do zero.
  */
 export const getTenantContext = cache(async function getTenantContext(): Promise<TenantContext> {
-  if (DEV_SKIP_AUTH || SKIP_AUTH_TEMP) {
+  if (modoSemLogin()) {
     return getDevTenantContext();
   }
 

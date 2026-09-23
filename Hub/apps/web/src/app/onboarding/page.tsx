@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getDb, company, eq, withDbTimeout } from '@hexxa/db';
-import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
+import { getTenantContext, modoSemLogin, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
 import { OnboardingForm } from './OnboardingForm';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,21 @@ export const dynamic = 'force-dynamic';
  * (cadastro da empresa + base fiscal) com os dados da Receita.
  * Se a empresa ativa já tem CNPJ real, volta pra área do cliente.
  */
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nova?: string }>;
+}) {
+  // Sem login, "Cadastrar nova empresa" (em /auth/empresa) começa do zero: não
+  // há sessão que diga que a pessoa ainda não tem empresa.
+  if (modoSemLogin() && (await searchParams).nova) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
+        <OnboardingForm companyName="sua empresa" />
+      </div>
+    );
+  }
+
   let ctx;
   try {
     ctx = await getTenantContext();

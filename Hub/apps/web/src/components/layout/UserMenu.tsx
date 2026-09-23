@@ -317,6 +317,19 @@ export function UserMenu({ user, companyName, companyCnpj, companyLogoUrl, onSig
               </Link>
 
               <Link
+                href={'/auth/empresa' as never}
+                prefetch={false}
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Building2 className="h-4 w-4 text-ink-soft group-hover:text-ink" />
+                  <span>Trocar de empresa</span>
+                </div>
+                <ArrowRight className="h-3 w-3 opacity-60" />
+              </Link>
+
+              <Link
                 href="/configuracoes/equipe"
                 prefetch={false}
                 onClick={() => setIsOpen(false)}

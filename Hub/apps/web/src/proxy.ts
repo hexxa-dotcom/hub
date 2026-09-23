@@ -31,7 +31,10 @@ const SKIP_AUTH_TEMP = (process.env.SKIP_AUTH_TEMP ?? '').trim().toLowerCase() =
 
 export default async function middleware(req: NextRequest) {
   if (SKIP_AUTH_TEMP) {
-    if (isPublicRoute(req.nextUrl.pathname)) return NextResponse.next();
+    // `/auth/empresa` é pública com login (a sessão já protege), mas sem login
+    // ela lista e abre qualquer empresa — então passa pelo código.
+    const escolhaDeEmpresa = req.nextUrl.pathname.startsWith('/auth/empresa');
+    if (isPublicRoute(req.nextUrl.pathname) && !escolhaDeEmpresa) return NextResponse.next();
     // Sem sessão real, o mínimo pra não ficar 100% aberto: um código de 4
     // dígitos por área (cliente/contador), guardado num cookie. Ver
     // apps/web/src/app/auth/codigo/.

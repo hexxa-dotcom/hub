@@ -2,19 +2,25 @@
 
 import { useTransition } from 'react';
 import { Buildings } from '@phosphor-icons/react';
-import { setActiveCompanyAction } from '@/lib/server/company-switch';
+import { setActiveCompanyAction, escolherEmpresaSemLoginAction } from '@/lib/server/company-switch';
 
 export function EmpresaSwitcherForm({
   companies,
   next,
+  semLogin = false,
+  atualId,
 }: {
   companies: { id: string; legalName: string }[];
   next: string;
+  semLogin?: boolean;
+  atualId?: string;
 }) {
   const [pending, startTransition] = useTransition();
 
   function select(companyId: string) {
-    startTransition(() => setActiveCompanyAction(companyId, next));
+    startTransition(() =>
+      semLogin ? escolherEmpresaSemLoginAction(companyId, next) : setActiveCompanyAction(companyId, next),
+    );
   }
 
   return (
@@ -28,7 +34,8 @@ export function EmpresaSwitcherForm({
           className="flex w-full items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-left text-sm font-medium text-[#F5F6F4] transition-colors hover:border-[#DFFFAE] hover:bg-white/10 disabled:opacity-50"
         >
           <Buildings className="h-5 w-5 shrink-0 text-[#DFFFAE]" />
-          {c.legalName}
+          <span className="flex-1">{c.legalName}</span>
+          {c.id === atualId && <span className="text-xs text-[#DFFFAE]">aberta</span>}
         </button>
       ))}
     </div>

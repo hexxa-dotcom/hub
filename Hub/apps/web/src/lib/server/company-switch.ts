@@ -2,7 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getDb, appUser, membership, eq, and } from '@hexxa/db';
+import { getDb, appUser, membership, company, eq, and } from '@hexxa/db';
+import { modoSemLogin, EMPRESA_SEM_LOGIN_COOKIE } from '@/lib/server/tenant';
 import { createClient } from '@/lib/supabase/server';
 
 const ACTIVE_COMPANY_COOKIE = 'hexx_active_company';
@@ -42,4 +43,43 @@ export async function setActiveCompanyAction(companyId: string, next: string) {
   });
 
   redirect(next as never);
+}
+
+/**
+ * Troca a empresa aberta no modo sem login (acesso por código). Não há
+ * membership a conferir — o código de acesso já é toda a proteção desse
+ * modo —, então a guarda é o próprio modo: desligado o bypass, isto recusa.
+ */
+export async function escolherEmpresaSemLoginAction(companyId: string, next: string) {
+  if (!modoSemLogin()) throw new Error('Disponível só com o login desligado.');
+
+  const db = getDb();
+  const [existe] = await db.select({ id: company.id }).from(company).where(eq(company.id, companyId));
+  if (!existe) throw new Error('Empresa não encontrada.');
+
+  await gravarEmpresaSemLogin(companyId);
+  redirect(next as never);
+}
+
+/**
+ * Grava o cookie da empresa aberta no modo sem login. Todo export deste
+ * arquivo vira server action chamável pelo navegador, por isso a guarda
+ * do modo se repete aqui.
+ */
+export async function gravarEmpresaSemLogin(companyId: string) {
+  if (!modoSemLogin()) throw new Error('Disponível só com o login desligado.');
+  const jar = await cookies();
+  // Uma server action pode ser chamada de qualquer página, inclusive das
+  // públicas, que o proxy não barra. O código de acesso é conferido aqui.
+  const temCodigo =
+    (process.env.ACCESS_CODE_CLIENTE && jar.get('hexx_access_cliente')?.value === process.env.ACCESS_CODE_CLIENTE) ||
+    (process.env.ACCESS_CODE_CONTADOR && jar.get('hexx_access_contador')?.value === process.env.ACCESS_CODE_CONTADOR);
+  if (process.env.NODE_ENV === 'production' && !temCodigo) throw new Error('Informe o código de acesso.');
+  jar.set(EMPRESA_SEM_LOGIN_COOKIE, companyId, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
+  });
 }
