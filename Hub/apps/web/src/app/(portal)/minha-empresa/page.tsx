@@ -19,15 +19,27 @@ import {
   Lock,
   Wallet,
   Sparkles,
+  Globe,
+  MessageSquare,
+  Mail,
+  Phone,
+  ExternalLink,
 } from 'lucide-react';
+import { Instagram, Linkedin } from '@/components/ui/SocialIcons';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getFichaDaEmpresa } from '@/lib/server/ficha-da-empresa';
 import { getStatusDoCertificado } from '@/lib/server/certificado';
 import { SectionHero } from '@/components/ui/SectionHero';
-import { CopyButton, ShareCompanyButton, OpenMapsButton } from './CompanyProfileActions';
+import {
+  CopyButton,
+  ShareCompanyButton,
+  OpenMapsButton,
+  CompanyLogoBadge,
+  PartnerAvatarBadge,
+} from './CompanyProfileActions';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Perfil da Empresa · Hexxa Hub' };
+export const metadata = { title: 'Dashboard da Empresa · Hexxa Hub' };
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -38,7 +50,6 @@ const REGIME: Record<string, string> = {
   MEI: 'MEI',
 };
 
-/** "3 anos e 2 meses" — meses soltos não dizem nada a ninguém. */
 function tempo(meses: number | null): string {
   if (meses === null || meses <= 0) return 'Menos de 1 mês';
   const anos = Math.floor(meses / 12);
@@ -75,10 +86,16 @@ function formatCEP(cep: string | null): string {
   return cep;
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return (parts[0]?.[0] || 'S').toUpperCase();
-  return `${parts[0]?.[0] || ''}${parts[parts.length - 1]?.[0] || ''}`.toUpperCase();
+function formatPhone(phone: string | null): string {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
 }
 
 export default async function Page() {
@@ -92,24 +109,51 @@ export default async function Page() {
   const formattedCEP = formatCEP(ficha.zipcode);
   const fullAddress = ficha.endereco || '';
 
-  // Cálculos financeiros e de inteligência
+  // Cálculos financeiros do dashboard executivo
   const currentMonthIdx = new Date().getMonth() + 1;
   const mediaMensalFaturamento = ficha.faturamentoNoAno > 0 ? ficha.faturamentoNoAno / currentMonthIdx : 0;
   const ticketMedio = ficha.notasNoAno > 0 ? ficha.faturamentoNoAno / ficha.notasNoAno : 0;
   const capitalSocialTotal = ficha.capitalSocial ?? 0;
+
+  // Total de pro-labore consolidado no QSA
+  const proLaboreConsolidado = ficha.socios.reduce((acc, s) => acc + s.proLabore, 0);
+  const lucroDistribuidoMesConsolidado = ficha.socios.reduce((acc, s) => acc + s.lucroDistribuidoMes, 0);
 
   // Data de validade do certificado digital
   const certValidoAte = certStatus?.ficha?.validoAte
     ? new Date(`${certStatus.ficha.validoAte}T12:00:00Z`).toLocaleDateString('pt-BR')
     : null;
 
+  // Formatação de links sociais
+  const instagramHandle = ficha.instagram
+    ? ficha.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '@').replace(/\/$/, '')
+    : null;
+  const instagramUrl = ficha.instagram
+    ? ficha.instagram.startsWith('http')
+      ? ficha.instagram
+      : `https://instagram.com/${ficha.instagram.replace(/^@/, '')}`
+    : null;
+
+  const websiteUrl = ficha.website
+    ? ficha.website.startsWith('http')
+      ? ficha.website
+      : `https://${ficha.website}`
+    : null;
+
+  const whatsappClean = ficha.whatsapp ? ficha.whatsapp.replace(/\D/g, '') : null;
+  const whatsappUrl = whatsappClean ? `https://wa.me/55${whatsappClean.replace(/^55/, '')}` : null;
+
+  const hasAnySocial = Boolean(
+    ficha.website || ficha.instagram || ficha.linkedin || ficha.whatsapp || ficha.email || ficha.phone,
+  );
+
   return (
     <div className="w-full space-y-8 animate-fade-up pb-20">
       {/* Top Section Hero */}
       <SectionHero
-        title="Perfil da Empresa"
-        infoTitle="Sobre o Perfil da Empresa"
-        infoDescription="Ficha cadastral corporativa, quadro societário, regime tributário, atividades econômicas e visão consolidada da empresa."
+        title="Dashboard da Empresa"
+        infoTitle="Sobre o Painel Corporativo"
+        infoDescription="Visão executiva unificada da empresa: identidade, faturamento, governança de sócios, canais digitais e conformidade contábil."
         rightSlot={
           <div className="flex items-center gap-2">
             <ShareCompanyButton
@@ -121,6 +165,9 @@ export default async function Page() {
                 endereco: fullAddress,
                 atividade: ficha.atividadeTexto,
                 cnae: ficha.atividadeCodigo,
+                website: ficha.website,
+                instagram: instagramHandle,
+                whatsapp: ficha.whatsapp,
               }}
             />
             <Link
@@ -134,19 +181,20 @@ export default async function Page() {
         }
       />
 
-      {/* MASTER EXECUTIVE BANNER: O Retrato Corporativo com Faturamento Desencapsulado */}
+      {/* MASTER EXECUTIVE BANNER: O Retrato Corporativo com Faturamento Desencapsulado & Logo Interativa */}
       <div className="relative overflow-hidden rounded-3xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#151916]/70 backdrop-blur-2xl p-6 sm:p-8 lg:p-10 shadow-(--elev-1)">
-        {/* Glow atmosférico suave no fundo */}
+        {/* Glow suave no fundo */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-500/5" />
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-[#D4FF00]/10 blur-3xl dark:bg-[#D4FF00]/5" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          {/* Lado Esquerdo: Identidade, Logo Redondo, Nomes, Tags e CNPJ */}
+          {/* Lado Esquerdo: Logotipo da Empresa com Modal de Troca, Nomes, Tags e CNPJ */}
           <div className="flex items-start sm:items-center gap-5 sm:gap-7 min-w-0 flex-1">
-            {/* Logo Redondo (padrão circular do sistema) */}
-            <div className="flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1E3328] to-[#2F4A3C] text-[#DFFFAE] border-2 border-[#2F4A3C] shadow-xl font-serif text-3xl sm:text-4xl font-black select-none">
-              {(ficha.nomeFantasia || ficha.razaoSocial)[0]?.toUpperCase() || 'H'}
-            </div>
+            {/* Logotipo da Empresa com Hover e Modal de Upload / URL */}
+            <CompanyLogoBadge
+              logoUrl={ficha.logoUrl}
+              companyName={ficha.nomeFantasia || ficha.razaoSocial}
+            />
 
             <div className="space-y-2 min-w-0 flex-1">
               {/* Badges de Enquadramento */}
@@ -155,6 +203,11 @@ export default async function Page() {
                   <span className="h-1.5 w-1.5 rounded-full bg-hexxa-forest dark:bg-hexxa-lime" />
                   {ficha.regime ? (REGIME[ficha.regime] ?? ficha.regime) : 'Simples Nacional'}
                   <span className="text-[10px] text-ink-soft font-semibold">• Anexo III</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Empresa Ativa
                 </span>
 
                 {ficha.tempoDeAtividade !== null && (
@@ -167,7 +220,7 @@ export default async function Page() {
                 {ficha.abertura && (
                   <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1 text-xs font-medium text-ink-soft">
                     <Calendar className="h-3.5 w-3.5 text-ink-soft/70" />
-                    <span>Aberta em {new Date(`${ficha.abertura}T12:00:00Z`).toLocaleDateString('pt-BR')}</span>
+                    <span>Fundada em {new Date(`${ficha.abertura}T12:00:00Z`).toLocaleDateString('pt-BR')}</span>
                   </span>
                 )}
               </div>
@@ -214,7 +267,7 @@ export default async function Page() {
                 Ticket médio de <span className="font-bold text-ink font-mono">{BRL.format(ticketMedio)}</span> ({ficha.notasNoAno} {ficha.notasNoAno === 1 ? 'nota emitida' : 'notas emitidas'})
               </p>
             </div>
-            <div className="pt-1">
+            <div className="pt-1 flex items-center gap-3">
               <Link
                 href="/meu-negocio/notas"
                 className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline inline-flex items-center gap-1"
@@ -227,11 +280,102 @@ export default async function Page() {
         </div>
       </div>
 
-      {/* SEÇÃO PRINCIPAL EM 2 COLUNAS: Sócios & Capital Social (Esquerda) e Atividades, Localização & Certificado (Direita) */}
+      {/* DASHBOARD METRIC STRIP: 4 Métricas Executivas Principais */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* KPI 1: Faturamento & Teto Simples */}
+        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Faturamento Anual</span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <TrendingUp className="h-4 w-4" />
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black font-mono text-ink tracking-tight">
+              {BRL.format(ficha.faturamentoNoAno)}
+            </div>
+            <p className="text-[11px] text-ink-soft mt-1">
+              {ficha.notasNoAno} {ficha.notasNoAno === 1 ? 'NFS-e emitida' : 'NFS-e emitidas'} em {ficha.ano}
+            </p>
+          </div>
+          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
+            <span className="text-ink-soft">Teto Simples</span>
+            <span className="font-mono font-bold text-ink">R$ 4.800.000</span>
+          </div>
+        </div>
+
+        {/* KPI 2: Capital Social Integralizado */}
+        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Capital Social</span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Coins className="h-4 w-4" />
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black font-mono text-ink tracking-tight">
+              {capitalSocialTotal > 0 ? BRL.format(capitalSocialTotal) : 'R$ 0,00'}
+            </div>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> 100% Integralizado
+            </p>
+          </div>
+          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
+            <span className="text-ink-soft">Modalidade</span>
+            <span className="font-semibold text-ink">Moeda corrente</span>
+          </div>
+        </div>
+
+        {/* KPI 3: Lucros Distribuídos no Mês */}
+        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Lucro do Mês</span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Wallet className="h-4 w-4" />
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
+              {BRL.format(lucroDistribuidoMesConsolidado)}
+            </div>
+            <p className="text-[11px] text-ink-soft mt-1">
+              Distribuído aos sócios este mês
+            </p>
+          </div>
+          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
+            <span className="text-ink-soft">Tributação</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Isento de IR</span>
+          </div>
+        </div>
+
+        {/* KPI 4: Pró-Labore & Eficiência Tributária */}
+        <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl p-5 shadow-(--elev-1) space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Pró-labore Mensal</span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-hexxa-forest/10 dark:bg-hexxa-lime/15 text-hexxa-forest dark:text-hexxa-lime">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+          </div>
+          <div>
+            <div className="text-2xl font-black font-mono text-ink tracking-tight">
+              {BRL.format(proLaboreConsolidado)}
+            </div>
+            <p className="text-[11px] text-ink-soft mt-1">
+              Folha societária declarada
+            </p>
+          </div>
+          <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px]">
+            <span className="text-ink-soft">Alíquota Inicial</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">6,00% (Anexo III)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SEÇÃO PRINCIPAL EM 2 COLUNAS: Sócios & Capital Social (Esquerda) e Canais Oficiais, Localização & Certificado (Direita) */}
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         {/* COLUNA ESQUERDA (7 colunas): Quadro Societário + Capital Social diretamente abaixo */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Card: Quadro de Sócios & Governança (QSA) */}
+          {/* Card: Quadro de Sócios & Governança (QSA) com Foto do Usuário Logado */}
           <section className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#151916]/70 backdrop-blur-2xl p-6 sm:p-8 shadow-(--elev-1) space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -240,7 +384,7 @@ export default async function Page() {
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-ink">Quadro de Sócios & Governança (QSA)</h2>
-                  <p className="text-xs text-ink-soft">Composição societária, pró-labore e distribuição de lucros</p>
+                  <p className="text-xs text-ink-soft">Sócios registrados, pró-labore e distribuição de lucros</p>
                 </div>
               </div>
 
@@ -273,17 +417,33 @@ export default async function Page() {
                   const cotaCapital = capitalSocialTotal > 0 ? (capitalSocialTotal * s.participacao) / 100 : 0;
                   return (
                     <div
-                      key={`${s.nome}-${s.cpf}`}
-                      className="rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] p-5 space-y-4 transition-all hover:border-black/10 dark:hover:border-white/10"
+                      key={s.id || `${s.nome}-${s.cpf}`}
+                      className={`rounded-2xl border p-5 space-y-4 transition-all ${
+                        s.isCurrentUser
+                          ? 'border-emerald-500/30 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.04] shadow-xs'
+                          : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/10 dark:hover:border-white/10'
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-hexxa-forest/20 to-emerald-500/20 text-hexxa-forest dark:text-hexxa-lime font-bold text-sm">
-                            {getInitials(s.nome)}
-                          </div>
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          {/* Avatar do Sócio (com suporte a foto e upload se for o usuário logado) */}
+                          <PartnerAvatarBadge
+                            partnerId={s.id}
+                            partnerName={s.nome}
+                            avatarUrl={s.avatarUrl}
+                            isCurrentUser={s.isCurrentUser}
+                          />
+
                           <div className="min-w-0">
-                            <h3 className="text-sm sm:text-base font-bold text-ink truncate">{s.nome}</h3>
-                            <div className="flex items-center gap-2 text-xs text-ink-soft">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm sm:text-base font-bold text-ink truncate">{s.nome}</h3>
+                              {s.isCurrentUser && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold">
+                                  <Sparkles className="h-3 w-3" /> Você
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-ink-soft mt-0.5">
                               <span className="font-semibold text-ink">Sócio-Administrador</span>
                               <span>•</span>
                               <span className="font-mono flex items-center gap-1">
@@ -400,8 +560,146 @@ export default async function Page() {
           </section>
         </div>
 
-        {/* COLUNA DIREITA (5 colunas): Atividades, Endereço e Certificado Digital Discreto */}
+        {/* COLUNA DIREITA (5 colunas): Presença Digital & Redes Sociais, Atividades, Localização & Certificado */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Card NOVO: Presença Digital, Redes Sociais & Canais Oficiais */}
+          <section className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#151916]/70 backdrop-blur-2xl p-6 sm:p-7 shadow-(--elev-1) space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-hexxa-forest/10 dark:bg-hexxa-lime/15 text-hexxa-forest dark:text-hexxa-lime">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-ink">Presença Digital & Canais</h2>
+                  <p className="text-xs text-ink-soft">Redes sociais, site e canais de contato</p>
+                </div>
+              </div>
+
+              <Link
+                href={'/minha-empresa/editar' as any}
+                className="tap-target pressable text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline flex items-center gap-1"
+              >
+                <span>Editar</span>
+                <Pencil className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] p-5 space-y-3.5">
+              {hasAnySocial ? (
+                <div className="space-y-2.5 text-xs">
+                  {websiteUrl && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Globe className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+                        <span className="font-medium text-ink truncate">{ficha.website}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CopyButton text={websiteUrl} variant="icon" />
+                        <a
+                          href={websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="grid h-7 w-7 place-items-center rounded-lg text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {instagramUrl && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Instagram className="h-4 w-4 text-pink-600 dark:text-pink-400 shrink-0" />
+                        <span className="font-semibold text-ink truncate">{instagramHandle}</span>
+                      </div>
+                      <a
+                        href={instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-600 dark:text-pink-400 hover:underline px-2 py-1 rounded-lg hover:bg-pink-500/10"
+                      >
+                        <span>Abrir</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+
+                  {ficha.linkedin && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Linkedin className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                        <span className="font-medium text-ink truncate">{ficha.linkedin}</span>
+                      </div>
+                      <a
+                        href={ficha.linkedin.startsWith('http') ? ficha.linkedin : `https://${ficha.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  )}
+
+                  {whatsappUrl && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="font-semibold text-emerald-800 dark:text-emerald-300 truncate">
+                          {formatPhone(ficha.whatsapp)}
+                        </span>
+                      </div>
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-[10px] font-bold transition-all shadow-xs"
+                      >
+                        <span>WhatsApp</span>
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    </div>
+                  )}
+
+                  {ficha.email && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Mail className="h-4 w-4 text-ink-soft shrink-0" />
+                        <span className="font-mono text-ink truncate">{ficha.email}</span>
+                      </div>
+                      <CopyButton text={ficha.email} variant="icon" />
+                    </div>
+                  )}
+
+                  {ficha.phone && (
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Phone className="h-4 w-4 text-ink-soft shrink-0" />
+                        <span className="font-medium text-ink truncate">{formatPhone(ficha.phone)}</span>
+                      </div>
+                      <CopyButton text={ficha.phone} variant="icon" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4 space-y-2">
+                  <Globe className="h-8 w-8 text-ink-soft mx-auto opacity-40" />
+                  <p className="text-xs text-ink-soft">
+                    Nenhum website ou rede social cadastrada para esta empresa.
+                  </p>
+                  <Link
+                    href={'/minha-empresa/editar' as any}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-black/10 dark:hover:bg-white/15 transition-all"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    <span>Adicionar Canais Oficiais</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Card: Atividade Econômica (CNAE) */}
           <section className="rounded-3xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-[#151916]/70 backdrop-blur-2xl p-6 sm:p-7 shadow-(--elev-1) space-y-4">
             <div className="flex items-center gap-3">
@@ -476,7 +774,7 @@ export default async function Page() {
             ) : (
               <div className="rounded-2xl border border-dashed border-black/10 dark:border-white/10 p-5 text-center space-y-1 text-xs text-ink-soft">
                 <p>Nenhum endereço cadastrado para esta empresa.</p>
-                <Link href="/configuracoes" className="font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline block pt-1">
+                <Link href={'/minha-empresa/editar' as any} className="font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline block pt-1">
                   Adicionar endereço
                 </Link>
               </div>

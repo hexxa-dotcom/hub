@@ -49,6 +49,13 @@ export const company = pgTable('company', {
   mainActivityText: text('main_activity_text'),
   declaredRevenue12m: numeric('declared_revenue_12m', { precision: 14, scale: 2 }),
   declaredRevenueAt: date('declared_revenue_at'),
+  logoUrl: text('logo_url'),
+  website: text('website'),
+  instagram: text('instagram'),
+  linkedin: text('linkedin'),
+  whatsapp: text('whatsapp'),
+  email: text('email'),
+  phone: text('phone'),
   oneflowCreatedAt: timestamp('oneflow_created_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -59,6 +66,7 @@ export const appUser = pgTable('app_user', {
   authUid: text('auth_uid').notNull().unique(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  avatarUrl: text('avatar_url'),
   /** CPF e celular do responsável — o OneFlow exige para criar a empresa. Ver 0066. */
   cpf: text('cpf'),
   phone: text('phone'),

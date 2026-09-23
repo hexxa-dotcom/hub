@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, numeric, date, timestamp } from 'drizzle-orm/pg-core';
-import { company } from './tenancy';
+import { company, appUser } from './tenancy';
 import { signatureRequest } from './service-ops';
 import {
   propertyKind,
@@ -85,5 +85,7 @@ export const partner = pgTable('partner', {
   proLabore: numeric('pro_labore', { precision: 14, scale: 2 }).notNull().default('0'),
   /** Saldo de mútuo (empréstimo) ativo do sócio com a empresa — alimenta a trava de DDL do ProfitDistributionService. */
   mutualLoanBalance: numeric('mutual_loan_balance', { precision: 14, scale: 2 }).notNull().default('0'),
+  avatarUrl: text('avatar_url'),
+  userId: uuid('user_id').references(() => appUser.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

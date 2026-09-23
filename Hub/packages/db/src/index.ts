@@ -3,6 +3,7 @@ export * from './repositories/index';
 export * from './ledger/index';
 export * from './agent/index';
 export * from './schema/tenancy';
+export * from './schema/patrimonial';
 export * from './schema/service-ops';
 export * from './schema/tax';
 export * from './schema/tax_rules';

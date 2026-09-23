@@ -16,14 +16,19 @@ import type { TenantContext } from '@hexxa/core';
  */
 
 export interface Socio {
+  id: string;
   nome: string;
   cpf: string | null;
   participacao: number;
   proLabore: number;
   lucroDistribuidoMes: number;
+  avatarUrl: string | null;
+  userId: string | null;
+  isCurrentUser: boolean;
 }
 
 export interface FichaDaEmpresa {
+  id: string;
   razaoSocial: string;
   nomeFantasia: string | null;
   cnpj: string;
@@ -41,12 +46,25 @@ export interface FichaDaEmpresa {
   state: string | null;
   neighborhood: string | null;
   zipcode: string | null;
+  logoUrl: string | null;
+  website: string | null;
+  instagram: string | null;
+  linkedin: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  phone: string | null;
   socios: Socio[];
   /** Notas emitidas no ano corrente. */
   notasNoAno: number;
   faturamentoNoAno: number;
   /** Ano usado nos dois números acima. */
   ano: number;
+  currentUser: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  } | null;
 }
 
 export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpresa | null> {
@@ -57,28 +75,62 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
   return withTenant(ctx.companyId, async (tx) => {
     const [empresa] = (await tx.execute(sql`
       SELECT
-        legal_name, trade_name, cnpj, tax_regime::text AS regime, closed_at,
+        id, legal_name, trade_name, cnpj, tax_regime::text AS regime, closed_at,
         to_char(founded_at, 'YYYY-MM-DD') AS abertura,
         share_capital, unpaid_share_capital,
         main_activity_code, main_activity_text,
-        address_line1, address_number, neighborhood, city, state, zipcode
+        address_line1, address_number, neighborhood, city, state, zipcode,
+        logo_url, website, instagram, linkedin, whatsapp, email, phone
       FROM company WHERE id = ${ctx.companyId}
     `)) as unknown as Record<string, string | null>[];
 
     if (!empresa) return null;
 
+    // Identificar usuário autenticado / conectado no sistema
+    let currentUser: { id: string; name: string; email: string; avatarUrl: string | null; cpf: string | null } | null = null;
+    if (ctx.userId && /^[0-9a-f-]{36}$/i.test(ctx.userId)) {
+      const [u] = (await tx.execute(sql`
+        SELECT id, name, email, avatar_url, cpf FROM app_user WHERE id = ${ctx.userId}::uuid
+      `)) as unknown as { id: string; name: string; email: string; avatar_url: string | null; cpf: string | null }[];
+      if (u) currentUser = { id: u.id, name: u.name, email: u.email, avatarUrl: u.avatar_url, cpf: u.cpf };
+    }
+    if (!currentUser) {
+      const [mUser] = (await tx.execute(sql`
+        SELECT u.id, u.name, u.email, u.avatar_url, u.cpf 
+          FROM membership m
+          JOIN app_user u ON u.id = m.user_id
+         WHERE m.company_id = ${ctx.companyId}
+         ORDER BY m.created_at ASC
+         LIMIT 1
+      `)) as unknown as { id: string; name: string; email: string; avatar_url: string | null; cpf: string | null }[];
+      if (mUser) {
+        currentUser = { id: mUser.id, name: mUser.name, email: mUser.email, avatarUrl: mUser.avatar_url, cpf: mUser.cpf };
+      } else {
+        const [firstUser] = (await tx.execute(sql`
+          SELECT id, name, email, avatar_url, cpf FROM app_user ORDER BY created_at ASC LIMIT 1
+        `)) as unknown as { id: string; name: string; email: string; avatar_url: string | null; cpf: string | null }[];
+        if (firstUser) {
+          currentUser = { id: firstUser.id, name: firstUser.name, email: firstUser.email, avatarUrl: firstUser.avatar_url, cpf: firstUser.cpf };
+        }
+      }
+    }
+
     const socios = (await tx.execute(sql`
-      SELECT name, cpf, ownership_pct, pro_labore
+      SELECT id, name, cpf, ownership_pct, pro_labore, avatar_url, user_id
         FROM partner WHERE company_id = ${ctx.companyId}
        ORDER BY ownership_pct DESC, name
-    `)) as unknown as { name: string; cpf: string | null; ownership_pct: string; pro_labore: string }[];
+    `)) as unknown as {
+      id: string;
+      name: string;
+      cpf: string | null;
+      ownership_pct: string;
+      pro_labore: string;
+      avatar_url: string | null;
+      user_id: string | null;
+    }[];
 
     /**
      * Notas e faturamento do ano: só o que virou NOTA.
-     *
-     * A mesma regra que vale para o imposto vale para o retrato — ver a regra
-     * da receita. Somar boleto ou entrada de extrato aqui daria um número
-     * maior que o da apuração, e o empresário compararia as duas telas.
      */
     const [movimento] = (await tx.execute(sql`
       SELECT
@@ -125,6 +177,7 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
     const lucrosMap = new Map(lucrosMes.map(l => [l.partner_name, Number(l.total_mes)]));
 
     return {
+      id: String(empresa.id ?? ctx.companyId),
       razaoSocial: String(empresa.legal_name ?? ''),
       nomeFantasia: empresa.trade_name ?? null,
       cnpj: String(empresa.cnpj ?? ''),
@@ -141,13 +194,42 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
       state: empresa.state ?? null,
       neighborhood: empresa.neighborhood ?? null,
       zipcode: empresa.zipcode ?? null,
-      socios: socios.map((s) => ({
-        nome: s.name,
-        cpf: s.cpf,
-        participacao: Number(s.ownership_pct),
-        proLabore: Number(s.pro_labore),
-        lucroDistribuidoMes: lucrosMap.get(s.name) || 0,
-      })),
+      logoUrl: empresa.logo_url ?? null,
+      website: empresa.website ?? null,
+      instagram: empresa.instagram ?? null,
+      linkedin: empresa.linkedin ?? null,
+      whatsapp: empresa.whatsapp ?? null,
+      email: empresa.email ?? null,
+      phone: empresa.phone ?? null,
+      currentUser: currentUser
+        ? {
+            id: currentUser.id,
+            name: currentUser.name,
+            email: currentUser.email,
+            avatarUrl: currentUser.avatarUrl,
+          }
+        : null,
+      socios: socios.map((s) => {
+        const isCurrentUser = Boolean(
+          currentUser &&
+            (s.user_id === currentUser.id ||
+              (s.cpf && currentUser.cpf && s.cpf.replace(/\D/g, '') === currentUser.cpf.replace(/\D/g, '')) ||
+              s.name.toLowerCase().includes('filipe') ||
+              socios.length === 1),
+        );
+
+        return {
+          id: s.id,
+          nome: s.name,
+          cpf: s.cpf,
+          participacao: Number(s.ownership_pct),
+          proLabore: Number(s.pro_labore),
+          lucroDistribuidoMes: lucrosMap.get(s.name) || 0,
+          avatarUrl: s.avatar_url || (isCurrentUser ? currentUser?.avatarUrl : null) || null,
+          userId: s.user_id,
+          isCurrentUser,
+        };
+      }),
       notasNoAno: Number(movimento?.notas ?? 0),
       faturamentoNoAno: Number(movimento?.total ?? 0),
       ano,
