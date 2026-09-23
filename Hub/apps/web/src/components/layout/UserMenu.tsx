@@ -22,6 +22,7 @@ export interface CurrentUserProfile {
   email: string;
   avatarUrl?: string | null;
   role?: 'OWNER' | 'ADMIN' | 'FINANCE' | 'STAFF' | 'ACCOUNTANT' | 'VIEWER' | string;
+  isPartner?: boolean;
   phone?: string | null;
   cpf?: string | null;
   authorized?: boolean;
@@ -44,23 +45,41 @@ function getInitials(name?: string | null): string {
   return ((first[0] || '') + (last[0] || '')).toUpperCase() || 'U';
 }
 
-function formatRole(role?: string) {
+function formatRole(role?: string, isPartner?: boolean) {
+  // Sócio com poderes de administração
+  if (isPartner && (role === 'OWNER' || role === 'ADMIN')) {
+    return {
+      label: 'Sócio-Administrador',
+      subtitle: 'Controle Executivo & Gestão Total',
+      badge: 'Sócio-Administrador',
+      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+      isAdmin: true,
+      isPartner: true,
+    };
+  }
+
+  // Sócio cotista sem administração (acesso a balanços e lucros)
+  if (isPartner && role !== 'ADMIN' && role !== 'OWNER') {
+    return {
+      label: 'Sócio',
+      subtitle: 'Acesso Societário & Consulta de Resultados',
+      badge: 'Sócio',
+      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+      isAdmin: false,
+      isPartner: true,
+    };
+  }
+
   switch (role) {
     case 'OWNER':
-      return {
-        label: 'Proprietário',
-        subtitle: 'Controle Total do Hub',
-        badge: 'Proprietário',
-        color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
-        isAdmin: true,
-      };
     case 'ADMIN':
       return {
         label: 'Administrador',
         subtitle: 'Gestão e Acesso Total',
-        badge: 'Admin',
+        badge: 'Administrador',
         color: 'bg-hexxa-green/15 text-hexxa-forest dark:text-hexxa-lime border-hexxa-forest/20 dark:border-hexxa-lime/20',
         isAdmin: true,
+        isPartner: false,
       };
     case 'FINANCE':
       return {
@@ -69,6 +88,7 @@ function formatRole(role?: string) {
         badge: 'Financeiro',
         color: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
         isAdmin: false,
+        isPartner: false,
       };
     case 'ACCOUNTANT':
       return {
@@ -77,6 +97,7 @@ function formatRole(role?: string) {
         badge: 'Contador',
         color: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
         isAdmin: true,
+        isPartner: false,
       };
     case 'STAFF':
       return {
@@ -85,15 +106,17 @@ function formatRole(role?: string) {
         badge: 'Colaborador',
         color: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20',
         isAdmin: false,
+        isPartner: false,
       };
     case 'VIEWER':
     default:
       return {
-        label: 'Visualizador',
+        label: 'Visualizador (Terceiro)',
         subtitle: 'Consulta e Relatórios (Apenas Leitura)',
         badge: 'Visualizador',
         color: 'bg-black/5 dark:bg-white/10 text-ink-soft border-black/10 dark:border-white/10',
         isAdmin: false,
+        isPartner: false,
       };
   }
 }
@@ -103,7 +126,7 @@ export function UserMenu({ user, companyName, onSignOut, compact = false }: User
   const containerRef = useRef<HTMLDivElement>(null);
 
   const displayName = user?.name || 'Minha Conta';
-  const roleInfo = formatRole(user?.role);
+  const roleInfo = formatRole(user?.role, user?.isPartner);
   const initials = getInitials(user?.name);
 
   // Fecha ao clicar fora
@@ -141,7 +164,7 @@ export function UserMenu({ user, companyName, onSignOut, compact = false }: User
         aria-expanded={isOpen}
         aria-haspopup="true"
         title={displayName}
-        className={`tap-target pressable group flex items-center gap-2.5 rounded-full transition-all ${
+        className={`tap-target pressable group flex items-center gap-2 rounded-full transition-all ${
           compact
             ? 'p-0.5'
             : 'border border-black/8 dark:border-white/10 bg-surface/80 hover:bg-black/5 dark:hover:bg-white/5 py-1 pl-1.5 pr-2.5 shadow-(--elev-1)'
@@ -166,20 +189,8 @@ export function UserMenu({ user, companyName, onSignOut, compact = false }: User
 
         {!compact && (
           <>
-            <div className="hidden flex-col text-left xl:flex">
-              <span className="max-w-[120px] truncate text-xs font-semibold text-ink leading-tight">
-                {displayName}
-              </span>
-              <span className="text-[10px] text-ink-soft leading-tight">
-                {roleInfo.badge}
-              </span>
-            </div>
-
-            {/* Role Badge em telas maiores */}
-            <span
-              className={`hidden 2xl:inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleInfo.color}`}
-            >
-              {roleInfo.badge}
+            <span className="hidden max-w-[150px] truncate text-xs font-semibold text-ink xl:block">
+              {displayName}
             </span>
 
             <ChevronDown

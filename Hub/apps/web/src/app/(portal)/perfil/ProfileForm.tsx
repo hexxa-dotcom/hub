@@ -33,6 +33,7 @@ interface ProfileData {
   cpf?: string | null;
   avatarUrl?: string | null;
   role: string;
+  isPartner?: boolean;
   companyName: string;
   partnerInfo?: {
     role: string;
@@ -73,8 +74,34 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isAdmin = initialData.role === 'ADMIN' || initialData.role === 'OWNER';
+  const isPartner = !!initialData.isPartner || !!initialData.partnerInfo;
+  const isSocioAdmin = isPartner && (initialData.role === 'ADMIN' || initialData.role === 'OWNER');
+  const isSocio = isPartner && !isSocioAdmin;
+  const isAdmin = !isPartner && (initialData.role === 'ADMIN' || initialData.role === 'OWNER');
   const isViewer = initialData.role === 'VIEWER';
+  const hasFullAdmin = isSocioAdmin || isAdmin;
+
+  let roleLabel = 'Visualizador (Terceiro)';
+  let roleBadgeClass = 'bg-black/5 dark:bg-white/10 text-ink-soft border border-black/10 dark:border-white/10';
+  let roleDescription = 'Seu acesso está configurado como Visualizador (Terceiro). Destinado a consultores, investidores externos ou auditores que necessitam apenas consultar relatórios e extratos, sem poderes para alterar cadastros ou configurações.';
+
+  if (isSocioAdmin) {
+    roleLabel = 'Sócio-Administrador';
+    roleBadgeClass = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20';
+    roleDescription = 'Você possui o papel de Sócio-Administrador desta empresa com controle executivo pleno. Tem autonomia total para alterar cadastros, emitir notas fiscais, gerenciar impostos, aprovar fechamentos contábeis, consultar lucros isentos e gerenciar os acessos de outros sócios e colaboradores.';
+  } else if (isSocio) {
+    roleLabel = 'Sócio';
+    roleBadgeClass = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20';
+    roleDescription = 'Você possui o papel de Sócio (cotista/investidor). Tem acesso executivo para acompanhar relatórios contábeis, balanços, DRE, fechamentos fiscais e a apuração dos seus lucros isentos distribuídos.';
+  } else if (isAdmin) {
+    roleLabel = 'Administrador';
+    roleBadgeClass = 'bg-hexxa-green/15 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-forest/20';
+    roleDescription = 'Você atua como Administrador delegado da empresa. Possui poderes plenos para gerenciar as rotinas contábeis, fiscais, financeiras e cadastrais da organização.';
+  } else if (initialData.role === 'FINANCE') {
+    roleLabel = 'Financeiro';
+    roleBadgeClass = 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20';
+    roleDescription = 'Perfil focado na gestão financeira: contas a pagar, contas a receber, conciliação bancária e emissão de notas fiscais.';
+  }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -349,30 +376,19 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-ink">Poderes no Sistema</h3>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                  isAdmin
-                    ? 'bg-hexxa-green/15 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-forest/20'
-                    : 'bg-black/5 dark:bg-white/10 text-ink-soft'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${roleBadgeClass}`}
               >
-                {isAdmin ? (
-                  <>
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    <span>Administrador</span>
-                  </>
+                {hasFullAdmin ? (
+                  <ShieldCheck className="h-3.5 w-3.5" />
                 ) : (
-                  <>
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>Visualizador</span>
-                  </>
+                  <Eye className="h-3.5 w-3.5" />
                 )}
+                <span>{roleLabel}</span>
               </span>
             </div>
 
             <p className="text-xs text-ink-soft leading-relaxed">
-              {isAdmin
-                ? 'Você possui privilégios de Administrador. Pode alterar cadastros, emitir notas fiscais, gerenciar impostos, visualizar fechamentos contábeis e gerenciar outros membros.'
-                : 'Seu perfil está configurado com permissão de Visualizador. Você tem acesso para consultar relatórios, extratos e documentos contábeis sem poder de modificação.'}
+              {roleDescription}
             </p>
 
             {/* Matriz de Poderes e Permissões */}
@@ -384,7 +400,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
               <div className="space-y-2 pt-1 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-ink">Gestão Cadastral & Logo</span>
-                  {isAdmin ? (
+                  {hasFullAdmin ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Liberado
                     </span>
@@ -397,7 +413,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-ink">Financeiro & Conciliação</span>
-                  {isAdmin ? (
+                  {hasFullAdmin || initialData.role === 'FINANCE' ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Liberado
                     </span>
@@ -417,9 +433,9 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-ink">Quadro de Sócios & Pró-labore</span>
-                  {isAdmin ? (
+                  {isPartner || hasFullAdmin ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Gestão Total
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Acesso Societário
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-soft">
@@ -430,7 +446,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-ink">Gestão de Equipe & Convites</span>
-                  {isAdmin ? (
+                  {hasFullAdmin ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Liberado
                     </span>

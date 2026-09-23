@@ -90,6 +90,7 @@ export default async function PerfilPage() {
     cpf: userData.cpf,
     avatarUrl: userData.avatarUrl,
     role: memberRole?.role || 'VIEWER',
+    isPartner: !!partnerRecord,
     companyName: dbCompany?.tradeName || dbCompany?.legalName || 'Empresa Conectada',
     partnerInfo: partnerRecord
       ? {

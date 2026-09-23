@@ -3,7 +3,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { CadastroEmValidacao } from './CadastroEmValidacao';
 import { NAV } from '@/lib/nav';
 import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
-import { company, appUser, membership, getDb, withTenant, eq } from '@hexxa/db';
+import { company, appUser, membership, partner, getDb, withTenant, eq } from '@hexxa/db';
 
 // Toda página sob o portal depende da sessão/tenant em tempo real — nunca
 // pode ser pré-renderada estaticamente no build (o build não tem sessão do
@@ -118,6 +118,18 @@ export default async function PortalLayout({ children }: { children: React.React
     return <CadastroEmValidacao empresa={dbCompany?.legalName ?? ''} nome={userRow?.name} />;
   }
 
+  let isPartner = false;
+  if (userRow?.id) {
+    const [partnerRow] = await withTenant(ctx.companyId, async (tx) => {
+      return tx
+        .select({ id: partner.id })
+        .from(partner)
+        .where(eq(partner.userId, userRow!.id))
+        .limit(1);
+    });
+    isPartner = !!partnerRow;
+  }
+
   const currentUser = userRow
     ? {
         id: userRow.id,
@@ -125,6 +137,7 @@ export default async function PortalLayout({ children }: { children: React.React
         email: userRow.email,
         avatarUrl: userRow.avatarUrl,
         role: vinculo?.role ?? 'VIEWER',
+        isPartner,
         phone: userRow.phone,
         cpf: userRow.cpf,
         authorized: vinculo?.authorized ?? true,
