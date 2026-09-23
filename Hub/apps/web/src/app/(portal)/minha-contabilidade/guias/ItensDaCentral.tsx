@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Eye, Download, CheckCircle2, ExternalLink, Calendar } from 'lucide-react';
+import { Receipt, Eye, Download, CheckCircle2, ExternalLink } from 'lucide-react';
 import type { Entrega } from '@/lib/server/entregas';
 import type { AsaasPayment } from '@/lib/asaas';
 import { confirmarRecebimentoAction } from './entregas-actions';
@@ -52,12 +52,10 @@ export function LinhaDocumento({ doc }: { doc: Entrega }) {
           {aviso ? ` · ${aviso}` : ''}
         </p>
       </div>
-      <div className="w-28 shrink-0 text-right">
-        <p className="text-[11px] text-ink-soft sm:text-xs">
-          <Calendar className="mr-1 inline h-3 w-3" />
-          Recebido {dia(doc.enviadoEm)}
-        </p>
-      </div>
+      <p className="hidden w-36 shrink-0 text-right text-xs text-ink-soft sm:block">Recebido em {dia(doc.enviadoEm)}</p>
+      <p className="w-28 shrink-0 text-right text-sm font-serif tabular font-bold text-ink">
+        {doc.valor != null ? BRL.format(doc.valor) : ''}
+      </p>
       <div className="flex shrink-0 items-center justify-end gap-1.5 sm:w-52">
         {doc.temArquivo && (
           <>
@@ -98,13 +96,10 @@ export function LinhaHonorario({ hon }: { hon: AsaasPayment }) {
         <p className="truncate text-sm font-bold text-ink">Honorários da contabilidade</p>
         <p className="text-xs text-ink-soft">Cobrança mensal</p>
       </div>
-      <div className="w-28 shrink-0 text-right">
-        <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(hon.value)}</p>
-        <p className={`text-[11px] sm:text-xs ${s.texto}`}>
-          <Calendar className="mr-1 inline h-3 w-3" />
-          {pago ? 'Paga' : `${situacaoDoHonorario(hon.status) === 'OVERDUE' ? 'Venceu' : 'Vence'} ${dia(hon.dueDate)}`}
-        </p>
-      </div>
+      <p className={`hidden w-36 shrink-0 text-right text-xs sm:block ${s.texto}`}>
+        {pago ? 'Paga' : `${situacaoDoHonorario(hon.status) === 'OVERDUE' ? 'Venceu' : 'Vence'} em ${dia(hon.dueDate)}`}
+      </p>
+      <p className="w-28 shrink-0 text-right text-sm font-serif tabular font-bold text-ink">{BRL.format(hon.value)}</p>
       <div className="flex shrink-0 items-center justify-end gap-1.5 sm:w-52">
         {!pago && hon.bankSlipUrl && (
           <a href={hon.bankSlipUrl} target="_blank" rel="noreferrer" className={acao}>

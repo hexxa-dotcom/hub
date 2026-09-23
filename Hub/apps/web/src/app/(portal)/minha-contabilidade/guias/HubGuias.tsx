@@ -29,7 +29,7 @@ import {
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { registrarGuiaAction, marcarGuiaPagaAction } from './actions';
 import { normalizeDocument } from '@hexxa/core/document-br';
-import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
+import { categoriaDe, nomeDaGuia, grupoDaGuia, type GuiaCategoria } from '@/lib/guias';
 import { Card } from '@/components/ui/Card';
 import { SectionInfo } from '@/components/ui/SectionInfo';
 import { GuiasHero } from './GuiasHero';
@@ -388,11 +388,11 @@ export function HubGuias({
   const isOk = !isOverdue && !isUpcoming;
 
   const overdueHeadline = vencidas.length > 0
-    ? `${vencidas[0]?.taxName ?? 'Guia'} (${BRL.format(vencidas[0]?.amount ?? 0)}) venceu ${fmtDate(vencidas[0]?.dueDate ?? '')}`
+    ? `${nomeDaGuia(vencidas[0]?.taxName ?? 'Guia')} (${BRL.format(vencidas[0]?.amount ?? 0)}) venceu em ${fmtDate(vencidas[0]?.dueDate ?? '')}`
     : undefined;
 
   const upcomingHeadline = pendentes.length > 0
-    ? `${pendentes[0]?.taxName ?? 'Guia'} (${BRL.format(pendentes[0]?.amount ?? 0)}) vence ${fmtDate(pendentes[0]?.dueDate ?? '')}`
+    ? `${nomeDaGuia(pendentes[0]?.taxName ?? 'Guia')} (${BRL.format(pendentes[0]?.amount ?? 0)}) vence em ${fmtDate(pendentes[0]?.dueDate ?? '')}`
     : undefined;
 
   const currentStatusConfig = isOverdue
@@ -470,7 +470,7 @@ export function HubGuias({
       .map((g) => ({
         id: g.id,
         data: g.dueDate,
-        titulo: g.installmentNumber ? `${g.taxName}` : g.taxName,
+        titulo: nomeDaGuia(g.taxName),
         selo: g.installmentGroupId ? 'Parcelamento' : CAT_CONFIG[categoriaDe(g.taxName)].label,
         valor: g.amount,
         situacao: g.status,
@@ -518,18 +518,23 @@ export function HubGuias({
           onClick={() => setExpanded(isExp ? null : g.id)}
           className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
         >
-          <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">{cat.label}</span>
+          <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">{grupoDaGuia(categoria)}</span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-ink">{g.taxName}</p>
-            <p className="text-xs text-ink-soft">Competência: {competencia}</p>
-          </div>
-          <div className="w-28 shrink-0 text-right">
-            <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(g.amount)}</p>
-            <p className={`text-[11px] sm:text-xs ${vencClass(g.dueDate, g.status)}`}>
-              <Calendar className="mr-1 inline h-3 w-3" />
-              {g.status === 'PAID' ? 'Paga' : `${g.status === 'OVERDUE' ? 'Venceu' : 'Vence'} ${fmtDate(g.dueDate)}`}
+            <p className="truncate text-sm font-bold text-ink">{nomeDaGuia(g.taxName)}</p>
+            <p className="text-xs text-ink-soft">
+              {cat.label} · competência {competencia}
+              {/* No celular a coluna do vencimento não cabe: ele vem para cá. */}
+              <span className={`sm:hidden ${vencClass(g.dueDate, g.status)}`}>
+                {' · '}
+                {g.status === 'PAID' ? 'paga' : `${g.status === 'OVERDUE' ? 'venceu' : 'vence'} ${fmtDate(g.dueDate)}`}
+              </span>
             </p>
           </div>
+          {/* Vencimento ao lado do valor, na mesma linha: embaixo ele dobrava a altura da linha à toa. */}
+          <p className={`hidden w-36 shrink-0 text-right text-xs sm:block ${vencClass(g.dueDate, g.status)}`}>
+            {g.status === 'PAID' ? 'Paga' : `${g.status === 'OVERDUE' ? 'Venceu' : 'Vence'} em ${fmtDate(g.dueDate)}`}
+          </p>
+          <p className="w-28 shrink-0 text-right text-sm font-serif tabular font-bold text-ink">{BRL.format(g.amount)}</p>
 
           {/* Ações Rápidas direto na linha (1 clique para Pix ou Baixar) — largura
               fixa, igual nas linhas de documento e honorários, para as colunas
@@ -704,7 +709,7 @@ export function HubGuias({
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+            <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink tracking-tight select-none">
               <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
               <span>{monthLabel}</span>
             </div>
