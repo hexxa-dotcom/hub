@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Users, FileCode, Plug, SlidersHorizontal, Building2, ArrowUpRight } from 'lucide-react';
+import { Users, FileCode, Plug, SlidersHorizontal, Building2, ArrowUpRight, User } from 'lucide-react';
 import { spring, crossFade } from '@/lib/motion';
 
 const MENU = [
@@ -47,14 +47,23 @@ export function SettingsNav() {
         })}
       </div>
 
-      <Link
-        href="/minha-empresa"
-        className="tap-target pressable inline-flex items-center gap-1.5 self-start sm:self-center text-xs font-bold text-ink-soft hover:text-ink transition-colors px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
-      >
-        <Building2 className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
-        <span>Perfil da Empresa</span>
-        <ArrowUpRight className="h-3 w-3 opacity-60" />
-      </Link>
+      <div className="flex items-center gap-2 self-start sm:self-center">
+        <Link
+          href={'/perfil' as never}
+          className="tap-target pressable inline-flex items-center gap-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <User className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
+          <span>Meu Perfil</span>
+        </Link>
+        <Link
+          href="/minha-empresa"
+          className="tap-target pressable inline-flex items-center gap-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors px-3 py-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <Building2 className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" />
+          <span>Perfil da Empresa</span>
+          <ArrowUpRight className="h-3 w-3 opacity-60" />
+        </Link>
+      </div>
     </nav>
   );
 }

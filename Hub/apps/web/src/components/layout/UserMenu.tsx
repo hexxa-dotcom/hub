@@ -1,0 +1,349 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  User,
+  Building2,
+  Users,
+  LogOut,
+  ChevronDown,
+  ShieldCheck,
+  Eye,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+} from 'lucide-react';
+
+export interface CurrentUserProfile {
+  id?: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  role?: 'OWNER' | 'ADMIN' | 'FINANCE' | 'STAFF' | 'ACCOUNTANT' | 'VIEWER' | string;
+  phone?: string | null;
+  cpf?: string | null;
+  authorized?: boolean;
+}
+
+interface UserMenuProps {
+  user?: CurrentUserProfile | null;
+  companyName?: string;
+  onSignOut?: () => void;
+  compact?: boolean;
+}
+
+function getInitials(name?: string | null): string {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'U';
+  const first = parts[0] || 'U';
+  if (parts.length === 1) return first.slice(0, 2).toUpperCase();
+  const last = parts[parts.length - 1] || '';
+  return ((first[0] || '') + (last[0] || '')).toUpperCase() || 'U';
+}
+
+function formatRole(role?: string) {
+  switch (role) {
+    case 'OWNER':
+      return {
+        label: 'Proprietário',
+        subtitle: 'Controle Total do Hub',
+        badge: 'Proprietário',
+        color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+        isAdmin: true,
+      };
+    case 'ADMIN':
+      return {
+        label: 'Administrador',
+        subtitle: 'Gestão e Acesso Total',
+        badge: 'Admin',
+        color: 'bg-hexxa-green/15 text-hexxa-forest dark:text-hexxa-lime border-hexxa-forest/20 dark:border-hexxa-lime/20',
+        isAdmin: true,
+      };
+    case 'FINANCE':
+      return {
+        label: 'Financeiro',
+        subtitle: 'Contas, Extratos e Notas',
+        badge: 'Financeiro',
+        color: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
+        isAdmin: false,
+      };
+    case 'ACCOUNTANT':
+      return {
+        label: 'Contador',
+        subtitle: 'Acesso Fiscal & Contábil',
+        badge: 'Contador',
+        color: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
+        isAdmin: true,
+      };
+    case 'STAFF':
+      return {
+        label: 'Colaborador',
+        subtitle: 'Acesso Operacional',
+        badge: 'Colaborador',
+        color: 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20',
+        isAdmin: false,
+      };
+    case 'VIEWER':
+    default:
+      return {
+        label: 'Visualizador',
+        subtitle: 'Consulta e Relatórios (Apenas Leitura)',
+        badge: 'Visualizador',
+        color: 'bg-black/5 dark:bg-white/10 text-ink-soft border-black/10 dark:border-white/10',
+        isAdmin: false,
+      };
+  }
+}
+
+export function UserMenu({ user, companyName, onSignOut, compact = false }: UserMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const displayName = user?.name || 'Minha Conta';
+  const roleInfo = formatRole(user?.role);
+  const initials = getInitials(user?.name);
+
+  // Fecha ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Fecha no ESC
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setIsOpen(false);
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      {/* Botão Gatilho do Menu */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        title={displayName}
+        className={`tap-target pressable group flex items-center gap-2.5 rounded-full transition-all ${
+          compact
+            ? 'p-0.5'
+            : 'border border-black/8 dark:border-white/10 bg-surface/80 hover:bg-black/5 dark:hover:bg-white/5 py-1 pl-1.5 pr-2.5 shadow-(--elev-1)'
+        }`}
+      >
+        {/* Avatar */}
+        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-[#1E3328] shadow-sm">
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={displayName}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center font-bold text-xs text-[#DFFFAE]">
+              {initials}
+            </div>
+          )}
+          {/* Status Dot */}
+          <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-black" />
+        </div>
+
+        {!compact && (
+          <>
+            <div className="hidden flex-col text-left xl:flex">
+              <span className="max-w-[120px] truncate text-xs font-semibold text-ink leading-tight">
+                {displayName}
+              </span>
+              <span className="text-[10px] text-ink-soft leading-tight">
+                {roleInfo.badge}
+              </span>
+            </div>
+
+            {/* Role Badge em telas maiores */}
+            <span
+              className={`hidden 2xl:inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleInfo.color}`}
+            >
+              {roleInfo.badge}
+            </span>
+
+            <ChevronDown
+              className={`h-3.5 w-3.5 text-ink-soft transition-transform duration-200 group-hover:text-ink ${
+                isOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-4 shadow-(--elev-3) backdrop-blur-2xl"
+          >
+            {/* Cabeçalho do Perfil */}
+            <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 pb-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-[#1E3328] shadow-sm">
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center font-bold text-base text-[#DFFFAE]">
+                    {initials}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-bold text-ink">
+                  {displayName}
+                </span>
+                <span className="truncate text-xs text-ink-soft">
+                  {user?.email || 'email@empresa.com.br'}
+                </span>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-0.2 text-[10px] font-bold uppercase tracking-wider ${roleInfo.color}`}
+                  >
+                    {roleInfo.label}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloco de Poderes / Permissões nesta Empresa */}
+            <div className="my-3 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                {roleInfo.isAdmin ? (
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-ink-soft" />
+                )}
+                <span className="text-[11px] font-bold uppercase tracking-wider text-ink">
+                  Poderes no Sistema
+                </span>
+              </div>
+
+              <p className="text-xs text-ink-soft mb-2">
+                {roleInfo.subtitle}
+              </p>
+
+              <div className="space-y-1 text-[11px]">
+                {roleInfo.isAdmin ? (
+                  <>
+                    <div className="flex items-center gap-1.5 text-ink font-medium">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <span>Gestão cadastral, logo e sócios</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-ink font-medium">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <span>Financeiro, notas e conciliação</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-ink font-medium">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                      <span>Fiscal, guias e Fator R</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5 text-ink-soft">
+                      <CheckCircle2 className="h-3 w-3 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+                      <span>Visualização de relatórios e extratos</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-ink-soft">
+                      <Lock className="h-3 w-3 text-amber-500 shrink-0" />
+                      <span>Edições restritas a administradores</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Ações do Menu */}
+            <div className="space-y-1 py-1">
+              <Link
+                href={'/perfil' as never}
+                prefetch={false}
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <User className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime" />
+                  <span>Meu Perfil</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-ink-soft group-hover:text-ink">
+                  <span>Editar dados</span>
+                  <ArrowRight className="h-3 w-3 opacity-60" />
+                </div>
+              </Link>
+
+              <Link
+                href="/minha-empresa"
+                prefetch={false}
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Building2 className="h-4 w-4 text-ink-soft group-hover:text-ink" />
+                  <span>Perfil da Empresa</span>
+                </div>
+                <ArrowRight className="h-3 w-3 opacity-60" />
+              </Link>
+
+              <Link
+                href="/configuracoes/equipe"
+                prefetch={false}
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5 group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className="h-4 w-4 text-ink-soft group-hover:text-ink" />
+                  <span>Equipe & Permissões</span>
+                </div>
+                <ArrowRight className="h-3 w-3 opacity-60" />
+              </Link>
+            </div>
+
+            {/* Rodapé: Sair da Conta */}
+            <div className="mt-2 border-t border-black/5 dark:border-white/5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onSignOut?.();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 transition-colors hover:bg-rose-500/10"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sair do Hexx Hub</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

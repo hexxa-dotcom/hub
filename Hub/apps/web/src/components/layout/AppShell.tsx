@@ -21,6 +21,7 @@ import { getStoredTheme, resolveTheme } from '@/lib/theme';
 import { useSignOut } from '@/lib/client/useSignOut';
 import { CommandMenu } from './CommandMenu';
 import { QuickActionsMenu } from './QuickActionsMenu';
+import { UserMenu, type CurrentUserProfile } from './UserMenu';
 
 const GROUP_ICONS: Record<string, PhosphorIcon> = {
   'Início': SquaresFour,
@@ -212,6 +213,7 @@ export function AppShell(props: {
   children: React.ReactNode;
   sections: NavSection[];
   company?: any;
+  user?: CurrentUserProfile | null;
   userName?: string | null;
   userEmail?: string | null;
   hasMultipleCompanies?: boolean;
@@ -227,6 +229,7 @@ function AppShellInner({
   children,
   sections,
   company,
+  user,
   userName,
   userEmail,
   hasMultipleCompanies,
@@ -234,6 +237,7 @@ function AppShellInner({
   children: React.ReactNode;
   sections: NavSection[];
   company?: any;
+  user?: CurrentUserProfile | null;
   userName?: string | null;
   userEmail?: string | null;
   hasMultipleCompanies?: boolean;
@@ -743,21 +747,13 @@ function AppShellInner({
               </div>
             </div>
 
-            {/* Conta: só o nome. O e-mail embaixo, a 10px, era ruído — quem
-                está logado já sabe o próprio e-mail, e ele reaparece inteiro
-                em Configurações. Um filete separa a conta do resto. */}
-            <div className="ml-1 flex items-center gap-2 border-l border-line pl-3">
-              <span className="hidden max-w-[150px] truncate text-footnote text-ink-soft xl:block">
-                {userName || 'Minha conta'}
-              </span>
-              <button
-                type="button"
-                onClick={sair}
-                title="Sair"
-                className="tap-target pressable focusable grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/10"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
+            {/* Menu do Usuário Logado: Foto, Nome, Poderes (Admin / Visualizador) e Dropdown */}
+            <div className="ml-1 flex items-center border-l border-line pl-3">
+              <UserMenu
+                user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
+                companyName={company?.legalName}
+                onSignOut={sair}
+              />
             </div>
           </div>
         </header>
@@ -783,14 +779,12 @@ function AppShellInner({
               <Search className="h-4 w-4" />
             </button>
             <ThemeHeaderSelector compact />
-            <button
-              type="button"
-              onClick={sair}
-              title="Sair"
-              className="tap-target pressable focusable grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/10 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            <UserMenu
+              compact
+              user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
+              companyName={company?.legalName}
+              onSignOut={sair}
+            />
           </div>
         </header>
 

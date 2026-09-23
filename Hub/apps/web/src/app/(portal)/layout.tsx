@@ -32,15 +32,77 @@ export default async function PortalLayout({ children }: { children: React.React
   // ctx.userId é 'dev-skip-auth'/'cron'/'mcp' fora do fluxo normal — não é
   // uuid de appUser, então nem tenta a query nesses casos.
   const isRealUser = /^[0-9a-f-]{36}$/i.test(ctx.userId);
-  let userRow: { name: string; email: string } | undefined;
-  let memberships: { id: string; companyId: string; authorized: boolean }[] = [];
+  let userRow: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    phone: string | null;
+    cpf: string | null;
+  } | undefined;
+  let memberships: { id: string; companyId: string; authorized: boolean; role: string }[] = [];
+  const db = getDb();
+
   if (isRealUser) {
-    const db = getDb();
-    [userRow] = await db.select({ name: appUser.name, email: appUser.email }).from(appUser).where(eq(appUser.id, ctx.userId));
+    [userRow] = await db
+      .select({
+        id: appUser.id,
+        name: appUser.name,
+        email: appUser.email,
+        avatarUrl: appUser.avatarUrl,
+        phone: appUser.phone,
+        cpf: appUser.cpf,
+      })
+      .from(appUser)
+      .where(eq(appUser.id, ctx.userId));
+
     memberships = await db
-      .select({ id: membership.id, companyId: membership.companyId, authorized: membership.authorized })
+      .select({
+        id: membership.id,
+        companyId: membership.companyId,
+        authorized: membership.authorized,
+        role: membership.role,
+      })
       .from(membership)
       .where(eq(membership.userId, ctx.userId));
+  } else {
+    // Em ambiente local / dev-skip-auth: busca o primeiro membro associado à empresa
+    const [firstMember] = await db
+      .select({
+        id: membership.id,
+        userId: membership.userId,
+        role: membership.role,
+        authorized: membership.authorized,
+      })
+      .from(membership)
+      .where(eq(membership.companyId, ctx.companyId))
+      .limit(1);
+
+    if (firstMember?.userId) {
+      const [dbUser] = await db
+        .select({
+          id: appUser.id,
+          name: appUser.name,
+          email: appUser.email,
+          avatarUrl: appUser.avatarUrl,
+          phone: appUser.phone,
+          cpf: appUser.cpf,
+        })
+        .from(appUser)
+        .where(eq(appUser.id, firstMember.userId));
+
+      if (dbUser) {
+        userRow = dbUser;
+        memberships = [
+          {
+            id: firstMember.id,
+            companyId: ctx.companyId,
+            authorized: firstMember.authorized,
+            role: firstMember.role,
+          },
+        ];
+      }
+    }
   }
 
   /**
@@ -56,10 +118,24 @@ export default async function PortalLayout({ children }: { children: React.React
     return <CadastroEmValidacao empresa={dbCompany?.legalName ?? ''} nome={userRow?.name} />;
   }
 
+  const currentUser = userRow
+    ? {
+        id: userRow.id,
+        name: userRow.name,
+        email: userRow.email,
+        avatarUrl: userRow.avatarUrl,
+        role: vinculo?.role ?? 'VIEWER',
+        phone: userRow.phone,
+        cpf: userRow.cpf,
+        authorized: vinculo?.authorized ?? true,
+      }
+    : null;
+
   return (
     <AppShell
       sections={NAV}
       company={dbCompany}
+      user={currentUser}
       userName={userRow?.name}
       userEmail={userRow?.email}
       hasMultipleCompanies={memberships.length > 1}
