@@ -1,6 +1,6 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { getBalancoDreData, monthLabel, monthLabelShort } from '@/lib/server/reports';
-import { Info, TrendingDown, Scale, Receipt } from 'lucide-react';
+import { Info, TrendingDown, Scale, Receipt, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { PrintButton } from './PrintButton';
@@ -41,14 +41,15 @@ export default async function BalancoInstantaneoPage({
         rightSlot={
           <div className="flex flex-wrap items-center gap-2">
             <form method="get" className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
-                <select name="de" defaultValue={deOrdered} className="rounded-full bg-transparent px-3 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
+              <div className="inline-flex items-center gap-1.5 py-1">
+                <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+                <select name="de" defaultValue={deOrdered} className="bg-transparent px-1 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
                   {options.map((m) => (
                     <option key={m} value={m}>{monthLabel(m)}</option>
                   ))}
                 </select>
                 <span className="text-caption text-ink-soft text-[11px]">até</span>
-                <select name="ate" defaultValue={ateOrdered} className="rounded-full bg-transparent px-3 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
+                <select name="ate" defaultValue={ateOrdered} className="bg-transparent px-1 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
                   {options.map((m) => (
                     <option key={m} value={m}>{monthLabel(m)}</option>
                   ))}

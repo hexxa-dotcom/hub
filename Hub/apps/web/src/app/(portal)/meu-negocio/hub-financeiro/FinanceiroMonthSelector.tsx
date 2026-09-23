@@ -51,14 +51,14 @@ export function FinanceiroMonthSelector({
   }, []);
 
   return (
-    <div className="shrink-0 flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset)" ref={dropdownRef}>
+    <div className="shrink-0 flex flex-wrap items-center gap-1.5">
+      <div className="inline-flex items-center gap-1" ref={dropdownRef}>
         <button
           type="button"
           onClick={onPrevMonth}
           disabled={!onPrevMonth}
           aria-label="Mês anterior"
-          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -67,10 +67,10 @@ export function FinanceiroMonthSelector({
           <button
             type="button"
             onClick={() => setDropdownOpen((o) => !o)}
-            className="tap-target pressable focusable flex items-center justify-between gap-2 px-3 py-1 min-w-[150px] rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            className="tap-target pressable focusable flex items-center justify-between gap-1.5 px-1.5 py-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight capitalize">
-              <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight capitalize select-none">
+              <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
               <span>{monthLabel}</span>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-ink-soft shrink-0" />
@@ -119,7 +119,7 @@ export function FinanceiroMonthSelector({
           onClick={onNextMonth}
           disabled={!onNextMonth}
           aria-label="Próximo mês"
-          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -130,7 +130,7 @@ export function FinanceiroMonthSelector({
           type="button"
           onClick={onCurrentMonth}
           title="Voltar ao mês atual"
-          className="tap-target pressable focusable rounded-full bg-hexxa-forest/10 hover:bg-hexxa-forest/20 text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime/25 dark:text-hexxa-lime px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+          className="tap-target pressable focusable inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-hexxa-forest dark:text-hexxa-lime hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
         >
           Mês atual
         </button>

@@ -525,20 +525,20 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
           </button>
         </div>
 
-        {/* Lado Direito: Seletor Harmônico de Mês (movido da Central de Guias) */}
-        <div className="shrink-0 flex items-center justify-end gap-2">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset)">
+        {/* Lado Direito: Seletor Harmônico de Mês */}
+        <div className="shrink-0 flex items-center justify-end gap-1.5">
+          <div className="inline-flex items-center gap-1">
             <button
               type="button"
               onClick={handlePrevMonth}
               aria-label="Mês anterior"
-              className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+              className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-2 px-3 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight min-w-[140px] justify-center">
-              <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+            <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+              <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
               <span>{monthLabel}</span>
             </div>
 
@@ -546,7 +546,7 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
               type="button"
               onClick={handleNextMonth}
               aria-label="Próximo mês"
-              className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+              className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -557,7 +557,7 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
               type="button"
               onClick={handleCurrentMonth}
               title="Voltar ao mês atual"
-              className="tap-target pressable focusable rounded-full bg-hexxa-forest/10 hover:bg-hexxa-forest/20 text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime/25 dark:text-hexxa-lime px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+              className="tap-target pressable focusable inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-hexxa-forest dark:text-hexxa-lime hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
             >
               Mês atual
             </button>

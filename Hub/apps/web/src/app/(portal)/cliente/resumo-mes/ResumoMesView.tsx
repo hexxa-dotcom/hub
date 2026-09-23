@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
-import { AlertTriangle, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import type { SimplesPosition } from '@hexxa/core';
 
 /**
@@ -813,26 +813,31 @@ function MonthStepper({
      pedia que a pessoa lesse doze rótulos para trocar um. Aqui o mês atual é a
      única coisa afirmada, e as setas somem quando não há para onde ir. */
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="inline-flex items-center gap-2 rounded-full bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/10 ring-1 ring-inset ring-white/60 dark:ring-white/5 px-2 py-1 shadow-[0_4px_20px_rgb(0,0,0,0.03)]">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="inline-flex items-center gap-1">
         <button
           type="button"
           onClick={() => prev && onSelect(prev.key)}
           disabled={!prev}
           aria-label="Mês anterior"
-          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 disabled:pointer-events-none disabled:opacity-25"
+          title="Ver mês anterior"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        <h2 className="min-w-36 text-center text-callout font-bold capitalize text-ink">{active.label}</h2>
+        <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+          <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+          <span>{active.label}</span>
+        </div>
 
         <button
           type="button"
           onClick={() => next && onSelect(next.key)}
           disabled={!next}
           aria-label="Próximo mês"
-          className="tap-target pressable focusable grid h-8 w-8 place-items-center rounded-full text-ink-soft transition-colors hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 disabled:pointer-events-none disabled:opacity-25"
+          title="Ver próximo mês"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -842,9 +847,10 @@ function MonthStepper({
         <button
           type="button"
           onClick={() => onSelect(months[months.length - 1]!.key)}
-          className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/10 ring-1 ring-inset ring-white/60 dark:ring-white/5 px-4 py-2 text-footnote font-semibold text-ink-soft shadow-xs transition-colors hover:text-ink"
+          title="Voltar ao mês atual"
+          className="tap-target pressable focusable inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-hexxa-forest dark:text-hexxa-lime hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
         >
-          Voltar ao mês atual
+          Mês atual
         </button>
       )}
     </div>
