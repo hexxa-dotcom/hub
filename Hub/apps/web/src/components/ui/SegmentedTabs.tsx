@@ -66,3 +66,13 @@ export function SegmentedTabs<T extends string = string>({
     </div>
   );
 }
+
+/**
+ * O número vermelho da aba — o padrão de notificação dos menus. Só aparece
+ * quando há algo pedindo ação (vencido, não lido, atrasado).
+ */
+export function alertaDaAba(n: number): React.ReactNode {
+  return n > 0 ? (
+    <span className="rounded-full bg-red-500 px-1.5 py-0.2 text-[10px] font-bold text-white">{n}</span>
+  ) : undefined;
+}

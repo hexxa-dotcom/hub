@@ -16,6 +16,7 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16 animate-fade-up">
       <SectionHero
+        subtitulo="Seu plano e o histórico de pagamentos"
         title="Meu Plano & Pagamentos"
         infoTitle="Sobre Meu Plano & Pagamentos"
         infoDescription="Seu contrato contábil ativo e o histórico consolidado de faturas do Asaas."

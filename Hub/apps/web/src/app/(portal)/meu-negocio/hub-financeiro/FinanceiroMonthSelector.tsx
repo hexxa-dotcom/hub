@@ -69,7 +69,7 @@ export function FinanceiroMonthSelector({
             onClick={() => setDropdownOpen((o) => !o)}
             className="tap-target pressable focusable flex items-center justify-between gap-1.5 px-1.5 py-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight capitalize select-none">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight inline-block first-letter:uppercase select-none">
               <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
               <span>{monthLabel}</span>
             </div>
@@ -86,7 +86,7 @@ export function FinanceiroMonthSelector({
                     onMonthChange?.(m);
                     setDropdownOpen(false);
                   }}
-                  className={`w-full text-left rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold capitalize transition-colors cursor-pointer ${
+                  className={`w-full text-left rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold inline-block first-letter:uppercase transition-colors cursor-pointer ${
                     selectedMonth === m
                       ? 'bg-hexxa-forest text-hexxa-lime'
                       : 'text-ink hover:bg-black/5 dark:hover:bg-white/5'
@@ -102,7 +102,7 @@ export function FinanceiroMonthSelector({
                   onMonthChange?.('todos');
                   setDropdownOpen(false);
                 }}
-                className={`w-full text-left rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold capitalize transition-colors cursor-pointer ${
+                className={`w-full text-left rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold inline-block first-letter:uppercase transition-colors cursor-pointer ${
                   selectedMonth === 'todos'
                     ? 'bg-hexxa-forest text-hexxa-lime'
                     : 'text-ink hover:bg-black/5 dark:hover:bg-white/5'

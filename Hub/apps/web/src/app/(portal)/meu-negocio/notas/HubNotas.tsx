@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition, useActionState } from 'react';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import {
   FileText,
@@ -163,11 +164,10 @@ function Dashboard({
 
       {/* Navegação de Meses & Ações */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <SegmentedTabs
-          tabs={allMonths.map(m => ({ id: m, label: m === currentMonth ? 'Este Mês' : m }))}
-          activeTab={selectedMonth}
+        <FiltrosEmTexto
+          filtros={allMonths.map(m => ({ id: m, label: m === currentMonth ? 'Este mês' : m }))}
+          ativo={selectedMonth}
           onChange={setSelectedMonth}
-          layoutId="notasMonthTabs"
         />
         
         {/* CTA Nova Nota Slim */}
@@ -799,7 +799,10 @@ export function HubNotas(props: Props) {
       {/* Tab bar */}
       <div className="flex">
         <SegmentedTabs
-          tabs={TABS}
+          // Nota que falhou na emissão pede ação: número vermelho na Visão Geral.
+          tabs={TABS.map((t) =>
+            t.id === 'dashboard' ? { ...t, badge: alertaDaAba(props.recent.filter((n) => n.status === 'ERROR').length) } : t,
+          )}
           activeTab={tab}
           onChange={setTab}
           layoutId="notasTabsIndicator"

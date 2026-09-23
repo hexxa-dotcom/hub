@@ -62,6 +62,7 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16">
       <SectionHero
+        subtitulo="Os contratos de serviço com seus clientes"
         title="Gestão de Contratos de Serviços"
         infoTitle="Sobre a Gestão de Contratos"
         infoDescription="Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais."

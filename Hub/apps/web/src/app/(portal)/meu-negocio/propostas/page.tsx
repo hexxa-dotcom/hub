@@ -11,6 +11,7 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16">
       <SectionHero
+        subtitulo="Propostas e orçamentos enviados aos seus clientes"
         title="Propostas & Orçamentos"
         infoTitle="Sobre Propostas & Orçamentos"
         infoDescription="Crie, envie e acompanhe propostas comerciais com conversão direta para contratos ou emissão de NFSe."

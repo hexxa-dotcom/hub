@@ -90,6 +90,7 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16 animate-fade-up">
       <SectionHero
+        subtitulo="Clientes, contratos e tarefas do dia a dia"
         title="Relacionamento & CRM"
         infoTitle="Sobre Relacionamento & CRM"
         infoDescription="Gestão unificada de clientes, pipeline de tarefas, contratos e consultas à Receita Federal."

@@ -31,12 +31,16 @@ export interface SectionHeroProps {
   /** Conteúdo adicional opcional à direita ou esquerda */
   rightSlot?: React.ReactNode;
   /**
-   * `false` tira o cartão em volta: fica só o título da seção, solto na
-   * página. É o desenho novo — as seções migram uma a uma.
+   * O padrão é sem moldura: o título solto na página, um traço fino e a
+   * linha de apoio embaixo (nasceu na Central de Guias). `true` devolve o
+   * cartão antigo, para quem ainda precisar.
    */
   moldura?: boolean;
-  /** Uma linha logo abaixo do título — situação, contexto. Ancora o título. */
-  subtitulo?: React.ReactNode;
+  /**
+   * A linha abaixo do título — o mês que a tela mostra, a situação. Sem ela,
+   * aparece o mês; `null` tira a linha (e o traço) de vez.
+   */
+  subtitulo?: React.ReactNode | null;
   className?: string;
 }
 
@@ -81,8 +85,8 @@ export function SectionHero({
   onMonthChange,
   showMonthSelector = false,
   rightSlot,
-  moldura = true,
-  subtitulo,
+  moldura = false,
+  subtitulo: subtituloDado,
   className = '',
 }: SectionHeroProps) {
   const currentMonthStr = getCurrentMonthStr();
@@ -96,6 +100,14 @@ export function SectionHero({
   const displayLabel = controlledLabel !== undefined
     ? controlledLabel
     : formatMonth(activeMonth);
+
+  const linha = (texto: React.ReactNode) => <span className="text-xs text-ink-soft sm:text-sm">{texto}</span>;
+  const subtitulo =
+    subtituloDado === undefined
+      ? linha(displayLabel)
+      : typeof subtituloDado === 'string'
+        ? linha(subtituloDado)
+        : subtituloDado;
 
   const handlePrev = () => {
     if (onPrevMonth) {

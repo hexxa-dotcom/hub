@@ -26,6 +26,7 @@ export default async function EditarEmpresaPage() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-up pb-20">
       <SectionHero
+        subtitulo="Dados cadastrais que aparecem nas notas e nos documentos"
         title="Editar Cadastro da Empresa"
         infoTitle="Alteração de Dados Cadastrais"
         infoDescription="Atualize a razão social, nome fantasia, CNPJ, inscrição municipal e endereço oficial da sede."

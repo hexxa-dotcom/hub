@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import {
   Users,
   FileSignature,
@@ -393,16 +394,14 @@ function ClientesTab({ initial }: { initial: Customer[] }) {
             className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs sm:text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all"
           />
         </div>
-        <SegmentedTabs
-          size="sm"
-          tabs={[
-            { id: 'todos', label: `Todos (${clientes.length})` },
-            { id: 'PJ', label: `PJ (${clientes.filter(c => c.type === 'PJ').length})` },
-            { id: 'PF', label: `PF (${clientes.filter(c => c.type === 'PF').length})` },
+        <FiltrosEmTexto
+          filtros={[
+            { id: 'todos', label: 'Todos', count: clientes.length },
+            { id: 'PJ', label: 'PJ', count: clientes.filter(c => c.type === 'PJ').length },
+            { id: 'PF', label: 'PF', count: clientes.filter(c => c.type === 'PF').length },
           ]}
-          activeTab={filter}
+          ativo={filter}
           onChange={setFilter}
-          layoutId="clientesFilterIndicator"
         />
         <button
           type="button"
@@ -934,17 +933,15 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentedTabs
-          size="sm"
-          tabs={[
-            { id: 'todas', label: `Todas (${counts.todas ?? 0})` },
-            { id: 'pendente', label: `Pendentes (${counts.pendente ?? 0})` },
-            { id: 'em_andamento', label: `Em Andamento (${counts.em_andamento ?? 0})` },
-            { id: 'concluida', label: `Concluídas (${counts.concluida ?? 0})` },
+        <FiltrosEmTexto
+          filtros={[
+            { id: 'todas', label: 'Todas', count: counts.todas ?? 0 },
+            { id: 'pendente', label: 'Pendentes', count: counts.pendente ?? 0 },
+            { id: 'em_andamento', label: 'Em andamento', count: counts.em_andamento ?? 0 },
+            { id: 'concluida', label: 'Concluídas', count: counts.concluida ?? 0 },
           ]}
-          activeTab={filter}
+          ativo={filter}
           onChange={setFilter}
-          layoutId="tarefasFilterIndicator"
         />
         <button
           type="button"
@@ -1010,25 +1007,17 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
                     </div>
                     <div>
                       <p className={`${lbl} mb-2`}>Alterar Status</p>
-                      <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
-                        {(['pendente', 'em_andamento', 'concluida'] as TarefaStatus[]).map(s => {
-                          const c = TAREFA_STATUS_CONFIG[s];
-                          return (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => changeStatus(t.id, s)}
-                              className={`tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-                                t.status === s
-                                  ? 'bg-surface text-ink shadow-(--elev-1)'
-                                  : 'text-ink-soft hover:text-ink'
-                              }`}
-                            >
-                              <c.icon className="h-3.5 w-3.5" />{c.label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <SegmentedTabs
+                        size="sm"
+                        tabs={(['pendente', 'em_andamento', 'concluida'] as TarefaStatus[]).map((st) => ({
+                          id: st,
+                          label: TAREFA_STATUS_CONFIG[st].label,
+                          icon: TAREFA_STATUS_CONFIG[st].icon,
+                        }))}
+                        activeTab={t.status}
+                        onChange={(st) => changeStatus(t.id, st)}
+                        layoutId={`tarefaStatus-${t.id}`}
+                      />
                     </div>
                     <div className="pt-2 border-t border-black/5 dark:border-white/10">
                       <button
@@ -1084,7 +1073,17 @@ export function HubRelacionamento({
     <div className="space-y-8">
       <div className="flex overflow-x-auto no-scrollbar py-1">
         <SegmentedTabs
-          tabs={TABS}
+          tabs={TABS.map((t) =>
+            // Tarefa com prazo vencido e não concluída pede ação: número na aba.
+            t.id === 'tarefas'
+              ? {
+                  ...t,
+                  badge: alertaDaAba(
+                    tarefas.filter((x) => x.status !== 'concluida' && x.prazo && x.prazo < new Date().toISOString().slice(0, 10)).length,
+                  ),
+                }
+              : t,
+          )}
           activeTab={tab}
           onChange={setTab}
           layoutId="relacionamentoTabsIndicator"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import {
   Receipt,
   Copy,
@@ -37,6 +37,7 @@ import type { Entrega } from '@/lib/server/entregas';
 import type { AsaasPayment } from '@/lib/asaas';
 import { LinhaDocumento, LinhaHonorario, situacaoDoHonorario } from './ItensDaCentral';
 import { AgendaDaCentral, type ItemDaAgenda } from './AgendaDaCentral';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -490,8 +491,7 @@ export function HubGuias({
     honorarios.filter((h) => situacaoDoHonorario(h.status) === 'OVERDUE').length +
     documentos.filter((d) => !d.visualizadoEm).length;
   const parcelasVencidas = guias.filter((g) => g.installmentGroupId && g.status === 'OVERDUE').length;
-  const contador = (n: number) =>
-    n > 0 ? <span className="rounded-full bg-red-500 px-1.5 py-0.2 text-[10px] font-bold text-white">{n}</span> : undefined;
+  const contador = alertaDaAba;
 
   const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'parcelamentos'>('guias');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -943,46 +943,30 @@ export function HubGuias({
           {/* Unified Filters Toolbar */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-1">
             {/* Filtros em texto: a página já tem um menu em pílula acima. */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              {cats.map((c) => {
-                const n =
-                  c.key === 'todas'
-                    ? guiasDoMes.length + docsDoMes.length + honDoMes.length
-                    : c.key === 'DOCUMENTOS'
-                      ? docsDoMes.length
-                      : c.key === 'HONORARIOS'
-                        ? honDoMes.length
-                        : guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length;
-                if (n === 0 && c.key !== 'todas' && catFilter !== c.key) return null;
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setCatFilter(c.key)}
-                    className={`text-xs font-semibold transition-colors ${
-                      catFilter === c.key ? 'text-ink underline decoration-2 underline-offset-8' : 'text-ink-soft hover:text-ink'
-                    }`}
-                  >
-                    {c.label} <span className="tabular opacity-60">{n}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-x-4 text-xs">
-              {statuses.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setStatusFilter(s.key)}
-                  className={`font-semibold transition-colors ${
-                    statusFilter === s.key ? 'text-ink underline decoration-2 underline-offset-8' : 'text-ink-soft hover:text-ink'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            <FiltrosEmTexto
+              filtros={cats
+                .map((c) => ({
+                  id: c.key,
+                  label: c.label,
+                  count:
+                    c.key === 'todas'
+                      ? guiasDoMes.length + docsDoMes.length + honDoMes.length
+                      : c.key === 'DOCUMENTOS'
+                        ? docsDoMes.length
+                        : c.key === 'HONORARIOS'
+                          ? honDoMes.length
+                          : guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length,
+                }))
+                // Categoria vazia some — a não ser a que está selecionada.
+                .filter((f) => f.id === 'todas' || f.count > 0 || f.id === catFilter)}
+              ativo={catFilter}
+              onChange={setCatFilter}
+            />
+            <FiltrosEmTexto
+              filtros={statuses.map((s) => ({ id: s.key, label: s.label }))}
+              ativo={statusFilter}
+              onChange={setStatusFilter}
+            />
           </div>
 
 

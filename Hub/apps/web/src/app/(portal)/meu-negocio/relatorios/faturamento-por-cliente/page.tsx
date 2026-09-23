@@ -22,6 +22,7 @@ export default async function FaturamentoPorClientePage({
   return (
     <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
       <SectionHero
+        subtitulo="Quanto cada cliente representa no seu faturamento"
         title={`Faturamento por Cliente · ${ano}`}
         infoTitle="Sobre Faturamento por Cliente"
         infoDescription="Quanto cada cliente representou no faturamento da empresa no ano fiscal selecionado."

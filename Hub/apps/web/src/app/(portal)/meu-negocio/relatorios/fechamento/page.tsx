@@ -106,6 +106,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
 
       {/* Header com botões */}
       <SectionHero
+        subtitulo="O resumo contábil do mês fechado"
         title={`Relatório de Fechamento — ${monthName}`}
         infoTitle="Sobre o Fechamento Mensal"
         infoDescription="Dados consolidados e enviados para a rotina contábil mensal."

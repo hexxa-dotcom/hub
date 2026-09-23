@@ -43,6 +43,7 @@ export default function RelatoriosHubPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-16 animate-fade-up">
       <SectionHero
+        subtitulo="Os números da empresa, prontos para ler e imprimir"
         title="Relatórios Financeiros"
         infoTitle="Sobre os Relatórios"
         infoDescription="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."

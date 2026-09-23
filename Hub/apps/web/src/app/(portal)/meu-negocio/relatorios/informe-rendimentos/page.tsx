@@ -5,6 +5,7 @@ import { Info, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { PrintButton } from './PrintButton';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,7 @@ export default async function InformeRendimentosPage({
   return (
     <div className="mx-auto max-w-3xl space-y-16 pb-10 animate-fade-up">
       <SectionHero
+        subtitulo="Lucros distribuídos e rendimentos dos sócios no ano"
         title="Lucros e Rendimentos"
         infoTitle="Sobre Lucros e Rendimentos"
         infoDescription={`Lucros distribuídos aos sócios em ${informe.ano}. O documento que o sócio usa na sua declaração de IRPF.`}
@@ -47,21 +49,14 @@ export default async function InformeRendimentosPage({
               <ArrowLeft className="h-3.5 w-3.5" /> Relatórios
             </Link>
             {informe.anosDisponiveis.length > 1 && (
-              <div className="flex gap-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
-                {informe.anosDisponiveis.map((a) => (
-                  <Link
-                    key={a}
-                    href={`/meu-negocio/relatorios/informe-rendimentos?ano=${a}` as never}
-                    className={`rounded-full px-3 py-1 text-footnote font-semibold transition-all ${
-                      a === informe.ano
-                        ? 'bg-surface text-ink shadow-(--elev-1)'
-                        : 'text-ink-soft hover:text-ink'
-                    }`}
-                  >
-                    {a}
-                  </Link>
-                ))}
-              </div>
+              <FiltrosEmTexto
+                filtros={informe.anosDisponiveis.map((a) => ({
+                  id: String(a),
+                  label: String(a),
+                  href: `/meu-negocio/relatorios/informe-rendimentos?ano=${a}`,
+                }))}
+                ativo={String(informe.ano)}
+              />
             )}
             <PrintButton />
           </div>

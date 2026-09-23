@@ -10,6 +10,7 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16">
       <SectionHero
+        subtitulo="Contrato social, alvarás, certidões e o que precisa ficar guardado"
         title="Documentos da Empresa"
         infoTitle="Sobre os Documentos da Empresa"
         infoDescription="Repositório centralizado do cartão CNPJ, contrato social, alvarás, documentos dos sócios e certidões negativas (CNDs)."

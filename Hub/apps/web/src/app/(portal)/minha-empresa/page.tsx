@@ -151,6 +151,7 @@ export default async function Page() {
     <div className="w-full space-y-8 animate-fade-up pb-20">
       {/* Top Section Hero */}
       <SectionHero
+        subtitulo="O retrato da sua empresa"
         title="Dashboard da Empresa"
         infoTitle="Sobre o Painel Corporativo"
         infoDescription="Visão executiva unificada da empresa: identidade, faturamento, governança de sócios, canais digitais e conformidade contábil."

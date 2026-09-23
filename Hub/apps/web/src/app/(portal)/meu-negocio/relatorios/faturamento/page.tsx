@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { ReportToolbar } from '../ReportToolbar';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,26 +29,20 @@ export default async function FaturamentoReportPage({
   return (
     <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
       <SectionHero
+        subtitulo="Receita bruta das notas fiscais emitidas"
         title={visao === 'mensal' ? `Faturamento Mensal · ${ano}` : 'Faturamento Anual'}
         infoTitle="Sobre o Faturamento"
         infoDescription="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
         className="print:hidden"
         rightSlot={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-1">
-              <Link
-                href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'mensal', ano } } as never}
-                className={`tap-target pressable focusable rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'mensal' ? 'bg-surface text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'}`}
-              >
-                Mensal
-              </Link>
-              <Link
-                href={{ pathname: '/meu-negocio/relatorios/faturamento', query: { visao: 'anual' } } as never}
-                className={`tap-target pressable focusable rounded-full px-4 py-1.5 text-xs font-bold transition-all ${visao === 'anual' ? 'bg-surface text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'}`}
-              >
-                Anual
-              </Link>
-            </div>
+            <FiltrosEmTexto
+              filtros={[
+                { id: 'mensal', label: 'Mensal', href: `/meu-negocio/relatorios/faturamento?visao=mensal&ano=${ano}` },
+                { id: 'anual', label: 'Anual', href: '/meu-negocio/relatorios/faturamento?visao=anual' },
+              ]}
+              ativo={visao}
+            />
             {visao === 'mensal' && (
               <form method="get" className="flex items-center gap-1.5">
                 <input type="hidden" name="visao" value="mensal" />

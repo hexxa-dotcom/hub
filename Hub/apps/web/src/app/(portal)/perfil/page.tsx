@@ -104,6 +104,7 @@ export default async function PerfilPage() {
   return (
     <div className="space-y-6">
       <SectionHero
+        subtitulo="Seus dados e seu acesso ao Hub"
         title="Meu Perfil"
         infoDescription="Gerencie seus dados pessoais, foto de identificação e consulte seus poderes e privilégios no Hexx Hub."
         showMonthSelector={false}

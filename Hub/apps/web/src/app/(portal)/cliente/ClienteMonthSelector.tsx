@@ -77,7 +77,7 @@ export function ClienteMonthSelector({
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+        <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink inline-block first-letter:uppercase tracking-tight select-none">
           <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
           <span>{displayLabel}</span>
         </div>

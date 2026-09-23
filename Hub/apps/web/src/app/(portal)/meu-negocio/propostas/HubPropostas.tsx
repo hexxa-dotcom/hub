@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import {
   Pencil,
   Copy,
@@ -268,12 +269,10 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
 
       {/* Filters + new */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentedTabs
-          tabs={statusBtns.map(s => ({ id: s.key, label: s.label }))}
-          activeTab={statusFilter}
+        <FiltrosEmTexto
+          filtros={statusBtns.map(s => ({ id: s.key, label: s.label }))}
+          ativo={statusFilter}
           onChange={setStatusFilter}
-          layoutId="propostasStatusIndicator"
-          size="sm"
         />
         <button
           type="button"

@@ -48,6 +48,7 @@ export default function OpenFinancePage() {
   return (
     <div className="space-y-16 animate-fade-up">
       <SectionHero
+        subtitulo="Suas contas bancárias conectadas ao Hub"
         title="Open Finance"
         infoTitle="Sobre Open Finance"
         infoDescription="Conexão direta com as contas bancárias da empresa para conciliação automática e extratos em tempo real."

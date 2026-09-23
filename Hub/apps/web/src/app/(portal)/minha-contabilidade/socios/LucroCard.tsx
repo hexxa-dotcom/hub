@@ -87,7 +87,7 @@ export function LucroCard() {
             <TrendingUp className="h-5 w-5 text-hexxa-lime" />
             <h2 className="font-serif font-bold text-xl text-hexxa-sand">Lucro Disponível para Distribuição</h2>
           </div>
-          <p className="mt-1 text-xs text-hexxa-lime/80 capitalize">{mesAtual}</p>
+          <p className="mt-1 text-xs text-hexxa-lime/80 inline-block first-letter:uppercase">{mesAtual}</p>
         </div>
         <div className="flex items-center gap-1">
           <button

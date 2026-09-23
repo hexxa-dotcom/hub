@@ -57,7 +57,7 @@ export function FechamentosList({ byMonth }: { byMonth: [string, ClosureRow[]][]
           return (
             <section key={monthStr} className="space-y-4">
               <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-                <h2 className="font-serif font-bold text-lg capitalize text-[#231F20] dark:text-[#F5F6F4]">{monthName}</h2>
+                <h2 className="font-serif font-bold text-lg inline-block first-letter:uppercase text-[#231F20] dark:text-[#F5F6F4]">{monthName}</h2>
                 <div className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] font-bold">
                   {list.length} cliente{list.length !== 1 ? 's' : ''} consolidado{list.length !== 1 ? 's' : ''} · Total <span className="text-[#2F4A3C] dark:text-[#DFFFAE]">{BRL.format(totalRev)}</span>
                 </div>

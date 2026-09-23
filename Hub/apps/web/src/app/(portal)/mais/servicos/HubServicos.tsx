@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card } from '@/components/ui/Card';
 import {
   Building2,
@@ -243,15 +244,13 @@ function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
             className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
           />
         </div>
-        <SegmentedTabs
-          tabs={[
+        <FiltrosEmTexto
+          filtros={[
             { id: 'todas', label: 'Todas' },
             ...categorias.map(cat => ({ id: cat, label: cat.split(' ')[0] })),
           ]}
-          activeTab={catFilter}
+          ativo={catFilter}
           onChange={setCatFilter}
-          layoutId="servicosCatIndicator"
-          size="sm"
         />
       </div>
 
@@ -487,7 +486,7 @@ export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Soli
         <SegmentedTabs
           tabs={[
             { id: 'catalogo', label: 'Catálogo de Serviços', icon: LayoutGrid },
-            { id: 'solicitacoes', label: `Minhas Solicitações${pendentes > 0 ? ` (${pendentes})` : ''}`, icon: FileText },
+            { id: 'solicitacoes', label: 'Minhas Solicitações', icon: FileText, badge: alertaDaAba(pendentes) },
           ]}
           activeTab={tab}
           onChange={setTab}

@@ -34,6 +34,7 @@ export default async function BalancoInstantaneoPage({
       `}</style>
 
       <SectionHero
+        subtitulo="Resultado e posição patrimonial do período"
         title={`Balanço e DRE — ${periodoLabel}`}
         infoTitle="Sobre Balanço e DRE"
         infoDescription="Gerado em tempo real com base nos lançamentos conciliados no sistema."
@@ -121,7 +122,7 @@ export default async function BalancoInstantaneoPage({
                     const despesasM = m.despesasOperacionais + m.prolabore + m.impostoEstimado;
                     return (
                       <tr key={m.month}>
-                        <td className="py-2.5 pr-4 capitalize text-ink font-medium">{monthLabelShort(m.month)}</td>
+                        <td className="py-2.5 pr-4 inline-block first-letter:uppercase text-ink font-medium">{monthLabelShort(m.month)}</td>
                         <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(m.receita)}</td>
                         <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(despesasM)}</td>
                         <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${m.lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -253,7 +254,7 @@ export default async function BalancoInstantaneoPage({
                 <tbody className="divide-y divide-black/5 dark:divide-white/10">
                   {monthly.map((m) => (
                     <tr key={m.month}>
-                      <td className="py-2.5 pr-4 capitalize text-ink font-medium">{monthLabelShort(m.month)}</td>
+                      <td className="py-2.5 pr-4 inline-block first-letter:uppercase text-ink font-medium">{monthLabelShort(m.month)}</td>
                       <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(m.receita)}</td>
                       <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(m.despesasOperacionais)}</td>
                       <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(m.prolabore)}</td>

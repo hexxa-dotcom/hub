@@ -43,6 +43,7 @@ export default async function Page() {
       </Suspense>
 
       <SectionHero
+        subtitulo="Bens da empresa e dos sócios, e o patrimônio de cada um"
         title="Gestão de Patrimônio & Ativos"
         infoTitle="Sobre Gestão de Patrimônio & Ativos"
         infoDescription="Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos."

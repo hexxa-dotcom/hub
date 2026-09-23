@@ -103,6 +103,7 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
   return (
     <div className="space-y-16 animate-fade-up">
       <SectionHero
+        subtitulo="Converse com a sua contabilidade"
         title="Chat de Suporte & Consultoria"
         infoTitle="Sobre Suporte & Consultoria"
         infoDescription="Canal direto de comunicação com seu time contábil e histórico unificado de chamados."

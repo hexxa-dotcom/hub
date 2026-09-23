@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import { twMerge } from 'tailwind-merge';
 import { SectionHero } from '@/components/ui/SectionHero';
@@ -925,13 +926,13 @@ function LancamentosTab({
   const isPagar = tipo === 'PAGAR';
   const label = isPagar ? 'pagar' : 'receber';
 
-  const filterBtns: { key: FilterTab | string; label: string }[] = [
-    { key: 'todos', label: `Todos (${counts.todos})` },
-    { key: 'aberto', label: `Em aberto (${counts.aberto})` },
-    { key: 'vencido', label: `Vencidos (${counts.vencido})` },
-    { key: 'pago', label: isPagar ? `Pagos (${counts.pago})` : `Recebidos (${counts.pago})` },
+  const filterBtns: { key: FilterTab | string; label: string; count?: number; badge?: number }[] = [
+    { key: 'todos', label: 'Todos', count: counts.todos },
+    { key: 'aberto', label: 'Em aberto', count: counts.aberto },
+    { key: 'vencido', label: 'Vencidos', count: counts.vencido, badge: counts.vencido || undefined },
+    { key: 'pago', label: isPagar ? 'Pagos' : 'Recebidos', count: counts.pago },
     ...(isPagar ? [
-      { key: 'fixas', label: `Despesas Fixas (${counts.fixas})` },
+      { key: 'fixas', label: 'Despesas fixas', count: counts.fixas },
       { key: 'impostos', label: `Impostos` },
       { key: 'colaboradores', label: `Colaboradores` },
     ] : [
@@ -998,22 +999,11 @@ function LancamentosTab({
 
       {/* Header com Filtros & Botões */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {filterBtns.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key as FilterTab)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-                filter === f.key
-                  ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)'
-                  : 'bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) text-ink-soft hover:text-ink'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <FiltrosEmTexto
+          filtros={filterBtns.map((f) => ({ id: f.key, label: f.label, count: f.badge ? undefined : f.count, badge: f.badge }))}
+          ativo={filter}
+          onChange={(id) => setFilter(id as FilterTab)}
+        />
         <div className="flex items-center gap-2">
           {isPagar && (
             <button
