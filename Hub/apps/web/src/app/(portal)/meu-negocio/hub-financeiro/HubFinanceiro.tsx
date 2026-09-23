@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
@@ -516,42 +517,21 @@ function MesStatCard({
   active?: boolean;
   onClick?: () => void;
 }) {
+  // O ícone fica na assinatura (quem chama ainda passa), mas não aparece:
+  // os cards seguem o CardResumo, sem ícone.
+  void Icon;
   return (
-    <button
-      type="button"
+    <CardResumo
+      rotulo={label}
+      valor={fmt(value)}
+      nota={hint}
+      tom={tone === 'warn' && value > 0 ? 'alerta' : 'padrao'}
+      ativo={active}
       onClick={onClick}
-      disabled={!onClick}
-      className={twMerge(
-        'w-full flex items-center justify-between gap-4 rounded-3xl p-5 text-left transition-all',
-        'bg-surface-card text-ink',
-        active
-          ? 'shadow-(--elev-inset) ring-2 ring-hexxa-green dark:ring-hexxa-lime'
-          : 'shadow-(--elev-1) hover:shadow-(--elev-2) cursor-pointer',
-        !onClick && 'cursor-default hover:shadow-(--elev-1)',
-      )}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div
-          className={twMerge(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors',
-            active
-              ? 'bg-hexxa-green text-surface-card dark:bg-hexxa-lime dark:text-hexxa-forest'
-              : tone === 'warn'
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                : 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime',
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-caption uppercase text-ink-soft font-bold">{label}</p>
-          <p className="truncate text-[11px] text-ink-soft opacity-75">{hint}</p>
-        </div>
-      </div>
-      <p className="font-serif text-2xl font-bold tabular shrink-0 text-ink">{fmt(value)}</p>
-    </button>
+    />
   );
 }
+
 
 
 // ── Despesas Fixas (recorrentes) ────────────────────────────────────────────
@@ -568,43 +548,16 @@ function DespesasFixasCard({ active, onClick }: { active: boolean; onClick: () =
   const total = ativos.reduce((s, i) => s + i.amount, 0);
 
   return (
-    <button
-      type="button"
+    <CardResumo
+      rotulo="Despesas fixas"
+      valor={items === null ? '—' : fmt(total)}
+      nota={items === null ? 'Carregando…' : `${ativos.length} ativa${ativos.length === 1 ? '' : 's'} · todo mês`}
+      ativo={active}
       onClick={onClick}
-      className={twMerge(
-        'w-full flex items-center justify-between gap-4 rounded-3xl p-5 text-left transition-all',
-        'bg-surface-card text-ink',
-        active
-          ? 'shadow-(--elev-inset) ring-2 ring-hexxa-green dark:ring-hexxa-lime'
-          : 'shadow-(--elev-1) hover:shadow-(--elev-2) cursor-pointer',
-      )}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div
-          className={twMerge(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors',
-            active
-              ? 'bg-hexxa-green text-surface-card dark:bg-hexxa-lime dark:text-hexxa-forest'
-              : 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime',
-          )}
-        >
-          <Repeat className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-caption uppercase text-ink-soft font-bold">
-            Despesas Fixas
-          </p>
-          <p className="truncate text-[11px] text-ink-soft opacity-75">
-            {items === null ? 'Carregando…' : `${ativos.length} ativa${ativos.length === 1 ? '' : 's'} · todo mês`}
-          </p>
-        </div>
-      </div>
-      <p className="font-serif text-2xl font-bold tabular shrink-0 text-ink">
-        {items === null ? '—' : fmt(total)}
-      </p>
-    </button>
+    />
   );
 }
+
 
 function DespesasFixasPanel({
   categorias,
@@ -944,7 +897,7 @@ function LancamentosTab({
   return (
     <div className="space-y-4">
       {isPagar ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <DespesasFixasCard
             active={filter === 'fixas'}
             onClick={() => setFilter(filter === 'fixas' ? 'todos' : 'fixas')}
@@ -968,7 +921,7 @@ function LancamentosTab({
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <MesStatCard 
             icon={Repeat} 
             label="Contratos Mensais" 
@@ -1337,136 +1290,56 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
   const totalReceberMes = receberMes.reduce((s, l) => s + l.valor, 0);
   const totalPagarMes = pagarMes.reduce((s, l) => s + l.valor, 0);
   const resultadoMes = totalReceberMes - totalPagarMes;
-  const margemPct = totalReceberMes > 0 ? Math.max(0, Math.min(100, Math.round((resultadoMes / totalReceberMes) * 100))) : 80;
+  // Sem receita não há margem — o 80% que aparecia aqui era um valor inventado.
+  const margemPct = totalReceberMes > 0 ? Math.max(0, Math.min(100, Math.round((resultadoMes / totalReceberMes) * 100))) : 0;
 
   return (
     <div className="space-y-6">
-      {/* ── Bento Row 1: 4 Metric Cards (Inspirado na Referência) ───────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: A Pagar com mini barras verticais */}
-        <button
-          type="button"
+      {/*
+        Resumo do mês no padrão do sistema (CardResumo). Os cards antigos
+        traziam "+12% previsto" e mini gráficos desenhados à mão — números e
+        curvas que não vinham de dado nenhum. Aqui só o que é real.
+      */}
+      <GradeDeResumo>
+        <CardResumo
+          destaque
+          rotulo="Resultado do mês"
+          valor={fmt(resultadoMes)}
+          nota={totalReceberMes > 0 ? `Margem de ${margemPct}% · ${resultadoMes >= 0 ? 'superávit' : 'déficit'}` : 'Sem receita no mês'}
+        />
+        <CardResumo
+          rotulo="A pagar no mês"
+          valor={fmt(totalPagarMes > 0 ? totalPagarMes : totalPagar)}
+          tom={vencidos.length > 0 ? 'negativo' : 'padrao'}
+          nota={`${vencidos.length > 0 ? `${vencidos.length} vencido${vencidos.length === 1 ? '' : 's'}` : 'Tudo em dia'} · ${data.filter((l) => l.tipo === 'PAGAR' && !l.pago_em).length} pendentes`}
           onClick={() => onNavigate('pagar')}
-          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 sm:p-6 transition-all cursor-pointer liftable flex flex-col justify-between group"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">A pagar no mês</p>
-              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-ink tabular">{fmt(totalPagarMes > 0 ? totalPagarMes : totalPagar)}</p>
-            </div>
-            {/* Mini gráfico de 5 barras verticais (idêntico à referência) */}
-            <div className="flex items-end gap-1 h-9 pt-1 shrink-0">
-              <span className="w-1.5 h-4 rounded-full bg-expense/40 group-hover:bg-expense transition-colors" />
-              <span className="w-1.5 h-7 rounded-full bg-expense/60 group-hover:bg-expense transition-colors" />
-              <span className="w-1.5 h-3 rounded-full bg-expense/40 group-hover:bg-expense transition-colors" />
-              <span className="w-1.5 h-8 rounded-full bg-expense/80 group-hover:bg-expense transition-colors" />
-              <span className="w-1.5 h-5 rounded-full bg-expense group-hover:bg-expense transition-colors" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
-            <span className="font-bold text-expense">{vencidos.length > 0 ? `${vencidos.length} vencidos` : 'Tudo em dia'}</span>
-            <span>·</span>
-            <span>{data.filter((l) => l.tipo === 'PAGAR' && !l.pago_em).length} pendentes</span>
-          </div>
-        </button>
-
-        {/* Card 2: A Receber com mini onda sparkline */}
-        <button
-          type="button"
+        />
+        <CardResumo
+          rotulo="A receber no mês"
+          valor={fmt(totalReceberMes > 0 ? totalReceberMes : totalReceber)}
+          nota={`${data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).length} a receber`}
           onClick={() => onNavigate('receber')}
-          className="text-left rounded-3xl bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-5 sm:p-6 transition-all cursor-pointer liftable flex flex-col justify-between group"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">A receber no mês</p>
-              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-ink tabular">{fmt(totalReceberMes > 0 ? totalReceberMes : totalReceber)}</p>
-            </div>
-            {/* Mini sparkline ondulada suave */}
-            <div className="w-14 h-9 flex items-center justify-end shrink-0">
-              <svg className="w-12 h-6 text-hexxa-forest dark:text-hexxa-lime group-hover:scale-105 transition-transform" viewBox="0 0 50 20" fill="none">
-                <path d="M 0 15 Q 12 5, 25 12 T 50 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
-            <span className="font-bold text-hexxa-forest dark:text-hexxa-lime">+12% previsto</span>
-            <span>·</span>
-            <span>{data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).length} a faturar</span>
-          </div>
-        </button>
-
-        {/* Card 3: Saldo Projetado */}
-        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-5 sm:p-6 flex flex-col justify-between">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-ink-soft">Saldo Líquido</p>
-              <p className={`mt-1 font-serif text-2xl sm:text-3xl font-bold tabular ${saldo >= 0 ? 'text-ink' : 'text-expense'}`}>
-                {fmt(saldo)}
-              </p>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-surface shadow-(--elev-inset) text-hexxa-forest dark:text-hexxa-lime shrink-0">
-              <Wallet className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-1.5 text-xs text-ink-soft">
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Em dia
-            </span>
-            <span>Projetado p/ o ciclo</span>
-          </div>
-        </div>
-
-        {/* Card 4: O Card Verde Floresta de Destaque (Idêntico ao 'Activity' da referência) */}
-        <Card tone="forest" level={2} className="rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden group">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-caption font-bold text-white/75 uppercase tracking-wider">Margem / Resultado</p>
-              <p className="mt-1 font-serif text-2xl sm:text-3xl font-bold text-white tabular">
-                {fmt(resultadoMes)}
-              </p>
-            </div>
-            {/* Luminous Wave Sparkline em branco/lima */}
-            <div className="w-16 h-9 flex items-center justify-end shrink-0">
-              <svg className="w-14 h-7 text-[#DFFFAE] drop-shadow-sm group-hover:scale-110 transition-transform" viewBox="0 0 60 25" fill="none">
-                <path d="M 2 18 C 15 22, 25 4, 38 12 C 48 18, 52 8, 58 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between text-xs text-white/80">
-            <span>Margem estimada: <strong className="text-[#DFFFAE] font-bold">{margemPct}%</strong></span>
-            <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">
-              {resultadoMes >= 0 ? '+ Superávit' : '- Déficit'}
-            </span>
-          </div>
-        </Card>
-      </div>
+        />
+        <CardResumo
+          rotulo="Saldo líquido"
+          valor={fmt(saldo)}
+          tom={saldo < 0 ? 'negativo' : 'padrao'}
+          nota="Receitas menos despesas do mês"
+        />
+      </GradeDeResumo>
 
       {/* ── Bento Row 2: Balance Wavy Chart + Eficiência Gauge ───────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico Ondulado Estilo 'Balance' da referência (col-span-2) */}
         <Card level={1} className="lg:col-span-2 p-6 sm:p-7 card-finish space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h2 className="font-bold text-xl text-ink">Fluxo e Projeção</h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                No plano
-              </span>
-            </div>
-            {/* Badges / Pill Tabs de métricas */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs text-ink-soft shadow-(--elev-inset)">
-                <span>Receitas:</span>
-                <strong className="text-ink font-serif tabular">{fmt(totalReceberMes)}</strong>
-                <span className="font-bold text-emerald-600 bg-emerald-500/10 rounded-full px-1.5 py-0.2 text-[10px]">+14.2%</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs text-ink-soft shadow-(--elev-inset)">
-                <span>Despesas:</span>
-                <strong className="text-ink font-serif tabular">{fmt(totalPagarMes)}</strong>
-                <span className="font-bold text-rose-600 bg-rose-500/10 rounded-full px-1.5 py-0.2 text-[10px]">-3.5%</span>
-              </div>
-            </div>
+            <h2 className="font-bold text-xl text-ink">Fluxo e Projeção</h2>
+            {/* Os percentuais e o "No plano" que ficavam aqui eram fixos no código. */}
+            <p className="text-xs text-ink-soft">
+              Receitas <strong className="font-serif tabular text-ink">{fmt(totalReceberMes)}</strong>
+              <span className="mx-2">·</span>
+              Despesas <strong className="font-serif tabular text-ink">{fmt(totalPagarMes)}</strong>
+            </p>
           </div>
 
           {/* Área com Gráfico Fluido Ondulado em SVG */}
