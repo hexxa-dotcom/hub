@@ -35,6 +35,8 @@ export interface SectionHeroProps {
    * página. É o desenho novo — as seções migram uma a uma.
    */
   moldura?: boolean;
+  /** Uma linha logo abaixo do título — situação, contexto. Ancora o título. */
+  subtitulo?: React.ReactNode;
   className?: string;
 }
 
@@ -80,6 +82,7 @@ export function SectionHero({
   showMonthSelector = false,
   rightSlot,
   moldura = true,
+  subtitulo,
   className = '',
 }: SectionHeroProps) {
   const currentMonthStr = getCurrentMonthStr();
@@ -135,15 +138,18 @@ export function SectionHero({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
         {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
-        <div className="hero-title-block flex items-center gap-3 min-w-0">
-          <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
-            {title}
-          </h1>
-          {/* Ícone de informação (i) */}
-          <SectionInfo
-            title={infoTitle || `Sobre ${title}`}
-            description={infoDescription}
-          />
+        <div className="hero-title-block min-w-0">
+          <div className="flex items-center gap-3">
+            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+              {title}
+            </h1>
+            {/* Ícone de informação (i) */}
+            <SectionInfo
+              title={infoTitle || `Sobre ${title}`}
+              description={infoDescription}
+            />
+          </div>
+          {subtitulo && <div className="mt-1.5">{subtitulo}</div>}
         </div>
 
         {/* Canto Direito: Seleção do Mês + Ícone (i) + Ações */}

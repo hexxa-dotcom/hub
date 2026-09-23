@@ -10,6 +10,7 @@ interface GuiasHeroProps {
   onNextMonth?: () => void;
   onCurrentMonth?: () => void;
   rightSlot?: React.ReactNode;
+  subtitulo?: React.ReactNode;
 }
 
 export function GuiasHero(props: GuiasHeroProps) {

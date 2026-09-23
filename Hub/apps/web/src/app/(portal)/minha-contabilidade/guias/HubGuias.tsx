@@ -483,6 +483,16 @@ export function HubGuias({
       .map((h) => ({ id: h.id, data: h.dueDate, titulo: 'Honorários da contabilidade', selo: 'Honorários', valor: h.value, situacao: situacaoDoHonorario(h.status) })),
   ];
 
+  // O que pede ação, em qualquer mês: vencido, ou documento que chegou e
+  // ainda não foi aberto. É o número que aparece na aba.
+  const atencaoGuias =
+    guias.filter((g) => !g.installmentGroupId && g.status === 'OVERDUE').length +
+    honorarios.filter((h) => situacaoDoHonorario(h.status) === 'OVERDUE').length +
+    documentos.filter((d) => !d.visualizadoEm).length;
+  const parcelasVencidas = guias.filter((g) => g.installmentGroupId && g.status === 'OVERDUE').length;
+  const contador = (n: number) =>
+    n > 0 ? <span className="rounded-full bg-red-500 px-1.5 py-0.2 text-[10px] font-bold text-white">{n}</span> : undefined;
+
   const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'parcelamentos'>('guias');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -641,6 +651,26 @@ export function HubGuias({
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
         onCurrentMonth={handleCurrentMonth}
+        subtitulo={
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
+            <span className="text-ink-soft">{monthLabel}</span>
+            <span className="text-ink-soft">·</span>
+            <button
+              type="button"
+              disabled={isOk}
+              onClick={() => setIsDismissed((v) => !v)}
+              className={`inline-flex items-center gap-1.5 font-semibold ${currentStatusConfig.prefixColor} ${isOk ? 'cursor-default' : 'hover:underline'}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${currentStatusConfig.dotClass}`} />
+              {currentStatusConfig.badgeLabel}
+            </button>
+            {!isOk && !isDismissed && (
+              <span className="animate-in fade-in text-ink-soft">
+                — <span className="font-semibold text-ink">{currentStatusConfig.headline}.</span> {currentStatusConfig.detail}
+              </span>
+            )}
+          </div>
+        }
       />
 
       {insightSlot}
@@ -648,61 +678,18 @@ export function HubGuias({
       {/* Selector de Abas Principais + Ação Primária + Informações de Status/Aviso das Guias à Direita */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/5 dark:border-white/10 pb-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
-            <button
-              type="button"
-              onClick={() => setMainTab('guias')}
-              className={`tap-target pressable focusable inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                mainTab === 'guias'
-                  ? 'bg-surface text-ink shadow-(--elev-1)'
-                  : 'text-ink-soft hover:text-ink'
-              }`}
-            >
-              <Receipt className="h-3.5 w-3.5" /> Guias e documentos
-            </button>
-            <button
-              type="button"
-              onClick={() => setMainTab('timeline')}
-              className={`tap-target pressable focusable inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                mainTab === 'timeline'
-                  ? 'bg-surface text-ink shadow-(--elev-1)'
-                  : 'text-ink-soft hover:text-ink'
-              }`}
-            >
-              <Calendar className="h-3.5 w-3.5" /> Agenda
-            </button>
-            <button
-              type="button"
-              onClick={() => setMainTab('parcelamentos')}
-              className={`tap-target pressable focusable inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                mainTab === 'parcelamentos'
-                  ? 'bg-surface text-ink shadow-(--elev-1)'
-                  : 'text-ink-soft hover:text-ink'
-              }`}
-            >
-              <Layers className="h-3.5 w-3.5" /> Parcelamentos {planos.size > 0 ? `(${planos.size})` : ''}
-            </button>
-          </div>
+          {/* Mesmo menu do Financeiro: o número vermelho na aba avisa o que pede ação. */}
+          <SegmentedTabs
+            tabs={[
+              { id: 'guias', label: 'Guias e documentos', icon: Receipt, badge: contador(atencaoGuias) },
+              { id: 'timeline', label: 'Agenda', icon: Calendar },
+              { id: 'parcelamentos', label: 'Parcelamentos', icon: Layers, badge: contador(parcelasVencidas) },
+            ]}
+            activeTab={mainTab}
+            onChange={setMainTab}
+            layoutId="guiasTabsIndicator"
+          />
 
-          {/*
-            A situação do mês, no lugar do antigo "Registrar guia" — esta é uma
-            via de mão única: a contabilidade envia, o cliente recebe e paga.
-            Texto com um ponto de cor, não pílula; clicar filtra a lista.
-          */}
-          <button
-            type="button"
-            onClick={() => {
-              if (isOk) return;
-              setStatusFilter(isOverdue ? 'OVERDUE' : 'OPEN');
-              setCatFilter('todas');
-              setMainTab('guias');
-            }}
-            title={isOk ? undefined : currentStatusConfig.headline}
-            className={`inline-flex items-center gap-2 px-1 text-xs font-semibold ${currentStatusConfig.prefixColor} ${isOk ? 'cursor-default' : 'hover:underline'}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${currentStatusConfig.dotClass}`} />
-            {currentStatusConfig.badgeLabel}
-          </button>
         </div>
 
         {/* Lado Direito: Seletor Harmônico de Mês */}
@@ -872,13 +859,11 @@ export function HubGuias({
               setStatusFilter(f);
               setCatFilter('todas');
             };
-            const seta =
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-ink-soft shadow-xs group-hover:bg-[#0E1310] group-hover:text-[#D4FF00] transition-all cursor-pointer';
             const R = 22;
             const C = 2 * Math.PI * R;
             return (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-emerald-500/20 bg-[#0A0D0B]/85 p-5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-xl sm:p-6 dark:bg-[#0A0D0B]/75">
+                <button type="button" onClick={() => filtrar('OPEN')} title="Ver o que está a pagar" className="group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-emerald-500/20 text-left transition-transform hover:scale-[1.01] bg-[#0A0D0B]/85 p-5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-xl sm:p-6 dark:bg-[#0A0D0B]/75">
                   <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl" />
                   <div className="relative z-10 flex items-start justify-between gap-2">
                     <div>
@@ -887,16 +872,14 @@ export function HubGuias({
                         {BRL.format(totalAberto)}
                       </p>
                     </div>
-                    <button type="button" onClick={() => filtrar('OPEN')} title="Ver o que está a pagar" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[#D4FF00] shadow-sm backdrop-blur-sm transition-all group-hover:bg-[#D4FF00] group-hover:text-black">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </button>
                   </div>
                   <p className="relative z-10 mt-5 text-xs text-white/70">
                     {qtdAberto === 0 ? 'Nada pendente' : plural(qtdAberto, 'item em aberto', 'itens em aberto')}
                   </p>
-                </div>
+                </button>
 
-                <Card level={1} className="group flex flex-col justify-between p-5 sm:p-6">
+                <button type="button" onClick={() => filtrar('OVERDUE')} className="block h-full text-left">
+                <Card level={1} interactive className="flex h-full flex-col justify-between p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-caption font-bold text-ink-soft">Em atraso</p>
@@ -904,29 +887,26 @@ export function HubGuias({
                         {BRL.format(totalVencido)}
                       </p>
                     </div>
-                    <button type="button" onClick={() => filtrar('OVERDUE')} title="Ver o que está em atraso" className={seta}>
-                      <ArrowUpRight className="h-4 w-4" />
-                    </button>
                   </div>
                   <p className="mt-5 text-xs text-ink-soft">
                     {qtdVencido > 0 ? `${plural(qtdVencido, 'vencido', 'vencidos')} · evite juros` : 'Nenhum atraso'}
                   </p>
                 </Card>
+                </button>
 
-                <Card level={1} className="group flex flex-col justify-between p-5 sm:p-6">
+                <button type="button" onClick={() => filtrar('PAID')} className="block h-full text-left">
+                <Card level={1} interactive className="flex h-full flex-col justify-between p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-caption font-bold text-ink-soft">Pago no mês</p>
                       <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{BRL.format(totalPago)}</p>
                     </div>
-                    <button type="button" onClick={() => filtrar('PAID')} title="Ver o que já foi pago" className={seta}>
-                      <ArrowUpRight className="h-4 w-4" />
-                    </button>
                   </div>
                   <p className="mt-5 text-xs text-ink-soft">
                     {qtdPago === 0 ? 'Nenhum pagamento ainda' : plural(qtdPago, 'pagamento', 'pagamentos')}
                   </p>
                 </Card>
+                </button>
 
                 <Card level={1} className="flex items-center gap-4 p-5 sm:p-6">
                   <svg viewBox="0 0 56 56" className="h-16 w-16 shrink-0 -rotate-90" aria-hidden>
@@ -957,47 +937,46 @@ export function HubGuias({
 
           {/* Unified Filters Toolbar */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pt-1">
-            <div className="overflow-x-auto no-scrollbar py-0.5">
-              <SegmentedTabs
-                tabs={cats.map((c) => ({
-                  id: c.key,
-                  label: `${c.label} (${
-                    c.key === 'todas'
-                      ? guiasDoMes.length + docsDoMes.length + honDoMes.length
-                      : c.key === 'DOCUMENTOS'
-                        ? docsDoMes.length
-                        : c.key === 'HONORARIOS'
-                          ? honDoMes.length
-                          : guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length
-                  })`,
-                }))}
-                activeTab={catFilter}
-                onChange={setCatFilter}
-                layoutId="guiasCatIndicator"
-                size="sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 shrink-0">
-              <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset)">
-                <span className="pl-2 pr-0.5">
-                  <Filter className="h-3 w-3 text-ink-soft" />
-                </span>
-                {statuses.map((s) => (
+            {/* Filtros em texto: a página já tem um menu em pílula acima. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {cats.map((c) => {
+                const n =
+                  c.key === 'todas'
+                    ? guiasDoMes.length + docsDoMes.length + honDoMes.length
+                    : c.key === 'DOCUMENTOS'
+                      ? docsDoMes.length
+                      : c.key === 'HONORARIOS'
+                        ? honDoMes.length
+                        : guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length;
+                if (n === 0 && c.key !== 'todas' && catFilter !== c.key) return null;
+                return (
                   <button
-                    key={s.key}
+                    key={c.key}
                     type="button"
-                    onClick={() => setStatusFilter(s.key)}
-                    className={`tap-target pressable focusable rounded-full px-3 py-1 text-xs font-bold transition-all ${
-                      statusFilter === s.key
-                        ? 'border border-black/5 dark:border-white/5 bg-surface text-ink shadow-(--elev-inset)'
-                        : 'text-ink-soft hover:text-ink'
+                    onClick={() => setCatFilter(c.key)}
+                    className={`text-xs font-semibold transition-colors ${
+                      catFilter === c.key ? 'text-ink underline decoration-2 underline-offset-8' : 'text-ink-soft hover:text-ink'
                     }`}
                   >
-                    {s.label}
+                    {c.label} <span className="tabular opacity-60">{n}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-x-4 text-xs">
+              {statuses.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setStatusFilter(s.key)}
+                  className={`font-semibold transition-colors ${
+                    statusFilter === s.key ? 'text-ink underline decoration-2 underline-offset-8' : 'text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
           </div>
 
