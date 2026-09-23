@@ -64,21 +64,21 @@ export function ClienteMonthSelector({
   };
 
   return (
-    <div className={`shrink-0 flex items-center gap-2 transition-opacity ${isPending ? 'opacity-70' : 'opacity-100'}`}>
-      <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-surface/60 backdrop-blur-md shadow-(--elev-inset)">
+    <div className={`shrink-0 flex items-center gap-1.5 transition-opacity ${isPending ? 'opacity-70' : 'opacity-100'}`}>
+      <div className="inline-flex items-center gap-1">
         <button
           type="button"
           onClick={() => handleSelectMonth(prevMonthKey)}
           disabled={!hasPrev || isPending}
           aria-label="Mês anterior"
           title="Ver mês anterior"
-          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-2 px-3 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight min-w-[140px] justify-center select-none">
-          <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+        <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+          <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
           <span>{displayLabel}</span>
         </div>
 
@@ -88,7 +88,7 @@ export function ClienteMonthSelector({
           disabled={!hasNext || isPending}
           aria-label="Próximo mês"
           title="Ver próximo mês"
-          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -100,7 +100,7 @@ export function ClienteMonthSelector({
           onClick={() => handleSelectMonth(currentMonthKey)}
           disabled={isPending}
           title="Retornar ao mês atual"
-          className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/10 bg-surface/60 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-ink shadow-(--elev-1) transition-all hover:text-hexxa-forest dark:hover:text-hexxa-lime cursor-pointer"
+          className="tap-target pressable focusable inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-hexxa-forest dark:text-hexxa-lime hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
         >
           Mês atual
         </button>

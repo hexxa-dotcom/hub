@@ -138,18 +138,18 @@ export function SectionHero({
         {/* Canto Direito: Seleção do Mês + Ícone (i) + Ações */}
         <div className="hero-actions-block flex items-center gap-2.5 sm:gap-3 shrink-0 self-start sm:self-center">
           {showMonthSelector && (
-            <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/5 dark:border-white/10 bg-surface shadow-(--elev-inset)">
+            <div className="inline-flex items-center gap-1">
               <button
                 type="button"
                 onClick={handlePrev}
                 aria-label="Mês anterior"
-                className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              <div className="flex items-center gap-2 px-3 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight min-w-[140px] justify-center">
-                <Calendar className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
+              <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink capitalize tracking-tight select-none">
+                <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
                 <span>{displayLabel}</span>
               </div>
 
@@ -157,7 +157,7 @@ export function SectionHero({
                 type="button"
                 onClick={handleNext}
                 aria-label="Próximo mês"
-                className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
