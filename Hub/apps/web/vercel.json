@@ -26,7 +26,7 @@
     },
     {
       "path": "/api/cron/escrituracao",
-      "schedule": "30 * * * *"
+      "schedule": "30 2 * * *"
     },
     {
       "path": "/api/cron/classificacao",
