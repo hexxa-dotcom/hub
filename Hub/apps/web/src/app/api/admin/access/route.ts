@@ -10,7 +10,7 @@ function allowedCNPJs(): string[] {
 
 /**
  * GET /api/admin/access — lista a allowlist de acesso admin.
- * Restrito: só responde para usuários logados (Clerk) que JÁ são admin.
+ * Restrito: só responde para usuários logados que JÁ são admin.
  */
 export async function GET() {
   const denied = await requireAdminApi();

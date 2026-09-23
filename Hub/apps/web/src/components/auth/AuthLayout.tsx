@@ -27,7 +27,7 @@ export function AuthLayout({
   return (
     // Propositalmente sem `landing.css`: reaproveitar classes dali (.landing-wrap,
     // .landing-logo etc.) fora do contexto original delas quebrou o layout e vazou
-    // estilo pro widget do Clerk. Aqui é só Tailwind + inline style, isolado.
+    // estilo pro formulário de login. Aqui é só Tailwind + inline style, isolado.
     <div
       className="font-sans min-h-screen flex flex-col justify-between relative overflow-hidden"
       style={{ backgroundColor: '#121008', color: '#F5F6F4' }}
@@ -69,7 +69,7 @@ export function AuthLayout({
           </p>
         </div>
 
-        {/* Card do Clerk */}
+        {/* Card de login */}
         <div className="w-full flex justify-center">{children}</div>
 
         {/* Link Alternativo Discreto */}

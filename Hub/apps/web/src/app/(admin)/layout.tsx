@@ -6,7 +6,7 @@ import { ContadorShell } from '@/components/contador/ContadorShell';
 import { isAdminUser } from '@/lib/server/admin-guard';
 import { createClient } from '@/lib/supabase/server';
 
-/** Área do contador: exige login (Clerk, via proxy) + e-mail na allowlist. */
+/** Área do contador: exige login (Supabase, via proxy) + e-mail na allowlist. */
 export default async function ContadorLayout({ children }: { children: React.ReactNode }) {
   if (!(await isAdminUser())) {
     redirect('/cliente?aviso=sem-acesso-contador');

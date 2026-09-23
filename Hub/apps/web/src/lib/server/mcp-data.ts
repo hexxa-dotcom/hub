@@ -122,7 +122,7 @@ export async function resolveTargetCompany(
 /**
  * Camada de dados pro servidor MCP (`/api/mcp`) e pra API REST de integração
  * externa (`/api/v1/*`) — funções que recebem `companyId` diretamente (já
- * resolvido do token de API, não da sessão do Clerk). Reaproveita as mesmas
+ * resolvido do token de API, não da sessão de login). Reaproveita as mesmas
  * consultas já usadas no dashboard e no Resumo do Mês, mas isoladas aqui pra
  * não acoplar essas rotas às páginas da UI.
  */

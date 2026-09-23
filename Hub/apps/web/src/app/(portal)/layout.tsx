@@ -7,7 +7,7 @@ import { company, appUser, membership, partner, getDb, withTenant, eq } from '@h
 
 // Toda página sob o portal depende da sessão/tenant em tempo real — nunca
 // pode ser pré-renderada estaticamente no build (o build não tem sessão do
-// Clerk nem conexão de banco garantida, e tentar gera timeout no build).
+// login nem conexão de banco garantida, e tentar gera timeout no build).
 export const dynamic = 'force-dynamic';
 
 /** Shell do portal: menu único e completo (sem distinção de tipo de empresa). */

@@ -12,8 +12,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@clerk/localizations": "^4.12.1",
-    "@clerk/nextjs": "^7.5.13",
     "@docuseal/react": "^1.0.75",
     "@google/generative-ai": "^0.24.1",
     "@hexxa/core": "*",
