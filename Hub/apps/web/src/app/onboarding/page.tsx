@@ -2,6 +2,14 @@ import { redirect } from 'next/navigation';
 import { getDb, company, eq, withDbTimeout } from '@hexxa/db';
 import { getTenantContext, modoSemLogin, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
 import { OnboardingForm } from './OnboardingForm';
+import { PassosDoOnboarding } from './PassosDoOnboarding';
+
+/** No passo 1 ainda não há empresa de onde medir o progresso: tudo começa aberto. */
+const PASSOS_DO_INICIO = [
+  { id: 'empresa' as const, href: '/onboarding', estado: 'PENDENTE' as const },
+  { id: 'fiscal' as const, href: '/onboarding/fiscal', estado: 'PENDENTE' as const },
+  { id: 'ponto-de-partida' as const, href: '/onboarding/ponto-de-partida', estado: 'PENDENTE' as const },
+];
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +27,10 @@ export default async function OnboardingPage({
   // há sessão que diga que a pessoa ainda não tem empresa.
   if (modoSemLogin() && (await searchParams).nova) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
+      <>
+        <PassosDoOnboarding passos={PASSOS_DO_INICIO} atual="empresa" />
         <OnboardingForm companyName="sua empresa" />
-      </div>
+      </>
     );
   }
 
@@ -33,9 +42,10 @@ export default async function OnboardingPage({
     if (!(err instanceof NoActiveOrganizationError)) throw err;
     // Sem nenhuma empresa vinculada ainda: pede o CNPJ direto, sem widget de terceiro.
     return (
-      <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
+      <>
+        <PassosDoOnboarding passos={PASSOS_DO_INICIO} atual="empresa" />
         <OnboardingForm companyName="sua empresa" />
-      </div>
+      </>
     );
   }
 
@@ -60,8 +70,9 @@ export default async function OnboardingPage({
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center hero-blue p-4">
+    <>
+      <PassosDoOnboarding passos={PASSOS_DO_INICIO} atual="empresa" />
       <OnboardingForm companyName={row?.name ?? 'sua empresa'} existingCompanyId={row ? ctx.companyId : undefined} />
-    </div>
+    </>
   );
 }

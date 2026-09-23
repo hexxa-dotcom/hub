@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ArrowLeft, CheckCircle, Spinner, UploadSimple, Warning, Certificate, FileCode, ChatCircleText } from '@phosphor-icons/react';
+import { CampoSenha, VoltarNoCanto } from '../CamposDoCadastro';
+import { ArrowRight, CheckCircle, Spinner, UploadSimple, Warning, Certificate, FileCode, ChatCircleText } from '@phosphor-icons/react';
 import {
   salvarFiscal,
   lerNotaEnviada,
@@ -27,11 +28,11 @@ type Dados = {
 type Caminho = 'certificado' | 'nota' | 'nunca';
 
 const cartao =
-  'rounded-3xl border border-black/5 bg-white p-6 dark:border-white/10 dark:bg-[#231F20] sm:p-8';
-const titulo = 'font-serif text-xl font-bold text-[#231F20] dark:text-[#F5F6F4]';
-const suave = 'text-sm text-[#6E6A61] dark:text-[#A8A49C]';
+  'rounded-2xl border border-black/10 bg-white p-6 sm:p-8';
+const titulo = 'text-xl font-bold text-black';
+const suave = 'text-sm text-black/60';
 const botao =
-  'inline-flex items-center justify-center gap-1.5 rounded-full bg-[#2F4A3C] px-5 py-3 text-sm font-bold text-[#DFFFAE] disabled:opacity-40 dark:bg-[#DFFFAE] dark:text-[#231F20]';
+  'inline-flex items-center justify-center gap-1.5 rounded-full bg-black px-5 py-3 text-sm font-bold text-white disabled:opacity-40';
 
 /**
  * PASSO 2: TRÊS CAMINHOS, DO MAIS FÁCIL AO QUE PRECISA DO CONTADOR.
@@ -90,21 +91,21 @@ export function FiscalOnboardingForm({ dados }: { dados: Dados }) {
             key={o.id}
             type="button"
             onClick={() => setCaminho(o.id)}
-            className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-colors hover:border-[#2F4A3C] dark:hover:border-[#DFFFAE] ${
+            className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-colors hover:border-black ${
               o.destaque
-                ? 'border-[#2F4A3C]/40 bg-[#EFFFD6]/60 dark:border-[#DFFFAE]/40 dark:bg-[#2F4A3C]/30'
-                : 'border-black/10 dark:border-white/10'
+                ? 'border-black/40 bg-black/[0.03]'
+                : 'border-black/10'
             }`}
           >
-            <span className="mt-0.5 text-[#2F4A3C] dark:text-[#DFFFAE]">{o.icone}</span>
+            <span className="mt-0.5 text-black">{o.icone}</span>
             <span className="flex-1">
-              <span className="block text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+              <span className="block text-sm font-bold text-black">
                 {o.titulo}
-                {o.destaque && <span className="ml-2 text-xs font-semibold text-[#2F4A3C] dark:text-[#DFFFAE]">mais rápido</span>}
+                {o.destaque && <span className="ml-2 text-xs font-semibold text-black">mais rápido</span>}
               </span>
-              <span className="mt-0.5 block text-xs text-[#6E6A61] dark:text-[#A8A49C]">{o.texto}</span>
+              <span className="mt-0.5 block text-xs text-black/60">{o.texto}</span>
             </span>
-            <ArrowRight className="mt-1 h-4 w-4 text-[#6E6A61]" />
+            <ArrowRight className="mt-1 h-4 w-4 text-black/60" />
           </button>
         ))}
       </div>
@@ -113,17 +114,13 @@ export function FiscalOnboardingForm({ dados }: { dados: Dados }) {
 }
 
 function Voltar({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-xs font-semibold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C]">
-      <ArrowLeft className="h-3.5 w-3.5" /> Outra forma
-    </button>
-  );
+  return <VoltarNoCanto onClick={onClick} />;
 }
 
 function Concluido({ titulo: t, detalhe }: { titulo: string; detalhe?: React.ReactNode }) {
   return (
     <div className={`${cartao} text-center`}>
-      <CheckCircle className="mx-auto mb-3 h-10 w-10 text-emerald-600" weight="fill" />
+      <CheckCircle className="mx-auto mb-3 h-10 w-10 text-black" weight="fill" />
       <h2 className={titulo}>{t}</h2>
       {detalhe && <div className={`mt-2 ${suave}`}>{detalhe}</div>}
       <Link href="/onboarding/ponto-de-partida" className={`mt-5 ${botao}`}>
@@ -170,26 +167,22 @@ function PeloCertificado({ voltar, irParaNota }: { voltar: () => void; irParaNot
           name="pfx"
           accept=".pfx,.p12"
           required
-          className="mt-5 block text-xs text-[#6E6A61] file:mr-2 file:rounded-full file:border-0 file:bg-[#EFFFD6] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2F4A3C] dark:text-[#A8A49C] dark:file:bg-[#2F4A3C] dark:file:text-[#DFFFAE]"
+          className="mt-5 block text-xs text-black/60 file:mr-2 file:rounded-full file:border-0 file:border file:border-black/15 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-black"
         />
         <label className="mt-4 block">
-          <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Senha do certificado</span>
-          <input
-            type="password"
-            name="senha"
-            required
-            autoComplete="off"
-            className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]"
-          />
+          <span className="text-sm font-bold text-black">Senha do certificado</span>
+          <div className="mt-1.5">
+            <CampoSenha id="senha" name="senha" />
+          </div>
         </label>
         {!estado.ok && estado.message && (
-          <p className="mt-4 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+          <p className="mt-4 flex items-start gap-1.5 text-xs text-black">
             <Warning className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {estado.message}
           </p>
         )}
         {certificadoSalvo && (
-          <button type="button" onClick={irParaNota} className="mt-2 text-xs font-bold text-[#2F4A3C] underline dark:text-[#DFFFAE]">
+          <button type="button" onClick={irParaNota} className="mt-2 text-xs font-bold text-black underline">
             Enviar o XML da última nota
           </button>
         )}
@@ -217,7 +210,7 @@ function PrimeiraNota({ voltar }: { voltar: () => void }) {
           Para emitir, a empresa precisa de um certificado digital e da configuração do serviço na
           prefeitura. Seu contador providencia as duas coisas — você só confirma aqui.
         </p>
-        {estado && !estado.ok && <p className="mt-4 text-xs text-red-700 dark:text-red-400">{estado.message}</p>}
+        {estado && !estado.ok && <p className="mt-4 text-xs text-black">{estado.message}</p>}
         <button
           type="button"
           disabled={pendente}
@@ -276,18 +269,18 @@ function FormularioDaNota({
   }, [leitura]);
 
   const campo =
-    'mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]';
+    'mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm';
 
   if (estado.ok && estado.message) {
     return (
-      <div className="rounded-3xl border border-black/5 bg-white p-8 text-center dark:border-white/10 dark:bg-[#231F20]">
-        <CheckCircle className="mx-auto mb-3 h-10 w-10 text-emerald-600" weight="fill" />
-        <h2 className="font-serif text-xl font-bold text-[#231F20] dark:text-[#F5F6F4]">
+      <div className="rounded-2xl border border-black/10 bg-white p-8 text-center">
+        <CheckCircle className="mx-auto mb-3 h-10 w-10 text-black" weight="fill" />
+        <h2 className="text-xl font-bold text-black">
           {estado.message}
         </h2>
         <Link
           href="/onboarding/ponto-de-partida"
-          className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#2F4A3C] px-5 py-2.5 text-sm font-bold text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#231F20]"
+          className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white"
         >
           Último passo <ArrowRight className="h-4 w-4" />
         </Link>
@@ -307,22 +300,22 @@ function FormularioDaNota({
 
     <form
       action={action}
-      className="rounded-3xl border border-black/5 bg-white p-6 dark:border-white/10 dark:bg-[#231F20] sm:p-8"
+      className="rounded-2xl border border-black/10 bg-white p-6 sm:p-8"
     >
-      <h2 className="font-serif text-xl font-bold text-[#231F20] dark:text-[#F5F6F4]">
+      <h2 className="text-xl font-bold text-black">
         Sua nota fiscal
       </h2>
-      <p className="mt-1 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
+      <p className="mt-1 text-sm text-black/60">
         Já trouxemos da Receita o CNPJ, o município{dados.cnae ? `, o CNAE ${dados.cnae}` : ''} e o
         regime{dados.optanteSimples ? ' (Simples Nacional)' : ''}. Faltam duas coisas que só a
         prefeitura sabe.
       </p>
 
-      <div className="mt-5 rounded-2xl border border-dashed border-black/15 p-4 dark:border-white/15">
-        <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+      <div className="mt-5 rounded-2xl border border-dashed border-black/15 p-4">
+        <p className="text-sm font-bold text-black">
           Tem uma nota que você já emitiu?
         </p>
-        <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+        <p className="mt-0.5 text-xs text-black/60">
           Envie o XML e eu preencho tudo daqui. Você só confere.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -331,13 +324,13 @@ function FormularioDaNota({
             name="nota"
             accept=".xml,text/xml,application/xml"
             form="ler-nota"
-            className="text-xs text-[#6E6A61] file:mr-2 file:rounded-full file:border-0 file:bg-[#EFFFD6] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-[#2F4A3C] dark:text-[#A8A49C] dark:file:bg-[#2F4A3C] dark:file:text-[#DFFFAE]"
+            className="text-xs text-black/60 file:mr-2 file:rounded-full file:border-0 file:border file:border-black/15 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-black"
           />
           <button
             type="submit"
             form="ler-nota"
             disabled={lendo}
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-bold text-[#231F20] disabled:opacity-40 dark:border-white/10 dark:text-[#F5F6F4]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-bold text-black disabled:opacity-40"
           >
             {lendo ? <Spinner className="h-3.5 w-3.5 animate-spin" /> : <UploadSimple className="h-3.5 w-3.5" />}
             Ler nota
@@ -346,7 +339,7 @@ function FormularioDaNota({
         {leitura.message && (
           <p
             className={`mt-2 text-xs ${
-              leitura.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
+              leitura.ok ? 'text-black' : 'text-black'
             }`}
           >
             {leitura.message}
@@ -358,10 +351,10 @@ function FormularioDaNota({
 
       <div className="mt-6 space-y-5">
         <label className="block">
-          <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+          <span className="text-sm font-bold text-black">
             Item da lista de serviços (LC 116)
           </span>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <p className="text-xs text-black/60">
             É o que descreve seu serviço na nota. Ex.: 17.19 para contabilidade, 4.01 para medicina,
             1.07 para suporte de TI. Está na sua nota antiga ou com a prefeitura.
           </p>
@@ -376,10 +369,10 @@ function FormularioDaNota({
         </label>
 
         <label className="block">
-          <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+          <span className="text-sm font-bold text-black">
             Alíquota de ISS do seu município
           </span>
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          <p className="text-xs text-black/60">
             Entre 2% e 5%, definida por lei municipal para o seu tipo de serviço.
           </p>
           <input
@@ -394,9 +387,9 @@ function FormularioDaNota({
         </label>
 
         <label className="block">
-          <span className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+          <span className="text-sm font-bold text-black">
             Código de tributação do município{' '}
-            <span className="font-normal text-[#6E6A61] dark:text-[#A8A49C]">— se houver</span>
+            <span className="font-normal text-black/60">— se houver</span>
           </span>
           <input
             name="codigoTributacaoMunicipio"
@@ -408,7 +401,7 @@ function FormularioDaNota({
       </div>
 
       {!estado.ok && estado.message && (
-        <p className="mt-4 flex items-start gap-1.5 text-xs text-red-700 dark:text-red-400">
+        <p className="mt-4 flex items-start gap-1.5 text-xs text-black">
           <Warning className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {estado.message}
         </p>
@@ -417,7 +410,7 @@ function FormularioDaNota({
       <button
         type="submit"
         disabled={pendente}
-        className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#2F4A3C] px-5 py-3 text-sm font-bold text-[#DFFFAE] disabled:opacity-40 dark:bg-[#DFFFAE] dark:text-[#231F20]"
+        className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-black px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
       >
         {pendente ? <Spinner className="h-4 w-4 animate-spin" /> : null}
         Continuar

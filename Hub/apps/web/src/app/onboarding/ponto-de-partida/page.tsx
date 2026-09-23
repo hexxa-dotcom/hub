@@ -13,7 +13,7 @@ export default async function Page() {
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 p-4 py-10">
+    <div>
       <PassosDoOnboarding passos={passos.passos} atual="ponto-de-partida" />
       <PontoDePartidaForm hoje={hoje} saldoAtual={atual.saldo} faturamentoAtual={atual.faturamento} />
     </div>

@@ -12,7 +12,7 @@ export default async function Page() {
   const [passos, dados] = await Promise.all([getPrimeirosPassos(ctx), lerFiscal()]);
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6 p-4 py-10">
+    <div>
       <PassosDoOnboarding passos={passos.passos} atual="fiscal" />
       <FiscalOnboardingForm dados={dados} />
     </div>
