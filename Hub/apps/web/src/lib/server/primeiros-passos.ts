@@ -58,8 +58,13 @@ export async function getPrimeirosPassos(ctx: TenantContext): Promise<PrimeirosP
             WHERE m.role = 'OWNER' AND u.cpf IS NOT NULL)::int AS responsavel,
           -- Ponto de partida: qualquer saldo de abertura já lançado.
           (SELECT count(*) FROM journal_entry j
-            WHERE j.company_id = ${ctx.companyId} AND j.source = 'OPENING')::int AS abertura
-      `)) as unknown as { empresa: number; responsavel: number; abertura: number }[];
+            WHERE j.company_id = ${ctx.companyId} AND j.source = 'OPENING')::int AS abertura,
+          -- Quem nunca emitiu nota entrega a configuração ao contador.
+          (SELECT count(*) FROM ticket t
+            WHERE t.company_id = ${ctx.companyId}
+              AND t.subject = 'Configurar a emissão de nota fiscal'
+              AND t.status NOT IN ('CLOSED', 'RESOLVED'))::int AS com_contador
+      `)) as unknown as { empresa: number; responsavel: number; abertura: number; com_contador: number }[];
       return linhas;
     }),
   ]);
@@ -89,7 +94,9 @@ export async function getPrimeirosPassos(ctx: TenantContext): Promise<PrimeirosP
       titulo: 'Sua nota fiscal',
       porque: 'Sem isto o Hub não emite nota — e é da nota que nasce seu faturamento.',
       href: '/onboarding/fiscal',
-      estado: fiscalPronto ? 'FEITO' : 'PENDENTE',
+      // Entregue ao contador conta como feito para quem está no cadastro: o
+      // que falta não depende mais da pessoa. O contador vê o chamado.
+      estado: fiscalPronto || medidas?.com_contador ? 'FEITO' : 'PENDENTE',
     },
     {
       id: 'ponto-de-partida',

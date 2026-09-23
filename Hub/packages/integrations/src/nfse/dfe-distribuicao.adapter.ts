@@ -175,6 +175,12 @@ export async function fetchDistribuicaoLote(
   const url = `${BASE_URL[ambiente]}/DFe/${ultNsu}?cnpjConsulta=${cnpjDigits}&lote=true`;
 
   const res = await httpsGetJson(agent, url);
+  // "Nenhum documento a partir deste NSU" chega como HTTP 404 (E2220). Não é
+  // falha: é o fim da fila, e acontece em toda sincronização que alcança o
+  // último documento. Tratar como erro fazia toda sincronização terminar em erro.
+  if (res.status === 404 && res.json?.StatusProcessamento === 'NENHUM_DOCUMENTO_LOCALIZADO') {
+    return { statusProcessamento: 'NENHUM_DOCUMENTO_LOCALIZADO', ultNsu, notas: [], eventos: [], erros: [] };
+  }
   if (res.status !== 200 || !res.json) {
     throw new Error(`Falha na consulta à Distribuição de DF-e: HTTP ${res.status} — ${res.text.slice(0, 500)}`);
   }
@@ -219,4 +225,29 @@ export async function fetchDistribuicaoLote(
   }
 
   return { statusProcessamento, ultNsu: maxNsu, notas, eventos, erros };
+}
+
+/**
+ * O XML inteiro de UMA nota, pelo NSU.
+ *
+ * A sincronização guarda só os valores, que é o que o faturamento precisa.
+ * Para configurar a emissão a partir de uma nota é preciso mais — alíquota,
+ * código municipal, regime —, e isso só está no XML. A distribuição devolve
+ * o que vem DEPOIS do NSU pedido, então pede-se o anterior e pega-se o item.
+ */
+export async function fetchXmlDaNotaPorNsu(
+  cert: CertMaterial,
+  ambiente: 'producao' | 'homologacao',
+  cnpjConsulta: string,
+  nsu: number,
+): Promise<string | null> {
+  const agent = buildMtlsAgent(cert);
+  const cnpjDigits = cnpjConsulta.replace(/\D/g, '');
+  const url = `${BASE_URL[ambiente]}/DFe/${Math.max(nsu - 1, 0)}?cnpjConsulta=${cnpjDigits}&lote=true`;
+  const res = await httpsGetJson(agent, url);
+  if (res.status !== 200 || !res.json) return null;
+  const lote = (res.json.LoteDFe as Array<Record<string, unknown>> | null) ?? [];
+  const item = lote.find((i) => Number(i.NSU) === nsu);
+  const b64 = item?.ArquivoXml as string | undefined;
+  return b64 ? zlib.gunzipSync(Buffer.from(b64, 'base64')).toString('utf8') : null;
 }

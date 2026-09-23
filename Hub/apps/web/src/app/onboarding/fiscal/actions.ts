@@ -2,7 +2,10 @@
 
 import { getTenantContext } from '@/lib/server/tenant';
 import { getNfseConfig, saveNfseConfig } from '@/lib/server/fiscal';
-import { lerConfigDaNfse } from '@hexxa/integrations';
+import { lerConfigDaNfse, inspecionarCertificado } from '@hexxa/integrations';
+import { withTenant, eq, and, sql } from '@hexxa/db';
+import { ticket, ticketMessage } from '@hexxa/db/schema';
+import { aplicarConfigDaNota, configurarPelaUltimaNota, type ResultadoDoPerfil } from '@/lib/server/perfil-de-servico';
 import { normalizeDocument } from '@hexxa/core/document-br';
 import { revalidatePath } from 'next/cache';
 
@@ -51,11 +54,14 @@ export async function salvarFiscal(
   }
 
   try {
-    await saveNfseConfig(ctx, {
+    const codigoTributacaoMunicipio = String(formData.get('codigoTributacaoMunicipio') ?? '').trim() || null;
+    await saveNfseConfig(ctx, { itemListaServico: item, aliquotaIss: aliquota, codigoTributacaoMunicipio });
+    // O serviço confirmado aqui vira o perfil padrão de emissão.
+    await aplicarConfigDaNota(ctx, {
       itemListaServico: item,
       aliquotaIss: aliquota,
-      codigoTributacaoMunicipio:
-        String(formData.get('codigoTributacaoMunicipio') ?? '').trim() || null,
+      codigoTributacaoMunicipio,
+      descricaoServico: String(formData.get('descricaoServico') ?? '').trim() || null,
     });
   } catch (err) {
     console.error('[onboarding/fiscal] falhou:', err);
@@ -166,3 +172,74 @@ export type EstadoDaLeitura = {
     descricaoServico: string | null;
   } | null;
 };
+
+/**
+ * Caminho 1: o certificado digital. Com ele, nada mais precisa ser enviado —
+ * o Hub busca no Emissor Nacional as notas que a empresa já emitiu e monta o
+ * perfil pela última. E o faturamento passa a chegar sozinho, todo dia.
+ */
+export async function enviarCertificado(
+  _prev: ResultadoDoPerfil,
+  formData: FormData,
+): Promise<ResultadoDoPerfil> {
+  const ctx = await getTenantContext();
+  const arquivo = formData.get('pfx');
+  const senha = String(formData.get('senha') ?? '').trim();
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { ok: false, message: 'Escolha o arquivo .pfx do certificado.' };
+  if (!/\.(pfx|p12)$/i.test(arquivo.name)) return { ok: false, message: 'O certificado é um arquivo .pfx ou .p12.' };
+  if (arquivo.size > 1024 * 1024) return { ok: false, message: 'Arquivo grande demais para um certificado.' };
+  if (!senha) return { ok: false, message: 'Informe a senha do certificado.' };
+
+  const b64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64');
+  let ficha;
+  try {
+    ficha = inspecionarCertificado(b64, senha);
+  } catch {
+    return { ok: false, message: 'Não consegui abrir o certificado. Confira a senha.' };
+  }
+  const cfg = await getNfseConfig(ctx).catch(() => null);
+  const daEmpresa = normalizeDocument(cfg?.cnpj ?? '');
+  if (ficha.cnpj && daEmpresa && ficha.cnpj !== daEmpresa) {
+    return { ok: false, message: `Este certificado é de outro CNPJ (${ficha.cnpj}). Envie o da sua empresa.` };
+  }
+  if (ficha.vencido) return { ok: false, message: `Este certificado venceu em ${ficha.validoAte}.` };
+
+  await saveNfseConfig(ctx, { certPfxB64: b64, certPassword: senha });
+  const resultado = await configurarPelaUltimaNota(ctx);
+  revalidatePath('/cliente');
+  // O certificado ficou salvo mesmo que a busca da nota falhe: a tela oferece
+  // o XML como alternativa, e o faturamento automático já passa a funcionar.
+  return resultado.ok
+    ? resultado
+    : { ...resultado, message: `Certificado salvo. ${resultado.message}` };
+}
+
+const ASSUNTO_PRIMEIRA_NOTA = 'Configurar a emissão de nota fiscal';
+
+/**
+ * Caminho 3: nunca emitiu nota. Não há de onde copiar — quem configura é o
+ * contador, que também cuida do certificado. Abre um chamado para ele, uma
+ * vez só: clicar de novo não duplica.
+ */
+export async function pedirAoContador(): Promise<{ ok: boolean; message: string }> {
+  const ctx = await getTenantContext();
+  await withTenant(ctx.companyId, async (tx) => {
+    const [aberto] = await tx
+      .select({ id: ticket.id })
+      .from(ticket)
+      .where(and(eq(ticket.companyId, ctx.companyId), eq(ticket.subject, ASSUNTO_PRIMEIRA_NOTA), sql`${ticket.status} NOT IN ('CLOSED', 'RESOLVED')`));
+    if (aberto) return;
+    const [criado] = await tx
+      .insert(ticket)
+      .values({ companyId: ctx.companyId, subject: ASSUNTO_PRIMEIRA_NOTA, category: 'FISCAL', priority: 'HIGH', status: 'OPEN' })
+      .returning({ id: ticket.id });
+    await tx.insert(ticketMessage).values({
+      ticketId: criado!.id,
+      sender: 'CLIENT',
+      body:
+        'Empresa nova, sem nota emitida. Providenciar o certificado digital e configurar a emissão (serviço, alíquota de ISS e código municipal).',
+    });
+  });
+  revalidatePath('/contador/solicitacoes');
+  return { ok: true, message: 'Tudo certo. Seu contador vai providenciar o certificado e a configuração para você emitir nota o quanto antes.' };
+}
