@@ -289,7 +289,18 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
 type CatFilter = GuiaCategoria | 'todas';
 type StatusFilter = GuiaStatus | 'todas';
 
-export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlot?: React.ReactNode }) {
+export function HubGuias({
+  initial,
+  insightSlot,
+  entregaDaGuia = {},
+}: {
+  initial: Guia[];
+  insightSlot?: React.ReactNode;
+  /** Guia → entrega com protocolo. Abrir por ela deixa a abertura registrada. */
+  entregaDaGuia?: Record<string, string>;
+}) {
+  const linkDoArquivo = (guiaId: string, arquivo: string) =>
+    entregaDaGuia[guiaId] ? `/api/documentos/${entregaDaGuia[guiaId]}` : arquivo;
   const currentMonthStr = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [guias, setGuias] = useState<Guia[]>(initial);
@@ -695,7 +706,7 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
                               {p.pixCode && <CopyBtn text={p.pixCode} />}
                               {p.fileUrl && (
                                 <a
-                                  href={p.fileUrl}
+                                  href={linkDoArquivo(p.id, p.fileUrl)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
@@ -984,7 +995,7 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
                         )}
                         {g.fileUrl && (
                           <a
-                            href={g.fileUrl}
+                            href={linkDoArquivo(g.id, g.fileUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Baixar Guia (PDF)"
@@ -1036,7 +1047,7 @@ export function HubGuias({ initial, insightSlot }: { initial: Guia[]; insightSlo
                             {g.pixCode && <CopyBtn text={g.pixCode} />}
                             {g.fileUrl && (
                               <a
-                                href={g.fileUrl}
+                                href={linkDoArquivo(g.id, g.fileUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"

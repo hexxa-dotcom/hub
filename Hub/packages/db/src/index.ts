@@ -12,3 +12,4 @@ export * as schema from './schema/index';
 export type { Database, Tables, TablesInsert, TablesUpdate, Enums, Json } from './types/database.types';
 export { Constants } from './types/database.types';
 export { sql, eq, desc, and, inArray, ilike } from 'drizzle-orm';
+export * from './entregas';

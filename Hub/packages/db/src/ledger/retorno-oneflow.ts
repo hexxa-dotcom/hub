@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { garantirEntregaDaGuia } from '../entregas';
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
 import { taxGuide, employee, payslip } from '../schema/accounting';
@@ -309,7 +310,26 @@ export async function guiaDisponivel(
 
 /* ── Guias ──────────────────────────────────────────────────────────────── */
 
+/**
+ * Importa as guias da apuração e dá protocolo às que ficaram visíveis para o
+ * cliente — ver `garantirEntregaDaGuia`.
+ */
 async function importarGuias(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+  of: ReturnType<typeof clienteOneflow>,
+  out: RetornoResult,
+): Promise<void> {
+  const antes = out.guias.length;
+  await importarGuiasDaApuracao(tx, companyId, appHash, competencia, of, out);
+  for (const g of out.guias.slice(antes)) {
+    if (g.guiaId) await garantirEntregaDaGuia(tx, companyId, g.guiaId);
+  }
+}
+
+async function importarGuiasDaApuracao(
   tx: DbHandle,
   companyId: string,
   appHash: string,

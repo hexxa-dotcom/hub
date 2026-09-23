@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getDb, eq, and, withDbTimeout } from '@hexxa/db';
 import { taxGuide } from '@hexxa/db/schema';
-import { AdminTaxGuideRepository, type NewTaxGuide, type NewInstallmentPlan } from '@hexxa/db';
+import { AdminTaxGuideRepository, criarEntrega, type NewTaxGuide, type NewInstallmentPlan } from '@hexxa/db';
 import { requireAdmin } from '@/lib/server/admin-guard';
 
 const repo = new AdminTaxGuideRepository();
@@ -16,6 +16,16 @@ export async function enviarGuiaAction(companyId: string, data: NewTaxGuide) {
   try {
     const db = getDb();
     const { id } = await withDbTimeout(repo.create(db, companyId, data), 8000);
+    // A guia lançada pelo contador também ganha protocolo e histórico.
+    await criarEntrega(db, {
+      companyId,
+      origem: 'CONTADOR',
+      tipo: 'GUIA',
+      titulo: data.taxName,
+      valor: data.amount,
+      vencimento: data.dueDate,
+      taxGuideId: id,
+    });
     revalidatePath(`/contador/clientes/${companyId}/guias`);
     revalidatePath('/minha-contabilidade/guias');
     return { success: true, id };

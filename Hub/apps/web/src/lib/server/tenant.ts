@@ -70,6 +70,12 @@ export function modoSemLogin(): boolean {
  * sempre a mais antiga do banco, que era uma empresa de teste.
  */
 export const EMPRESA_SEM_LOGIN_COOKIE = 'hexx_empresa_sem_login';
+
+/**
+ * Marca a empresa que o contador abriu pela área do contador. Enquanto ela
+ * estiver aberta, abrir um documento não conta como visualização do cliente.
+ */
+export const CONTADOR_NA_AREA_COOKIE = 'hexx_contador_na_area';
 const CNPJ_EMPRESA_PADRAO = '62.414.421/0001-16';
 
 async function getDevTenantContext(): Promise<TenantContext> {

@@ -26,6 +26,7 @@ import {
   Bell,
   Sparkles,
   Calculator,
+  FolderOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ContadorSearch } from './ContadorSearch';
@@ -41,6 +42,7 @@ function buildNavGroups(openTicketsCount: number): { label: string; items: NavIt
         { label: 'Visão geral', href: '/contador', icon: LayoutDashboard },
         { label: 'Clientes', href: '/contador/clientes', icon: Users },
         { label: 'Solicitações', href: '/contador/solicitacoes', icon: HelpCircle, badge: openTicketsCount || undefined },
+        { label: 'Documentos', href: '/contador/documentos', icon: FolderOpen },
         { label: 'Notas Fiscais', href: '/contador/notas', icon: Receipt },
         { label: 'Fechamentos', href: '/contador/fechamentos', icon: ClipboardList },
         { label: 'Revisão da IA', href: '/contador/revisao', icon: Sparkles },

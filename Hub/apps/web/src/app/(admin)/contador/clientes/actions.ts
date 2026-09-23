@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { modoSemLogin } from '@/lib/server/tenant';
+import { modoSemLogin, CONTADOR_NA_AREA_COOKIE } from '@/lib/server/tenant';
 import { gravarEmpresaSemLogin } from '@/lib/server/company-switch';
 import { habilitarClienteDoNibo } from '@/lib/server/clientes-do-nibo';
 
@@ -163,6 +163,13 @@ export async function unlinkAsaasSubscriptionAction(subscriptionId: string) {
  */
 export async function entrarNaAreaDoClienteAction(companyId: string) {
   await requireAdmin();
+  (await cookies()).set(CONTADOR_NA_AREA_COOKIE, companyId, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 8,
+    path: '/',
+  });
   if (modoSemLogin()) {
     await gravarEmpresaSemLogin(companyId);
   } else {
