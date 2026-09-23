@@ -710,8 +710,7 @@ export function HubGuias({
             </button>
 
             <div className="flex items-center gap-2 px-1.5 py-1 text-xs sm:text-sm font-bold text-ink tracking-tight select-none">
-              <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
-              <span>{monthLabel}</span>
+              <span className="inline-block first-letter:uppercase">{monthLabel}</span>
             </div>
 
             <button

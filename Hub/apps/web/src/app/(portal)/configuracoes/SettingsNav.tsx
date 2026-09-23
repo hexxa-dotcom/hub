@@ -29,7 +29,7 @@ export function SettingsNav() {
               href={item.href as any}
               className={`relative z-10 inline-flex items-center gap-2 rounded-full px-4 sm:px-5 py-2 text-xs font-bold transition-colors duration-200 shrink-0 ${
                 isActive 
-                  ? 'text-ink'
+                  ? 'segmented-active'
                   : 'segmented-idle hover:text-ink'
               }`}
             >

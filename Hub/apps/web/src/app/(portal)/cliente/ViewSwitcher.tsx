@@ -56,7 +56,7 @@ export function ViewSwitcher({ active }: { active: ViewId }) {
             href={getHref(v.id) as never}
             aria-current={isActive ? 'page' : undefined}
             className={`tap-target pressable focusable relative z-10 inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-footnote font-semibold transition-colors sm:px-5 ${
-              isActive ? 'font-semibold text-ink' : 'text-ink-soft hover:text-ink'
+              isActive ? 'font-semibold segmented-active' : 'segmented-idle hover:text-ink'
             }`}
           >
             {isActive && (

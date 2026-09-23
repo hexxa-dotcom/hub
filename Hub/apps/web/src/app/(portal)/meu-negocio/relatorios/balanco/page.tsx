@@ -43,7 +43,6 @@ export default async function BalancoInstantaneoPage({
           <div className="flex flex-wrap items-center gap-2">
             <form method="get" className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-1.5 py-1">
-                <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
                 <select name="de" defaultValue={deOrdered} className="bg-transparent px-1 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
                   {options.map((m) => (
                     <option key={m} value={m}>{monthLabel(m)}</option>

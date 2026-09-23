@@ -69,9 +69,8 @@ export function FinanceiroMonthSelector({
             onClick={() => setDropdownOpen((o) => !o)}
             className="tap-target pressable focusable flex items-center justify-between gap-1.5 px-1.5 py-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight inline-block first-letter:uppercase select-none">
-              <Calendar className="h-4 w-4 text-hexxa-forest dark:text-hexxa-lime shrink-0" />
-              <span>{monthLabel}</span>
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight select-none">
+              <span className="inline-block first-letter:uppercase">{monthLabel}</span>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-ink-soft shrink-0" />
           </button>
