@@ -8,7 +8,7 @@ export const maxDuration = 300;
  *
  * ── Por que existe ──────────────────────────────────────────────────────
  *
- * O plano Hobby da Vercel aceita só 2 crons, e o Hub tem 12 rotinas. Cortar
+ * O plano Hobby da Vercel aceita só 2 crons, e o Hub tem 13 rotinas. Cortar
  * para 2 deixou dez delas sem rodar: nada ia para o OneFlow, nada voltava,
  * nada era classificado. Em vez de escolher quais sobrevivem, os dois crons
  * chamam esta rota, cada um com um turno, e ela dispara as rotinas daquele
@@ -51,11 +51,14 @@ function diaEmSaoPaulo(): number {
 const TURNOS: Record<string, Onda[]> = {
   madrugada: [
     [
-      { caminho: 'escrituracao' },
+      // As notas do Emissor Nacional são o faturamento: chegam antes de tudo
+      // que escritura ou envia.
+      { caminho: 'dfe-sync' },
       { caminho: 'envio-nfse-oneflow' },
       { caminho: 'despesas-fixas' },
       { caminho: 'cobranca' },
     ],
+    [{ caminho: 'escrituracao' }],
     [{ caminho: 'envio-oneflow' }],
     // Segunda passada: o envio para pelo relógio antes dos 300s e retoma
     // de onde parou — o agendamento antigo também rodava duas vezes.

@@ -160,11 +160,9 @@ export async function saveNfseConfig(ctx: TenantContext, input: Partial<NfseConf
 
 /** Certificado A1: primeiro tenta env var (deploy-wide), depois banco (por tenant). */
 export async function getCertForTenant(ctx: TenantContext): Promise<CertMaterial | null> {
-  // Env var tem prioridade (configurado no Vercel secrets)
-  const envCert = getCert();
-  if (envCert) return envCert;
-
-  // Fallback: certificado salvo pelo próprio cliente no banco
+  // O certificado da própria empresa vem primeiro. O do env var é um só para
+  // o sistema inteiro: se ele ganhasse, toda empresa assinaria e consultaria
+  // o governo com o CNPJ de outra.
   try {
     const cfg = await getNfseConfig(ctx);
     if (cfg?.certPfxB64 && cfg?.certPassword) {
@@ -173,7 +171,7 @@ export async function getCertForTenant(ctx: TenantContext): Promise<CertMaterial
   } catch {
     // cert inválido ou banco indisponível
   }
-  return null;
+  return getCert();
 }
 
 /** Certificado do env var (server-only). null se ausente. */

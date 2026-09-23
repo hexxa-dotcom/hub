@@ -35,6 +35,19 @@ export async function syncDistribuicaoDfe(ctx: TenantContext): Promise<SyncDfeRe
   if (!cfg?.cnpj) {
     return { documentosNovos: 0, eventosNovos: 0, ultNsu: 0, temMaisParaSincronizar: false, erro: 'CNPJ não cadastrado no Cadastro Fiscal.' };
   }
+  // O CNPJ do cadastro fiscal tem de ser o da empresa. Se for de outra
+  // pessoa, as notas dela entrariam aqui como faturamento desta empresa.
+  const [empresa] = (await withTenant(ctx.companyId, (tx) =>
+    tx.execute(sql`SELECT cnpj FROM company WHERE id = ${ctx.companyId}`),
+  )) as unknown as { cnpj: string | null }[];
+  const soDigitos = (v: string | null | undefined) => (v ?? '').replace(/\D/g, '');
+  if (soDigitos(empresa?.cnpj) !== soDigitos(cfg.cnpj)) {
+    return {
+      documentosNovos: 0, eventosNovos: 0, ultNsu: cfg.ultNsuDistribuicao, temMaisParaSincronizar: false,
+      erro: `O CNPJ do Cadastro Fiscal (${cfg.cnpj}) não é o desta empresa (${empresa?.cnpj ?? '—'}). Corrija antes de sincronizar.`,
+    };
+  }
+
   const cert = await getCertForTenant(ctx);
   if (!cert) {
     return { documentosNovos: 0, eventosNovos: 0, ultNsu: 0, temMaisParaSincronizar: false, erro: 'Certificado A1 não configurado.' };
@@ -83,10 +96,14 @@ export async function syncDistribuicaoDfe(ctx: TenantContext): Promise<SyncDfeRe
         // é o que faz o valor contar no RBT12/Fator R (Simples Nacional) e
         // no faturamento real do módulo Financeiro.
         if (nota.direction === 'EMITIDA') {
-          const valor = nota.valorLiquido ?? nota.valorServico ?? 0;
-          const dataRef = nota.dataEmissao ? new Date(nota.dataEmissao) : new Date();
-          const dueDate = dataRef.toISOString().slice(0, 10);
-          const referenceMonth = `${dataRef.getFullYear()}-${String(dataRef.getMonth() + 1).padStart(2, '0')}-01`;
+          // Faturamento é o valor BRUTO do serviço — é sobre ele que o Simples
+          // incide. O líquido desconta retenções e subestimaria o RBT12.
+          const valor = nota.valorServico ?? nota.valorLiquido ?? 0;
+          // A data vem com o fuso de quem emitiu (`2026-09-30T23:10:00-03:00`).
+          // Ler os dígitos direto evita que o servidor em UTC empurre uma nota
+          // do último dia do mês para o mês seguinte.
+          const dueDate = nota.dataEmissao?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+          const referenceMonth = `${dueDate.slice(0, 7)}-01`;
           const descricao = `NFS-e nº ${nota.numeroNfse ?? '—'} — ${nota.tomadorNome ?? 'Cliente'} (sincronizada do Emissor Nacional)`;
 
           await tx.execute(sql`
