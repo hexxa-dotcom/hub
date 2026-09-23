@@ -119,11 +119,12 @@ export async function withTenant<T>(
   companyId: string,
   fn: (tx: DbHandle) => Promise<T>,
 ): Promise<T> {
+  const timeoutMs = process.env.NODE_ENV === 'development' ? 25000 : 15000;
   return withDbTimeout(
     getTenantDb().transaction(async (tx) => {
       await tx.execute(sql`select set_config('app.company_id', ${companyId}, true)`);
       return fn(tx as unknown as DbHandle);
     }),
-    12000,
+    timeoutMs,
   );
 }

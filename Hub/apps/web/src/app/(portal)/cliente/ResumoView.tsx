@@ -233,7 +233,10 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
   // O oficial por cima do estimado: o texto que a IA lê abaixo diz o anexo e
   // a alíquota, e eles precisam ser os da apuração, não os da conta interna.
   const simples = ctxResumo
-    ? await posicaoSimples(ctxResumo, { rbt12, folha12 })
+    ? await posicaoSimples(ctxResumo, { rbt12, folha12 }).catch((err) => {
+        console.warn('[dashboard/page] falha ao carregar posicaoSimples, usando estimativa:', err);
+        return new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+      })
     : new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
   const nextMonthLabel = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
 

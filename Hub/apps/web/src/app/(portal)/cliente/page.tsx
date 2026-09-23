@@ -96,7 +96,9 @@ export default async function ClientePage({
       </div>
 
       {active === 'resumo' ? (
-        <ResumoView selectedMonth={activeMonthKey} />
+        <Suspense key={`resumo-${activeMonthKey}`} fallback={<ViewSkeleton />}>
+          <ResumoView selectedMonth={activeMonthKey} />
+        </Suspense>
       ) : (
         /* Suspense por vista: trocar de aba mostra o esqueleto da nova em vez
            de segurar a tela inteira em branco até a consulta voltar. */
