@@ -6,10 +6,9 @@ import { getSimplesInputs, posicaoSimples } from '@/lib/server/fiscal';
 import type { TenantContext } from '@hexxa/core';
 import { withTenant, sql } from '@hexxa/db';
 import { DueDatesTimeline } from './DueDatesTimeline';
-import { CashflowForecast, type CashflowDay } from './CashflowForecast';
-import { InadimplenciaChart } from './InadimplenciaChart';
 import { MiniBarChart } from './MiniBarChart';
 import { ChunkyBarChart } from './ChunkyBarChart';
+import { HalfDonutGauge } from './HalfDonutGauge';
 import { TimeTrackerCard } from './TimeTrackerCard';
 import { Suspense } from 'react';
 import { getContextualInsight } from '@/lib/server/ai-insight';
@@ -18,7 +17,7 @@ import Link from 'next/link';
 // `/dist/ssr`, não a raiz: a entrada normal do Phosphor usa Context do React,
 // e `createContext` não existe em server component — importar da raiz aqui
 // derruba a rota com "createContext is not a function".
-import { BellSimple, ClockCountdown, HandCoins } from '@phosphor-icons/react/dist/ssr';
+import { BellSimple, HandCoins } from '@phosphor-icons/react/dist/ssr';
 
 // Isolado em Suspense pra não travar o dashboard inteiro esperando a
 // chamada de IA — o card de dica só aparece quando (e se) ficar pronto.
@@ -193,59 +192,34 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
   const totalInadimplente = recebiveisInadimplentes.reduce((s, e) => s + Number(e.amount), 0);
   const qtdInadimplentes = recebiveisInadimplentes.length;
 
-  // Faixas de atraso: o total esconde a gravidade. R$ 10 mil vencidos ontem é
-  // cobrança; os mesmos R$ 10 mil vencidos há 90 dias é perda provável.
-  const diasDeAtraso = (venc: string) =>
-    Math.floor((Date.parse(`${todayIso}T00:00:00`) - Date.parse(`${venc}T00:00:00`)) / 86_400_000);
-  const FAIXAS = [
-    { faixa: 'até 15d', ate: 15 },
-    { faixa: '16–30d', ate: 30 },
-    { faixa: '31–60d', ate: 60 },
-    { faixa: '61–90d', ate: 90 },
-    { faixa: '+90d', ate: Infinity },
-  ];
-  const atrasoPorFaixa = FAIXAS.map(({ faixa, ate }, i) => {
-    const min = i === 0 ? 0 : FAIXAS[i - 1]!.ate;
+  // Série semestral de Faturamento (Evolução do Faturamento migrada do topo)
+  const fatPorMes = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    const ref = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    const rec = entries
+      .filter((e) => e.type === 'RECEIVABLE' && e.reference_month === ref)
+      .reduce((a, e) => a + Number(e.amount), 0);
     return {
-      faixa,
-      valor: recebiveisInadimplentes
-        .filter((e) => {
-          const d = diasDeAtraso(e.due_date!);
-          return d > min && d <= ate;
-        })
-        .reduce((acc, e) => acc + Number(e.amount), 0),
+      rotulo: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+      valor: rec,
     };
   });
 
-  // Métrica Estratégica 4: Projeção de Fluxo de Caixa (14 dias)
-  const cashflowDays: CashflowDay[] = [];
-  let totalInflow14 = 0;
-  let totalOutflow14 = 0;
-  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-    const dIso = d.toISOString().slice(0, 10);
-    const dayInflow = receivables
-      .filter((e) => e.due_date === dIso && e.status !== 'CANCELED')
-      .reduce((s, e) => s + Number(e.amount), 0);
-    const dayOutflow = entries
-      .filter((e) => e.type === 'PAYABLE' && e.due_date === dIso && e.status !== 'CANCELED')
-      .reduce((s, e) => s + Number(e.amount), 0);
-
-    totalInflow14 += dayInflow;
-    totalOutflow14 += dayOutflow;
-
-    cashflowDays.push({
-      date: dIso,
-      dayLabel: dayNames[d.getDay()]!,
-      dayNumber: String(d.getDate()).padStart(2, '0'),
-      inflow: dayInflow,
-      outflow: dayOutflow,
-      net: dayInflow - dayOutflow,
-      isToday: i === 0,
-    });
-  }
+  const chunkyFatItems = fatPorMes.map((m, i) => {
+    const isCurrent = i === fatPorMes.length - 1;
+    return {
+      label: m.rotulo,
+      value: m.valor,
+      formattedValue: BRL.format(m.valor),
+      isHighlight: isCurrent,
+      pattern: isCurrent
+        ? ('solid' as const)
+        : i % 2 === 0
+        ? ('hatched' as const)
+        : ('muted' as const),
+    };
+  });
+  const margemOp = faturamentoMes > 0 ? Math.round((saldoProjetado / faturamentoMes) * 100) : 0;
 
   // Só o mês anterior, não a série inteira: o histórico de 8 meses vive no
   // Resumo do mês; aqui basta a comparação que o número do topo exibe.
@@ -406,53 +380,26 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
         </div>
       </div>
 
-      {/* 2. Inadimplência e projeção de caixa. */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card level={1} className="card-finish p-6 sm:p-7 flex flex-col justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className={`grid h-10 w-10 place-items-center rounded-full shrink-0 ${
-                totalInadimplente > 0 ? 'bg-rose-500/10 text-rose-600' : 'bg-surface shadow-(--elev-inset) text-hexxa-forest dark:text-hexxa-lime'
-              }`}>
-                <ClockCountdown className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Contas Atrasadas</p>
-                <p className={`font-serif text-2xl sm:text-3xl font-bold tabular mt-0.5 ${
-                  totalInadimplente > 0 ? 'text-expense' : 'text-ink'
-                }`}>
-                  {totalInadimplente > 0 ? BRL.format(totalInadimplente) : 'Tudo em dia'}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-ink-soft mt-3">
-              {totalInadimplente > 0
-                ? `${qtdInadimplentes} cobrança(s) em atraso neste mês.`
-                : 'Todos os clientes pagaram no prazo neste mês.'}
-            </p>
-
-            {totalInadimplente > 0 && (
-              <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5">
-                <p className="text-caption uppercase text-ink-soft">Por tempo de atraso</p>
-                <div className="mt-2 h-24">
-                  <InadimplenciaChart data={atrasoPorFaixa} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Link
-            href="/meu-negocio/contas-a-receber"
-            className="tap-target pressable focusable inline-flex items-center justify-between gap-2 border-t border-black/5 dark:border-white/5 pt-4 text-xs font-bold text-ink-soft transition-colors hover:text-ink"
-          >
-            <span>Cobrar clientes</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </Card>
-
+      {/* 2. Evolução do Faturamento & Eficiência Operacional (migradas do topo) */}
+      <div className="grid gap-6 lg:grid-cols-3 items-stretch">
         <div className="lg:col-span-2">
-          <CashflowForecast days={cashflowDays} totalInflow={totalInflow14} totalOutflow={totalOutflow14} />
+          <ChunkyBarChart
+            items={chunkyFatItems}
+            title="Evolução do Faturamento"
+            subtitle="Histórico semestral com barras espessas hachuradas"
+            height={180}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <HalfDonutGauge
+            percentage={margemOp > 0 ? margemOp : 75}
+            title="Eficiência Operacional"
+            subtitle="Margem de lucro sobre receita do mês"
+            realizadoLabel="Sobra Líquida"
+            restanteLabel="Custos / DAS"
+            margemLabel="Margem"
+            margemValue={pct(margemOp > 0 ? margemOp / 100 : 0.748)}
+          />
         </div>
       </div>
 
