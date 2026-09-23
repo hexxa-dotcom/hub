@@ -46,7 +46,7 @@ export function SegmentedTabs<T extends string = string>({
             onClick={() => onChange(tab.id)}
             className={`relative z-10 inline-flex items-center justify-center gap-2 rounded-full ${paddingCls} transition-colors duration-200 shrink-0 select-none ${
               isActive
-                ? 'text-ink'
+                ? 'segmented-active'
                 : 'segmented-idle hover:text-ink'
             }`}
           >

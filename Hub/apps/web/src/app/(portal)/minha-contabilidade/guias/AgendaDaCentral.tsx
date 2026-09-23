@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { List, CalendarDays, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 
 /**
  * A AGENDA DO MÊS: tudo o que tem data, no mesmo lugar.
@@ -62,10 +63,6 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
   const aPagar = itens.filter((i) => i.situacao === 'OPEN' || i.situacao === 'OVERDUE').reduce((s, i) => s + (i.valor ?? 0), 0);
   const pago = itens.filter((i) => i.situacao === 'PAID').reduce((s, i) => s + (i.valor ?? 0), 0);
 
-  const botao = (ativo: boolean) =>
-    `tap-target pressable inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
-      ativo ? 'bg-surface text-ink shadow-(--elev-1)' : 'text-ink-soft hover:text-ink'
-    }`;
 
   return (
     <Card level={1} className="card-finish space-y-5 p-6 sm:p-8">
@@ -78,14 +75,16 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
               : `A pagar ${BRL.format(aPagar)} · pago ${BRL.format(pago)}`}
           </p>
         </div>
-        <div className="inline-flex items-center gap-1 rounded-full border border-black/5 bg-surface-card p-1 shadow-(--elev-inset) dark:border-white/5">
-          <button type="button" onClick={() => setVisao('extrato')} className={botao(visao === 'extrato')}>
-            <List className="h-3.5 w-3.5" /> Extrato
-          </button>
-          <button type="button" onClick={() => setVisao('calendario')} className={botao(visao === 'calendario')}>
-            <CalendarDays className="h-3.5 w-3.5" /> Calendário
-          </button>
-        </div>
+        <SegmentedTabs
+          size="sm"
+          tabs={[
+            { id: 'extrato', label: 'Extrato', icon: List },
+            { id: 'calendario', label: 'Calendário', icon: CalendarDays },
+          ]}
+          activeTab={visao}
+          onChange={setVisao}
+          layoutId="agendaVisaoIndicator"
+        />
       </div>
 
       {visao === 'extrato' ? (

@@ -309,8 +309,11 @@
      O item selecionado é o branco pleno, com sombra curta. */
   --segmented-track: rgba(255, 255, 255, 0.45);
   --segmented-track-inset: inset 0 0 0 1px rgba(35, 31, 32, 0.06);
-  --segmented-thumb: #FFFFFF;
-  --segmented-thumb-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(35, 31, 32, 0.05);
+  /* Branco sobre vidro claro não se via, nem o movimento. O selecionado é o
+     quase-preto dos botões do topo, com texto claro: contraste que se lê. */
+  --segmented-thumb: #1A1F1C;
+  --segmented-thumb-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  --segmented-thumb-text: #F5F6F4;
 
   --hero-from: #CCD8CC;
   --hero-to: #C0CCC0;
@@ -932,6 +935,12 @@ h1, h2, h3, h4, h5, h6 {
 
 @utility segmented-idle {
   color: var(--color-segmented-idle, var(--color-ink-soft-val));
+}
+
+/* Texto do item selecionado: segue o tema (claro sobre a peça escura no
+   modo claro; nos demais, a tinta normal). */
+@utility segmented-active {
+  color: var(--segmented-thumb-text, var(--color-ink-val));
 }
 
 /* Peça elevada que marca a seleção. */
