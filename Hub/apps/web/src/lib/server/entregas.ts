@@ -263,7 +263,7 @@ export async function avisarPorEmail(deliveryId: string): Promise<string> {
 
   const valor = e.valor ? ` no valor de R$ ${Number(e.valor).toFixed(2).replace('.', ',')}` : '';
   const venc = e.vencimento ? `, com vencimento em ${String(e.vencimento).slice(0, 10).split('-').reverse().join('/')}` : '';
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://hexx-hub.vercel.app'}/minha-contabilidade/guias?aba=documentos`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://hexx-hub.vercel.app'}/minha-contabilidade/guias`;
 
   try {
     await nodemailer

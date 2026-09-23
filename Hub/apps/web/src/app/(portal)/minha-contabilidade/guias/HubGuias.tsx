@@ -32,6 +32,10 @@ import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
 import { Card } from '@/components/ui/Card';
 import { SectionInfo } from '@/components/ui/SectionInfo';
 import { GuiasHero } from './GuiasHero';
+import type { Entrega } from '@/lib/server/entregas';
+import type { AsaasPayment } from '@/lib/asaas';
+import { LinhaDocumento, LinhaHonorario, situacaoDoHonorario } from './ItensDaCentral';
+import { AgendaDaCentral, type ItemDaAgenda } from './AgendaDaCentral';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -286,16 +290,22 @@ function NovaGuiaForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-type CatFilter = GuiaCategoria | 'todas';
+type CatFilter = GuiaCategoria | 'todas' | 'DOCUMENTOS' | 'HONORARIOS';
 type StatusFilter = GuiaStatus | 'todas';
 
 export function HubGuias({
   initial,
   insightSlot,
   entregaDaGuia = {},
+  documentos = [],
+  honorarios = [],
 }: {
   initial: Guia[];
   insightSlot?: React.ReactNode;
+  /** Documentos do contador que não são guia (as guias já estão em `initial`). */
+  documentos?: Entrega[];
+  /** Cobranças de honorários do Asaas, com boleto e Pix. */
+  honorarios?: AsaasPayment[];
   /** Guia → entrega com protocolo. Abrir por ela deixa a abertura registrada. */
   entregaDaGuia?: Record<string, string>;
 }) {
@@ -329,13 +339,43 @@ export function HubGuias({
       (statusFilter === 'todas' || g.status === statusFilter),
   );
 
+  // Documentos e honorários entram na mesma lista das guias: separar em abas
+  // era arriscar o cliente nunca abrir a aba onde estava o boleto.
+  const noMes = (iso: string | null | undefined) => selectedMonth === 'all' || (iso ?? '').slice(0, 7) === selectedMonth;
+  const docsDoMes = documentos.filter((d) => noMes(d.vencimento ?? d.enviadoEm));
+  const honDoMes = honorarios.filter((h) => noMes(h.dueDate));
+
+  type Item =
+    | { kind: 'guia'; id: string; data: string; guia: Guia }
+    | { kind: 'documento'; id: string; data: string; doc: Entrega }
+    | { kind: 'honorario'; id: string; data: string; hon: AsaasPayment };
+  const itens: Item[] = [
+    ...filtered.map((g) => ({ kind: 'guia' as const, id: g.id, data: g.dueDate, guia: g })),
+    ...(catFilter === 'todas' || catFilter === 'DOCUMENTOS'
+      ? docsDoMes
+          // Documento não tem "pago": só aparece sem filtro de situação.
+          .filter(() => statusFilter === 'todas')
+          .map((d) => ({ kind: 'documento' as const, id: d.id, data: d.enviadoEm.slice(0, 10), doc: d }))
+      : []),
+    ...(catFilter === 'todas' || catFilter === 'HONORARIOS'
+      ? honDoMes
+          .filter((h) => statusFilter === 'todas' || situacaoDoHonorario(h.status) === statusFilter)
+          .map((h) => ({ kind: 'honorario' as const, id: h.id, data: h.dueDate, hon: h }))
+      : []),
+  ].sort((a, b) => b.data.localeCompare(a.data));
+
+  const honAbertos = honDoMes.filter((h) => situacaoDoHonorario(h.status) !== 'PAID');
+  const honVencidos = honDoMes.filter((h) => situacaoDoHonorario(h.status) === 'OVERDUE');
+  const honPagos = honDoMes.filter((h) => situacaoDoHonorario(h.status) === 'PAID');
+  const soma = (l: AsaasPayment[]) => l.reduce((s, h) => s + h.value, 0);
+
   const pendentes = guiasDoMes.filter((g) => g.status === 'OPEN');
   const vencidas = guiasDoMes.filter((g) => g.status === 'OVERDUE');
   const pagas = guiasDoMes.filter((g) => g.status === 'PAID');
 
-  const totalAberto = [...pendentes, ...vencidas].reduce((s, g) => s + g.amount, 0);
-  const totalVencido = vencidas.reduce((s, g) => s + g.amount, 0);
-  const totalPago = pagas.reduce((s, g) => s + g.amount, 0);
+  const totalAberto = [...pendentes, ...vencidas].reduce((s, g) => s + g.amount, 0) + soma(honAbertos);
+  const totalVencido = vencidas.reduce((s, g) => s + g.amount, 0) + soma(honVencidos);
+  const totalPago = pagas.reduce((s, g) => s + g.amount, 0) + soma(honPagos);
 
   const monthLabel = getMonthLabel(selectedMonth);
   const isCurrentMonth = selectedMonth === currentMonthStr;
@@ -410,6 +450,8 @@ export function HubGuias({
     { key: 'ISS', label: 'ISS' },
     { key: 'FGTS', label: 'FGTS' },
     { key: 'DIVERSA', label: 'Diversas' },
+    { key: 'DOCUMENTOS', label: 'Documentos' },
+    { key: 'HONORARIOS', label: 'Honorários' },
   ];
 
   const statuses: { key: StatusFilter; label: string }[] = [
@@ -417,6 +459,27 @@ export function HubGuias({
     { key: 'OPEN', label: 'Pendentes' },
     { key: 'OVERDUE', label: 'Em atraso' },
     { key: 'PAID', label: 'Pagas' },
+  ];
+
+  // A agenda mostra o mês inteiro, parcelas incluídas, sem os filtros da lista.
+  const mesDaAgenda = selectedMonth === 'all' ? currentMonthStr : selectedMonth;
+  const itensDaAgenda: ItemDaAgenda[] = [
+    ...guias
+      .filter((g) => g.dueDate.slice(0, 7) === mesDaAgenda)
+      .map((g) => ({
+        id: g.id,
+        data: g.dueDate,
+        titulo: g.installmentNumber ? `${g.taxName}` : g.taxName,
+        selo: g.installmentGroupId ? 'Parcelamento' : CAT_CONFIG[categoriaDe(g.taxName)].label,
+        valor: g.amount,
+        situacao: g.status,
+      })),
+    ...documentos
+      .filter((d) => d.enviadoEm.slice(0, 7) === mesDaAgenda)
+      .map((d) => ({ id: d.id, data: d.enviadoEm.slice(0, 10), titulo: d.titulo, selo: `Documento · ${d.protocolo}`, valor: d.valor, situacao: 'DOC' as const })),
+    ...honorarios
+      .filter((h) => h.dueDate.slice(0, 7) === mesDaAgenda)
+      .map((h) => ({ id: h.id, data: h.dueDate, titulo: 'Honorários da contabilidade', selo: 'Honorários', valor: h.value, situacao: situacaoDoHonorario(h.status) })),
   ];
 
   const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'parcelamentos'>('guias');
@@ -430,6 +493,149 @@ export function HubGuias({
     planos.set(g.installmentGroupId, arr);
   }
 
+  const renderGuia = (g: Guia) => {
+    const categoria = categoriaDe(g.taxName);
+    const cat = CAT_CONFIG[categoria];
+    const st = STATUS_CONFIG[g.status];
+    const StatusIcon = st.icon;
+    const isExp = expanded === g.id;
+    const competencia = fmtCompetencia(g.referenceMonth);
+    return (
+      <div key={g.id}>
+        <button
+          type="button"
+          onClick={() => setExpanded(isExp ? null : g.id)}
+          className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+        >
+          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${cat.cls}`}>{cat.label}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-ink">{g.taxName}</p>
+            <p className="text-xs text-ink-soft">Competência: {competencia}</p>
+          </div>
+          <div className="w-28 shrink-0 text-right">
+            <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(g.amount)}</p>
+            <p className={`text-[11px] sm:text-xs ${vencClass(g.dueDate, g.status)}`}>
+              <Calendar className="mr-1 inline h-3 w-3" />
+              {g.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(g.dueDate)}`}
+            </p>
+          </div>
+          <span className="hidden w-28 shrink-0 justify-center sm:inline-flex">
+            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>
+              <StatusIcon className="h-3 w-3" />
+              {st.label}
+            </span>
+          </span>
+
+          {/* Ações Rápidas direto na linha (1 clique para Pix ou Baixar) — largura
+              fixa, igual nas linhas de documento e honorários, para as colunas
+              de valor e situação ficarem alinhadas na lista inteira. */}
+          <div className="flex shrink-0 items-center justify-end gap-1.5 sm:w-52" onClick={(e) => e.stopPropagation()}>
+            {g.status !== 'PAID' && g.pixCode && (
+              <button
+                type="button"
+                title="Copiar Pix Copia e Cola"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(g.pixCode!);
+                  setCopiedId(g.id);
+                  setTimeout(() => setCopiedId(null), 2000);
+                }}
+                className={`tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                  copiedId === g.id
+                    ? 'bg-emerald-600 text-white shadow-(--elev-1)'
+                    : 'bg-hexxa-forest/10 hover:bg-hexxa-forest hover:text-hexxa-lime text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime dark:hover:text-[#1E3328] dark:text-hexxa-lime'
+                }`}
+              >
+                {copiedId === g.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                <span className="hidden md:inline">{copiedId === g.id ? 'Copiado!' : 'Pix'}</span>
+              </button>
+            )}
+            {g.fileUrl && (
+              <a
+                href={linkDoArquivo(g.id, g.fileUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Baixar Guia (PDF)"
+                onClick={(e) => e.stopPropagation()}
+                className="tap-target pressable focusable inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/5 dark:border-white/10 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+
+          <div className="shrink-0 p-1 text-ink-soft group-hover:text-ink transition-colors">
+            {isExp ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </div>
+        </button>
+
+        {isExp && (
+          <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
+            <div className="grid gap-3 sm:grid-cols-3 text-sm">
+              <div>
+                <p className={lbl}>Valor da Guia</p>
+                <p className="font-serif tabular font-bold text-base text-ink">{BRL.format(g.amount)}</p>
+              </div>
+              <div>
+                <p className={lbl}>Vencimento</p>
+                <p className={`font-bold ${vencClass(g.dueDate, g.status)}`}>{fmtDate(g.dueDate)}</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {/*
+                Guia sem Pix e sem arquivo existe de verdade: a
+                importação do OneFlow traz o VALOR apurado antes de
+                o arquivo da guia ficar pronto lá. Sem esta linha o
+                cliente vê a cobrança, não vê como pagar, e a única
+                coisa clicável é "Marcar como Paga" — que o levaria
+                a marcar como paga uma guia que ele não pagou.
+              */}
+              {!g.pixCode && !g.fileUrl && g.status !== 'PAID' && (
+                <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                  Valor já apurado pela contabilidade. O arquivo para pagamento ainda
+                  não foi liberado — assim que ele sair, o Pix e o PDF aparecem aqui.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {g.pixCode && <CopyBtn text={g.pixCode} />}
+                {g.fileUrl && (
+                  <a
+                    href={linkDoArquivo(g.id, g.fileUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Baixar Guia
+                  </a>
+                )}
+                {g.status !== 'PAID' && (
+                  <button
+                    type="button"
+                    onClick={() => markPaid(g.id)}
+                    className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 px-4 py-2 text-xs font-bold hover:bg-emerald-500/25 transition-colors"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
+                  </button>
+                )}
+              </div>
+              {categoria === 'DAS' &&
+                (cnpjMei ? (
+                  <EmitirDasBtn competencia={competencia} cnpj={cnpjMei} />
+                ) : (
+                  <p className="text-xs text-ink-soft">
+                    Configure o CNPJ acima para emitir o DAS diretamente por aqui.
+                  </p>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <div className="space-y-16">
       {/* Hero Card da Central de Guias com Título e Seletor Harmônico de Mês */}
@@ -501,7 +707,7 @@ export function HubGuias({
                   : 'text-ink-soft hover:text-ink'
               }`}
             >
-              <Receipt className="h-3.5 w-3.5" /> Guias & Impostos
+              <Receipt className="h-3.5 w-3.5" /> Guias e documentos
             </button>
             <button
               type="button"
@@ -512,7 +718,7 @@ export function HubGuias({
                   : 'text-ink-soft hover:text-ink'
               }`}
             >
-              <Calendar className="h-3.5 w-3.5" /> Linha do Tempo & Alertas
+              <Calendar className="h-3.5 w-3.5" /> Agenda
             </button>
             <button
               type="button"
@@ -577,66 +783,12 @@ export function HubGuias({
       </div>
 
       {mainTab === 'timeline' && (
-        <div className="space-y-4 animate-in fade-in">
-          <Card level={1} className="p-6 sm:p-8 space-y-5 card-finish">
-            <h2 className="font-serif font-bold text-xl text-ink flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
-              Linha do Tempo das Obrigações do Mês
-            </h2>
-            <p className="text-xs sm:text-sm text-ink-soft">
-              Acompanhe o cronograma exato de vencimentos e obrigações fiscais para evitar multas e juros.
-            </p>
-
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-black/10 dark:before:bg-white/10">
-              <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-4 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Dia 07 do Mês</span>
-                    <span className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold">
-                      Concluído
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-ink">Pagamento de FGTS & Pró-labore</p>
-                  <p className="text-xs text-ink-soft">
-                    Recolhimento do FGTS dos funcionários e retenção do pró-labore dos sócios.
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-amber-500 ring-4 ring-amber-500/20" />
-                <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-4 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Dia 20 do Mês (Próximo Vencimento)</span>
-                    <span className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold">
-                      Aguardando Pagamento
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-ink">Guia Unificada do Simples Nacional (DAS)</p>
-                  <p className="text-xs text-ink-soft">
-                    Imposto mensal apurado sobre o faturamento do mês anterior. Confira a alíquota na Bússola Tributária.
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-hexxa-forest/60 dark:bg-hexxa-lime/60 ring-4 ring-hexxa-forest/15 dark:ring-hexxa-lime/15" />
-                <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) p-4 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">Dia 30 do Mês</span>
-                    <span className="rounded-full bg-black/5 dark:bg-white/10 text-ink-soft px-2.5 py-0.5 text-[10px] font-bold">
-                      Agendado
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-ink">Fechamento Contábil & Envio de Extratos</p>
-                  <p className="text-xs text-ink-soft">
-                    Consolidação automática das notas fiscais emitidas e despesas para apuração contábil.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
+        <div className="animate-in fade-in">
+          <AgendaDaCentral
+            itens={itensDaAgenda}
+            mes={selectedMonth === 'all' ? currentMonthStr : selectedMonth}
+            rotuloDoMes={getMonthLabel(selectedMonth === 'all' ? currentMonthStr : selectedMonth)}
+          />
         </div>
       )}
 
@@ -829,7 +981,15 @@ export function HubGuias({
               <SegmentedTabs
                 tabs={cats.map((c) => ({
                   id: c.key,
-                  label: `${c.label} ${c.key !== 'todas' ? `(${guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length})` : `(${guiasDoMes.length})`}`,
+                  label: `${c.label} (${
+                    c.key === 'todas'
+                      ? guiasDoMes.length + docsDoMes.length + honDoMes.length
+                      : c.key === 'DOCUMENTOS'
+                        ? docsDoMes.length
+                        : c.key === 'HONORARIOS'
+                          ? honDoMes.length
+                          : guiasDoMes.filter((g) => categoriaDe(g.taxName) === c.key).length
+                  })`,
                 }))}
                 activeTab={catFilter}
                 onChange={setCatFilter}
@@ -906,7 +1066,7 @@ export function HubGuias({
           )}
 
           {/* Guide list */}
-          {filtered.length === 0 ? (
+          {itens.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
               <Receipt className="h-10 w-10 opacity-30" />
               <p className="text-sm">
@@ -940,145 +1100,13 @@ export function HubGuias({
             </div>
           ) : (
             <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
-              {filtered.map((g) => {
-                const categoria = categoriaDe(g.taxName);
-                const cat = CAT_CONFIG[categoria];
-                const st = STATUS_CONFIG[g.status];
-                const StatusIcon = st.icon;
-                const isExp = expanded === g.id;
-                const competencia = fmtCompetencia(g.referenceMonth);
-                return (
-                  <div key={g.id}>
-                    <button
-                      type="button"
-                      onClick={() => setExpanded(isExp ? null : g.id)}
-                      className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                    >
-                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${cat.cls}`}>{cat.label}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-ink">{g.taxName}</p>
-                        <p className="text-xs text-ink-soft">Competência: {competencia}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(g.amount)}</p>
-                        <p className={`text-[11px] sm:text-xs ${vencClass(g.dueDate, g.status)}`}>
-                          <Calendar className="mr-1 inline h-3 w-3" />
-                          {g.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(g.dueDate)}`}
-                        </p>
-                      </div>
-                      <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
-                        <StatusIcon className="h-3 w-3" />
-                        {st.label}
-                      </span>
-
-                      {/* Ações Rápidas direto na linha (1 clique para Pix ou Baixar) */}
-                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        {g.status !== 'PAID' && g.pixCode && (
-                          <button
-                            type="button"
-                            title="Copiar Pix Copia e Cola"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigator.clipboard.writeText(g.pixCode!);
-                              setCopiedId(g.id);
-                              setTimeout(() => setCopiedId(null), 2000);
-                            }}
-                            className={`tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                              copiedId === g.id
-                                ? 'bg-emerald-600 text-white shadow-(--elev-1)'
-                                : 'bg-hexxa-forest/10 hover:bg-hexxa-forest hover:text-hexxa-lime text-hexxa-forest dark:bg-hexxa-lime/15 dark:hover:bg-hexxa-lime dark:hover:text-[#1E3328] dark:text-hexxa-lime'
-                            }`}
-                          >
-                            {copiedId === g.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                            <span className="hidden md:inline">{copiedId === g.id ? 'Copiado!' : 'Pix'}</span>
-                          </button>
-                        )}
-                        {g.fileUrl && (
-                          <a
-                            href={linkDoArquivo(g.id, g.fileUrl)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Baixar Guia (PDF)"
-                            onClick={(e) => e.stopPropagation()}
-                            className="tap-target pressable focusable inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/5 dark:border-white/10 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </div>
-
-                      <div className="shrink-0 p-1 text-ink-soft group-hover:text-ink transition-colors">
-                        {isExp ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </div>
-                    </button>
-
-                    {isExp && (
-                      <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
-                        <div className="grid gap-3 sm:grid-cols-3 text-sm">
-                          <div>
-                            <p className={lbl}>Valor da Guia</p>
-                            <p className="font-serif tabular font-bold text-base text-ink">{BRL.format(g.amount)}</p>
-                          </div>
-                          <div>
-                            <p className={lbl}>Vencimento</p>
-                            <p className={`font-bold ${vencClass(g.dueDate, g.status)}`}>{fmtDate(g.dueDate)}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {/*
-                            Guia sem Pix e sem arquivo existe de verdade: a
-                            importação do OneFlow traz o VALOR apurado antes de
-                            o arquivo da guia ficar pronto lá. Sem esta linha o
-                            cliente vê a cobrança, não vê como pagar, e a única
-                            coisa clicável é "Marcar como Paga" — que o levaria
-                            a marcar como paga uma guia que ele não pagou.
-                          */}
-                          {!g.pixCode && !g.fileUrl && g.status !== 'PAID' && (
-                            <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 text-xs font-medium text-amber-800 dark:text-amber-300">
-                              Valor já apurado pela contabilidade. O arquivo para pagamento ainda
-                              não foi liberado — assim que ele sair, o Pix e o PDF aparecem aqui.
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-2">
-                            {g.pixCode && <CopyBtn text={g.pixCode} />}
-                            {g.fileUrl && (
-                              <a
-                                href={linkDoArquivo(g.id, g.fileUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-                              >
-                                <Download className="h-3.5 w-3.5" /> Baixar Guia
-                              </a>
-                            )}
-                            {g.status !== 'PAID' && (
-                              <button
-                                type="button"
-                                onClick={() => markPaid(g.id)}
-                                className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 px-4 py-2 text-xs font-bold hover:bg-emerald-500/25 transition-colors"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
-                              </button>
-                            )}
-                          </div>
-                          {categoria === 'DAS' &&
-                            (cnpjMei ? (
-                              <EmitirDasBtn competencia={competencia} cnpj={cnpjMei} />
-                            ) : (
-                              <p className="text-xs text-ink-soft">
-                                Configure o CNPJ acima para emitir o DAS diretamente por aqui.
-                              </p>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {itens.map((it) =>
+                it.kind === 'guia' ? renderGuia(it.guia) : it.kind === 'documento' ? (
+                  <LinhaDocumento key={it.id} doc={it.doc} />
+                ) : (
+                  <LinhaHonorario key={it.id} hon={it.hon} />
+                ),
+              )}
             </div>
           )}
         </>
