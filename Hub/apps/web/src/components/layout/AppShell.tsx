@@ -437,10 +437,10 @@ function AppShellInner({
         <motion.aside
           initial={false}
           animate={{
-            // O espaço que a barra ocupa na página: só muda ao fixar/desafixar.
-            // Aberta pelo mouse, ela passa POR CIMA do conteúdo (painel abaixo)
-            // — antes empurrava a página e desmontava o layout a cada passada.
-            width: isFocusMode ? (focusPinned ? 264 : 0) : isPinned ? 264 : 72,
+            width: isFocusMode
+              ? (isCollapsed ? 0 : 264)
+              : (isCollapsed ? 72 : 264),
+            opacity: isFocusMode && isCollapsed ? 0 : 1,
           }}
           transition={{
             type: 'spring',
@@ -448,26 +448,13 @@ function AppShellInner({
             damping: 34,
             mass: 0.6,
           }}
-          className="relative z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex"
+          style={{ overflow: 'hidden' }}
+          className={`z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex ${
+            isFocusMode && isCollapsed ? 'pointer-events-none' : ''
+          }`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          <motion.div
-            initial={false}
-            animate={{
-              width: isFocusMode ? (isCollapsed ? 0 : 264) : isCollapsed ? 72 : 264,
-              opacity: isFocusMode && isCollapsed ? 0 : 1,
-            }}
-            transition={{ type: 'spring', stiffness: 350, damping: 34, mass: 0.6 }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`absolute inset-y-0 left-0 overflow-hidden transition-[background-color,box-shadow] duration-200 ${
-              isFocusMode && isCollapsed ? 'pointer-events-none' : ''
-            } ${
-              // Aberta sem estar fixada: flutua sobre a página, em vidro.
-              !isCollapsed && !(isFocusMode ? focusPinned : isPinned)
-                ? 'bg-[#F2F4F0] shadow-(--elev-3) dark:bg-[#151916]'
-                : ''
-            }`}
-          >
           {/* Container interno de largura fixa (264px) para eliminar reflow durante o spring */}
           <div className="flex h-full w-[264px] flex-col shrink-0 overflow-hidden">
             {/* Header / Brand & Company */}
@@ -567,13 +554,13 @@ function AppShellInner({
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
                               weight="duotone"
-                              className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
                             />
                           </div>
                           <span
-                            className={`flex-1 text-left truncate text-sm font-semibold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
                               isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                             }`}
                           >
@@ -616,13 +603,13 @@ function AppShellInner({
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
                               weight="duotone"
-                              className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
                             />
                           </div>
                           <span
-                            className={`flex-1 text-left truncate text-sm font-semibold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
                               isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                             }`}
                           >
@@ -666,7 +653,6 @@ function AppShellInner({
               </div>
             </div>
           </div>
-          </motion.div>
         </motion.aside>
 
         {/* Painel de conteúdo: Header + Main */}
