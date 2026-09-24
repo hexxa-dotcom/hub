@@ -35,6 +35,13 @@ export async function ExtratoConteudo() {
         />
       </div>
 
+      {/* Enquanto não há Open Finance: o extrato sobe à mão (ao lado), e a
+          conexão direta com o banco é o próximo passo. */}
+      <p className="text-xs text-ink-soft">
+        Conexão direta com o banco (Open Finance) em breve — o extrato vai chegar sozinho todo dia. Por enquanto, suba o arquivo do banco
+        (OFX ou CSV) no cartão acima.
+      </p>
+
       {/* 3. Área de Conciliação e Categorização (com agrupamento por categoria em acordeom) */}
       <ConciliacaoClient
         transactions={data.transactions}

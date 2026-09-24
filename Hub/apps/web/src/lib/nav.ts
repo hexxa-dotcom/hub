@@ -55,10 +55,10 @@ export const NAV: NavSection[] = [
       // pelos cards do Início), só saíram do menu lateral.
       { label: 'Meu mês', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
-      // Sem adaptador ainda: a porta existe, nenhum implementador. O item fica
-      // visível com o selo para o empresário saber que a lacuna tem solução
-      // prevista, em vez de descobrir sozinho que o extrato não chega.
-      { label: 'Open Finance', href: '/meu-negocio/open-finance', badge: 'Em breve' },
+      // Open Finance saiu do menu (2026-09-24): não há provedor contratado. O
+      // aviso "conexão com o banco em breve" fica na aba Extrato do Meu mês,
+      // ao lado do subir extrato, que é o caminho que funciona hoje. A página
+      // /meu-negocio/open-finance continua existindo para quando voltar.
       { label: 'Relatórios', href: '/meu-negocio/relatorios' },
     ],
   },
