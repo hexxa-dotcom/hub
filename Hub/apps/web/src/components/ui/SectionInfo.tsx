@@ -7,10 +7,11 @@ interface SectionInfoProps {
   title?: string;
   description: React.ReactNode;
   className?: string;
+  /** Sem efeito: o cartão agora abre sempre abaixo, à direita. */
   variant?: 'inline' | 'floating';
 }
 
-export function SectionInfo({ title = 'Sobre esta seção', description, className = '', variant = 'inline' }: SectionInfoProps) {
+export function SectionInfo({ title = 'Sobre esta seção', description, className = '' }: SectionInfoProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,42 +72,32 @@ export function SectionInfo({ title = 'Sobre esta seção', description, classNa
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-center min-w-0 ${className}`}
+      className={`relative flex items-center ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Botão (i) no canto esquerdo da barra */}
+      {/* O (i) fica discreto no canto direito do topo da seção: sem fundo,
+          sem borda, só o traço do ícone. Antes era um círculo branco colado
+          ao título, e competia com ele. */}
       <button
         type="button"
         onClick={toggleOpen}
         aria-label="Informações sobre esta seção"
         aria-expanded={isOpen}
-        className={`tap-target pressable focusable group shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full border transition-all cursor-pointer ${
-          isOpen
-            ? 'border-hexxa-green/40 bg-surface-card text-hexxa-green dark:text-hexxa-lime shadow-(--elev-inset) scale-105'
-            : 'border-black/5 dark:border-white/10 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-inset) hover:shadow-(--elev-1) hover:scale-105'
+        className={`tap-target pressable focusable shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors cursor-pointer ${
+          isOpen ? 'text-ink' : 'text-ink-soft/60 hover:text-ink'
         }`}
       >
-        <Info className="h-4 w-4 transition-transform group-hover:scale-110" />
+        <Info className="h-4 w-4" strokeWidth={1.5} />
       </button>
 
-      {/* Informação que abre na horizontal, diretamente sobre o card no espaço livre (sem moldura e sem alterar altura do card) */}
+      {/* A explicação abre num cartão logo abaixo, alinhado à direita. */}
       <div
         role="region"
         aria-label={title}
-        className={`absolute left-11 top-1/2 -translate-y-1/2 z-30 transition-all duration-250 ease-out ${
-          variant === 'floating'
-            ? 'bg-surface/95 dark:bg-surface-elevated/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-black/10 dark:border-white/10 shadow-(--elev-3)'
-            : ''
-        } ${
-          isOpen
-            ? 'opacity-100 translate-x-0 pointer-events-auto'
-            : 'opacity-0 -translate-x-3 pointer-events-none'
+        className={`absolute right-0 top-full z-40 mt-2 w-[min(340px,calc(100vw-32px))] rounded-2xl border border-black/8 bg-surface p-4 shadow-(--elev-3) transition-all duration-200 ease-out dark:border-white/10 ${
+          isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-1 pointer-events-none'
         }`}
-        style={{
-          width: 'max-content',
-          maxWidth: 'min(580px, calc(100vw - 460px))',
-        }}
       >
         <div className="flex items-start gap-3 py-0.5">
           <div className="flex flex-col gap-0.5 min-w-0">

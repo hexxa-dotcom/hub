@@ -155,11 +155,6 @@ export function SectionHero({
             <h1 className="text-2xl font-light uppercase tracking-[0.08em] text-ink sm:text-[28px]">
               {title}
             </h1>
-            {/* Ícone de informação (i) */}
-            <SectionInfo
-              title={infoTitle || `Sobre ${title}`}
-              description={infoDescription}
-            />
           </div>
           {subtitulo && (
             <>
@@ -212,6 +207,9 @@ export function SectionHero({
 
 
           {rightSlot}
+
+          {/* O (i) no canto oposto ao título, discreto. */}
+          <SectionInfo title={infoTitle || `Sobre ${title}`} description={infoDescription} />
         </div>
       </div>
     </Moldura>
