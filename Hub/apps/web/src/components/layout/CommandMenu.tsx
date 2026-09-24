@@ -35,17 +35,17 @@ type CommandAction = {
 export function CommandMenu({
   open,
   onOpenChange,
+  whatsappUrl = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  whatsappUrl?: string | null;
 }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
-  const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com minha contabilidade.')}`;
 
   // Deriva do catálogo único (@/lib/quickActions), em vez de reimplementar
   // os mesmos atalhos na mão — evita rótulos divergentes entre esta tela e
@@ -58,14 +58,16 @@ export function CommandMenu({
       href: a.href,
       icon: a.icon,
     })),
-    {
-      id: 'falar-contador',
-      label: 'Falar com o Contador no WhatsApp',
-      category: 'Atendimento',
-      icon: MessageCircle,
-      action: () => window.open(WHATSAPP_URL, '_blank'),
-      badge: 'Direto',
-    },
+    whatsappUrl
+      ? {
+          id: 'falar-contador',
+          label: 'Falar com o Contador no WhatsApp',
+          category: 'Atendimento',
+          icon: MessageCircle,
+          action: () => window.open(whatsappUrl, '_blank'),
+          badge: 'Direto',
+        }
+      : { id: 'falar-contador', label: 'Falar com o Contador', category: 'Atendimento', icon: MessageCircle, href: '/suporte' },
   ];
 
   const NAV_ACTIONS: CommandAction[] = NAV.flatMap((sec) =>

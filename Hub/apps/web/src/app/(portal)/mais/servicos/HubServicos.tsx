@@ -8,6 +8,7 @@ import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 import { textoDoPreco } from '@/lib/servicos-preco';
 import type { Pedido, ServicoDoCatalogo, SituacaoDoPedido } from '@/lib/server/servicos';
+import { useAnexo } from '@/lib/useAnexo';
 import { cancelarPedidoAction, pedirServicoAction, responderPedidoAction } from './actions';
 
 /**
@@ -19,7 +20,6 @@ import { cancelarPedidoAction, pedirServicoAction, responderPedidoAction } from 
  * link com ?pedir=<nome> (vindo dos Documentos) abre direto.
  */
 
-type Anexo = { dataUrl: string; nome: string } | null;
 const OUTRO = 'Outro serviço (descreva)';
 
 const SITUACAO: Record<SituacaoDoPedido, { texto: string; cor: string }> = {
@@ -33,25 +33,6 @@ const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 const campo =
   'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
-
-function useAnexo() {
-  const [anexo, setAnexo] = useState<Anexo>(null);
-  const [erro, setErro] = useState<string | null>(null);
-  const ref = useRef<HTMLInputElement>(null);
-  function ler(f: File | undefined) {
-    if (!f) return;
-    if (!/^(application\/pdf|image\/(png|jpe?g|webp))$/.test(f.type)) return setErro('Anexe um PDF ou uma imagem.');
-    if (f.size > 3 * 1024 * 1024) return setErro('O anexo pode ter até 3 MB.');
-    setErro(null);
-    const r = new FileReader();
-    r.onload = () => setAnexo({ dataUrl: String(r.result), nome: f.name });
-    r.readAsDataURL(f);
-  }
-  const input = (
-    <input ref={ref} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => ler(e.target.files?.[0])} />
-  );
-  return { anexo, setAnexo, erro, abrir: () => ref.current?.click(), input };
-}
 
 export function HubServicos({ catalogo, pedidos, pedirInicial }: { catalogo: ServicoDoCatalogo[]; pedidos: Pedido[]; pedirInicial: string | null }) {
   const router = useRouter();

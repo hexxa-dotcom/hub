@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { CadastroEmValidacao } from './CadastroEmValidacao';
 import { NAV } from '@/lib/nav';
+import { dadosDoEscritorio, linkDoWhatsapp } from '@/lib/server/escritorio';
 import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
 import { company, appUser, membership, partner, getDb, withTenant, eq } from '@hexxa/db';
 
@@ -144,9 +145,12 @@ export default async function PortalLayout({ children }: { children: React.React
       }
     : null;
 
+  const escritorio = await dadosDoEscritorio();
+
   return (
     <AppShell
       sections={NAV}
+      whatsappUrl={linkDoWhatsapp(escritorio.whatsapp)}
       company={dbCompany}
       user={currentUser}
       userName={userRow?.name}

@@ -37,8 +37,6 @@ const GROUP_ICONS: Record<string, PhosphorIcon> = {
 // '1' = aberta. Sem valor, a barra começa recolhida — abre e fecha só pelo
 // botão do topo (antes abria sozinha ao passar o mouse).
 const STORAGE_KEY = 'hexx.sidebar.aberta';
-const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com minha contabilidade.')}`;
 
 function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const s = size === 'sm' ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm';
@@ -209,6 +207,8 @@ export function AppShell(props: {
   userName?: string | null;
   userEmail?: string | null;
   hasMultipleCompanies?: boolean;
+  /** WhatsApp do escritório (link pronto), ou null — aí o botão abre o Atendimento. */
+  whatsappUrl?: string | null;
 }) {
   return (
     <Suspense>
@@ -225,6 +225,7 @@ function AppShellInner({
   userName,
   userEmail,
   hasMultipleCompanies,
+  whatsappUrl = null,
 }: {
   children: React.ReactNode;
   sections: NavSection[];
@@ -233,6 +234,7 @@ function AppShellInner({
   userName?: string | null;
   userEmail?: string | null;
   hasMultipleCompanies?: boolean;
+  whatsappUrl?: string | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -342,7 +344,7 @@ function AppShellInner({
   // pequena não tem para dar.
   return (
     <div className="relative flex h-screen bg-transparent text-ink overflow-hidden">
-      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} whatsappUrl={whatsappUrl} />
 
       {/* Fundo com iluminação atmosférica suave que banha o fundo da aplicação e a sidebar */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden atmospheric-glow">
@@ -795,19 +797,30 @@ function AppShellInner({
         </div>
       </div>
 
-      {/* Atendimento rápido via WhatsApp */}
-      {pathname !== '/suporte' && (
-        <a
-          href={WHATSAPP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Falar com a contabilidade no WhatsApp"
-          className="fixed bottom-6 right-6 z-40 flex h-13 items-center gap-2.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 font-bold text-[#DFFFAE] shadow-xl transition-all duration-200 hover:scale-105 border border-[#2F4A3C]"
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span className="hidden sm:inline text-sm">Falar com Contador</span>
-        </a>
-      )}
+      {/* Falar com a contabilidade: o WhatsApp do escritório, ou o Atendimento do Hub se não houver número. */}
+      {pathname !== '/suporte' &&
+        (whatsappUrl ? (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Falar com a contabilidade no WhatsApp"
+            className="fixed bottom-6 right-6 z-40 flex h-13 items-center gap-2.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 font-bold text-[#DFFFAE] shadow-xl transition-all duration-200 hover:scale-105 border border-[#2F4A3C]"
+          >
+            <MessageCircle className="h-5 w-5" />
+            <span className="hidden sm:inline text-sm">Falar com Contador</span>
+          </a>
+        ) : (
+          <Link
+            href="/suporte"
+            aria-label="Falar com a contabilidade"
+            className="fixed bottom-6 right-6 z-40 flex h-13 items-center gap-2.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 font-bold text-[#DFFFAE] shadow-xl transition-all duration-200 hover:scale-105 border border-[#2F4A3C]"
+          >
+            <MessageCircle className="h-5 w-5" />
+            <span className="hidden sm:inline text-sm">Falar com Contador</span>
+          </Link>
+        ))}
+
     </div>
   );
 }
