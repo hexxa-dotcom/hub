@@ -464,7 +464,7 @@ function ResumoDoMes({
           <CardHeader
             label="Resultado do mês (DRE)"
             icon={Receipt}
-            aside={<span className="text-caption uppercase text-ink-soft">Margem {pct(margemReal)}</span>}
+            aside={<span className="rotulo text-ink-soft">Margem {pct(margemReal)}</span>}
           />
 
           <dl className="mt-6">
@@ -514,7 +514,7 @@ function ResumoDoMes({
 
           {lucroPorMes.some((m) => m.valor !== 0) && (
             <div className="mt-6 border-t border-line pt-6">
-              <p className="text-caption uppercase text-ink-soft">Lucro apurado nos últimos 6 meses</p>
+              <p className="rotulo text-ink-soft">Lucro apurado nos últimos 6 meses</p>
               <div className="mt-2 h-28">
                 <MiniLineChart data={lucroPorMes} label="Lucro" />
               </div>
@@ -557,7 +557,7 @@ function ResumoDoMes({
 
             {notasPorMes.some((n) => n.valor > 0) && (
               <div className="mt-6">
-                <p className="text-caption uppercase text-ink-soft">Notas por mês</p>
+                <p className="rotulo text-ink-soft">Notas por mês</p>
                 <div className="mt-2 h-20">
                   <MiniLollipopChart data={notasPorMes} label="Notas" />
                 </div>
@@ -619,7 +619,7 @@ function ResumoDoMes({
           label="Posição no Simples Nacional"
           icon={Scales}
           aside={
-            <span className="text-caption uppercase text-ink-soft">
+            <span className="rotulo text-ink-soft">
               {pct(simples.ceilingUsagePct)} do teto
             </span>
           }
@@ -642,7 +642,7 @@ function ResumoDoMes({
             </div>
             {faturamentoPorMes.some((m) => m.valor > 0) && (
               <div className="mt-6">
-                <p className="text-caption uppercase text-ink-soft">Faturamento que compõe a faixa</p>
+                <p className="rotulo text-ink-soft">Faturamento que compõe a faixa</p>
                 <div className="mt-2 h-32">
                   <MiniHBarChart data={faturamentoPorMes} label="Faturamento" larguraRotulo={30} />
                 </div>
@@ -689,7 +689,7 @@ function ResumoDoMes({
                       {sem.label}
                     </h4>
                     {isCurrent && (
-                      <span className="text-caption uppercase text-hexxa-green dark:text-hexxa-lime">
+                      <span className="rotulo text-hexxa-green dark:text-hexxa-lime">
                         Atual
                       </span>
                     )}
@@ -711,7 +711,7 @@ function ResumoDoMes({
                 </div>
 
                 <div className="flex items-baseline justify-between gap-3 border-t border-line pt-4">
-                  <span className="text-caption uppercase text-ink-soft">Saldo</span>
+                  <span className="rotulo text-ink-soft">Saldo</span>
                   <strong
                     className={`text-callout tabular ${
                       sem.net >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'

@@ -55,7 +55,7 @@ const PAYMENT_STATUS_CFG: Record<string, { label: string; cls: string; icon: Rea
 function InfoCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">{label}</p>
+      <p className="rotulo text-ink-soft">{label}</p>
       <p className="mt-0.5 font-serif tabular font-bold text-base text-ink">{value}</p>
       {hint && <p className="mt-0.5 text-caption text-ink-soft">{hint}</p>}
     </div>
@@ -267,7 +267,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
               <CalendarCheck className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Data de assinatura</p>
+              <p className="rotulo text-ink-soft">Data de assinatura</p>
               {editingSigning ? (
                 <input
                   type="date"

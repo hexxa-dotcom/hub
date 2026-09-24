@@ -242,7 +242,7 @@ export default async function Page() {
               {/* Barra do CNPJ com Cópia rápida */}
               <div className="pt-1 flex items-center gap-2.5">
                 <div className="inline-flex items-center gap-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 px-3 py-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">CNPJ:</span>
+                  <span className="rotulo text-ink-soft">CNPJ:</span>
                   <span className="font-mono text-sm font-bold text-ink tracking-tight">
                     {formattedCNPJ}
                   </span>
@@ -254,7 +254,7 @@ export default async function Page() {
 
           {/* Lado Direito: Faturamento Anual Integrado Direto no Card (Sem encapsulamento) */}
           <div className="flex flex-col justify-center items-start lg:items-end min-w-[280px] lg:min-w-[340px] shrink-0 space-y-2 lg:text-right border-t lg:border-t-0 lg:border-l border-black/5 dark:border-white/10 pt-4 lg:pt-0 lg:pl-8">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1.5">
+            <span className="rotulo text-ink-soft flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Faturamento no Ano ({ficha.ano})
             </span>
@@ -416,7 +416,7 @@ export default async function Page() {
                       {/* Detalhes de Cota, Pró-labore e Lucro Distribuído no Mês */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3 border-t border-black/5 dark:border-white/5 text-xs">
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
+                          <span className="rotulo text-ink-soft block">
                             Cota no Capital
                           </span>
                           <span className="font-mono font-bold text-ink text-sm mt-0.5 block">
@@ -424,7 +424,7 @@ export default async function Page() {
                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
+                          <span className="rotulo text-ink-soft block">
                             Pró-labore Mensal
                           </span>
                           <span className="font-mono font-bold text-ink text-sm mt-0.5 block">
@@ -434,7 +434,7 @@ export default async function Page() {
                           </span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft block">
+                          <span className="rotulo text-ink-soft block">
                             Lucro Distribuído (Mês)
                           </span>
                           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 block">
@@ -471,7 +471,7 @@ export default async function Page() {
             <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft block">
+                  <span className="rotulo text-ink-soft block">
                     Capital Social Subscrito
                   </span>
                   <div className="text-2xl sm:text-3xl font-black text-ink font-mono tabular tracking-tight mt-0.5">
@@ -732,7 +732,7 @@ export default async function Page() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft truncate">
+                  <h3 className="rotulo text-ink-soft truncate">
                     Certificado Digital A1
                   </h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">

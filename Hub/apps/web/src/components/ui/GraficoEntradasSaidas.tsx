@@ -47,7 +47,7 @@ export function GraficoEntradasSaidas({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">{titulo}</p>
+          <p className="rotulo text-ink-soft">{titulo}</p>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
             <p>
               <span className="font-serif text-2xl font-extrabold tracking-tight text-ink tabular sm:text-3xl">{BRL.format(saldo)}</span>

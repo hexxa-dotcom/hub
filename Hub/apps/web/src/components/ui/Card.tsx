@@ -97,7 +97,7 @@ export function CardHeader({
     <header className={twMerge('flex items-center justify-between gap-4', className)}>
       {/* Cor por herança (opacidade sobre currentColor) para a mesma
           sobrancelha funcionar em card claro e em card escuro. */}
-      <h2 className="inline-flex items-center gap-1.5 text-caption uppercase opacity-60">
+      <h2 className="rotulo inline-flex items-center gap-1.5 opacity-60">
         {Icon && <Icon weight="bold" className="h-3.5 w-3.5 shrink-0" />}
         {label}
       </h2>

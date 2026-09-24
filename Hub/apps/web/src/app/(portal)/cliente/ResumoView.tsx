@@ -342,7 +342,7 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
                     <BellSimple className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Avisos e Guias</p>
+                    <p className="rotulo text-ink-soft">Avisos e Guias</p>
                     <p className="font-serif text-xl sm:text-2xl font-bold text-ink tabular mt-0.5">
                       {openDasGuide ? '1 Guia Aberta' : avisos.length > 0 ? `${avisos.length} Alerta(s)` : 'Tudo em dia'}
                     </p>
@@ -450,7 +450,7 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
                     <HandCoins className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Sobra para Você</p>
+                    <p className="rotulo text-ink-soft">Sobra para Você</p>
                     <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
                       {BRL.format(lucroIsentoDisponivel)}
                     </p>
@@ -479,7 +479,7 @@ export async function ResumoView({ selectedMonth }: { selectedMonth?: string } =
 
             <div className="flex items-center justify-between gap-4 border-t border-black/5 dark:border-white/5 pt-4">
               <div>
-                <p className="text-caption uppercase text-ink-soft">Economia no IRPF</p>
+                <p className="rotulo text-ink-soft">Economia no IRPF</p>
                 <p className="font-serif text-lg font-bold tabular text-ink mt-0.5">~{BRL.format(economiaIRPF)}</p>
               </div>
               <Link

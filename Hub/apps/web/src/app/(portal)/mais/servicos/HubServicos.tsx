@@ -169,7 +169,7 @@ function FormSolicitacao({ servico, onClose, onSubmitted }: {
       <Card level={2} tone="deep" className="card-finish w-full max-w-lg shadow-(--elev-3) overflow-hidden p-0">
         <div className="flex items-start justify-between border-b border-black/5 dark:border-white/10 p-6 sm:p-8">
           <div>
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-wide">{servico.categoria}</p>
+            <p className="rotulo text-ink-soft">{servico.categoria}</p>
             <h2 className="mt-1 font-serif font-bold text-xl text-ink">{servico.nome}</h2>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-soft hover:text-ink hover:bg-black/5 transition-colors">

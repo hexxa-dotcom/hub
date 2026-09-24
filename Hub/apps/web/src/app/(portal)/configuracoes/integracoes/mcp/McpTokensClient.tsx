@@ -138,7 +138,7 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
           className="space-y-4 rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 p-4 shadow-(--elev-inset)"
         >
           <div>
-            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Nome do Token</label>
+            <label className="rotulo text-ink-soft">Nome do Token</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -147,7 +147,7 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Permissão</label>
+            <label className="rotulo text-ink-soft">Permissão</label>
             <div className={`mt-1.5 grid grid-cols-1 ${isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2`}>
               <button
                 type="button"

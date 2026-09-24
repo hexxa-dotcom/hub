@@ -44,7 +44,7 @@ export function QuickActionsMenu() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] p-2 shadow-2xl z-50 animate-fade-up">
           <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#2F4A3C] dark:text-[#DFFFAE] flex items-center gap-1.5">
+            <span className="rotulo text-[#2F4A3C] dark:text-[#DFFFAE] flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" /> Ações Rápidas
             </span>
           </div>

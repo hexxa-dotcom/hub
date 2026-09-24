@@ -150,24 +150,24 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
         <div className="p-6 sm:p-8 space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="space-y-1 border-l-2 border-emerald-600 pl-4">
-              <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Entradas (Receitas)</p>
+              <p className="rotulo text-ink-soft">Entradas (Receitas)</p>
               <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(totalRev)}</p>
             </div>
             
             <div className="space-y-1 border-l-2 border-red-600 pl-4">
-              <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Saídas (Despesas)</p>
+              <p className="rotulo text-ink-soft">Saídas (Despesas)</p>
               <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(totalExp)}</p>
             </div>
             
             <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
-              <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Resultado Líquido</p>
+              <p className="rotulo text-ink-soft">Resultado Líquido</p>
               <p className={`font-serif text-2xl font-bold tabular ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                 {BRL.format(result)}
               </p>
             </div>
 
             <div className="space-y-1 border-l-2 border-amber-600 pl-4">
-              <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Inadimplência (Atrasos)</p>
+              <p className="rotulo text-ink-soft">Inadimplência (Atrasos)</p>
               <p className="font-serif text-2xl font-bold text-ink tabular">{closure.defaultsCount || 0}</p>
             </div>
           </div>

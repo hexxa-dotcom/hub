@@ -86,15 +86,15 @@ export default async function BalancoInstantaneoPage({
           ) : (
             <div className="grid gap-6 sm:grid-cols-3">
               <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
-                <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Receita Bruta</p>
+                <p className="rotulo text-ink-soft">Receita Bruta</p>
                 <p className="font-serif text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(receita)}</p>
               </div>
               <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Despesas Totais</p>
+                <p className="rotulo text-ink-soft">Despesas Totais</p>
                 <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(despesasTotais)}</p>
               </div>
               <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Resultado ({pct(margem)})</p>
+                <p className="rotulo text-ink-soft">Resultado ({pct(margem)})</p>
                 <p className={`font-serif text-2xl font-bold tabular ${lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {BRL.format(lucroLiquido)}
                 </p>
@@ -193,11 +193,11 @@ export default async function BalancoInstantaneoPage({
 
               <div className="grid gap-6 sm:grid-cols-3">
                 <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
-                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Margem Líquida</p>
+                  <p className="rotulo text-ink-soft">Margem Líquida</p>
                   <p className={`font-serif text-2xl font-bold tabular ${margem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{pct(margem)}</p>
                 </div>
                 <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">Fator R Atual</p>
+                  <p className="rotulo text-ink-soft">Fator R Atual</p>
                   <p className="font-serif text-2xl font-bold text-ink tabular">{pct(simples.fatorR * 100)}</p>
                   <p className={`text-[11px] font-bold ${simples.fatorRFavorable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {/* Com apuração, o anexo é o apurado — que pode ser I, II ou IV,
@@ -208,7 +208,7 @@ export default async function BalancoInstantaneoPage({
                   </p>
                 </div>
                 <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">RBT12 (12 meses)</p>
+                  <p className="rotulo text-ink-soft">RBT12 (12 meses)</p>
                   <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(rbt12)}</p>
                 </div>
               </div>

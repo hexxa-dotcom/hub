@@ -114,7 +114,7 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
                   <div key={i.id} className="grid grid-cols-[4.5rem_1fr] items-center gap-3 px-4 py-3 sm:grid-cols-[4.5rem_1fr_7.5rem_7.5rem]">
                     <span className={`text-sm font-bold tabular ${n > 0 ? 'invisible' : ''} ${data === hoje ? 'text-hexxa-forest dark:text-hexxa-lime' : 'text-ink'}`}>
                       {data.slice(8, 10)}/{data.slice(5, 7)}
-                      <span className="block text-[10px] font-medium uppercase text-ink-soft">
+                      <span className="rotulo block text-ink-soft">
                         {data === hoje ? 'hoje' : SEMANA[new Date(`${data}T12:00:00`).getDay()]}
                       </span>
                     </span>
@@ -165,7 +165,7 @@ function Calendario({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase text-ink-soft">
+      <div className="rotulo grid grid-cols-7 gap-1 text-center text-ink-soft">
         {SEMANA.map((s) => (
           <span key={s}>{s}</span>
         ))}
@@ -210,7 +210,7 @@ function Calendario({
       </div>
       {diaAberto && doDiaAberto.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-black/5 p-4 dark:border-white/10">
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">
+          <p className="rotulo text-ink-soft">
             {diaAberto.slice(8, 10)}/{diaAberto.slice(5, 7)}
           </p>
           {doDiaAberto.map((i) => (

@@ -40,7 +40,7 @@ export function SalesforceDuoCards({
 
         <div className="relative z-10 flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-neutral-900/80">
+            <p className="rotulo text-neutral-900/80">
               Lucro Bruto Operacional
             </p>
             <p className="text-[11px] font-medium text-neutral-900/60 mt-0.5">
@@ -85,7 +85,7 @@ export function SalesforceDuoCards({
 
         <div className="relative z-10 flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/70">
+            <p className="rotulo text-white/70">
               Lucro Líquido Isento
             </p>
             <p className="text-[11px] font-medium text-white/50 mt-0.5">

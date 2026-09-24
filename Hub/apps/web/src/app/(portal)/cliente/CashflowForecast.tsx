@@ -88,7 +88,7 @@ export function CashflowForecast({ days, totalInflow, totalOutflow }: Props) {
                   </div>
                 </div>
 
-                <span className="text-caption uppercase text-ink-soft">{d.dayLabel}</span>
+                <span className="rotulo text-ink-soft">{d.dayLabel}</span>
                 <span
                   className={`text-footnote tabular ${
                     isSelected || d.isToday ? 'font-semibold text-ink' : 'text-ink-soft'
@@ -106,7 +106,7 @@ export function CashflowForecast({ days, totalInflow, totalOutflow }: Props) {
         <dl className="mt-8 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3 border-t border-line pt-5">
           <div className="flex items-baseline gap-6">
             <div>
-              <dt className="text-caption uppercase text-ink-soft">
+              <dt className="rotulo text-ink-soft">
                 {activeDay.isToday ? 'Hoje' : `Dia ${activeDay.dayNumber}`}
               </dt>
               <dd className="text-footnote tabular text-hexxa-green dark:text-hexxa-lime mt-1">
@@ -114,7 +114,7 @@ export function CashflowForecast({ days, totalInflow, totalOutflow }: Props) {
               </dd>
             </div>
             <div>
-              <dt className="text-caption uppercase text-ink-soft">Saídas</dt>
+              <dt className="rotulo text-ink-soft">Saídas</dt>
               <dd className="text-footnote tabular text-expense mt-1">
                 −{BRL.format(activeDay.outflow)}
               </dd>
@@ -122,7 +122,7 @@ export function CashflowForecast({ days, totalInflow, totalOutflow }: Props) {
           </div>
 
           <div className="text-right">
-            <dt className="text-caption uppercase text-ink-soft">Líquido em 14 dias</dt>
+            <dt className="rotulo text-ink-soft">Líquido em 14 dias</dt>
             <dd
               className={`text-heading tabular mt-1 ${
                 saldoLiquidoPeriodo >= 0 ? 'text-hexxa-green dark:text-hexxa-lime' : 'text-expense'

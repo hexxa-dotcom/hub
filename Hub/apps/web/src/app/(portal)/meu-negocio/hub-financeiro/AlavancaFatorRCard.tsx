@@ -78,7 +78,7 @@ export async function AlavancaFatorRCard() {
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1E3328] text-[#DFFFAE]">
           <TrendingUp className="h-3.5 w-3.5" />
         </span>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+        <h2 className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">
           Você pode pagar menos imposto
         </h2>
       </div>
@@ -90,7 +90,7 @@ export async function AlavancaFatorRCard() {
       </p>
 
       <div className="mt-4 rounded-2xl bg-[#EFFFD6] px-4 py-3 dark:bg-[#2F4A3C]/30">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">
+        <p className="rotulo text-[#2F4A3C]/80 dark:text-[#DFFFAE]/80">
           Economia no imposto
         </p>
         <p className="font-serif text-2xl font-bold tabular text-[#2F4A3C] dark:text-[#DFFFAE]">

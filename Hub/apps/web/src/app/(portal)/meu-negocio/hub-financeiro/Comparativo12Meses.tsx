@@ -43,7 +43,7 @@ export function Comparativo12Meses({ meses, mesAtual }: { meses: MesDoComparativ
   return (
     <div className="rounded-[28px] border border-white/70 bg-white/75 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Últimos 12 meses</p>
+        <p className="rotulo text-ink-soft">Últimos 12 meses</p>
         <div className="flex gap-4 text-[11px] font-semibold text-ink-soft">
           <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-full bg-[#1E3328] dark:bg-[#D4FF00]" /> Receitas</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-full bg-black/20 dark:bg-white/25" /> Despesas</span>

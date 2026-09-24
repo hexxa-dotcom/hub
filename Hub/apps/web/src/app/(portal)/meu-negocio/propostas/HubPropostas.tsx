@@ -324,7 +324,7 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs sm:text-sm">
                         <thead>
-                          <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wider">
+                          <tr className="rotulo text-left text-ink-soft">
                             <th className="pb-2">Descrição</th>
                             <th className="pb-2 text-center w-12">Qtd</th>
                             <th className="pb-2 text-right w-28">Unitário</th>
@@ -343,7 +343,7 @@ export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-black/10 dark:border-white/10 font-bold">
-                            <td colSpan={3} className="pt-3 uppercase text-caption tracking-wider text-ink-soft">Total da Proposta</td>
+                            <td colSpan={3} className="rotulo pt-3 text-ink-soft">Total da Proposta</td>
                             <td className="pt-3 text-right font-serif text-base text-ink tabular">{BRL.format(total)}</td>
                           </tr>
                         </tfoot>

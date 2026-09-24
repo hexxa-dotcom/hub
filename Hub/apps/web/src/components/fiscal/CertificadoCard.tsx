@@ -79,7 +79,7 @@ export async function CertificadoCard({ href = '/meu-negocio/fiscal' }: { href?:
         </span>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+          <h2 className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">
             Certificado digital
           </h2>
           <p className={`mt-1 text-sm font-medium ${TEXTO[status.nivel]}`}>{status.mensagem}</p>

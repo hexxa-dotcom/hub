@@ -266,7 +266,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 1: tipo */}
       {step === 1 && (
         <div className="space-y-4 animate-in fade-in">
-          <p className="text-caption font-bold text-ink-soft uppercase tracking-wider mb-2">Tipo de Contrato</p>
+          <p className="rotulo text-ink-soft mb-2">Tipo de Contrato</p>
           <div className="grid gap-3 sm:grid-cols-3">
             {KIND_CARDS.map((c) => {
               const disabled = c.needsProperty && !hasProperties;
@@ -393,7 +393,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
             />
             {lookupStatus === 'checking' && <p className="mt-1 text-caption text-ink-soft">Verificando...</p>}
             {lookupStatus === 'found' && (
-              <p className="mt-1 text-caption font-bold text-status-success">
+              <p className="rotulo mt-1 text-status-success">
                 <Sparkles className="inline h-3 w-3 mr-1" /> Cliente Hexxa detectado — e-mail preenchido automaticamente, os lançamentos financeiros sincronizam nos dois lados.
               </p>
             )}

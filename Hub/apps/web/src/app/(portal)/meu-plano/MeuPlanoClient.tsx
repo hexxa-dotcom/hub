@@ -77,7 +77,7 @@ export function MeuPlanoClient({ plano, cobrancas }: { plano: PlanoAtual; cobran
           </div>
 
           <div className="text-left md:text-right shrink-0 bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-6 rounded-3xl space-y-2">
-            <p className="text-caption text-ink-soft font-bold uppercase tracking-wider">Mensalidade do Plano</p>
+            <p className="rotulo text-ink-soft">Mensalidade do Plano</p>
             <p className="font-serif tabular text-3xl sm:text-4xl font-bold text-ink">{BRL.format(plano.mensalidade)}<span className="text-xs font-sans font-normal text-ink-soft">/mês</span></p>
             <button
               type="button"

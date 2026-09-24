@@ -50,7 +50,7 @@ export function SalesforceMiniCards({
           className="relative overflow-hidden rounded-2xl bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/10 ring-1 ring-inset ring-white/60 dark:ring-white/5 p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex items-center justify-between gap-3 group hover:border-[#D4FF00] hover:shadow-md transition-all flex-1"
         >
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+            <p className="rotulo text-ink-soft">
               {c.title}
             </p>
             <p className="font-serif text-base sm:text-lg font-bold text-ink tabular mt-0.5">

@@ -354,7 +354,7 @@ export function ConciliacaoClient({
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime text-[10px] shadow-xs">
                   <Sparkles className="h-3 w-3" />
                 </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-hexxa-forest dark:text-hexxa-lime">
+                <span className="rotulo text-hexxa-forest dark:text-hexxa-lime">
                   Sugestão Automática de Categoria
                 </span>
               </div>
@@ -383,7 +383,7 @@ export function ConciliacaoClient({
             {/* Dropdown de edição inline */}
             {isEditing && (
               <div className="rounded-xl bg-surface-card p-3 border border-hexxa-green/40 dark:border-hexxa-lime/40 shadow-(--elev-inset) space-y-1.5 animate-in fade-in">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft block">
+                <label className="rotulo text-ink-soft block">
                   Para qual categoria deve ir esta {isDespesa ? 'despesa' : 'receita'}?
                 </label>
                 <select
@@ -560,7 +560,7 @@ export function ConciliacaoClient({
         {/* Lado Esquerdo: Extrato Bancário (Agrupado por Categoria ou Lista) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-caption font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+            <h2 className="rotulo text-ink flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) text-xs font-bold">
                 1
               </span>
@@ -691,7 +691,7 @@ export function ConciliacaoClient({
 
         {/* Lado Direito: Sugestões de Match e Lançamentos */}
         <div className="space-y-4">
-          <h2 className="text-caption font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+          <h2 className="rotulo text-ink flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) text-xs font-bold">
               2
             </span>
@@ -714,7 +714,7 @@ export function ConciliacaoClient({
               {selectedTransactionObj && (
                 <div className="p-3.5 rounded-2xl bg-surface-card border border-hexxa-green/40 dark:border-hexxa-lime/40 shadow-(--elev-1) flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-hexxa-forest dark:text-hexxa-lime">
+                    <span className="rotulo text-hexxa-forest dark:text-hexxa-lime">
                       Transação Ativa
                     </span>
                     <p className="text-xs font-bold text-ink truncate mt-0.5">

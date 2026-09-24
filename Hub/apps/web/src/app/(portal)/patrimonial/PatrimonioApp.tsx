@@ -125,7 +125,7 @@ function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partn
               const bensPF = ativosPF.filter((a) => a.partnerId === s.id).reduce((sum, a) => sum + valorContabil(a), 0);
               return (
                 <li key={s.id} className="rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 p-5 shadow-(--elev-1) space-y-1">
-                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wide">{s.nome} · {s.participacao}% do PJ</p>
+                  <p className="rotulo text-ink-soft">{s.nome} · {s.participacao}% do PJ</p>
                   <p className="font-serif tabular text-2xl font-bold text-ink">{BRL0.format(fatiaPJ + bensPF)}</p>
                   <p className="text-xs text-ink-soft">
                     {BRL0.format(fatiaPJ)} de quota societária + {BRL0.format(bensPF)} de bens pessoais
@@ -178,16 +178,16 @@ function Dividendos({
         </p>
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Lucro Contábil do Exercício</label>
+            <label className="rotulo text-ink-soft">Lucro Contábil do Exercício</label>
             <input type="number" value={lucro} onChange={(e) => setLucro(Number(e.target.value))} className={fieldCls} />
           </div>
           <div>
-            <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Reservas de Lucros Acumuladas (Anos Anteriores)</label>
+            <label className="rotulo text-ink-soft">Reservas de Lucros Acumuladas (Anos Anteriores)</label>
             <input type="number" value={reservas} onChange={(e) => setReservas(Number(e.target.value))} className={fieldCls} />
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Reter para Reinvestimento / Giro</label>
+              <label className="rotulo text-ink-soft">Reter para Reinvestimento / Giro</label>
               <span className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">{reterPct}%</span>
             </div>
             <input
@@ -208,7 +208,7 @@ function Dividendos({
 
       <section className="space-y-4">
         <Card level={2} tone="forest" className="p-6 shadow-(--elev-2)">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-hexxa-lime">Máximo Distribuível (Sem Descapitalizar)</h3>
+          <h3 className="rotulo text-hexxa-lime">Máximo Distribuível (Sem Descapitalizar)</h3>
           <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL.format(calc.max)}</p>
         </Card>
 
@@ -224,7 +224,7 @@ function Dividendos({
         </Card>
 
         <Card level={1} className="p-6 space-y-3">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft">Prévia por Sócio (simulação, não grava nada)</h3>
+          <h3 className="rotulo text-ink-soft">Prévia por Sócio (simulação, não grava nada)</h3>
           {partners.length === 0 ? (
             <p className="text-xs text-ink-soft">Cadastre os sócios em Minha Contabilidade → Sócios para ver a divisão aqui.</p>
           ) : (
@@ -356,25 +356,25 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
             <h3 className="font-serif font-bold text-sm text-ink">Registrar Novo Bem / Ativo</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               <div>
-                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Nome / Descrição</label>
+                <label className="rotulo text-ink-soft">Nome / Descrição</label>
                 <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className={fieldCls} placeholder="Ex: Galpão Logístico" />
               </div>
               <div>
-                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Tipo de Bem</label>
+                <label className="rotulo text-ink-soft">Tipo de Bem</label>
                 <select value={tipo} onChange={e => setTipo(e.target.value)} className={fieldCls}>
                   {Object.keys(TAXAS).map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Valor de Aquisição (R$)</label>
+                <label className="rotulo text-ink-soft">Valor de Aquisição (R$)</label>
                 <input required type="number" min={0} value={valor} onChange={e => setValor(Number(e.target.value))} className={fieldCls} />
               </div>
               <div>
-                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Ano de Aquisição</label>
+                <label className="rotulo text-ink-soft">Ano de Aquisição</label>
                 <input required type="number" min={1900} max={YEAR} value={ano} onChange={e => setAno(Number(e.target.value))} className={fieldCls} />
               </div>
               <div>
-                <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Titularidade</label>
+                <label className="rotulo text-ink-soft">Titularidade</label>
                 <select value={ownerType} onChange={e => setOwnerType(e.target.value as 'PJ' | 'PF')} className={fieldCls}>
                   <option value="PJ">Da empresa (PJ)</option>
                   <option value="PF">Pessoal de um sócio (PF)</option>
@@ -382,7 +382,7 @@ function Ativos({ properties, partners }: { properties: PropertyRow[]; partners:
               </div>
               {ownerType === 'PF' && (
                 <div>
-                  <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Sócio Proprietário</label>
+                  <label className="rotulo text-ink-soft">Sócio Proprietário</label>
                   {partners.length === 0 ? (
                     <p className="mt-1 text-xs text-amber-600">Cadastre um sócio em Minha Contabilidade → Sócios primeiro.</p>
                   ) : (

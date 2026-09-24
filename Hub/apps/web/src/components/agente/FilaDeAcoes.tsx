@@ -59,7 +59,7 @@ function Evidencia({ evidence }: { evidence: unknown }) {
 
   return (
     <div className="mt-3 border-t border-black/5 dark:border-white/10 pt-3">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">No que se baseou</p>
+      <p className="rotulo text-ink-soft">No que se baseou</p>
       <ul className="mt-2 space-y-1.5">
         {e.sinais.map((s) => (
           <li key={s.nome} className="flex items-start gap-2 text-xs text-ink-soft">
@@ -147,7 +147,7 @@ function ItemAcao({
               <Sparkles className="h-3.5 w-3.5" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-hexxa-forest dark:text-hexxa-lime">
+              <p className="rotulo text-hexxa-forest dark:text-hexxa-lime">
                 Sugestão Automática de Categoria
               </p>
               <p className="text-xs text-ink-soft">
@@ -183,7 +183,7 @@ function ItemAcao({
         {/* Campo inline de edição de categoria */}
         {editando && (
           <div className="rounded-2xl bg-surface-card p-3.5 border border-hexxa-green/40 dark:border-hexxa-lime/40 shadow-(--elev-inset) space-y-2 animate-in fade-in">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft block" htmlFor={`cat-edit-${acao.id}`}>
+            <label className="rotulo text-ink-soft block" htmlFor={`cat-edit-${acao.id}`}>
               Para qual categoria deve ir este lançamento?
             </label>
             <select
@@ -211,7 +211,7 @@ function ItemAcao({
           <div className="border-t border-black/5 dark:border-white/10 pt-3 space-y-3">
             {pedeCategoria && (
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft" htmlFor={`cat-${acao.id}`}>
+                <label className="rotulo text-ink-soft" htmlFor={`cat-${acao.id}`}>
                   Qual é a categoria certa?
                 </label>
                 <select
@@ -229,7 +229,7 @@ function ItemAcao({
             )}
 
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft" htmlFor={`nota-${acao.id}`}>
+              <label className="rotulo text-ink-soft" htmlFor={`nota-${acao.id}`}>
                 Por que não? — este feedback ensina o agente
               </label>
               <textarea
@@ -339,7 +339,7 @@ function ItemAcao({
 
       {rejeitando && pedeCategoria && (
         <div className="border-t border-black/5 dark:border-white/10 pt-3">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft" htmlFor={`cat-${acao.id}`}>
+          <label className="rotulo text-ink-soft" htmlFor={`cat-${acao.id}`}>
             Qual é a categoria certa?
           </label>
           <select
@@ -358,7 +358,7 @@ function ItemAcao({
 
       {rejeitando && (
         <div className="border-t border-black/5 dark:border-white/10 pt-3">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-ink-soft" htmlFor={`nota-${acao.id}`}>
+          <label className="rotulo text-ink-soft" htmlFor={`nota-${acao.id}`}>
             Por que não? — é este feedback que ensina o agente
           </label>
           <textarea

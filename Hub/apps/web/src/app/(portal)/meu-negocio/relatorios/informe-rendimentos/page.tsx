@@ -65,7 +65,7 @@ export default async function InformeRendimentosPage({
 
       <div className="rounded-3xl border border-line bg-surface-card shadow-(--elev-1) card-finish p-6 sm:p-8 print:border-0 print:p-0">
         <header className="border-b border-line pb-5">
-          <p className="text-caption uppercase text-ink-soft">Fonte pagadora</p>
+          <p className="rotulo text-ink-soft">Fonte pagadora</p>
           <p className="text-heading text-ink mt-1">{informe.empresa.razaoSocial}</p>
           <p className="text-footnote text-ink-soft">CNPJ {informe.empresa.cnpj}</p>
           <p className="text-footnote text-ink-soft mt-2">
@@ -103,7 +103,7 @@ export default async function InformeRendimentosPage({
                     </p>
                   </div>
 
-                  <p className="text-caption uppercase text-ink-soft mt-4">
+                  <p className="rotulo text-ink-soft mt-4">
                     Rendimentos isentos e não tributáveis — lucros e dividendos
                   </p>
 

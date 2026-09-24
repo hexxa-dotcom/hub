@@ -43,7 +43,7 @@ export async function CaixaLivreCard() {
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1E3328] text-[#DFFFAE]">
             <Wallet className="h-3.5 w-3.5" />
           </span>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+          <h2 className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">
             Livre para retirar
           </h2>
         </div>
@@ -71,7 +71,7 @@ export async function CaixaLivreCard() {
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#1E3328] text-[#DFFFAE]">
           <Wallet className="h-3.5 w-3.5" />
         </span>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C]">
+        <h2 className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">
           Livre para retirar
         </h2>
       </div>

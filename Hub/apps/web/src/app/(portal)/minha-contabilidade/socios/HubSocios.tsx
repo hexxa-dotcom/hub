@@ -413,15 +413,15 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
       ) : (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Lucro Líquido do Ano</p>
+          <p className="rotulo text-ink-soft">Lucro Líquido do Ano</p>
           <p className="mt-1 font-serif tabular font-bold text-xl sm:text-2xl text-ink">{BRL.format(yearlyProfit.netProfit)}</p>
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Já Distribuído em {yearlyProfit.year}</p>
+          <p className="rotulo text-ink-soft">Já Distribuído em {yearlyProfit.year}</p>
           <p className="mt-1 font-serif tabular font-bold text-xl sm:text-2xl text-ink-soft">{BRL.format(yearlyProfit.distributedThisYear)}</p>
         </div>
         <div className="col-span-2 rounded-2xl bg-hexxa-forest text-hexxa-lime border border-white/5 px-5 py-3 sm:col-span-2 shadow-(--elev-inset)">
-          <p className="text-xs font-bold uppercase tracking-wider text-hexxa-lime/80">Disponível para Distribuir</p>
+          <p className="rotulo text-hexxa-lime/80">Disponível para Distribuir</p>
           <p className="mt-0.5 font-serif tabular font-bold text-2xl text-hexxa-lime">{BRL.format(yearlyProfit.availableToDistribute)}</p>
         </div>
       </div>
@@ -430,7 +430,7 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
       <div className="border-t border-black/5 dark:border-white/10 pt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Periodicidade de Distribuição</p>
+            <p className="rotulo text-ink-soft">Periodicidade de Distribuição</p>
             <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
               <Calendar className="h-3.5 w-3.5" /> Próxima sugerida: <strong className="font-serif tabular text-ink">{fmtDateShort(yearlyProfit.nextSuggestedDate)}</strong>
             </p>
@@ -480,7 +480,7 @@ function DistribuicaoTab({
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Card level={2} tone="deep" className="p-6 sm:p-8 card-finish">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-hexxa-lime">Total Distribuído em {YEAR}</h3>
+            <h3 className="rotulo text-hexxa-lime">Total Distribuído em {YEAR}</h3>
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-hexxa-lime shadow-(--elev-inset)">
               <Coins className="h-5 w-5" />
             </span>
@@ -490,7 +490,7 @@ function DistribuicaoTab({
         </Card>
         <Card level={1} className="p-6 sm:p-8 card-finish">
           <div className="flex items-start justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sócios Contemplados</h3>
+            <h3 className="rotulo text-ink-soft">Sócios Contemplados</h3>
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)">
               <Users className="h-5 w-5" />
             </span>

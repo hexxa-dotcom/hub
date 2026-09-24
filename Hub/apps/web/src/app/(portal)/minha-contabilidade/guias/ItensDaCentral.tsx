@@ -40,7 +40,7 @@ export function LinhaDocumento({ doc }: { doc: Entrega }) {
 
   return (
     <div className="flex w-full flex-wrap items-center gap-3 px-5 py-4 sm:flex-nowrap">
-      <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Documento</span>
+      <span className="rotulo w-24 shrink-0 text-ink-soft">Documento</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">
           {doc.titulo}
@@ -91,7 +91,7 @@ export function LinhaHonorario({ hon }: { hon: AsaasPayment }) {
   const pago = situacaoDoHonorario(hon.status) === 'PAID';
   return (
     <div className="flex w-full flex-wrap items-center gap-3 px-5 py-4 sm:flex-nowrap">
-      <span className="w-24 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Honorários</span>
+      <span className="rotulo w-24 shrink-0 text-ink-soft">Honorários</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">Honorários da contabilidade</p>
         <p className="text-xs text-ink-soft">Cobrança mensal</p>

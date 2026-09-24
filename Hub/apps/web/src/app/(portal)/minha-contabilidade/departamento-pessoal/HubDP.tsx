@@ -152,7 +152,7 @@ function VisaoGeral({ colaboradores, onTab }: { colaboradores: EmployeeRow[]; on
               ))}
             </div>
             <div className="mt-3 flex items-center justify-between rounded-2xl bg-hexxa-forest text-hexxa-lime border border-white/5 px-5 py-3 shadow-(--elev-inset)">
-              <span className="text-xs font-bold uppercase tracking-wider text-hexxa-lime/80">Total da Folha</span>
+              <span className="rotulo text-hexxa-lime/80">Total da Folha</span>
               <span className="font-serif tabular font-bold text-lg text-hexxa-lime">{BRL.format(totalFolha)}</span>
             </div>
             <p className="text-[11px] text-ink-soft">
@@ -253,7 +253,7 @@ function ModalColaborador({ colaborador, onClose, onSaved }: { colaborador: Empl
             {isPJ && (
               <>
                 <div className="col-span-2 pt-2 border-t border-black/5 dark:border-white/10">
-                  <p className="text-xs font-bold uppercase tracking-wider text-hexxa-forest dark:text-hexxa-lime">
+                  <p className="rotulo text-hexxa-forest dark:text-hexxa-lime">
                     Contrato de Prestação de Serviços (PJ)
                   </p>
                 </div>

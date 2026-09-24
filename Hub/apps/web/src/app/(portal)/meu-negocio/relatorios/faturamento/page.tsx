@@ -72,7 +72,7 @@ export default async function FaturamentoReportPage({
       {visao === 'mensal' ? (
         <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
           <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream">
-            <p className="text-caption text-hexxa-lime uppercase tracking-wide font-bold">Total do Ano</p>
+            <p className="rotulo text-hexxa-lime">Total do Ano</p>
             <p className="font-serif text-3xl font-bold text-hexxa-lime tabular">{BRL.format(totalAnoMensal)}</p>
           </div>
           <div className="p-6 sm:p-8 space-y-6">
@@ -115,7 +115,7 @@ export default async function FaturamentoReportPage({
       ) : (
         <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
           <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream">
-            <p className="text-caption text-hexxa-lime uppercase tracking-wide font-bold">Comparativo entre anos</p>
+            <p className="rotulo text-hexxa-lime">Comparativo entre anos</p>
           </div>
           <div className="p-6 sm:p-8 space-y-4">
             {anual.length === 0 ? (

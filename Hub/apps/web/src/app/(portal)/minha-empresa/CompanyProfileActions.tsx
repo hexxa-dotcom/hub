@@ -335,7 +335,7 @@ export function CompanyLogoBadge({
             {/* Opções de Upload ou URL */}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-ink-soft block mb-1.5">
+                <label className="rotulo text-ink-soft block mb-1.5">
                   Subir arquivo de imagem
                 </label>
                 <input
@@ -356,7 +356,7 @@ export function CompanyLogoBadge({
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-ink-soft block mb-1.5">
+                <label className="rotulo text-ink-soft block mb-1.5">
                   Ou colar URL da imagem
                 </label>
                 <input
@@ -567,7 +567,7 @@ export function PartnerAvatarBadge({
             {/* Upload ou URL */}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-ink-soft block mb-1.5">
+                <label className="rotulo text-ink-soft block mb-1.5">
                   Subir foto do dispositivo
                 </label>
                 <input
@@ -588,7 +588,7 @@ export function PartnerAvatarBadge({
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-ink-soft block mb-1.5">
+                <label className="rotulo text-ink-soft block mb-1.5">
                   Ou colar link direto da foto
                 </label>
                 <input

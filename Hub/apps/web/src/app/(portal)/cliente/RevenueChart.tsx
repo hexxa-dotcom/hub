@@ -48,7 +48,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
               const item = payload[0];
               return (
                 <div className="rounded-2xl border border-line bg-surface-card p-4 shadow-(--elev-2)">
-                  <p className="text-caption uppercase text-ink-soft">{item?.payload?.rawMonth}</p>
+                  <p className="rotulo text-ink-soft">{item?.payload?.rawMonth}</p>
                   <p className="text-heading tabular text-ink mt-1">
                     {BRL.format(Number(item?.value || 0))}
                   </p>

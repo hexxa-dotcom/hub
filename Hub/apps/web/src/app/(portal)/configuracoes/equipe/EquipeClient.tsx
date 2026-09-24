@@ -42,7 +42,7 @@ export function EquipeClient({ members }: { members: Member[] }) {
     <div className="space-y-6">
       <form action={formAction} className="flex flex-col sm:flex-row gap-3 items-end">
         <div className="flex-1 w-full">
-          <label className="mb-1.5 block text-xs font-bold text-ink-soft uppercase tracking-wide">E-mail do convidado</label>
+          <label className="rotulo mb-1.5 block text-ink-soft">E-mail do convidado</label>
           <input
             type="email"
             name="email"
@@ -52,7 +52,7 @@ export function EquipeClient({ members }: { members: Member[] }) {
           />
         </div>
         <div className="w-full sm:w-48">
-          <label className="mb-1.5 block text-xs font-bold text-ink-soft uppercase tracking-wide">Papel</label>
+          <label className="rotulo mb-1.5 block text-ink-soft">Papel</label>
           <select
             name="role"
             defaultValue="VIEWER"

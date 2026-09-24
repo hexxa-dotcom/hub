@@ -242,7 +242,7 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
                 className="group/comp block border-t border-black/5 px-1 py-3 dark:border-white/10"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Você está acessando</span>
+                  <span className="rotulo text-ink-soft">Você está acessando</span>
                   <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${companyActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${companyActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                     {companyActive ? 'Ativa' : 'Inativa'}

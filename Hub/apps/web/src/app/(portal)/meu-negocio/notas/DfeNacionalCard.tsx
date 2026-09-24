@@ -117,13 +117,13 @@ export function DfeNacionalCard() {
           {atual && (
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) px-4 py-3">
-                <div className="flex items-center gap-1.5 text-caption uppercase tracking-wider font-bold text-hexxa-green dark:text-hexxa-lime">
+                <div className="rotulo flex items-center gap-1.5 text-hexxa-green dark:text-hexxa-lime">
                   <ArrowUpRight className="h-3 w-3" /> Emitidas ({atual.qtdEmitido})
                 </div>
                 <span className="text-lg font-serif font-bold tabular text-hexxa-green dark:text-hexxa-lime">{fmt(atual.totalEmitido)}</span>
               </div>
               <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) px-4 py-3">
-                <div className="flex items-center gap-1.5 text-caption uppercase tracking-wider font-bold text-amber-600 dark:text-amber-400">
+                <div className="rotulo flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
                   <ArrowDownRight className="h-3 w-3" /> Recebidas ({atual.qtdRecebido})
                 </div>
                 <span className="text-lg font-serif font-bold tabular text-amber-700 dark:text-amber-300">{fmt(atual.totalRecebido)}</span>

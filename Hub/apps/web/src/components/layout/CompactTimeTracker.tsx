@@ -20,7 +20,7 @@ export function CompactTimeTracker({ userEmail }: { userEmail?: string }) {
     <div data-card="time-tracker-compact" className="flex select-none items-center gap-3 px-1 py-2.5">
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isRunning ? 'animate-pulse bg-emerald-500' : 'bg-black/20 dark:bg-white/25'}`} />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">Tempo na gestão</p>
+        <p className="rotulo text-ink-soft">Tempo na gestão</p>
         <p className="font-mono text-sm font-bold tabular text-ink">{formattedTime}</p>
       </div>
       <button

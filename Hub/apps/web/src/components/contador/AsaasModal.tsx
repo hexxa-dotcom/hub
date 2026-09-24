@@ -98,7 +98,7 @@ function StepVincular({
       </div>
 
       <div>
-        <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Forma de pagamento padrão</label>
+        <label className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">Forma de pagamento padrão</label>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {(['PIX', 'BOLETO', 'CREDIT_CARD'] as BillingType[]).map(bt => (
             <button

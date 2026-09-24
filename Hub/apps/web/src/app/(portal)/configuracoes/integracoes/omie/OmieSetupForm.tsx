@@ -102,7 +102,7 @@ export function OmieSetupForm({
 
         <form id="omie-form" onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+            <label className="rotulo text-ink-soft">
               App Key
             </label>
             <input
@@ -114,7 +114,7 @@ export function OmieSetupForm({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+            <label className="rotulo text-ink-soft">
               App Secret
             </label>
             <input

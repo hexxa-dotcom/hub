@@ -58,15 +58,15 @@ export default async function FaturamentoPorClientePage({
       <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
         <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <p className="text-caption text-hexxa-lime uppercase tracking-wide font-bold">Receita Total</p>
+            <p className="rotulo text-hexxa-lime">Receita Total</p>
             <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{BRL.format(receitaTotal)}</p>
           </div>
           <div>
-            <p className="text-caption text-hexxa-lime uppercase tracking-wide font-bold">Margem Líquida do Ano</p>
+            <p className="rotulo text-hexxa-lime">Margem Líquida do Ano</p>
             <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{pct(margemLiquidaAno * 100)}</p>
           </div>
           <div className="hidden sm:block">
-            <p className="text-caption text-hexxa-lime uppercase tracking-wide font-bold">Clientes com Nota</p>
+            <p className="rotulo text-hexxa-lime">Clientes com Nota</p>
             <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{clientes.filter((c) => c.nome !== SEM_CLIENTE).length}</p>
           </div>
         </div>

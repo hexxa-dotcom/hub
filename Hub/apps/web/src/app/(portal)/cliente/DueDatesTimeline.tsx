@@ -69,7 +69,7 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
               <CalendarBlank className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Próximos Vencimentos</p>
+              <p className="rotulo text-ink-soft">Próximos Vencimentos</p>
               <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
                 {BRL.format(displayTotal)}
               </p>
@@ -91,19 +91,19 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
         {/* Mini Cards de Resumo Rápido (A Pagar, A Receber e Saldo Projetado) */}
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3 pt-2">
           <div className="rounded-2xl bg-surface/60 dark:bg-white/5 border border-black/5 dark:border-white/5 p-3">
-            <p className="text-[10px] sm:text-xs font-bold text-ink-soft uppercase tracking-wider">A Pagar</p>
+            <p className="rotulo sm:text-xs text-ink-soft">A Pagar</p>
             <p className="font-serif font-bold text-sm sm:text-base text-ink tabular mt-0.5">
               {BRL.format(totalOutflow)}
             </p>
           </div>
           <div className="rounded-2xl bg-surface/60 dark:bg-white/5 border border-black/5 dark:border-white/5 p-3">
-            <p className="text-[10px] sm:text-xs font-bold text-ink-soft uppercase tracking-wider">A Receber</p>
+            <p className="rotulo sm:text-xs text-ink-soft">A Receber</p>
             <p className="font-serif font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 tabular mt-0.5">
               +{BRL.format(totalReceivable)}
             </p>
           </div>
           <div className="rounded-2xl bg-surface/60 dark:bg-white/5 border border-black/5 dark:border-white/5 p-3">
-            <p className="text-[10px] sm:text-xs font-bold text-ink-soft uppercase tracking-wider">Saldo Líquido</p>
+            <p className="rotulo sm:text-xs text-ink-soft">Saldo Líquido</p>
             <p
               className={`font-serif font-bold text-sm sm:text-base tabular mt-0.5 ${
                 netProjected >= 0 ? 'text-hexxa-forest dark:text-hexxa-lime' : 'text-expense'

@@ -62,11 +62,11 @@ export function CardStatusConciliacao({
         {/* Rodapé / Mini Bento Indicators */}
         <div className="grid grid-cols-2 gap-2.5 pt-4 mt-4 border-t border-black/5 dark:border-white/10">
           <div className="rounded-xl bg-surface p-2.5 border border-black/5 dark:border-white/5 shadow-(--elev-inset)">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Pendências</p>
+            <p className="rotulo text-ink-soft">Pendências</p>
             <p className="font-serif font-bold text-sm text-emerald-600 dark:text-emerald-400 mt-0.5">0 transações</p>
           </div>
           <div className="rounded-xl bg-surface p-2.5 border border-black/5 dark:border-white/5 shadow-(--elev-inset)">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Fechamento</p>
+            <p className="rotulo text-ink-soft">Fechamento</p>
             <p className="font-serif font-bold text-sm text-ink mt-0.5">Pronto p/ apuração</p>
           </div>
         </div>
@@ -115,11 +115,11 @@ export function CardStatusConciliacao({
       {/* Rodapé / Mini Bento Indicators */}
       <div className="grid grid-cols-2 gap-2.5 pt-4 mt-4 border-t border-black/5 dark:border-white/10">
         <div className="rounded-xl bg-surface p-2.5 border border-black/5 dark:border-white/5 shadow-(--elev-inset)">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">A Conciliar</p>
+          <p className="rotulo text-ink-soft">A Conciliar</p>
           <p className="font-serif font-bold text-sm text-ink tabular mt-0.5">{transactions.length} itens</p>
         </div>
         <div className="rounded-xl bg-surface p-2.5 border border-black/5 dark:border-white/5 shadow-(--elev-inset)">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Volume Aberto</p>
+          <p className="rotulo text-ink-soft">Volume Aberto</p>
           <p className="font-serif font-bold text-sm text-ink tabular mt-0.5">{fmt(totalPendente)}</p>
         </div>
       </div>

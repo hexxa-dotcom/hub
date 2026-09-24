@@ -58,7 +58,7 @@ export function QuickActionDrawer({ actionId, onClose }: { actionId: QuickAction
       >
         <div className="flex shrink-0 items-center justify-between border-b border-black/5 px-6 py-5 dark:border-white/10">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#6E6A61] dark:text-[#A8A49C]">
+            <p className="rotulo text-[#6E6A61] dark:text-[#A8A49C]">
               Ação Rápida
             </p>
             <h2 className="mt-0.5 font-serif text-xl font-bold leading-tight text-[#231F20] dark:text-[#F5F6F4]">

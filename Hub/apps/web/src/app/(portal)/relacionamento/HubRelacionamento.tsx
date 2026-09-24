@@ -528,7 +528,7 @@ function AssinaturaTab({ initial }: { initial: SignatureRequestSummary[] }) {
           { label: 'Concluídos', val: concluded, cls: 'text-emerald-600 dark:text-emerald-400' },
         ].map(c => (
           <Card key={c.label} level={1} className="p-5">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">{c.label}</p>
+            <p className="rotulo text-ink-soft">{c.label}</p>
             <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${c.cls}`}>{c.val}</p>
           </Card>
         ))}
@@ -664,7 +664,7 @@ function CnpjRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex items-start justify-between gap-4 border-b border-black/5 dark:border-white/10 py-3 last:border-0">
-      <span className="min-w-[140px] text-caption font-bold uppercase tracking-wider text-ink-soft">{label}</span>
+      <span className="rotulo min-w-[140px] text-ink-soft">{label}</span>
       <span className="flex items-center text-right text-xs sm:text-sm font-bold text-ink">{value}<CopyBtn text={value} /></span>
     </div>
   );
@@ -888,7 +888,7 @@ function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; 
           ['Concluídas', 'concluida', 'text-emerald-600 dark:text-emerald-400'],
         ] as const).map(([label, key, cls]) => (
           <Card key={key} level={1} className="p-5">
-            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft">{label}</p>
+            <p className="rotulo text-ink-soft">{label}</p>
             <p className={`mt-2 font-serif tabular font-bold text-2xl sm:text-3xl ${cls}`}>{counts[key]}</p>
           </Card>
         ))}

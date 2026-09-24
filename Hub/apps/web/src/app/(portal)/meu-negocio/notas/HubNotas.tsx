@@ -188,18 +188,18 @@ function Dashboard({
 
         <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-bold">
           <div className="bg-surface-card shadow-(--elev-inset) rounded-2xl px-5 py-3 text-ink">
-            <span className="text-caption text-ink-soft uppercase tracking-wider block mb-1">Emitidas</span>
+            <span className="rotulo text-ink-soft block mb-1">Emitidas</span>
             <span className="text-xl font-serif font-bold tabular">{issuedThisMonth.length} notas</span>
           </div>
           
           <div className="bg-amber-500/10 shadow-(--elev-inset) rounded-2xl px-5 py-3 text-amber-700 dark:text-amber-300" title="Imposto acumulado no mês">
-            <span className="text-caption text-amber-600/80 dark:text-amber-400 uppercase tracking-wider block mb-1">Imposto</span>
+            <span className="rotulo text-amber-600/80 dark:text-amber-400 block mb-1">Imposto</span>
             <span className="text-xl font-serif font-bold tabular">{fmt(taxThisMonth)}</span>
           </div>
           
           {(inProgress.length > 0 || withError.length > 0) && (
             <div className="bg-red-500/10 shadow-(--elev-inset) rounded-2xl px-5 py-3 text-red-700 dark:text-red-300">
-              <span className="text-caption text-red-600/80 dark:text-red-400 uppercase tracking-wider block mb-1">Pendentes</span>
+              <span className="rotulo text-red-600/80 dark:text-red-400 block mb-1">Pendentes</span>
               <span className="text-xl font-serif font-bold tabular">{inProgress.length + withError.length} notas</span>
             </div>
           )}
@@ -284,12 +284,12 @@ function Dashboard({
                       <div className="border-t border-black/5 dark:border-white/5 bg-surface-card/40 p-4 sm:p-5 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Tomador</p>
+                            <p className="rotulo text-ink-soft mb-1">Tomador</p>
                             <p className="font-semibold text-ink">{n.customer?.name}</p>
                             {n.customer?.document && <p className="text-ink-soft text-xs mt-0.5">{n.customer.document}</p>}
                           </div>
                           <div>
-                            <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Descrição</p>
+                            <p className="rotulo text-ink-soft mb-1">Descrição</p>
                             <p className="text-ink leading-relaxed whitespace-pre-wrap">{n.serviceDescription}</p>
                           </div>
                         </div>
@@ -297,17 +297,17 @@ function Dashboard({
                         {n.taxAmount != null && n.taxAmount > 0 && (
                           <div className="grid grid-cols-3 gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) p-3.5 text-sm">
                             <div>
-                              <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Valor da nota</p>
+                              <p className="rotulo text-ink-soft mb-1">Valor da nota</p>
                               <p className="font-serif font-bold tabular text-ink">{fmt(n.amount)}</p>
                             </div>
                             <div>
-                              <p className="text-caption font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">
+                              <p className="rotulo text-amber-600 dark:text-amber-400 mb-1">
                                 Imposto {n.taxRate != null ? `(${pctFmt(n.taxRate)}%)` : ''}
                               </p>
                               <p className="font-serif font-bold tabular text-amber-700 dark:text-amber-300">{fmt(n.taxAmount)}</p>
                             </div>
                             <div>
-                              <p className="text-caption font-bold uppercase tracking-wider text-hexxa-green dark:text-hexxa-lime mb-1">Valor líquido</p>
+                              <p className="rotulo text-hexxa-green dark:text-hexxa-lime mb-1">Valor líquido</p>
                               <p className="font-serif font-bold tabular text-hexxa-green dark:text-hexxa-lime">
                                 {fmt(n.amount - n.taxAmount)}
                               </p>
@@ -316,7 +316,7 @@ function Dashboard({
                         )}
 
                         <div className="border-t border-black/5 dark:border-white/5 pt-3">
-                          <p className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-1">Chave / Protocolo</p>
+                          <p className="rotulo text-ink-soft mb-1">Chave / Protocolo</p>
                           <code className="text-xs font-mono text-ink-soft bg-surface-card shadow-(--elev-inset) p-2 rounded-lg block break-all select-all">
                             {n.providerProtocol ?? 'Aguardando retorno da Sefin...'}
                           </code>
@@ -535,7 +535,7 @@ function EmitirNota({
       <form action={action} className="space-y-6">
         {/* Card 1: Valor */}
         <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-6 flex items-center gap-2">
+          <h3 className="rotulo text-ink-soft mb-6 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-card shadow-(--elev-inset) text-[10px]">1</span>
             Qual o valor faturado?
           </h3>
@@ -558,11 +558,11 @@ function EmitirNota({
           {amount > 0 && taxRatePercent > 0 && (
             <div className="mt-6 flex flex-wrap gap-4 text-sm font-bold">
               <div className="rounded-2xl bg-amber-500/10 shadow-(--elev-inset) px-5 py-3 text-amber-700 dark:text-amber-300">
-                <span className="text-caption uppercase tracking-wider block mb-1 opacity-80">Imposto Estimado ({pctFmt(taxRatePercent)}%)</span>
+                <span className="rotulo block mb-1 opacity-80">Imposto Estimado ({pctFmt(taxRatePercent)}%)</span>
                 <span className="font-serif tabular">{fmt(previewTax)}</span>
               </div>
               <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) px-5 py-3 text-ink">
-                <span className="text-caption uppercase tracking-wider block mb-1 opacity-60">Valor Líquido</span>
+                <span className="rotulo block mb-1 opacity-60">Valor Líquido</span>
                 <span className="font-serif tabular">{fmt(previewNet)}</span>
               </div>
             </div>
@@ -571,7 +571,7 @@ function EmitirNota({
 
         {/* Card 2: Serviço e Competência */}
         <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
-          <h3 className="text-caption font-bold uppercase tracking-wider text-ink-soft mb-6 flex items-center gap-2">
+          <h3 className="rotulo text-ink-soft mb-6 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-card shadow-(--elev-inset) text-[10px]">2</span>
             Detalhes do Serviço
           </h3>
@@ -621,7 +621,7 @@ function EmitirNota({
         {/* Card 3: Destinatário */}
         <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6E6A61] dark:text-[#A8A49C] flex items-center gap-2">
+            <h3 className="rotulo text-[#6E6A61] dark:text-[#A8A49C] flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-[10px]">3</span>
               Dados do Tomador
             </h3>

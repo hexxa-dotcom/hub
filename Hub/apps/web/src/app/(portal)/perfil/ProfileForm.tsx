@@ -272,7 +272,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
             <div className="space-y-4">
               {/* Nome Completo */}
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+                <label className="rotulo text-ink-soft">
                   Nome Completo
                 </label>
                 <div className="relative mt-1.5">
@@ -291,7 +291,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
               {/* E-mail (Supabase Auth - Readonly com selo) */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+                  <label className="rotulo text-ink-soft">
                     E-mail de Acesso
                   </label>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
@@ -316,7 +316,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
               {/* Linha dupla: WhatsApp / Celular e CPF */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+                  <label className="rotulo text-ink-soft">
                     WhatsApp / Celular
                   </label>
                   <div className="relative mt-1.5">
@@ -332,7 +332,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">
+                  <label className="rotulo text-ink-soft">
                     CPF
                   </label>
                   <div className="relative mt-1.5">
@@ -439,7 +439,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
             {/* Matriz de Poderes e Permissões */}
             <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.03] p-4 space-y-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+              <span className="rotulo text-ink-soft">
                 Matriz de Permissões na Empresa
               </span>
 
@@ -532,7 +532,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface p-3">
-                  <span className="text-[10px] uppercase font-bold text-ink-soft block">
+                  <span className="rotulo text-ink-soft block">
                     Cotas Societárias
                   </span>
                   <span className="text-base font-bold text-ink font-mono">
@@ -541,7 +541,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
                 </div>
 
                 <div className="rounded-2xl border border-black/5 dark:border-white/5 bg-surface p-3">
-                  <span className="text-[10px] uppercase font-bold text-ink-soft block">
+                  <span className="rotulo text-ink-soft block">
                     Cargo Oficial
                   </span>
                   <span className="text-xs font-bold text-ink truncate block mt-0.5">

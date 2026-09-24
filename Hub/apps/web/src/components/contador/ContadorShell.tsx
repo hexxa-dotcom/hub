@@ -138,7 +138,7 @@ export function ContadorShell({
         {(!collapsed || mobile) && (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-serif font-bold text-[#F5F6F4] leading-tight">Hexxa Hub</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#DFFFAE]">Área do Contador</p>
+            <p className="rotulo text-[#DFFFAE]">Área do Contador</p>
           </div>
         )}
         {!mobile && (

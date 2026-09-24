@@ -1234,3 +1234,14 @@ h1, h2, h3, h4, h5, h6 {
     --color-line-val: rgba(255, 255, 255, 0.4);
   }
 }
+
+/* Rótulo — a "voz pequena" do sistema: títulos de card, colunas, categorias,
+   o caminho do topo. Caixa alta, 11px, traço médio, letras espaçadas.
+   Nasceu na Central de Guias; um lugar só para mudar. */
+@utility rotulo {
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}

@@ -262,7 +262,7 @@ export async function MesHero({ selectedMonth }: { selectedMonth?: string } = {}
                   <ClockCountdown className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-caption font-bold text-ink-soft uppercase tracking-wider">Contas Atrasadas</p>
+                  <p className="rotulo text-ink-soft">Contas Atrasadas</p>
                   <p className={`font-serif text-2xl sm:text-3xl font-bold tabular mt-0.5 ${
                     totalInadimplente > 0 ? 'text-expense' : 'text-ink'
                   }`}>
@@ -279,7 +279,7 @@ export async function MesHero({ selectedMonth }: { selectedMonth?: string } = {}
 
               {totalInadimplente > 0 && (
                 <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5">
-                  <p className="text-caption uppercase text-ink-soft">Por tempo de atraso</p>
+                  <p className="rotulo text-ink-soft">Por tempo de atraso</p>
                   <div className="mt-2 h-24">
                     <InadimplenciaChart data={atrasoPorFaixa} />
                   </div>

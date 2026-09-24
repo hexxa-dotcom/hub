@@ -314,12 +314,12 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               </div>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Assunto da Solicitação *</label>
+                <label className="rotulo text-ink-soft">Assunto da Solicitação *</label>
                 <input name="subject" required placeholder="Ex.: Dúvida sobre imposto DAS ou Folha de Pagamento" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Categoria *</label>
+                <label className="rotulo text-ink-soft">Categoria *</label>
                 <select name="category" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime">
                   <option value="Fiscal / DAS">Fiscal / DAS & Impostos</option>
                   <option value="Contábil">Contábil & Balancete</option>
@@ -329,7 +329,7 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               </div>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Descreva sua solicitação *</label>
+                <label className="rotulo text-ink-soft">Descreva sua solicitação *</label>
                 <textarea name="initialText" required rows={4} placeholder="Digite os detalhes da sua mensagem..." className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
               </div>
 
@@ -360,17 +360,17 @@ export function SuporteClient({ initialTickets }: { initialTickets: SupportTicke
               <p className="text-xs text-ink-soft">Sua solicitação abre um chamado com a data e horário desejados. A equipe entrará em contato para confirmar.</p>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Pauta da Reunião *</label>
+                <label className="rotulo text-ink-soft">Pauta da Reunião *</label>
                 <input name="topic" required placeholder="Ex.: Planejamento Tributário / Revisão Fator R" className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Data Desejada *</label>
+                  <label className="rotulo text-ink-soft">Data Desejada *</label>
                   <input name="date" type="date" required defaultValue={new Date(Date.now() + 86400000).toISOString().split('T')[0]} className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wide">Horário Desejado *</label>
+                  <label className="rotulo text-ink-soft">Horário Desejado *</label>
                   <input name="time" type="time" defaultValue="14:30" required className="mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
                 </div>
               </div>

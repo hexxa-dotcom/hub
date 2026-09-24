@@ -171,7 +171,7 @@ export function NfseForm({ notas }: { notas: ServiceInvoiceRecord[] }) {
 
             {retainIss && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-slate-50 dark:bg-slate-900/50 p-8 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-8">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="rotulo text-slate-500">
                   Endereço do tomador obrigatório
                 </p>
                 <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">

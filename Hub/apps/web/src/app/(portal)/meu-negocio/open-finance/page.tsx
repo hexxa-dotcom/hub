@@ -71,7 +71,7 @@ export default function OpenFinancePage() {
           </div>
 
           <div className="min-w-0 lg:border-l lg:border-ink/10 lg:pl-8">
-            <p className="text-caption uppercase text-ink-soft">Enquanto não chega</p>
+            <p className="rotulo text-ink-soft">Enquanto não chega</p>
             <ul className="mt-3 space-y-3">
               <li className="text-footnote text-ink-soft">
                 A conciliação funciona com lançamentos registrados no Hub.

@@ -64,7 +64,7 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
         )}
 
         <div>
-          <label className="text-xs font-bold text-ink-soft uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+          <label className="rotulo text-ink-soft flex items-center gap-1.5 mb-1.5">
             <Link2 className="h-3.5 w-3.5 text-hexxa-forest dark:text-hexxa-lime" /> URL do Webhook
           </label>
           <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
 
         {freshSecret && (
           <div>
-            <label className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+            <label className="rotulo text-amber-800 dark:text-amber-300 flex items-center gap-1.5 mb-1.5">
               <AlertTriangle className="h-3.5 w-3.5" /> Segredo (copie agora — não será mostrado de novo)
             </label>
             <div className="flex items-center gap-2">

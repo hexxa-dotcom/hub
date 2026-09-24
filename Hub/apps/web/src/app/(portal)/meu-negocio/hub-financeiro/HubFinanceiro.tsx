@@ -1372,7 +1372,7 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
         {/* Card de Eficiência / Gauge Semi-circular Estilo 'Earnings 80%' (col-span-1) */}
         <Card level={1} className="p-6 sm:p-7 card-finish flex flex-col justify-between space-y-4">
           <div>
-            <p className="text-caption font-bold text-ink-soft">Eficiência Operacional</p>
+            <p className="rotulo text-ink-soft">Eficiência Operacional</p>
             <p className="text-xs text-ink-soft mt-1">Total de Despesas</p>
             <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
               {fmt(totalPagarMes)}

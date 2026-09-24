@@ -166,7 +166,7 @@ export function LucroCard() {
 
           <div className="mt-3 border-t border-white/15 pt-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Reserva de Capital de Giro</span>
+              <span className="rotulo text-white/80">Reserva de Capital de Giro</span>
               <div className="flex items-center gap-1">
                 {[10, 20, 30].map(p => (
                   <button
@@ -192,7 +192,7 @@ export function LucroCard() {
 
           <div className="mt-4 rounded-2xl bg-hexxa-lime px-5 py-4 text-hexxa-forest shadow-(--elev-1)">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-xs uppercase tracking-wider text-hexxa-forest/80">Distribuível aos Sócios</span>
+              <span className="rotulo text-hexxa-forest/80">Distribuível aos Sócios</span>
               <span className="font-serif tabular font-extrabold text-2xl sm:text-3xl text-hexxa-forest">{BRL.format(distribuivel)}</span>
             </div>
             <p className="mt-0.5 text-xs text-hexxa-forest/70 font-medium">100% Isento de IRPF com escrituração contábil regular</p>

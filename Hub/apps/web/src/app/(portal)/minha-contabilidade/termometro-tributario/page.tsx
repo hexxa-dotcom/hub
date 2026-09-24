@@ -139,7 +139,7 @@ export default async function TermometroTributarioPage() {
             {/* Cards Secundários */}
             <div className="flex flex-col gap-6">
               <Card level={1} className="p-6 card-finish">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3">Carga Tributária Efetiva</h3>
+                <h3 className="rotulo text-ink-soft mb-3">Carga Tributária Efetiva</h3>
                 <div className="flex items-baseline gap-2">
                   <span className="font-serif tabular font-extrabold text-3xl sm:text-4xl text-ink">{rate(apurado ? apurado.aliquotaEfetiva : simples.effectiveRate)}</span>
                   <span className="text-xs text-ink-soft">{apurado ? `apurada em ${mesApurado}` : 'estimativa'}</span>
@@ -161,7 +161,7 @@ export default async function TermometroTributarioPage() {
 
               {fatorRAplica ? (
                 <Card level={1} className="p-6 card-finish">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3 flex items-center gap-1.5">
+                  <h3 className="rotulo text-ink-soft mb-3 flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5" /> Fator R (Folha / Faturamento)
                   </h3>
                   <div className="flex items-baseline gap-2">
@@ -191,7 +191,7 @@ export default async function TermometroTributarioPage() {
                 </Card>
               ) : (
                 <Card level={1} className="p-6 card-finish">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3 flex items-center gap-1.5">
+                  <h3 className="rotulo text-ink-soft mb-3 flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5" /> Fator R
                   </h3>
                   <p className="font-serif font-bold text-base text-ink">
@@ -220,7 +220,7 @@ export default async function TermometroTributarioPage() {
               <>
               {/* Piloto Automático do Fator R */}
               <Card level={2} tone="deep" className="p-6 card-finish">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-hexxa-lime mb-3 flex items-center gap-1.5">
+                <h3 className="rotulo text-hexxa-lime mb-3 flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4" /> Piloto Automático Fator R
                 </h3>
                 

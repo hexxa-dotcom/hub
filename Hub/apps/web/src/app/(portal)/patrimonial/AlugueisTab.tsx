@@ -264,19 +264,19 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
         {/* Resultado do aluguel — imposto, depreciação, o que sobra */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Aluguel/mês</p>
+            <p className="rotulo text-ink-soft">Aluguel/mês</p>
             <p className="font-serif tabular font-bold text-sm text-ink">{BRL.format(lease.monthlyRent)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Imposto estimado</p>
+            <p className="rotulo text-ink-soft">Imposto estimado</p>
             <p className="font-serif tabular font-bold text-sm text-amber-600 dark:text-amber-400">− {BRL.format(impostoMensal)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Disponível em caixa</p>
+            <p className="rotulo text-ink-soft">Disponível em caixa</p>
             <p className="font-serif tabular font-bold text-sm text-emerald-600 dark:text-emerald-400">{BRL.format(disponivelCaixa)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Depreciação/mês</p>
+            <p className="rotulo text-ink-soft">Depreciação/mês</p>
             <p className="font-serif tabular font-bold text-sm text-ink">{BRL.format(depMensal)}</p>
           </div>
         </div>
@@ -310,7 +310,7 @@ function LeaseCard({ lease, property, onChanged }: { lease: LeaseRow; property: 
 
         {showReajuste && (
           <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-3">
-            <label className="text-caption font-bold text-ink-soft uppercase tracking-wide">Reajuste (%)</label>
+            <label className="rotulo text-ink-soft">Reajuste (%)</label>
             <input type="number" step="0.1" value={pct} onChange={(e) => setPct(e.target.value)} className="w-24 rounded-xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-2.5 py-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
             <button type="button" onClick={handleReajustar} disabled={busy} className="rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-50">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Aplicar'}
