@@ -300,22 +300,6 @@ export async function deleteLancamento(id: string) {
   revalidatePath('/cliente');
 }
 
-/** Baixa o comprovante anexado a um lançamento (base64 → data URL, pra abrir/baixar no client). */
-export async function getComprovante(id: string): Promise<{ dataUrl: string; filename: string } | null> {
-  const ctx = await getTenantContext();
-  const rows = await withTenant(ctx.companyId, async (tx) => {
-    return tx.execute(sql`
-      SELECT receipt_base64, receipt_filename, receipt_mime_type
-      FROM financial_entry
-      WHERE id = ${id} AND company_id = ${ctx.companyId}
-    `);
-  });
-  const row = rows[0] as any;
-  if (!row?.receipt_base64) return null;
-  const mime = row.receipt_mime_type || 'application/octet-stream';
-  return { dataUrl: `data:${mime};base64,${row.receipt_base64}`, filename: row.receipt_filename || 'comprovante' };
-}
-
 // ── Despesas Fixas (recorrentes) ────────────────────────────────────────────
 
 export type RecurringExpenseRow = {

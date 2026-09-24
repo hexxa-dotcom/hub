@@ -1,456 +1,319 @@
 'use client';
 
-import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2, Plus, Trash2, X } from 'lucide-react';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { PieChart, Calculator, Package, KeyRound, Trash2, Loader2, Plus, Sparkles } from 'lucide-react';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import type { PropertyRow, LeaseRow } from './actions';
-import type { PartnerRow } from '../minha-contabilidade/socios/actions';
-import type { YearlyProfitSummary } from '@/lib/server/profit-distribution';
-import { createProperty, deleteProperty } from './actions';
+import { salvarBemAction, excluirBemAction } from './actions';
 import { AlugueisTab } from './AlugueisTab';
-import { Card } from '@/components/ui/Card';
-import { TAXAS, valorContabilLiquido, depreciacaoAcumulada, impostoAluguel } from './lib';
-import { DistributionRequestForm } from '@/components/profit-distribution/DistributionRequestForm';
+import { TAXAS, TIPOS, mesesDeUso, depreciacaoAcumulada, depreciacaoMensal, type TipoDeBem } from './lib';
 
-const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const YEAR = new Date().getFullYear();
+const BRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const campo =
+  'mt-1.5 w-full rounded-2xl border border-black/5 bg-surface-card px-4 py-2.5 text-sm text-ink shadow-(--elev-inset) outline-none focus:ring-2 focus:ring-hexxa-green dark:border-white/5 dark:focus:ring-hexxa-lime';
 
-const TABS = [
-  { id: 'patrimonio', label: 'Patrimônio Líquido', icon: PieChart },
-  { id: 'alugueis', label: 'Contratos de Aluguel', icon: KeyRound },
-  { id: 'dividendos', label: 'Simulador de Dividendos', icon: Calculator },
-  { id: 'ativos', label: 'Gestão de Ativos & Depreciação', icon: Package },
-] as const;
-type Tab = (typeof TABS)[number]['id'];
+export type Socio = { id: string; nome: string };
+type Aba = 'bens' | 'alugueis';
+type Filtro = 'TODOS' | 'PJ' | 'PF';
 
-function valorContabil(a: PropertyRow) {
-  const anos = Math.max(0, YEAR - a.year);
-  return valorContabilLiquido(a.acq, a.rate, anos);
-}
+const mesAno = (iso: string) => {
+  const [y, m] = iso.split('-');
+  return `${m}/${y}`;
+};
 
 export function PatrimonioApp({
-  initialProperties, partners, resumo, initialLeases,
+  properties,
+  partners,
+  leases,
+  aliquota,
+  hoje,
 }: {
-  initialProperties: PropertyRow[];
-  partners: PartnerRow[];
-  resumo: YearlyProfitSummary;
-  initialLeases: LeaseRow[];
+  properties: PropertyRow[];
+  partners: Socio[];
+  leases: LeaseRow[];
+  aliquota: number;
+  hoje: string;
 }) {
-  const [tab, setTab] = useState<Tab>('patrimonio');
-  const router = useRouter();
+  const [aba, setAba] = useState<Aba>('bens');
+  const [editando, setEditando] = useState<PropertyRow | 'novo' | null>(null);
+  const alugados = leases.filter((l) => l.status === 'ACTIVE').length;
 
   return (
-    <div className="space-y-8">
-      <div className="flex overflow-x-auto no-scrollbar py-1">
+    <div className="space-y-10">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <SegmentedTabs
-          tabs={TABS}
-          activeTab={tab}
-          onChange={setTab}
-          layoutId="patrimonioTabsIndicator"
+          tabs={[
+            { id: 'bens', label: 'Bens' },
+            { id: 'alugueis', label: alugados ? `Aluguéis · ${alugados}` : 'Aluguéis' },
+          ]}
+          activeTab={aba}
+          onChange={(id) => setAba(id as Aba)}
+          layoutId="bensAbas"
         />
+        {aba === 'bens' && (
+          <button
+            type="button"
+            onClick={() => setEditando('novo')}
+            className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) dark:bg-hexxa-lime dark:text-hexxa-forest"
+          >
+            <Plus className="h-3.5 w-3.5" /> Novo bem
+          </button>
+        )}
       </div>
 
-      {tab === 'patrimonio' && <Patrimonio properties={initialProperties} partners={partners} />}
-      {tab === 'alugueis' && <AlugueisTab properties={initialProperties} leases={initialLeases} />}
-      {tab === 'dividendos' && <Dividendos partners={partners} resumo={resumo} onConfirmed={() => router.refresh()} />}
-      {tab === 'ativos' && <Ativos properties={initialProperties} partners={partners} />}
+      {aba === 'bens' ? (
+        <ListaDeBens properties={properties} hoje={hoje} onAbrir={setEditando} />
+      ) : (
+        <AlugueisTab properties={properties} leases={leases} aliquota={aliquota} hoje={hoje} />
+      )}
+
+      {editando && (
+        <FormularioDeBem bem={editando === 'novo' ? null : editando} partners={partners} hoje={hoje} onClose={() => setEditando(null)} />
+      )}
     </div>
   );
 }
 
-// ============================================================
-// 1) Patrimônio Líquido — PJ (empresa) + PF (sócios)
-// ============================================================
-function Patrimonio({ properties, partners }: { properties: PropertyRow[]; partners: PartnerRow[] }) {
-  const ativosPJ = properties.filter((p) => p.ownerType === 'PJ');
-  const ativosPF = properties.filter((p) => p.ownerType === 'PF');
+function ListaDeBens({ properties, hoje, onAbrir }: { properties: PropertyRow[]; hoje: string; onAbrir: (b: PropertyRow) => void }) {
+  const [filtro, setFiltro] = useState<Filtro>('TODOS');
 
-  const totalPJ = ativosPJ.reduce((s, a) => s + valorContabil(a), 0);
-  const totalPF = ativosPF.reduce((s, a) => s + valorContabil(a), 0);
-  const total = totalPJ + totalPF;
-
-  if (properties.length === 0) {
-    return (
-      <Card level={1} className="p-12 text-center border-dashed">
-        <p className="font-serif font-bold text-base text-ink">Nenhum bem cadastrado ainda.</p>
-        <p className="text-xs text-ink-soft mt-1">Cadastre os bens da empresa e dos sócios na aba "Gestão de Ativos" para ver o patrimônio consolidado aqui.</p>
-      </Card>
-    );
-  }
+  const linhas = properties.map((b) => {
+    const meses = mesesDeUso(b.compra, hoje);
+    const depreciado = depreciacaoAcumulada(b.acq, b.rate, meses);
+    return { ...b, meses, depreciado, valorHoje: b.acq - depreciado, porMes: depreciacaoMensal(b.acq, b.rate, meses) };
+  });
+  const daEmpresa = linhas.filter((b) => b.ownerType === 'PJ');
+  const dosSocios = linhas.filter((b) => b.ownerType === 'PF');
+  const soma = (l: typeof linhas, f: (b: (typeof linhas)[number]) => number) => l.reduce((s, b) => s + f(b), 0);
+  const lista = filtro === 'TODOS' ? linhas : linhas.filter((b) => b.ownerType === filtro);
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-10">
       <GradeDeResumo colunas={3}>
-        <CardResumo destaque rotulo="Patrimônio consolidado" valor={BRL0.format(total)} nota="Empresa e sócios" />
-        <CardResumo rotulo="Patrimônio da empresa (PJ)" valor={BRL0.format(totalPJ)} nota={`${ativosPJ.length} bem(ns) · valor contábil líquido`} />
-        <CardResumo rotulo="Patrimônio pessoal (PF)" valor={BRL0.format(totalPF)} nota={`${ativosPF.length} bem(ns) dos sócios`} />
+        <CardResumo
+          destaque
+          rotulo="Bens da empresa hoje"
+          valor={BRL0.format(soma(daEmpresa, (b) => b.valorHoje))}
+          nota={`${daEmpresa.length} ${daEmpresa.length === 1 ? 'bem' : 'bens'} · comprados por ${BRL0.format(soma(daEmpresa, (b) => b.acq))}`}
+          onClick={() => setFiltro('PJ')}
+        />
+        <CardResumo
+          rotulo="Desgaste por mês"
+          valor={BRL.format(soma(daEmpresa, (b) => b.porMes))}
+          nota="Depreciação dos bens da empresa"
+        />
+        <CardResumo
+          rotulo="Bens dos sócios"
+          valor={BRL0.format(soma(dosSocios, (b) => b.valorHoje))}
+          nota={`${dosSocios.length} ${dosSocios.length === 1 ? 'bem pessoal' : 'bens pessoais'}`}
+          onClick={() => setFiltro('PF')}
+        />
       </GradeDeResumo>
 
-      {ativosPJ.length > 0 && (
-        <Card level={1} className="p-6 sm:p-8 space-y-4">
-          <h2 className="font-serif font-bold text-base text-ink">Composição do Patrimônio da Empresa</h2>
-          <p className="text-xs text-ink-soft">Participação proporcional de cada bem no ativo imobilizado líquido da empresa.</p>
-          <ul className="mt-4 space-y-3">
-            {ativosPJ.map((a) => {
-              const vc = valorContabil(a);
-              const p = totalPJ > 0 ? Math.round((vc / totalPJ) * 100) : 0;
-              return (
-                <li key={a.id} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="font-bold text-ink">{a.name}</span>
-                    <span className="font-semibold text-hexxa-forest dark:text-hexxa-lime font-serif tabular">
-                      {BRL0.format(vc)} <span className="text-ink-soft font-normal text-xs">· {p}%</span>
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5">
-                    <div className="h-full rounded-full bg-hexxa-forest dark:bg-hexxa-lime transition-all duration-500" style={{ width: `${p}%` }} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
-
-      {partners.length > 0 && (
-        <Card level={1} className="p-6 sm:p-8 space-y-4">
-          <h2 className="font-serif font-bold text-base text-ink">Riqueza por Sócio</h2>
-          <p className="text-xs text-ink-soft">Participação societária no PJ (pelo % do contrato social) + bens pessoais (PF) cadastrados.</p>
-          <ul className="mt-3 grid gap-4 sm:grid-cols-2">
-            {partners.map((s) => {
-              const fatiaPJ = (totalPJ * s.participacao) / 100;
-              const bensPF = ativosPF.filter((a) => a.partnerId === s.id).reduce((sum, a) => sum + valorContabil(a), 0);
-              return (
-                <li key={s.id} className="rounded-2xl bg-surface-card border border-black/5 dark:border-white/5 p-5 shadow-(--elev-1) space-y-1">
-                  <p className="rotulo text-ink-soft">{s.nome} · {s.participacao}% do PJ</p>
-                  <p className="font-serif tabular text-2xl font-bold text-ink">{BRL0.format(fatiaPJ + bensPF)}</p>
-                  <p className="text-xs text-ink-soft">
-                    {BRL0.format(fatiaPJ)} de quota societária + {BRL0.format(bensPF)} de bens pessoais
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-// ============================================================
-// 2) Simulador de Dividendos
-// ============================================================
-function Dividendos({
-  partners,
-  resumo,
-  onConfirmed,
-}: {
-  partners: PartnerRow[];
-  resumo: YearlyProfitSummary;
-  onConfirmed: () => void;
-}) {
-  const [lucro, setLucro] = useState(resumo.netProfit);
-  const [reservas, setReservas] = useState(resumo.accumulatedProfit);
-  const [reterPct, setReterPct] = useState(20);
-
-  const calc = useMemo(() => {
-    const reservaLegal = lucro * 0.05; // Lei 6.404/76, art. 193
-    const reinvest = (lucro * reterPct) / 100;
-    const doExercicio = Math.max(0, lucro - reservaLegal - reinvest);
-    const max = doExercicio + reservas;
-    return { reservaLegal, reinvest, doExercicio, max };
-  }, [lucro, reservas, reterPct]);
-
-  const fieldCls =
-    'mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
-
-  return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 animate-in fade-in">
-      <Card level={1} className="p-6 sm:p-8 space-y-4">
-        <h2 className="font-serif font-bold text-base text-ink">Parâmetros de Simulação</h2>
-        <p className="text-xs text-ink-soft">
-          {resumo.fonte === 'OFICIAL'
-            ? <>Pré-preenchido com o lucro do exercício pela contabilidade oficial, até {resumo.mesOficial?.split('-').reverse().join('/')} ({BRL.format(resumo.netProfit)}), e o que ainda não foi distribuído ({BRL.format(resumo.accumulatedProfit)}).</>
-            : <>Sem lucro oficial ainda — {resumo.motivoIndisponivel} Os campos abaixo servem só para simular.</>}
-        </p>
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="rotulo text-ink-soft">Lucro Contábil do Exercício</label>
-            <input type="number" value={lucro} onChange={(e) => setLucro(Number(e.target.value))} className={fieldCls} />
-          </div>
-          <div>
-            <label className="rotulo text-ink-soft">Reservas de Lucros Acumuladas (Anos Anteriores)</label>
-            <input type="number" value={reservas} onChange={(e) => setReservas(Number(e.target.value))} className={fieldCls} />
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="rotulo text-ink-soft">Reter para Reinvestimento / Giro</label>
-              <span className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime">{reterPct}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={50}
-              value={reterPct}
-              onChange={(e) => setReterPct(Number(e.target.value))}
-              className="mt-2 w-full accent-hexxa-forest dark:accent-hexxa-lime"
-            />
-          </div>
-        </div>
-        <p className="text-[11px] text-ink-soft pt-2">
-          Reserva legal de 5% aplicada por padrão (obrigatória por lei apenas para S.A. — Lei 6.404/76, art. 193; em LTDA é uma
-          convenção prudente, salvo se o contrato social exigir o contrário). Dividendos são isentos de IR na pessoa física.
-        </p>
-      </Card>
-
-      <section className="space-y-4">
-        <Card level={2} tone="forest" className="p-6 shadow-(--elev-2)">
-          <h3 className="rotulo text-hexxa-lime">Máximo Distribuível (Sem Descapitalizar)</h3>
-          <p className="mt-2 font-serif tabular text-3xl sm:text-4xl font-bold tracking-tight text-hexxa-lime">{BRL.format(calc.max)}</p>
-        </Card>
-
-        <Card level={1} className="p-6 text-sm space-y-1">
-          <Row label="Lucro do exercício" value={BRL.format(lucro)} />
-          <Row label="(–) Reserva legal (5%)" value={`- ${BRL.format(calc.reservaLegal)}`} />
-          <Row label={`(–) Reinvestimento (${reterPct}%)`} value={`- ${BRL.format(calc.reinvest)}`} />
-          <Row label="(+) Reservas acumuladas" value={`+ ${BRL.format(reservas)}`} />
-          <div className="mt-2 flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3 font-bold">
-            <span className="text-ink">Máximo Distribuível</span>
-            <span className="font-serif tabular text-lg text-emerald-600 dark:text-emerald-400">{BRL.format(calc.max)}</span>
-          </div>
-        </Card>
-
-        <Card level={1} className="p-6 space-y-3">
-          <h3 className="rotulo text-ink-soft">Prévia por Sócio (simulação, não grava nada)</h3>
-          {partners.length === 0 ? (
-            <p className="text-xs text-ink-soft">Cadastre os sócios em Minha Contabilidade → Sócios para ver a divisão aqui.</p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {partners.map((s) => (
-                <li key={s.id} className="flex items-center justify-between py-1 border-b border-black/5 dark:border-white/5 last:border-0">
-                  <span className="font-bold text-ink">{s.nome} · <span className="font-normal text-xs text-ink-soft">{s.participacao}%</span></span>
-                  <span className="font-serif tabular font-bold text-emerald-600 dark:text-emerald-400">{BRL.format((calc.max * s.participacao) / 100)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </section>
-
-      <div className="lg:col-span-2">
-        <DistributionRequestForm
-          partners={partners.map((p) => ({ id: p.id, nome: p.nome, participacao: p.participacao }))}
-          availableToDistribute={resumo.availableToDistribute}
-          indisponivel={resumo.motivoIndisponivel}
-          onConfirmed={onConfirmed}
+      <section className="space-y-5">
+        <FiltrosEmTexto<Filtro>
+          ativo={filtro}
+          onChange={setFiltro}
+          filtros={[
+            { id: 'TODOS', label: 'Todos', count: linhas.length },
+            { id: 'PJ', label: 'Da empresa', count: daEmpresa.length },
+            { id: 'PF', label: 'Dos sócios', count: dosSocios.length },
+          ]}
         />
-      </div>
+
+        {lista.length === 0 ? (
+          <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+            {linhas.length === 0
+              ? 'Nenhum bem cadastrado. Comece pelo que a empresa usa no dia a dia: computadores, veículo, móveis, a sala própria.'
+              : 'Nenhum bem neste filtro.'}
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+            {lista.map((b) => {
+              const pct = b.acq > 0 ? Math.round((b.depreciado / b.acq) * 100) : 0;
+              return (
+                <li key={b.id}>
+                  <button type="button" onClick={() => onAbrir(b)} className="flex w-full flex-wrap items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {b.name}
+                        {b.leaseId && <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Alugado · {BRL0.format(b.rent)}/mês</span>}
+                      </p>
+                      <p className="mt-0.5 text-xs text-ink-soft">
+                        {b.kind} · {b.ownerType === 'PJ' ? 'da empresa' : `de ${b.partnerName ?? 'um sócio'}`} · comprado em {mesAno(b.compra)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-serif text-sm font-bold tabular text-ink">{BRL0.format(b.valorHoje)}</p>
+                      <p className="text-[11px] text-ink-soft">
+                        {b.rate === 0 ? `pago ${BRL0.format(b.acq)} · não deprecia` : `pago ${BRL0.format(b.acq)} · ${pct}% depreciado`}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <p className="text-xs leading-relaxed text-ink-soft">
+          Valor de hoje = o que foi pago menos a depreciação linear desde a compra, pelas taxas da Receita (IN RFB 1.700/2017): imóvel 4% ao ano,
+          veículo e informática 20%, máquinas e móveis 10%. Terreno não deprecia. Os bens dos sócios aparecem aqui só para o retrato do patrimônio — não
+          entram na contabilidade da empresa.
+        </p>
+      </section>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-1 text-xs sm:text-sm">
-      <span className="text-ink-soft">{label}</span>
-      <span className="font-semibold text-ink font-serif tabular">{value}</span>
-    </div>
-  );
-}
-
-// ============================================================
-// 3) Gestão de Ativos — PJ e PF, com depreciação + impostos
-// ============================================================
-function Ativos({ properties, partners }: { properties: PropertyRow[]; partners: PartnerRow[] }) {
+function FormularioDeBem({ bem, partners, hoje, onClose }: { bem: PropertyRow | null; partners: Socio[]; hoje: string; onClose: () => void }) {
   const router = useRouter();
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [tipo, setTipo] = useState('Imóvel');
-  const [nome, setNome] = useState('');
-  const [valor, setValor] = useState(150000);
-  const [ano, setAno] = useState(YEAR);
-  const [ownerType, setOwnerType] = useState<'PJ' | 'PF'>('PJ');
-  const [partnerId, setPartnerId] = useState(partners[0]?.id ?? '');
+  const [nome, setNome] = useState(bem?.name ?? '');
+  const [tipo, setTipo] = useState<TipoDeBem>(bem?.kind ?? 'Equipamento de Informática');
+  const [valor, setValor] = useState(bem ? String(bem.acq).replace('.', ',') : '');
+  const [compra, setCompra] = useState(bem?.compra ?? hoje);
+  const [endereco, setEndereco] = useState(bem?.endereco ?? '');
+  const [dono, setDono] = useState<'PJ' | 'PF'>(bem?.ownerType ?? 'PJ');
+  const [socioId, setSocioId] = useState(bem?.partnerId ?? partners[0]?.id ?? '');
+  const [salvando, setSalvando] = useState(false);
+  const [confirmarExclusao, setConfirmarExclusao] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const imovel = tipo === 'Imóvel' || tipo === 'Terreno';
 
-  const rows = properties.map((a) => {
-    const anos = Math.max(0, YEAR - a.year);
-    const deprAcum = depreciacaoAcumulada(a.acq, a.rate, anos);
-    const contabil = a.acq - deprAcum;
-    const rentAnual = a.rent * 12;
-    const imposto = impostoAluguel(rentAnual);
-    return { ...a, anos, deprAcum, contabil, rentAnual, imposto };
-  });
-  const tot = rows.reduce(
-    (s, r) => ({
-      acq: s.acq + r.acq,
-      depr: s.depr + r.deprAcum,
-      contabil: s.contabil + r.contabil,
-      imposto: s.imposto + r.imposto,
-    }),
-    { acq: 0, depr: 0, contabil: 0, imposto: 0 },
-  );
+  useEffect(() => {
+    const fechar = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', fechar);
+    return () => window.removeEventListener('keydown', fechar);
+  }, [onClose]);
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const rate = TAXAS[tipo]?.rate || 10;
+  async function salvar() {
+    setSalvando(true);
+    setErro(null);
     try {
-      await createProperty({
-        name: nome,
-        kind: tipo as any,
-        acq: valor,
-        rate,
-        year: ano,
-        ownerType,
-        partnerId: ownerType === 'PF' ? partnerId : null,
+      const r = await salvarBemAction({
+        id: bem?.id,
+        nome,
+        tipo,
+        valor: Number(valor.replace(/\./g, '').replace(',', '.')),
+        compra,
+        endereco: imovel ? endereco : '',
+        dono,
+        socioId,
       });
-      setShowForm(false);
-      setNome('');
+      if (!r.ok) return setErro(r.message);
       router.refresh();
-    } catch {
-      alert('Erro ao criar ativo');
+      onClose();
     } finally {
-      setLoading(false);
+      setSalvando(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    setBusyId(id);
+  async function excluir() {
+    if (!bem) return;
+    setSalvando(true);
+    setErro(null);
     try {
-      await deleteProperty(id);
+      const r = await excluirBemAction(bem.id);
+      if (!r.ok) {
+        setConfirmarExclusao(false);
+        return setErro(r.message);
+      }
       router.refresh();
+      onClose();
     } finally {
-      setBusyId(null);
+      setSalvando(false);
     }
   }
-
-  const fieldCls =
-    'mt-1.5 w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Mini label="Valor de Aquisição" value={BRL0.format(tot.acq)} />
-        <Mini label="Depreciação Acumulada" value={BRL0.format(tot.depr)} tone="warn" />
-        <Mini label="Valor Contábil Líquido" value={BRL0.format(tot.contabil)} />
-        <Mini label="IRPJ+CSLL s/ Aluguéis (a.a.)" value={BRL0.format(tot.imposto)} tone="warn" />
-      </div>
-
-      <Card level={1} className="p-6 sm:p-8 space-y-4 overflow-x-auto">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-          <h2 className="font-serif font-bold text-base text-ink">Bens Imobilizados (Empresa e Sócios)</h2>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
-          >
-            <Plus className="h-4 w-4" /> Adicionar Bem
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-3xl border border-black/5 bg-surface p-6 shadow-(--elev-3) dark:border-white/10">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="rotulo text-ink-soft">{bem ? 'Editar bem' : 'Novo bem'}</p>
+            <h2 className="mt-1 text-lg font-light uppercase tracking-[0.05em] text-ink">{nome || 'Bem'}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-ink-soft hover:bg-black/5 hover:text-ink dark:hover:bg-white/10">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {showForm && (
-          <form onSubmit={handleCreate} className="mb-6 rounded-3xl bg-surface-card border border-black/5 dark:border-white/5 p-6 space-y-4 shadow-(--elev-inset)">
-            <h3 className="font-serif font-bold text-sm text-ink">Registrar Novo Bem / Ativo</h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div>
-                <label className="rotulo text-ink-soft">Nome / Descrição</label>
-                <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className={fieldCls} placeholder="Ex: Galpão Logístico" />
-              </div>
-              <div>
-                <label className="rotulo text-ink-soft">Tipo de Bem</label>
-                <select value={tipo} onChange={e => setTipo(e.target.value)} className={fieldCls}>
-                  {Object.keys(TAXAS).map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="rotulo text-ink-soft">Valor de Aquisição (R$)</label>
-                <input required type="number" min={0} value={valor} onChange={e => setValor(Number(e.target.value))} className={fieldCls} />
-              </div>
-              <div>
-                <label className="rotulo text-ink-soft">Ano de Aquisição</label>
-                <input required type="number" min={1900} max={YEAR} value={ano} onChange={e => setAno(Number(e.target.value))} className={fieldCls} />
-              </div>
-              <div>
-                <label className="rotulo text-ink-soft">Titularidade</label>
-                <select value={ownerType} onChange={e => setOwnerType(e.target.value as 'PJ' | 'PF')} className={fieldCls}>
-                  <option value="PJ">Da empresa (PJ)</option>
-                  <option value="PF">Pessoal de um sócio (PF)</option>
-                </select>
-              </div>
-              {ownerType === 'PF' && (
-                <div>
-                  <label className="rotulo text-ink-soft">Sócio Proprietário</label>
-                  {partners.length === 0 ? (
-                    <p className="mt-1 text-xs text-amber-600">Cadastre um sócio em Minha Contabilidade → Sócios primeiro.</p>
-                  ) : (
-                    <select value={partnerId} onChange={e => setPartnerId(e.target.value)} className={fieldCls}>
-                      {partners.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                    </select>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-              <p className="text-xs text-ink-soft">Taxa legal aplicada: <strong>{TAXAS[tipo]?.rate || 10}% a.a.</strong></p>
-              <button disabled={loading || (ownerType === 'PF' && !partnerId)} type="submit" className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-6 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all disabled:opacity-50">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {loading ? 'Salvando...' : 'Salvar Bem'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {rows.length === 0 ? (
-          <p className="py-12 text-center text-xs sm:text-sm text-ink-soft">Nenhum bem cadastrado ainda.</p>
-        ) : (
-          <table className="w-full text-xs sm:text-sm">
-            <thead>
-              <tr className="text-left text-ink-soft border-b border-black/5 dark:border-white/5 pb-2">
-                <th className="py-2.5">Bem</th>
-                <th>Tipo</th>
-                <th>Dono</th>
-                <th className="text-right">Aquisição</th>
-                <th className="text-right">Depreciação</th>
-                <th className="text-right">Valor Contábil</th>
-                <th className="text-right">Aluguel/mês</th>
-                <th className="text-right">IRPJ+CSLL (a.a.)</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/10">
-              {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-surface-card-hover transition-colors">
-                  <td className="py-3 font-bold text-ink">{r.name}</td>
-                  <td className="text-ink-soft">{r.kind}</td>
-                  <td className="text-ink-soft">{r.ownerType === 'PJ' ? 'Empresa' : (r.partnerName ?? 'Sócio')}</td>
-                  <td className="text-right font-serif tabular font-semibold">{BRL0.format(r.acq)}<br /><span className="text-[11px] font-sans font-normal text-ink-soft">{r.year}</span></td>
-                  <td className="text-right text-amber-600 dark:text-amber-400 font-serif tabular font-semibold">{BRL0.format(r.deprAcum)}<br /><span className="text-[11px] font-sans font-normal text-ink-soft">{r.rate}% a.a. · {r.anos} ano(s)</span></td>
-                  <td className="text-right font-bold font-serif tabular text-hexxa-forest dark:text-hexxa-lime">{BRL0.format(r.contabil)}</td>
-                  <td className="text-right font-serif tabular">{r.rent ? BRL0.format(r.rent) : '—'}</td>
-                  <td className="text-right font-serif tabular">{r.imposto ? BRL0.format(r.imposto) : '—'}</td>
-                  <td className="text-right">
-                    <button type="button" onClick={() => handleDelete(r.id)} disabled={busyId === r.id} className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50 transition-colors">
-                      {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </button>
-                  </td>
-                </tr>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="rotulo text-ink-soft">O que é</span>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: MacBook Pro, Sala 402, Fiat Toro" className={campo} />
+          </label>
+          <label className="block">
+            <span className="rotulo text-ink-soft">Tipo</span>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoDeBem)} className={campo}>
+              {TIPOS.map((t) => (
+                <option key={t} value={t}>{t}</option>
               ))}
-            </tbody>
-          </table>
-        )}
-        <p className="mt-3 text-[11px] text-ink-soft pt-2 border-t border-black/5 dark:border-white/10">
-          Depreciação linear pelas taxas usuais (IN SRF nº 162/1998 e IN RFB nº 1700/2017). Imposto estimado pelo Lucro Presumido (base 32% sobre aluguéis,
-          IRPJ 15% + CSLL 9%).
+            </select>
+          </label>
+          <label className="block">
+            <span className="rotulo text-ink-soft">Quanto custou</span>
+            <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" placeholder="0,00" className={campo} />
+          </label>
+          <label className="block">
+            <span className="rotulo text-ink-soft">Data da compra</span>
+            <input type="date" value={compra} max={hoje} onChange={(e) => setCompra(e.target.value)} className={campo} />
+          </label>
+          <label className="block">
+            <span className="rotulo text-ink-soft">De quem é</span>
+            <select value={dono} onChange={(e) => setDono(e.target.value as 'PJ' | 'PF')} className={campo}>
+              <option value="PJ">Da empresa</option>
+              <option value="PF" disabled={partners.length === 0}>De um sócio</option>
+            </select>
+          </label>
+          {dono === 'PF' && (
+            <label className="block sm:col-span-2">
+              <span className="rotulo text-ink-soft">Sócio</span>
+              <select value={socioId} onChange={(e) => setSocioId(e.target.value)} className={campo}>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {imovel && (
+            <label className="block sm:col-span-2">
+              <span className="rotulo text-ink-soft">Endereço</span>
+              <input value={endereco} onChange={(e) => setEndereco(e.target.value)} className={campo} />
+            </label>
+          )}
+        </div>
+
+        <p className="mt-3 text-xs text-ink-soft">
+          {TAXAS[tipo].rate === 0 ? 'Terreno não deprecia.' : `Deprecia ${TAXAS[tipo].rate}% ao ano — em ${TAXAS[tipo].vida} anos chega a zero.`}
         </p>
-      </Card>
+        {erro && <p className="mt-3 text-xs font-semibold text-rose-600 dark:text-rose-400">{erro}</p>}
+
+        <button
+          type="button"
+          onClick={salvar}
+          disabled={salvando}
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-hexxa-forest px-5 py-3 text-sm font-bold text-hexxa-lime disabled:opacity-60 dark:bg-hexxa-lime dark:text-hexxa-forest"
+        >
+          {salvando && <Loader2 className="h-4 w-4 animate-spin" />} {bem ? 'Salvar' : 'Cadastrar bem'}
+        </button>
+        {bem &&
+          (confirmarExclusao ? (
+            <div className="mt-3 flex items-center justify-center gap-4 text-xs">
+              <span className="text-ink-soft">Excluir este bem?</span>
+              <button type="button" onClick={excluir} disabled={salvando} className="font-bold text-rose-600 dark:text-rose-400">Sim, excluir</button>
+              <button type="button" onClick={() => setConfirmarExclusao(false)} className="font-semibold text-ink-soft hover:text-ink">Não</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmarExclusao(true)} className="mx-auto mt-3 flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+              <Trash2 className="h-3.5 w-3.5" /> Excluir bem
+            </button>
+          ))}
+      </div>
     </div>
   );
 }
-
-function Mini({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
-  return <CardResumo rotulo={label} valor={value} tom={tone === 'warn' ? 'alerta' : 'padrao'} />;
-}
-

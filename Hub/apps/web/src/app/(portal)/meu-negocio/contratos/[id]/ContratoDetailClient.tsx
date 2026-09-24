@@ -35,7 +35,7 @@ import { situacao } from '../ListaDeContratos';
 import { INDICES } from '../modelos-info';
 import { useEffect } from 'react';
 import { STATUS_LABEL, STATUS_CLASS } from '../contract-status';
-import { getComprovante } from '../../hub-financeiro/actions';
+import { VerComprovante } from '@/components/ui/VerComprovante';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -189,11 +189,6 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
     } finally {
       setBusy(false);
     }
-  }
-
-  async function handleVerComprovante(paymentId: string) {
-    const r = await getComprovante(paymentId);
-    if (r) window.open(r.dataUrl, '_blank');
   }
 
   async function handleVerPdf() {
@@ -438,9 +433,9 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
                   </span>
                   <span className="w-28 text-right font-serif text-sm font-bold tabular text-ink">{BRL.format(p.amount)}</span>
                   {p.hasReceipt && (
-                    <button type="button" onClick={() => handleVerComprovante(p.id)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft hover:text-ink">
+                    <VerComprovante id={p.id} className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft hover:text-ink">
                       <Paperclip className="h-3 w-3" /> Comprovante
-                    </button>
+                    </VerComprovante>
                   )}
                 </li>
               );

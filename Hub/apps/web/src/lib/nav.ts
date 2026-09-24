@@ -13,7 +13,7 @@ export type NavSection = { title: string; items: NavItem[] };
  *    balanço/DRE, fechamento mensal)
  * 4. Relacionamento (CRM, propostas, contratos)
  * 5. Gestão de Pessoas (sócios, colaboradores)
- * 6. Gestão do Patrimônio (imóveis)
+ * 6. Patrimônio (bens da empresa e dos sócios, aluguéis)
  * 7. Suporte (atendimento, plano, ajustes)
  */
 export const NAV: NavSection[] = [
@@ -80,7 +80,7 @@ export const NAV: NavSection[] = [
   {
     title: 'Patrimônio',
     items: [
-      { label: 'Imóveis', href: '/patrimonial' },
+      { label: 'Bens', href: '/patrimonial' },
     ],
   },
   {

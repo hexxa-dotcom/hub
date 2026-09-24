@@ -1,56 +1,38 @@
-import { Suspense } from 'react';
 import { getProperties, listLeasesAction } from './actions';
 import { listPartnersAction } from '../minha-contabilidade/socios/actions';
-import { getAvailableProfitAction } from '@/lib/server/profit-distribution';
 import { PatrimonioApp } from './PatrimonioApp';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getContextualInsight } from '@/lib/server/ai-insight';
-import { InsightCard } from '@/components/ui/InsightCard';
-
+import { aliquotaDoFaturamento } from '@/lib/server/bussola';
 import { SectionHero } from '@/components/ui/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
-// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
-async function PatrimonialInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
-  const insight = await getContextualInsight(companyId, 'patrimonial', insightContext);
-  return <InsightCard pageKey="patrimonial" insight={insight} />;
-}
-
 export default async function Page() {
   const ctx = await getTenantContext();
-  const [properties, partners, resumo, leases] = await Promise.all([
+  const [properties, partners, leases, taxa] = await Promise.all([
     getProperties(),
     listPartnersAction(),
-    getAvailableProfitAction(),
     listLeasesAction(),
+    aliquotaDoFaturamento(ctx).catch(() => ({ aliquota: 0, apurada: false })),
   ]);
-
-  const ativos = leases.filter((l) => l.status === 'ACTIVE');
-  const insightContext = [
-    `Tela: gestão de patrimônio (imóveis, ativos, depreciação e contratos de aluguel) de uma holding patrimonial.`,
-    `Bens cadastrados: ${properties.length}. Contratos de aluguel ativos: ${ativos.length}, renda mensal total R$ ${ativos.reduce((s, l) => s + l.monthlyRent, 0).toFixed(2)}.`,
-    resumo.fonte === 'OFICIAL'
-      ? `Lucro do exercício pela contabilidade oficial, até ${resumo.mesOficial} (base pro simulador de dividendos): R$ ${resumo.netProfit.toFixed(2)}.`
-      : `Lucro oficial indisponível — NÃO sugira valores de dividendos. Motivo: ${resumo.motivoIndisponivel}`,
-    `Bens sem contrato de aluguel ativo: ${properties.filter((p) => !p.leaseId).length}.`,
-  ].join('\n');
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
   return (
-    <div className="mx-auto w-full space-y-16 animate-fade-up">
-      <Suspense fallback={null}>
-        <PatrimonialInsight companyId={ctx.companyId} insightContext={insightContext} />
-      </Suspense>
-
+    <div className="mx-auto w-full space-y-16">
       <SectionHero
-        subtitulo="Bens da empresa e dos sócios, e o patrimônio de cada um"
-        title="Gestão de Patrimônio & Ativos"
-        infoTitle="Sobre Gestão de Patrimônio & Ativos"
-        infoDescription="Patrimônio consolidado da empresa (PJ) e dos sócios (PF), com cálculo contábil real de depreciação e simulação de dividendos."
+        subtitulo="O que a empresa e os sócios têm, quanto vale hoje e o que rende"
+        title="Bens"
+        infoTitle="Sobre Bens"
+        infoDescription="Os bens da empresa (computadores, veículo, móveis, a sala própria) e os bens pessoais dos sócios, com o valor de hoje depois da depreciação. Se a empresa aluga um imóvel, o aluguel entra sozinho no financeiro, com a previsão de imposto pelo regime da empresa."
       />
 
-      <PatrimonioApp initialProperties={properties} partners={partners} resumo={resumo} initialLeases={leases} />
+      <PatrimonioApp
+        properties={properties}
+        partners={partners.map((p) => ({ id: p.id, nome: p.nome }))}
+        leases={leases}
+        aliquota={taxa.aliquota}
+        hoje={hoje}
+      />
     </div>
   );
 }
-

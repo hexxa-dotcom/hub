@@ -1,5 +1,6 @@
 'use client';
 
+import { VerComprovante } from '@/components/ui/VerComprovante';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
@@ -55,7 +56,6 @@ import {
   createLancamento,
   updateLancamentoStatus,
   deleteLancamento,
-  getComprovante,
   listRecurringExpenses,
   createRecurringExpense,
   setRecurringExpenseActive,
@@ -1143,17 +1143,13 @@ function LancamentosTab({
                         {l.pago_em && <div><span className="text-[#6E6A61]">{l.tipo === 'PAGAR' ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
                         {l.observacao && <div className="w-full"><span className="text-[#6E6A61]">Observações:</span> {l.observacao}</div>}
                         {l.temComprovante && (
-                          <button
-                            type="button"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const c = await getComprovante(l.id);
-                              if (c) window.open(c.dataUrl, '_blank');
-                            }}
+                          <VerComprovante
+                            id={l.id}
+                            nome={l.comprovanteNome}
                             className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-3 py-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
                           >
                             <Paperclip className="h-3 w-3" /> Ver comprovante{l.comprovanteNome ? `: ${l.comprovanteNome}` : ''}
-                          </button>
+                          </VerComprovante>
                         )}
                         {contratoLinkFor(l) && (
                           <Link

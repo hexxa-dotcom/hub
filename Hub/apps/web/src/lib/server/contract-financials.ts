@@ -2,7 +2,9 @@ import 'server-only';
 import { withTenant, sql } from '@hexxa/db';
 import { financialEntry } from '@hexxa/db/schema';
 import { diasDeVencimento } from '@hexxa/core/vencimentos';
+import type { TenantContext } from '@hexxa/core';
 import { impostoAluguel } from '@/app/(portal)/patrimonial/lib';
+import { aliquotaDoFaturamento } from '@/lib/server/bussola';
 
 /**
  * Geração de lançamentos financeiros (financial_entry) a partir de um
@@ -12,6 +14,20 @@ import { impostoAluguel } from '@/app/(portal)/patrimonial/lib';
  * wizard unificado, os lançamentos só nascem quando a assinatura eletrônica
  * é confirmada, não na criação do registro.
  */
+
+/**
+ * Meses que o contador já fechou (AAAA-MM-01). O banco recusa lançamento
+ * neles — e um só recusado desfazia todos os outros do contrato.
+ */
+async function mesesFechados(companyId: string): Promise<Set<string>> {
+  const rows = (await withTenant(companyId, (tx) =>
+    tx.execute(sql`
+      SELECT to_char(reference_month, 'YYYY-MM-DD') AS mes FROM monthly_closure
+       WHERE company_id = ${companyId} AND stage IN ('FECHADO', 'CONFERIDO', 'ENVIADO')
+    `),
+  )) as unknown as { mes: string }[];
+  return new Set(rows.map((r) => r.mes));
+}
 
 /** Gera os lançamentos financeiros mensais de um contrato (business_contract) para UMA empresa. */
 export async function gerarLancamentosDoContrato(params: {
@@ -33,11 +49,13 @@ export async function gerarLancamentosDoContrato(params: {
   // do mês seguinte, não numa data anterior ao próprio contrato.
   const vencimentos = diasDeVencimento(startDate, endDate, dueDay);
   const months = vencimentos.length;
+  const fechados = await mesesFechados(companyId);
 
   await withTenant(companyId, async (tx) => {
     for (let i = 0; i < months; i++) {
       const dueDateStr = vencimentos[i]!;
       const refMonth = dueDateStr.substring(0, 8) + '01';
+      if (fechados.has(refMonth)) continue;
 
       await tx.insert(financialEntry).values({
         companyId,
@@ -74,25 +92,30 @@ export async function gerarLancamentosDoAluguel(params: {
   endDate: string | null;
 }) {
   const { companyId, leaseId, descricao, valor, startDate, endDate } = params;
-  const start = new Date(startDate + 'T12:00:00');
-  const end = endDate ? new Date(endDate + 'T12:00:00') : new Date(start.getFullYear() + 2, start.getMonth(), start.getDate());
-  const months = Math.max(
-    1,
-    Math.min(24, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1),
-  );
+  // Vence todo mês no dia do início (dia 31 vira o último dia dos meses
+  // curtos). Sem fim, 24 meses à frente.
+  const [ay, am, ad] = startDate.split('-').map(Number) as [number, number, number];
+  const limite = new Date(Date.UTC(ay, am - 1 + 24, ad - 1)).toISOString().slice(0, 10);
+  const fim = endDate && endDate < limite ? endDate : limite;
+  const vencimentos = diasDeVencimento(startDate, fim, ad).slice(0, 24);
+  const months = vencimentos.length;
+  // Meses já fechados pelo contador e os anteriores ao mês atual não entram:
+  // são história, recebida por fora do Hub antes do cadastro.
+  const fechados = await mesesFechados(companyId);
+  const mesAtual = `${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7)}-01`;
 
-  // Imposto mensal estimado (Lucro Presumido) sobre o aluguel — provisionado
-  // junto com a receita, no mesmo período, pra não superestimar o lucro
-  // distribuível (mesmo padrão já usado na emissão de NFSe: ver
-  // service-invoice.service.ts, "Provisão de Imposto - NFSe").
-  const impostoMensal = impostoAluguel(valor * 12) / 12;
+  // Imposto previsto sobre o aluguel, pela alíquota do regime da empresa (a
+  // mesma da Bússola), provisionado no mesmo mês da receita. Sem alíquota
+  // conhecida, não provisiona — melhor nada do que um número inventado.
+  const ctx = { companyId, companyType: 'SERVICE', userId: 'sistema' } as TenantContext;
+  const aliquota = await aliquotaDoFaturamento(ctx).then((t) => t.aliquota).catch(() => 0);
+  const impostoMensal = Math.round(impostoAluguel(valor, aliquota) * 100) / 100;
 
   await withTenant(companyId, async (tx) => {
     for (let i = 0; i < months; i++) {
-      const due = new Date(start);
-      due.setMonth(due.getMonth() + i);
-      const dueDateStr = due.toISOString().split('T')[0]!;
+      const dueDateStr = vencimentos[i]!;
       const refMonth = dueDateStr.substring(0, 8) + '01';
+      if (refMonth < mesAtual || fechados.has(refMonth)) continue;
       const suffix = months > 1 ? ` (${i + 1}/${months})` : '';
       await tx.execute(sql`
         INSERT INTO financial_entry (company_id, type, description, amount, due_date, reference_month, status, source, source_id)
