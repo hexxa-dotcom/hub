@@ -680,12 +680,13 @@ function AppShellInner({
             )}
             {breadcrumb.section && (
               <>
-                <span className="text-footnote lowercase text-ink-soft/80">{breadcrumb.section}</span>
-                <span className="text-footnote text-ink-soft opacity-40">/</span>
+                {/* Caixa alta pequena e espaçada, traço fino: sobrescrito, não compete com o título. */}
+                <span className="text-[11px] font-normal uppercase tracking-[0.16em] text-ink-soft">{breadcrumb.section}</span>
+                <span className="text-[11px] font-light text-ink-soft opacity-40">/</span>
               </>
             )}
             {breadcrumb.page && (
-              <h2 className="truncate text-footnote font-semibold lowercase text-ink">
+              <h2 className="truncate text-[11px] font-medium uppercase tracking-[0.16em] text-ink">
                 {breadcrumb.page}
               </h2>
             )}
