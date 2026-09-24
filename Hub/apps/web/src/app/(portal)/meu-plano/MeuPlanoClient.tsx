@@ -1,160 +1,135 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  CreditCard,
-  QrCode,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  FileText,
-  Download,
-  ExternalLink,
-  Sparkles,
-} from 'lucide-react';
-import { Card } from '@/components/ui/Card';
-import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
-import type { PlanoAtual } from './actions';
-import type { AsaasPayment } from '@/lib/asaas';
+import Link from 'next/link';
+import { Check, Copy } from 'lucide-react';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import type { Fatura, PlanoAtual } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-
-const STATUS_CONFIG: Record<NonNullable<PlanoAtual>['status'], { label: string; cls: string }> = {
-  ACTIVE: { label: 'Contrato em dia', cls: 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)' },
-  TRIAL: { label: 'Em período de teste', cls: 'bg-surface-card text-ink shadow-(--elev-inset)' },
-  PAST_DUE: { label: 'Pagamento em atraso', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' },
-  CANCELED: { label: 'Cancelado', cls: 'bg-surface-card text-ink-soft' },
+const data = (iso: string) => iso.split('-').reverse().join('/');
+const mes = (iso: string) => {
+  const t = new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
-const PAYMENT_STATUS_LABEL: Record<string, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  RECEIVED: { label: 'Pago', cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
-  CONFIRMED: { label: 'Pago', cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
-  PENDING: { label: 'Pendente', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20', icon: Clock },
-  OVERDUE: { label: 'Atrasado', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: AlertTriangle },
+const STATUS: Record<NonNullable<PlanoAtual>['status'], string> = {
+  ACTIVE: 'Ativo',
+  TRIAL: 'Em período de teste',
+  PAST_DUE: 'Com fatura em atraso',
+  CANCELED: 'Cancelado',
+};
+const SITUACAO: Record<Fatura['situacao'], { texto: string; cor: string }> = {
+  ABERTA: { texto: 'Em aberto', cor: 'text-ink-soft' },
+  ATRASADA: { texto: 'Atrasada', cor: 'text-rose-600 dark:text-rose-400' },
+  PAGA: { texto: 'Paga', cor: 'text-emerald-700 dark:text-emerald-400' },
 };
 
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-export function MeuPlanoClient({ plano, cobrancas }: { plano: PlanoAtual; cobrancas: AsaasPayment[] }) {
-  const [showPixModal, setShowPixModal] = useState(false);
+export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAtual; faturas: Fatura[]; whatsappUrl: string | null }) {
+  const [copiado, setCopiado] = useState<string | null>(null);
 
   if (!plano) {
     return (
-      <Card level={1} className="p-12 text-center border-dashed">
-        <p className="font-serif font-bold text-base text-ink">Nenhuma assinatura encontrada ainda.</p>
-        <p className="text-xs text-ink-soft mt-1">Sua contabilidade ativa o plano assim que o cadastro é concluído.</p>
-      </Card>
+      <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+        Nenhum plano ativo ainda. A contabilidade ativa o plano quando o cadastro é aprovado.
+      </p>
     );
   }
 
-  const st = STATUS_CONFIG[plano.status];
+  const emAberto = faturas.filter((f) => f.situacao !== 'PAGA');
+  const atrasadas = faturas.filter((f) => f.situacao === 'ATRASADA');
+  const proxima = [...emAberto].sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
+
+  async function copiar(f: Fatura) {
+    if (!f.pix) return;
+    await navigator.clipboard.writeText(f.pix).catch(() => {});
+    setCopiado(f.id);
+    setTimeout(() => setCopiado(null), 2000);
+  }
+
+  const falar = whatsappUrl ? (
+    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-ink underline-offset-4 hover:underline">
+      fale com a contabilidade
+    </a>
+  ) : (
+    <Link href="/suporte" className="font-semibold text-ink underline-offset-4 hover:underline">
+      fale com a contabilidade
+    </Link>
+  );
 
   return (
-    <div className="space-y-8 animate-in fade-in">
-      {/* 💳 CARD DE RESUMO DO PLANO ATIVO */}
-      <Card level={2} tone="deep" className="p-6 sm:p-8 relative overflow-hidden card-finish">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-3 py-1 text-caption font-bold uppercase tracking-wider">
-                Plano Contratado
-              </span>
-              <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>
-                <CheckCircle2 className="h-3.5 w-3.5" /> {st.label}
-              </span>
-            </div>
+    <div className="space-y-10">
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo={`Plano ${plano.nome}`} valor={`${BRL.format(plano.valor)}/mês`} nota={plano.comoChegou ?? STATUS[plano.status]} />
+        <CardResumo
+          rotulo="Próxima fatura"
+          valor={proxima ? BRL.format(proxima.valor) : '—'}
+          nota={proxima ? `Vence em ${data(proxima.vencimento)}` : 'Nenhuma em aberto'}
+          tom={atrasadas.length ? 'alerta' : 'padrao'}
+        />
+        <CardResumo rotulo="Situação" valor={atrasadas.length ? `${atrasadas.length} atrasada${atrasadas.length > 1 ? 's' : ''}` : 'Em dia'} nota={plano.desde ? `Cliente desde ${data(plano.desde)}` : STATUS[plano.status]} />
+      </GradeDeResumo>
 
-            <h2 className="font-serif font-bold text-3xl sm:text-4xl text-ink tracking-tight">{plano.planoNome}</h2>
-
-            <div className="pt-2 flex flex-wrap gap-4 text-xs text-ink-soft">
-              {plano.periodoFim && (
-                <span>Período atual até: <strong className="text-ink">{fmtDate(plano.periodoFim)}</strong></span>
-              )}
-            </div>
-          </div>
-
-          <div className="text-left md:text-right shrink-0 bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-6 rounded-3xl space-y-2">
-            <p className="rotulo text-ink-soft">Mensalidade do Plano</p>
-            <p className="font-serif tabular text-3xl sm:text-4xl font-bold text-ink">{BRL.format(plano.mensalidade)}<span className="text-xs font-sans font-normal text-ink-soft">/mês</span></p>
-            <button
-              type="button"
-              onClick={() => setShowPixModal(true)}
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all"
-            >
-              <QrCode className="h-4 w-4" /> Pagar Mensalidade via Pix
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Forma de pagamento */}
-      <Card level={1} className="p-6 sm:p-8 space-y-3">
-        <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
-          Forma de Pagamento
-        </h3>
-        <p className="text-xs sm:text-sm text-ink-soft leading-relaxed">
-          Atualmente o faturamento é processado via Pix e Boleto bancário (Asaas). Para alterar dados cadastrais de cobrança ou emitir segunda via, fale com nossa equipe em <a href="/suporte" className="font-bold text-hexxa-forest hover:underline dark:text-hexxa-lime">Suporte</a>.
-        </p>
-      </Card>
-
-      {/* 📄 HISTÓRICO REAL DE COBRANÇAS (Asaas) */}
-      <Card level={1} className="p-6 sm:p-8 space-y-4">
-        <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
-          <FileText className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
-          Histórico de Cobranças
-        </h3>
-
-        {cobrancas.length === 0 ? (
-          <p className="text-xs sm:text-sm text-ink-soft py-4">Nenhuma cobrança encontrada ainda.</p>
+      <section className="space-y-5">
+        <p className="rotulo text-ink-soft">Faturas de honorários</p>
+        {faturas.length === 0 ? (
+          <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+            Nenhuma fatura ainda. A fatura do mês é gerada no dia 1º.
+          </p>
         ) : (
-          <div className="divide-y divide-black/5 dark:divide-white/10 rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1)">
-            {cobrancas.map((c) => {
-              const cfg = PAYMENT_STATUS_LABEL[c.status] ?? { label: c.status, cls: 'bg-surface-card text-ink-soft', icon: Clock };
-              const StatusIcon = cfg.icon;
+          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+            {faturas.map((f) => {
+              const s = SITUACAO[f.situacao];
               return (
-                <div key={c.id} className="flex flex-wrap items-center justify-between p-4 hover:bg-surface-card-hover transition-colors gap-3">
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-ink">Vencimento {fmtDate(c.dueDate)}</p>
+                <li key={f.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink">{mes(f.referencia)}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">{f.descricao}</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-serif tabular text-base font-bold text-ink">{BRL.format(c.value)}</span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${cfg.cls}`}>
-                      <StatusIcon className="h-3.5 w-3.5" /> {cfg.label}
-                    </span>
-                    {c.invoiceUrl && (
-                      <a
-                        href={c.invoiceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="tap-target pressable focusable rounded-full p-2 text-ink-soft hover:bg-surface-card-hover hover:text-ink transition-colors"
-                        title="Ver fatura no Asaas"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
+                  <div className="flex shrink-0 items-center gap-4 text-right">
+                    {f.pix && f.situacao !== 'PAGA' && (
+                      <button type="button" onClick={() => copiar(f)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+                        {copiado === f.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copiado === f.id ? 'Copiado' : 'Copiar Pix'}
+                      </button>
                     )}
+                    <div>
+                      <p className="font-serif text-sm font-bold tabular text-ink">{BRL.format(f.valor)}</p>
+                      <p className={`text-[11px] font-semibold ${s.cor}`}>
+                        {s.texto} · vence {data(f.vencimento)}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
-        <p className="flex items-center gap-1.5 text-[11px] text-ink-soft pt-1">
-          <ExternalLink className="h-3 w-3" /> Faturamento sincronizado em tempo real com o Asaas.
+        <p className="text-xs leading-relaxed text-ink-soft">
+          A fatura inclui os adicionais do mês (colaborador ou sócio além dos inclusos, admissões e rescisões). Para pagar, pedir o boleto ou tirar
+          uma dúvida sobre o valor, {falar}.
         </p>
-      </Card>
+      </section>
 
-      {showPixModal && (
-        <GeneratePixModal
-          isOpen={showPixModal}
-          onClose={() => setShowPixModal(false)}
-          initialDescription={`Mensalidade Contábil — ${plano.planoNome}`}
-        />
+      {plano.recursos.length > 0 && (
+        <section className="space-y-4">
+          <p className="rotulo text-ink-soft">O que o plano {plano.nome} inclui</p>
+          {plano.descricao && <p className="text-sm text-ink-soft">{plano.descricao}</p>}
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {plano.recursos.map((r) => (
+              <li key={r} className="flex items-start gap-2 text-sm text-ink">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-hexxa-lime" /> {r}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-ink-soft">
+            Serviços fora do plano (certidões, alterações, abertura de filial) ficam em{' '}
+            <Link href="/mais/servicos" className="font-semibold text-ink underline-offset-4 hover:underline">
+              Serviços Adicionais
+            </Link>
+            , com o preço de cada um.
+          </p>
+        </section>
       )}
     </div>
   );
 }
-

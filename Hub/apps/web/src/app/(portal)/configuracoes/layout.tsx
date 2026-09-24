@@ -7,11 +7,11 @@ export const metadata = {
 
 export default function ConfiguracoesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-16 animate-fade-up">
+    <div className="mx-auto w-full max-w-6xl space-y-16">
       <SectionHero
-        subtitulo="Cadastro da empresa, equipe, integrações e preferências"
-        title="Configurações & Integrações"
-        infoTitle="Sobre Configurações & Integrações"
+        subtitulo="Equipe, dados fiscais, conexões e preferências"
+        title="Configurações"
+        infoTitle="Sobre Configurações"
         infoDescription="Gerencie os dados cadastrais da sua empresa, equipe, conexões fiscais e preferências do sistema."
       />
 

@@ -1,4 +1,4 @@
-import { Plug, CheckCircle2, XCircle, ArrowLeftRight, ArrowRight, ExternalLink, Sparkles, Mail } from 'lucide-react';
+import { Plug, CheckCircle2, XCircle, ArrowRight, ExternalLink, Sparkles, Mail } from 'lucide-react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { withTenant, eq, and } from '@hexxa/db';
@@ -76,10 +76,8 @@ export default async function IntegracoesPage() {
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif font-bold text-lg sm:text-xl text-ink tracking-tight">
-            Catálogo de Conexões
-          </h2>
-          <p className="mt-0.5 text-xs text-ink-soft max-w-2xl">
+          <p className="rotulo text-ink-soft">Conexões</p>
+          <p className="mt-1 max-w-2xl text-sm text-ink-soft">
             Conecte o gateway de pagamento, assistente de IA e serviços externos para centralizar rotinas contábeis.
           </p>
         </div>
@@ -204,25 +202,6 @@ export default async function IntegracoesPage() {
         </Card>
       </div>
 
-      {/* Seção Explicativa / Como funciona */}
-      <Card level={1} className="p-6 sm:p-8">
-        <div className="flex flex-col md:flex-row items-center gap-8">
-          <div className="flex-1">
-            <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2 mb-2">
-              <ArrowLeftRight className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" />
-              Como Funciona a Integração
-            </h3>
-            <p className="text-xs sm:text-sm text-ink-soft mb-4 leading-relaxed">
-              Conectar seus sistemas aqui armazena suas credenciais com criptografia de ponta a ponta. A comunicação é realizada de forma estritamente segura para leitura de faturamento e baixa automática de conciliação.
-            </p>
-            <ul className="text-xs sm:text-sm space-y-2 text-ink-soft">
-              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Credenciais armazenadas com segurança via Vault</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Webhook de baixa automática de pagamentos Asaas</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Assistente de IA e API externa com tokens revogáveis e escopos granulares</li>
-            </ul>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

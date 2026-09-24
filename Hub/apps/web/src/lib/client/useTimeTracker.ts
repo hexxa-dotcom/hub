@@ -36,15 +36,15 @@ export function setMemberTimeTrackerEnabled(userIdOrEmail: string, enabled: bool
 
 export function useTimeTracker(userIdOrEmail?: string) {
   const [seconds, setSeconds] = useState<number>(() => {
-    if (typeof window === 'undefined') return 5048; // fallback 01:24:08
+    if (typeof window === 'undefined') return 0;
     const saved = localStorage.getItem(STORAGE_KEY_SEC);
-    return saved ? parseInt(saved, 10) : 5048;
+    return saved ? parseInt(saved, 10) : 0;
   });
 
   const [isRunning, setIsRunning] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const saved = localStorage.getItem(STORAGE_KEY_RUNNING);
-    return saved !== null ? saved === 'true' : true;
+    return saved === 'true';
   });
 
   const [isEnabled, setIsEnabledState] = useState<boolean>(() => {
