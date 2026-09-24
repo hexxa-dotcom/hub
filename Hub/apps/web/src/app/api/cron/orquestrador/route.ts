@@ -56,6 +56,8 @@ const TURNOS: Record<string, Onda[]> = {
       { caminho: 'dfe-sync' },
       { caminho: 'envio-nfse-oneflow' },
       { caminho: 'despesas-fixas' },
+      // Pró-labore líquido dos sócios e previsão de salários do mês.
+      { caminho: 'pessoal' },
       { caminho: 'cobranca' },
     ],
     [{ caminho: 'escrituracao' }],

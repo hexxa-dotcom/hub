@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { custoDoColaborador } from '@hexxa/core/folha';
 import { useRouter } from 'next/navigation';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
@@ -24,14 +26,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import type { EmployeeRow, VacationRow, PayslipRow } from './actions';
+import type { EmployeeRow, VacationRow } from './actions';
 import {
   saveEmployeeAction,
   setEmployeeStatusAction,
   deleteEmployeeAction,
   addVacationPeriodAction,
   deleteVacationPeriodAction,
-  generatePayslipsAction,
 } from './actions';
 
 // ── Config ─────────────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ function VisaoGeral({ colaboradores, onTab }: { colaboradores: EmployeeRow[]; on
           nota={`${colaboradores.length} no quadro total`}
           onClick={() => onTab('colaboradores')}
         />
-        <CardResumo rotulo="Folha mensal estimada" valor={BRL.format(totalFolha)} nota="Dos colaboradores em atividade" onClick={() => onTab('folha')} />
+        <CardResumo rotulo="Folha mensal estimada" valor={BRL.format(totalFolha)} nota="Dos colaboradores em atividade" onClick={() => onTab('custo')} />
         <CardResumo
           rotulo="Em férias"
           valor={emFerias.length}
@@ -114,7 +115,7 @@ function VisaoGeral({ colaboradores, onTab }: { colaboradores: EmployeeRow[]; on
         <div className="grid gap-6 lg:grid-cols-2">
           <Card level={1} className="p-6 space-y-4 card-finish">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif font-bold text-base text-ink">Equipe Atual</h2>
+              <h2 className="rotulo text-ink-soft">Equipe Atual</h2>
               <button type="button" onClick={() => onTab('colaboradores')} className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline">
                 Ver todos →
               </button>
@@ -140,7 +141,7 @@ function VisaoGeral({ colaboradores, onTab }: { colaboradores: EmployeeRow[]; on
 
           <Card level={1} className="p-6 space-y-4 card-finish">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif font-bold text-base text-ink">Composição da Folha</h2>
+              <h2 className="rotulo text-ink-soft">Composição da Folha</h2>
             </div>
             <div className="space-y-2">
               {ativos.map(c => (
@@ -206,7 +207,7 @@ function ModalColaborador({ colaborador, onClose, onSaved }: { colaborador: Empl
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-surface-card p-6 sm:p-8 shadow-(--elev-3) card-finish space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-lg text-ink">
+          <h2 className="rotulo text-ink-soft">
             {colaborador ? 'Editar Colaborador' : 'Novo Colaborador'}
           </h2>
           <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">
@@ -519,7 +520,7 @@ function FeriasTab({ colaboradores, ferias }: { colaboradores: EmployeeRow[]; fe
   return (
     <div className="space-y-6">
       <Card level={1} className="p-6 sm:p-8 space-y-4 card-finish">
-        <h2 className="font-serif font-bold text-base text-ink">Registrar Período de Férias</h2>
+        <h2 className="rotulo text-ink-soft">Registrar Período de Férias</h2>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-4">
             <div className="sm:col-span-2">
@@ -585,106 +586,119 @@ function FeriasTab({ colaboradores, ferias }: { colaboradores: EmployeeRow[]; fe
   );
 }
 
-// ── Folha de Pagamento Tab ───────────────────────────────────────────────────
+// ── Custo da equipe ───────────────────────────────────────────────────────────
+// A folha oficial (eSocial, holerite, guias) é da contabilidade — o holerite
+// chega pela Central e fica em Documentos. Aqui, o que o empresário precisa
+// para planejar: quanto cada pessoa custa por mês, com FGTS e provisões.
 
-function FolhaTab({ colaboradores, folhas }: { colaboradores: EmployeeRow[]; folhas: PayslipRow[] }) {
-  const router = useRouter();
-  const elegiveis = colaboradores.filter(c => c.status === 'ACTIVE' && (c.vinculo === 'CLT' || c.vinculo === 'Estagiario'));
-  const [mes, setMes] = useState(new Date().toISOString().slice(0, 7));
-  const [generating, setGenerating] = useState(false);
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
-
-  async function gerar() {
-    setGenerating(true);
-    setFeedback(null);
-    try {
-      const res = await generatePayslipsAction(mes);
-      setFeedback({ ok: res.ok, msg: res.message });
-      router.refresh();
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  const folhasDoMes = folhas.filter(f => f.referenceMonth.slice(0, 7) === mes);
-  const totalMes = folhasDoMes.reduce((s, f) => s + f.netAmount, 0);
+function CustoTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
+  const clt = colaboradores.filter((c) => c.status !== 'TERMINATED' && (c.vinculo === 'CLT' || c.vinculo === 'Estagiario'));
+  const pj = colaboradores.filter((c) => c.status !== 'TERMINATED' && c.vinculo === 'PJ');
+  const linhas = clt.map((c) => ({ c, custo: custoDoColaborador(c.salario) }));
+  const total = linhas.reduce((s, l) => s + l.custo.custoMensal, 0);
+  const salarios = linhas.reduce((s, l) => s + l.custo.salario, 0);
+  const pjTotal = pj.reduce((s, c) => s + c.salario, 0);
 
   return (
-    <div className="space-y-6">
-      <Card level={1} className="p-6 sm:p-8 space-y-4 card-finish">
-        <h2 className="font-serif font-bold text-base text-ink">Gerar Folha do Mês</h2>
-        <p className="text-xs sm:text-sm text-ink-soft">
-          Cria os holerites e lançamentos a pagar para colaboradores CLT e estagiários ativos ({elegiveis.length} elegíveis).
-        </p>
-        <div className="flex flex-wrap items-end gap-3 pt-1">
-          <div>
-            <label className={lbl}>Mês de Referência</label>
-            <input type="month" value={mes} onChange={e => setMes(e.target.value)} className={`mt-1.5 ${field}`} />
-          </div>
-          <button
-            type="button"
-            onClick={gerar}
-            disabled={generating || elegiveis.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold shadow-(--elev-1) transition-all disabled:opacity-60"
-          >
-            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
-            {generating ? 'Gerando...' : 'Gerar Folha do Mês'}
-          </button>
-        </div>
-        {feedback && (
-          <p className={`text-xs font-bold ${feedback.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
-            {feedback.msg}
-          </p>
-        )}
-      </Card>
+    <div className="space-y-10">
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo="Custo mensal da equipe CLT" valor={BRL.format(total)} nota={`${BRL.format(salarios)} em salários + FGTS e provisões`} />
+        <CardResumo rotulo="Prestadores PJ" valor={BRL.format(pjTotal)} nota={`${pj.length} ${pj.length === 1 ? 'contrato' : 'contratos'} por mês`} />
+        <CardResumo rotulo="Custo total com pessoas" valor={BRL.format(total + pjTotal)} nota="Por mês, sem o pró-labore" />
+      </GradeDeResumo>
 
-      <Card level={1} className="p-6 sm:p-8 space-y-4 card-finish">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-base text-ink">Holerites de {mes}</h2>
-          <span className="font-serif tabular font-bold text-base text-emerald-700 dark:text-emerald-400">{BRL.format(totalMes)}</span>
-        </div>
-        {folhasDoMes.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center text-ink-soft">
-            <FileText className="h-8 w-8 opacity-30" />
-            <p className="text-sm">Nenhuma folha gerada para este mês ainda.</p>
-          </div>
+      <section className="space-y-3">
+        <p className="rotulo text-ink-soft">CLT e estágio — quanto cada um custa por mês</p>
+        {linhas.length === 0 ? (
+          <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-8 text-sm text-ink-soft dark:border-white/10">Nenhum colaborador CLT ou estagiário ativo.</p>
         ) : (
-          <div className="divide-y divide-black/5 dark:divide-white/10">
-            {folhasDoMes.map(f => (
-              <div key={f.id} className="flex items-center gap-3 py-3">
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold text-hexxa-lime shadow-(--elev-inset) ${avatarColor(f.employeeName)}`}>
-                  {initials(f.employeeName)}
-                </span>
-                <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{f.employeeName}</p>
-                <span className="text-sm font-serif tabular font-bold text-ink">{BRL.format(f.netAmount)}</span>
-              </div>
-            ))}
+          <div className="overflow-x-auto rounded-[28px] border border-black/5 dark:border-white/10">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+                  <th className="px-5 py-3 font-medium">Colaborador</th>
+                  <th className="px-3 py-3 text-right font-medium">Salário</th>
+                  <th className="px-3 py-3 text-right font-medium">Líquido</th>
+                  <th className="px-3 py-3 text-right font-medium">FGTS</th>
+                  <th className="px-3 py-3 text-right font-medium">Férias + 13º</th>
+                  <th className="px-5 py-3 text-right font-medium">Custo/mês</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                {linhas.map(({ c, custo }) => (
+                  <tr key={c.id}>
+                    <td className="px-5 py-3">
+                      <p className="font-semibold text-ink">{c.nome}</p>
+                      <p className="text-xs text-ink-soft">{c.cargo ?? c.vinculo}</p>
+                    </td>
+                    <td className="px-3 py-3 text-right tabular text-ink">{BRL.format(custo.salario)}</td>
+                    <td className="px-3 py-3 text-right tabular text-ink-soft" title={`INSS ${BRL.format(custo.inssRetido)} · IRRF ${BRL.format(custo.irrfRetido)}`}>{BRL.format(custo.liquido)}</td>
+                    <td className="px-3 py-3 text-right tabular text-ink-soft">{BRL.format(custo.fgts + custo.fgtsProvisoes)}</td>
+                    <td className="px-3 py-3 text-right tabular text-ink-soft">{BRL.format(custo.provisaoFerias + custo.provisao13)}</td>
+                    <td className="px-5 py-3 text-right font-serif font-bold tabular text-ink">{BRL.format(custo.custoMensal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </Card>
+        <p className="text-xs leading-relaxed text-ink-soft">
+          Estimativa pelas tabelas de 2026 (INSS, IRRF com isenção até R$ 5.000, FGTS de 8%) para empresas do Simples — a contribuição patronal já
+          está no DAS. Férias + 13º é o que guardar por mês para pagá-los. O salário líquido entra no financeiro como previsão todo dia 1º; a folha
+          oficial e o holerite vêm da contabilidade, pela Central, e ficam em{' '}
+          <Link href="/minha-contabilidade/arquivos" className="font-semibold text-ink underline-offset-4 hover:underline">
+            Documentos
+          </Link>
+          .
+        </p>
+      </section>
+
+      {pj.length > 0 && (
+        <section className="space-y-3">
+          <p className="rotulo text-ink-soft">Prestadores PJ</p>
+          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+            {pj.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-4 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{c.nome}</p>
+                  <p className="text-xs text-ink-soft">{c.cargo ?? 'Prestador PJ'}{c.vigenciaFim ? ` · contrato até ${fmtDate(c.vigenciaFim)}` : ''}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="font-serif text-sm font-bold tabular text-ink">{BRL.format(c.salario)}</p>
+                  {c.businessContractId ? (
+                    <Link href={`/meu-negocio/contratos/${c.businessContractId}` as never} className="text-xs font-semibold text-ink-soft hover:text-ink">
+                      Ver contrato
+                    </Link>
+                  ) : (
+                    <Link href="/meu-negocio/contratos" className="text-xs font-semibold text-ink-soft hover:text-ink">
+                      Fazer contrato PJ
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-type TabKey = 'geral' | 'colaboradores' | 'ferias' | 'folha';
+type TabKey = 'geral' | 'colaboradores' | 'ferias' | 'custo';
 
 const TABS: { id: TabKey; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'geral',          label: 'Visão Geral',        icon: LayoutGrid },
   { id: 'colaboradores',  label: 'Colaboradores',      icon: Users },
   { id: 'ferias',         label: 'Férias',             icon: Calendar },
-  { id: 'folha',          label: 'Folha de Pagamento', icon: Receipt },
+  { id: 'custo',          label: 'Custo da equipe',    icon: Receipt },
 ];
 
 export function HubDP({
   initialColaboradores,
   initialFerias,
-  initialFolhas,
 }: {
   initialColaboradores: EmployeeRow[];
   initialFerias: VacationRow[];
-  initialFolhas: PayslipRow[];
 }) {
   const [tab, setTab] = useState<TabKey>('geral');
 
@@ -702,7 +716,7 @@ export function HubDP({
       {tab === 'geral'         && <VisaoGeral colaboradores={initialColaboradores} onTab={setTab} />}
       {tab === 'colaboradores' && <ColaboradoresTab colaboradores={initialColaboradores} />}
       {tab === 'ferias'        && <FeriasTab colaboradores={initialColaboradores} ferias={initialFerias} />}
-      {tab === 'folha'         && <FolhaTab colaboradores={initialColaboradores} folhas={initialFolhas} />}
+      {tab === 'custo'         && <CustoTab colaboradores={initialColaboradores} />}
     </div>
   );
 }

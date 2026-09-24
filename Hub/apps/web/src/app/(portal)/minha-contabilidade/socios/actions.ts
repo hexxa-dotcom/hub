@@ -1,5 +1,6 @@
 'use server';
 
+import { proLaboreDoMes } from '@hexxa/core/folha';
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, eq, and } from '@hexxa/db';
@@ -104,11 +105,12 @@ export async function lancarProLaboreMesAction(partnerId: string): Promise<SaveP
       );
     if (already.length > 0) return;
 
+    // O líquido: INSS e IRRF retidos saem na guia da contabilidade.
     await tx.insert(financialEntry).values({
       companyId: ctx.companyId,
       type: 'PAYABLE',
-      description: `Pró-labore — ${p.name}`,
-      amount: p.proLabore,
+      description: `Pró-labore líquido — ${p.name}`,
+      amount: String(proLaboreDoMes(Number(p.proLabore)).liquido),
       dueDate,
       referenceMonth: refMonth,
       status: 'PENDING',

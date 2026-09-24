@@ -14,6 +14,7 @@
     "./pagamento-colado": "./src/pagamento-colado.ts",
     "./vencimentos": "./src/vencimentos.ts",
     "./presumido": "./src/presumido.ts",
+    "./folha": "./src/folha.ts",
     "./accounting": "./src/accounting/index.ts",
     "./agent": "./src/agent/index.ts"
   },

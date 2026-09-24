@@ -1,5 +1,6 @@
 'use client';
 
+import { inssProLabore, irrfMensal } from '@hexxa/core/folha';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -36,17 +37,9 @@ const fi =
 const lb = 'text-xs font-bold text-ink-soft tracking-wide uppercase';
 const YEAR = new Date().getFullYear();
 
-// ── Calcs (INSS/IRRF pró-labore, tabela vigente 2025) ───────────────────────────
-
-function calcINSS(v: number) { return Math.min(v * 0.11, 856.47); }
-
-function calcIRRF(base: number) {
-  if (base <= 2259.20) return 0;
-  if (base <= 2826.65) return Math.max(0, base * 0.075 - 169.44);
-  if (base <= 3751.05) return Math.max(0, base * 0.15 - 381.44);
-  if (base <= 4664.68) return Math.max(0, base * 0.225 - 662.77);
-  return Math.max(0, base * 0.275 - 896.00);
-}
+// ── Contas do pró-labore: as de 2026, em @hexxa/core/folha (fonte única) ────
+function calcINSS(v: number) { return inssProLabore(v); }
+function calcIRRF(bruto: number) { return irrfMensal(bruto, inssProLabore(bruto)); }
 
 function initials(n: string) {
   return n.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -81,7 +74,7 @@ function ModalSocio({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-surface-card p-6 sm:p-8 shadow-(--elev-3) card-finish space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-lg text-ink">
+          <h2 className="rotulo text-ink-soft">
             {socio ? 'Editar Sócio' : 'Novo Sócio'}
           </h2>
           <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10">
@@ -107,7 +100,7 @@ function ModalSocio({
               <input value={prol} onChange={e => setProl(e.target.value)} inputMode="decimal" required placeholder="3000" className={`mt-1.5 ${fi}`} />
             </div>
           </div>
-          <p className="text-[11px] text-ink-soft">INSS (11%) e IRRF são calculados automaticamente conforme a tabela oficial.</p>
+          <p className="text-[11px] text-ink-soft">INSS (11%) e IRRF pelas tabelas de 2026, com a isenção de IR até R$ 5.000. O pró-labore líquido entra sozinho no financeiro todo mês.</p>
           <div className="flex gap-2 pt-2">
             <button
               type="submit"
@@ -151,8 +144,8 @@ function ProLaboreTab({
 
   const totalBruto = socios.reduce((s, x) => s + x.prolabore, 0);
   const totalINSS  = socios.reduce((s, x) => s + calcINSS(x.prolabore), 0);
-  const totalIRRF  = socios.reduce((s, x) => s + calcIRRF(x.prolabore - calcINSS(x.prolabore)), 0);
-  const totalLiq   = socios.reduce((s, x) => s + (x.prolabore - calcINSS(x.prolabore) - calcIRRF(x.prolabore - calcINSS(x.prolabore))), 0);
+  const totalIRRF  = socios.reduce((s, x) => s + calcIRRF(x.prolabore), 0);
+  const totalLiq   = socios.reduce((s, x) => s + (x.prolabore - calcINSS(x.prolabore) - calcIRRF(x.prolabore)), 0);
 
   function flashMsg(msg: string) {
     setFlash(msg);
@@ -211,7 +204,7 @@ function ProLaboreTab({
       */}
       {!fatorRAplica ? (
         <Card level={1} className="p-6 card-finish">
-          <h3 className="font-serif font-bold text-base text-ink">O Fator R não decide o seu imposto</h3>
+          <h3 className="text-sm font-semibold text-ink">O Fator R não decide o seu imposto</h3>
           <p className="mt-1 text-xs sm:text-sm text-ink-soft">
             O contábil apurou sua empresa no Anexo {anexoApurado ?? 'III'}. Aumentar o pró-labore não
             reduz o imposto — só aumenta o INSS. Defina o valor pelo que faz sentido para os sócios, e
@@ -225,7 +218,7 @@ function ProLaboreTab({
             <TrendingUp className="h-5 w-5" />
           </span>
           <div className="flex-1">
-            <h3 className="font-serif font-bold text-base text-ink">
+            <h3 className="text-sm font-semibold text-ink">
               {fatorRFavoravel ? 'Pró-labore Atual Mantém Fator R Favorável' : 'Pró-labore Atual Abaixo do Recomendado'}
             </h3>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">
@@ -255,7 +248,7 @@ function ProLaboreTab({
 
       <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
         <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="font-serif font-bold text-base text-ink">Sócios Cadastrados</h2>
+          <h2 className="rotulo text-ink-soft">Sócios Cadastrados</h2>
           <button
             type="button"
             onClick={() => setModal({ open: true, editId: null })}
@@ -271,7 +264,7 @@ function ProLaboreTab({
 
         {socios.map(s => {
           const i = calcINSS(s.prolabore);
-          const r = calcIRRF(s.prolabore - i);
+          const r = calcIRRF(s.prolabore);
           const liq = s.prolabore - i - r;
           return (
             <div key={s.id} className="px-6 py-5">
@@ -282,7 +275,7 @@ function ProLaboreTab({
                   </div>
                   <div>
                     <p className="font-bold text-sm text-ink">{s.nome}</p>
-                    <p className="text-xs text-ink-soft">{s.participacao}% de participação{s.cpf ? ` · ${s.cpf}` : ''}</p>
+                    <p className="text-xs text-ink-soft">{s.participacao}% de participação{s.cpf ? ` · CPF ***.${s.cpf.replace(/\D/g, '').slice(3, 6)}.${s.cpf.replace(/\D/g, '').slice(6, 9)}-**` : ''} · líquido entra no financeiro todo dia 1º</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -307,7 +300,7 @@ function ProLaboreTab({
                     disabled={busyId === s.id || s.prolabore <= 0}
                     className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors disabled:opacity-50"
                   >
-                    {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Lançar no Financeiro
+                    {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Lançar agora
                   </button>
                 </div>
               </div>
@@ -390,7 +383,7 @@ function YearlyProfitBanner({ yearlyProfit }: { yearlyProfit: YearlyProfitSummar
             <Landmark className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-serif font-bold text-base text-ink">Lucro Acumulado em {yearlyProfit.year}</h2>
+            <h2 className="rotulo text-ink-soft">Lucro Acumulado em {yearlyProfit.year}</h2>
             <p className="text-xs sm:text-sm text-ink-soft">
               {yearlyProfit.fonte === 'OFICIAL'
                 ? `Resultado da contabilidade oficial, acumulado até ${yearlyProfit.mesOficial?.split('-').reverse().join('/')}.`
@@ -508,7 +501,7 @@ function DistribuicaoTab({
       />
 
       <Card level={1} className="p-6 sm:p-8 card-finish">
-        <h2 className="font-serif font-bold text-base text-ink">Histórico de Distribuições</h2>
+        <h2 className="rotulo text-ink-soft">Histórico de Distribuições</h2>
         {distribuicoes.length === 0 ? (
           <p className="mt-4 text-sm text-ink-soft">Nenhuma distribuição lançada ainda.</p>
         ) : (
