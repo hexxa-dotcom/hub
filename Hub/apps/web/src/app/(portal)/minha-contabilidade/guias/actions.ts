@@ -7,7 +7,7 @@ import { escriturar } from '@/lib/server/ledger';
 
 const repo = new DrizzleTaxGuideRepository();
 
-const MAX_ANEXO_BYTES = 4 * 1024 * 1024; // 4MB — mesmo limite do comprovante em Hub Financeiro
+const MAX_ANEXO_BYTES = 4 * 1024 * 1024; // 4MB — mesmo limite do comprovante em Financeiro
 
 export async function registrarGuiaAction(data: Omit<NewTaxGuide, 'fileUrl'> & { anexo?: File | null }) {
   if (!data.taxName.trim()) return { error: 'Informe a descrição.' };

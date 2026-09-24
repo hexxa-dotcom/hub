@@ -76,7 +76,7 @@ export async function deletePartnerAction(id: string): Promise<SavePartnerState>
   return { ok: true, message: 'Sócio removido.' };
 }
 
-/** Lança o pró-labore do mês como conta a pagar real no Hub Financeiro (não fica só no cadastro). */
+/** Lança o pró-labore do mês como conta a pagar real no Financeiro (não fica só no cadastro). */
 export async function lancarProLaboreMesAction(partnerId: string): Promise<SavePartnerState> {
   const ctx = await getTenantContext();
 
@@ -120,5 +120,5 @@ export async function lancarProLaboreMesAction(partnerId: string): Promise<SaveP
   revalidatePath('/minha-contabilidade/socios');
   revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/cliente');
-  return { ok: true, message: `Pró-labore de ${p.name} lançado no Hub Financeiro.` };
+  return { ok: true, message: `Pró-labore de ${p.name} lançado no Financeiro.` };
 }

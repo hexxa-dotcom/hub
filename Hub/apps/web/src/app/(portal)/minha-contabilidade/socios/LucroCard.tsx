@@ -147,7 +147,7 @@ export function LucroCard() {
             value={-despesas}
             cls="text-white/80"
             muted
-            source="Hub Financeiro · contas pagas no mês"
+            source="Financeiro · contas pagas no mês"
           />
           <ResultRow
             label="(−) DAS pago"

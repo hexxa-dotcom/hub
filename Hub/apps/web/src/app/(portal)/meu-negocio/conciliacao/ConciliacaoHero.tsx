@@ -29,7 +29,7 @@ export function ConciliacaoHero({
               href="/meu-negocio/hub-financeiro"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors rounded-full bg-surface-card border border-black/5 dark:border-white/10 px-3 py-1 shadow-(--elev-1)"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Hub Financeiro
+              <ArrowLeft className="h-3.5 w-3.5" /> Financeiro
             </Link>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider rounded-full px-2.5 py-0.5 bg-hexxa-forest/10 dark:bg-hexxa-lime/10 text-hexxa-forest dark:text-hexxa-lime border border-hexxa-green/20">
               <Sparkles className="h-3 w-3" /> IA Conciliadora Ativa

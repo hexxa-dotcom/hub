@@ -23,7 +23,7 @@ const ICONS: Record<ViewId, Icon> = {
 };
 
 /**
- * Seletor de vista em pílula, mesmo padrão do Hub Financeiro — a pílula já é o
+ * Seletor de vista em pílula, mesmo padrão do Financeiro — a pílula já é o
  * controle de troca de vista do sistema, então repetir a forma aqui poupa a
  * pessoa de aprender dois jeitos de fazer a mesma coisa.
  *

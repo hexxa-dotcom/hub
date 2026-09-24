@@ -1474,7 +1474,7 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
 }
 
 
-// ── Main Hub Financeiro Component ───────────────────────────────────────────
+// ── Main Financeiro Component ───────────────────────────────────────────
 
 type TabKey = 'geral' | 'pagar' | 'receber';
 
@@ -1626,10 +1626,10 @@ export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTa
 
   return (
     <div className="space-y-6">
-      {/* Hero Card do Hub Financeiro */}
+      {/* Hero Card do Financeiro */}
       <SectionHero
-        title="Hub Financeiro"
-        infoTitle="Sobre o Hub Financeiro"
+        title="Financeiro"
+        infoTitle="Sobre o Financeiro"
         infoDescription="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
       />
 
