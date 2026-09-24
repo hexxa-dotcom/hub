@@ -7,6 +7,7 @@ import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { AgendaDaCentral } from '../../minha-contabilidade/guias/AgendaDaCentral';
 import { GraficoEntradasSaidas, periodosPorDia } from '@/components/ui/GraficoEntradasSaidas';
 import { ColarPagamento } from './ColarPagamento';
+import { Comparativo12Meses, type MesDoComparativo } from './Comparativo12Meses';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
@@ -1248,6 +1249,21 @@ function ComposicaoCard({ title, items, emptyLabel }: { title: string; items: Re
 }
 
 function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; selectedMonth: MonthFilter; onNavigate: (tab: 'pagar' | 'receber') => void }) {
+  const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const mesDoComparativo = /^\d{4}-\d{2}$/.test(String(selectedMonth)) ? String(selectedMonth) : currentMonth();
+  const comparativo: MesDoComparativo[] = Array.from({ length: 12 }, (_, k) => {
+    const mes = addMonths(mesDoComparativo, k - 11);
+    const doMes = data.filter((l) => l.vencimento.slice(0, 7) === mes);
+    const porCategoria: Record<string, number> = {};
+    for (const l of doMes) if (l.tipo === 'PAGAR') porCategoria[grupoDe(l)] = (porCategoria[grupoDe(l)] ?? 0) + l.valor;
+    return {
+      mes,
+      rotulo: MESES_CURTOS[Number(mes.slice(5, 7)) - 1] ?? mes,
+      receitas: doMes.filter((l) => l.tipo === 'RECEBER').reduce((s, l) => s + l.valor, 0),
+      despesas: doMes.filter((l) => l.tipo === 'PAGAR').reduce((s, l) => s + l.valor, 0),
+      porCategoria,
+    };
+  });
   const [showDre, setShowDre] = useState(false);
   
   const today = new Date();
@@ -1415,6 +1431,9 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
           </button>
         </Card>
       </div>
+
+      {/* Doze meses lado a lado, e o que mais mudou no mês escolhido. */}
+      <Comparativo12Meses meses={comparativo} mesAtual={mesDoComparativo} />
 
       {/* ── Bento Row 3: Composição + Vencimentos ('Your Transfers' Style) ──────── */}
       <div className="grid gap-6 lg:grid-cols-2">
