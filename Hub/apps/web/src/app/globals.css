@@ -752,8 +752,10 @@
      base FUNDE com ela. Antes a base ficava 9 níveis mais escura que a
      moldura, criando uma aresta que fazia a barra parecer peça solta. */
   --sidebar-bg: var(--shell-frame);
-  --sidebar-ink: #231F20;
-  --sidebar-ink-soft: #5A5751;
+  /* A barra lateral fica sobre a moldura escura: ícones e textos claros.
+     Antes eram tinta escura (#5A5751) sobre fundo escuro — pareciam foscos. */
+  --sidebar-ink: #F5F6F4;
+  --sidebar-ink-soft: #D6D8D3;
   --sidebar-elev-1:
     -2px -2px 5px #F1F2EE,
     3px 3px 7px #D5D6D2;

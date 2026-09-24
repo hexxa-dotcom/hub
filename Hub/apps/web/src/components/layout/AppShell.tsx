@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Menu, PanelLeft, X, Bell, BellOff, MessageCircle, Search, Pin, LogOut, ArrowUpRight } from 'lucide-react';
+import { ChevronDown, Menu, PanelLeft, PanelLeftClose, PanelLeftOpen, X, Bell, BellOff, MessageCircle, Search, LogOut, ArrowUpRight } from 'lucide-react';
 import {
   SquaresFour,
   Notebook,
@@ -34,7 +34,9 @@ const GROUP_ICONS: Record<string, PhosphorIcon> = {
   'Suporte': ChatCircleDots,
 };
 
-const STORAGE_KEY = 'hexxa.sidebar.collapsed';
+// '1' = aberta. Sem valor, a barra começa recolhida — abre e fecha só pelo
+// botão do topo (antes abria sozinha ao passar o mouse).
+const STORAGE_KEY = 'hexx.sidebar.aberta';
 const WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '5599999999999';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com minha contabilidade.')}`;
 
@@ -271,7 +273,11 @@ function AppShellInner({
       if (isFocus) {
         setFocusPinned(false);
       } else {
-        setIsPinned(localStorage.getItem(STORAGE_KEY) !== '1');
+        let aberta = false;
+        try {
+          aberta = localStorage.getItem(STORAGE_KEY) === '1';
+        } catch {}
+        setIsPinned(aberta);
       }
     };
     updateThemeState();
@@ -325,7 +331,7 @@ function AppShellInner({
   // No Modo Foco, a barra lateral recolhe automaticamente para maximizar a área útil (estilo Zen Shell), abrindo sob hover
   const isCollapsed = isFocusMode
     ? (!focusPinned && !isHovered)
-    : (!isPinned && !isHovered);
+    : !isPinned;
 
   // Aplicativo emoldurado: a casca escura é o "fora", e o conteúdo é um painel
   // claro arredondado flutuando dentro dela. A trilha de ícones vive sobre a
@@ -453,66 +459,60 @@ function AppShellInner({
           className={`z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex ${
             isFocusMode && isCollapsed ? 'pointer-events-none' : ''
           }`}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseEnter={() => isFocusMode && setIsHovered(true)}
+          onMouseLeave={() => isFocusMode && setIsHovered(false)}
         >
           {/* Container interno de largura fixa (264px) para eliminar reflow durante o spring */}
           <div className="flex h-full w-[264px] flex-col shrink-0 overflow-hidden">
-            {/* Header / Brand & Company */}
+            {/* Topo: recolhida, só o botão de abrir; aberta, o logo e o nome
+                da empresa com o botão de recolher ao lado. */}
             <div className="h-[72px] flex items-center px-3 shrink-0">
-              <div className="flex w-full items-center justify-between rounded-2xl p-1.5">
-                <Link
-                  href="/minha-empresa"
-                  title="Ver perfil da empresa"
-                  className="flex items-center gap-3 overflow-hidden rounded-xl p-1 -m-1 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group select-none flex-1 min-w-0"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime font-extrabold text-sm shadow-sm border border-white/10 group-hover:scale-105 transition-transform duration-200">
-                    {company
-                      ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
-                      : 'H'}
-                  </div>
-                  <div
-                    className={`flex min-w-0 flex-1 flex-col items-start overflow-hidden text-left transition-opacity duration-150 ${
-                      isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                    }`}
+              <div className="flex w-full items-center justify-between gap-2 p-1.5">
+                {!isCollapsed && (
+                  <Link
+                    href="/minha-empresa"
+                    title="Ver perfil da empresa"
+                    className="flex items-center gap-3 overflow-hidden rounded-xl p-1 -m-1 hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group select-none flex-1 min-w-0"
                   >
-                    <span className="w-full truncate text-sm font-bold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime font-extrabold text-sm shadow-sm border border-white/10 group-hover:scale-105 transition-transform duration-200">
                       {company
-                        ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
-                        : 'Hexx Digital'}
-                    </span>
-                    <span className="text-[10px] font-medium text-(--sidebar-ink-soft) group-hover:text-ink truncate flex items-center gap-1 transition-colors">
-                      Painel da empresa
-                      <ArrowUpRight className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    </span>
-                  </div>
-                </Link>
+                        ? (company.useTradeName && company.tradeName ? company.tradeName[0] : company.legalName[0])
+                        : 'H'}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col items-start overflow-hidden text-left">
+                      <span className="w-full truncate text-sm font-bold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
+                        {company
+                          ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
+                          : 'Hexx Digital'}
+                      </span>
+                      <span className="text-[10px] font-medium text-(--sidebar-ink-soft) truncate flex items-center gap-1 transition-colors">
+                        Painel da empresa
+                        <ArrowUpRight className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </span>
+                    </div>
+                  </Link>
+                )}
 
-                {/* PIN BUTTON */}
                 <button
+                  type="button"
                   onClick={() => {
                     if (isFocusMode) {
-                      setFocusPinned(prev => !prev);
-                    } else {
-                      const newVal = !isPinned;
-                      setIsPinned(newVal);
-                      localStorage.setItem(STORAGE_KEY, newVal ? '0' : '1');
+                      setFocusPinned((prev) => !prev);
+                      return;
                     }
+                    const aberta = !isPinned;
+                    setIsPinned(aberta);
+                    try {
+                      localStorage.setItem(STORAGE_KEY, aberta ? '1' : '0');
+                    } catch {}
                   }}
-                  title={
-                    (isFocusMode ? focusPinned : isPinned)
-                      ? "Desafixar menu"
-                      : "Fixar menu"
-                  }
-                  className={`grid h-7 w-7 shrink-0 place-items-center bg-transparent transition-all duration-150 ${
-                    isCollapsed ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'
-                  } ${
-                    (isFocusMode ? focusPinned : isPinned)
-                      ? 'text-hexxa-forest dark:text-hexxa-lime' 
-                      : 'text-ink-soft/60 hover:text-ink'
+                  title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                  aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-(--sidebar-ink-soft) transition-colors hover:bg-black/5 hover:text-(--sidebar-ink) dark:hover:bg-white/10 ${
+                    isCollapsed ? 'ml-[3px]' : ''
                   }`}
                 >
-                  <Pin className={`h-4 w-4 transition-transform duration-200 ${(isFocusMode ? focusPinned : isPinned) ? 'rotate-0' : 'rotate-45 opacity-50'}`} />
+                  {isCollapsed ? <PanelLeftOpen className="h-5 w-5" strokeWidth={1.6} /> : <PanelLeftClose className="h-5 w-5" strokeWidth={1.6} />}
                 </button>
               </div>
             </div>
