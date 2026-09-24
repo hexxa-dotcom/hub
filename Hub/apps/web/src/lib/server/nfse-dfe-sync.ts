@@ -88,6 +88,21 @@ export async function syncDistribuicaoDfe(ctx: TenantContext): Promise<SyncDfeRe
           ON CONFLICT (company_id, nsu) DO NOTHING
         `);
 
+        // Quem recebeu a nota vira cliente (pelo documento), sem duplicar —
+        // a lista de Clientes se forma sozinha a partir do faturamento.
+        if (nota.direction === 'EMITIDA' && nota.tomadorDocumento && nota.tomadorNome) {
+          const doc = nota.tomadorDocumento.replace(/\D/g, '');
+          await tx.execute(sql`
+            INSERT INTO customer (company_id, name, document, type)
+            SELECT ${ctx.companyId}, ${nota.tomadorNome}, ${doc}, ${doc.length === 11 ? 'PF' : 'PJ'}
+             WHERE NOT EXISTS (
+               SELECT 1 FROM customer
+                WHERE company_id = ${ctx.companyId}
+                  AND regexp_replace(coalesce(document, ''), '[^0-9]', '', 'g') = ${doc}
+             )
+          `);
+        }
+
         // Nota EMITIDA (empresa é a prestadora) entra em contas a receber, do
         // mesmo jeito que uma nota emitida pelo próprio Hub entraria (mesmo
         // type/status) — só muda a origem (source) e o external_id, que usa

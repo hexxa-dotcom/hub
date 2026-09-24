@@ -859,7 +859,7 @@ function TarefaForm({ customers, onClose, onAdded }: { customers: Customer[]; on
   );
 }
 
-function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; tarefas: Tarefa[]; onChanged: () => void }) {
+export function TarefasTab({ customers, tarefas, onChanged }: { customers: Customer[]; tarefas: Tarefa[]; onChanged: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<TarefaStatus | 'todas'>('todas');
   const [expanded, setExpanded] = useState<string | null>(null);

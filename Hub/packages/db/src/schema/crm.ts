@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean, date, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, boolean, date, numeric, integer } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { customer } from './service-ops';
 
@@ -13,6 +13,20 @@ export const proposal = pgTable('proposal', {
   validade: date('validade').notNull(),
   status: text('status').notNull().default('rascunho'), // rascunho|enviada|aprovada|rejeitada|expirada
   observacoes: text('observacoes'),
+  /** Ver 0077: cliente, link público de aceite e quem decidiu. */
+  customerId: uuid('customer_id'),
+  publicToken: text('public_token'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  viewedAt: timestamp('viewed_at', { withTimezone: true }),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+  decidedByName: text('decided_by_name'),
+  decidedByEmail: text('decided_by_email'),
+  decidedIp: text('decided_ip'),
+  decisionNote: text('decision_note'),
+  /** MENSAL | UNICA */
+  recorrencia: text('recorrencia').notNull().default('MENSAL'),
+  prazoMeses: integer('prazo_meses'),
+  contractId: uuid('contract_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

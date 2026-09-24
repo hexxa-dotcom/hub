@@ -65,7 +65,7 @@ export const NAV: NavSection[] = [
   {
     title: 'Relacionamento',
     items: [
-      { label: 'CRM', href: '/relacionamento' },
+      { label: 'Clientes', href: '/relacionamento' },
       { label: 'Propostas', href: '/meu-negocio/propostas' },
       { label: 'Contratos', href: '/meu-negocio/contratos' },
     ],

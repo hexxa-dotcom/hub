@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
-import { withTenant, eq, and, desc } from '@hexxa/db';
+import { withTenant, eq, and, desc, sql } from '@hexxa/db';
 import { customer, contract, crmTask } from '@hexxa/db/schema';
 
 export type RelContractRow = {
@@ -139,4 +139,51 @@ export async function deleteTarefaAction(id: string): Promise<SaveRelContractSta
   });
   revalidatePath('/relacionamento');
   return { ok: true, message: 'Tarefa removida.' };
+}
+
+/**
+ * Salva um cliente (novo ou existente). O documento é guardado só com
+ * dígitos — é por ele que o cliente se liga às notas e aos contratos — e não
+ * pode repetir dentro da empresa.
+ */
+export async function salvarClienteAction(input: {
+  id?: string;
+  nome: string;
+  documento: string;
+  email: string;
+  telefone: string;
+  endereco: string;
+}): Promise<{ ok: boolean; message: string; id?: string }> {
+  const ctx = await getTenantContext();
+  const nome = input.nome.trim();
+  const doc = input.documento.replace(/\D/g, '');
+  if (!nome) return { ok: false, message: 'Informe o nome.' };
+  if (doc && doc.length !== 11 && doc.length !== 14) return { ok: false, message: 'CPF ou CNPJ incompleto.' };
+  return withTenant(ctx.companyId, async (tx) => {
+    if (doc) {
+      const [repetido] = (await tx.execute(sql`
+        SELECT id FROM customer WHERE company_id = ${ctx.companyId}
+           AND regexp_replace(coalesce(document, ''), '[^0-9]', '', 'g') = ${doc}
+           AND id <> ${input.id ?? '00000000-0000-0000-0000-000000000000'}::uuid
+      `)) as unknown as { id: string }[];
+      if (repetido) return { ok: false, message: 'Já existe um cliente com esse documento.', id: repetido.id };
+    }
+    const valores = {
+      name: nome,
+      document: doc || null,
+      email: input.email.trim() || null,
+      phone: input.telefone.replace(/\D/g, '') || null,
+      address: input.endereco.trim() || null,
+      type: doc.length === 11 ? 'PF' : 'PJ',
+    };
+    if (input.id) {
+      await tx.update(customer).set(valores).where(and(eq(customer.id, input.id), eq(customer.companyId, ctx.companyId)));
+      revalidatePath('/relacionamento');
+      revalidatePath(`/relacionamento/${input.id}`);
+      return { ok: true, message: 'Cliente atualizado.', id: input.id };
+    }
+    const [novo] = await tx.insert(customer).values({ ...valores, companyId: ctx.companyId }).returning({ id: customer.id });
+    revalidatePath('/relacionamento');
+    return { ok: true, message: 'Cliente cadastrado.', id: novo!.id };
+  });
 }
