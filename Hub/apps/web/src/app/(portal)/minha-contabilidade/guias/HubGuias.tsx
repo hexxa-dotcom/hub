@@ -871,7 +871,7 @@ export function HubGuias({
                   <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl" />
                   <div className="relative z-10 flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-caption font-bold text-white/70">A pagar no mês</p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/70">A pagar no mês</p>
                       <p className="mt-3 font-serif text-3xl font-extrabold leading-none tracking-tight text-[#D4FF00] tabular sm:text-4xl">
                         {BRL.format(totalAberto)}
                       </p>
@@ -886,7 +886,7 @@ export function HubGuias({
                 <Card level={1} interactive className="flex h-full flex-col justify-between p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-caption font-bold text-ink-soft">Em atraso</p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft">Em atraso</p>
                       <p className={`mt-2 font-serif text-2xl font-bold tracking-tight tabular sm:text-3xl ${qtdVencido > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-ink'}`}>
                         {BRL.format(totalVencido)}
                       </p>
@@ -902,7 +902,7 @@ export function HubGuias({
                 <Card level={1} interactive className="flex h-full flex-col justify-between p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-caption font-bold text-ink-soft">Pago no mês</p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft">Pago no mês</p>
                       <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{BRL.format(totalPago)}</p>
                     </div>
                   </div>
@@ -928,7 +928,7 @@ export function HubGuias({
                     />
                   </svg>
                   <div className="min-w-0">
-                    <p className="text-caption font-bold text-ink-soft">Mês quitado</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft">Mês quitado</p>
                     <p className="mt-1 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{pctPago}%</p>
                     <p className="mt-1 text-xs text-ink-soft">
                       {totalDoMes === 0 ? 'Sem valores no mês' : totalAberto > 0 ? `faltam ${BRL.format(totalAberto)}` : 'tudo pago'}

@@ -49,7 +49,7 @@ export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativ
       <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl" />
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-caption font-bold text-white/70">{rotulo}</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/70">{rotulo}</p>
           <p className="mt-3 break-words font-serif text-[28px] font-extrabold leading-none tracking-tight text-[#D4FF00] tabular xl:text-[32px]">{valor}</p>
         </div>
         {lateral}
@@ -64,7 +64,7 @@ export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativ
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-caption font-bold text-ink-soft">{rotulo}</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft">{rotulo}</p>
           <p className={`mt-2 font-serif text-2xl font-bold tracking-tight tabular sm:text-3xl ${COR_DO_VALOR[tom]}`}>{valor}</p>
         </div>
         {lateral}
