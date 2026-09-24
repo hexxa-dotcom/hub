@@ -891,18 +891,13 @@ function LancamentosTab({
     { key: 'aberto', label: 'Em aberto', count: counts.aberto },
     { key: 'vencido', label: 'Vencidos', count: counts.vencido, badge: counts.vencido || undefined },
     { key: 'pago', label: isPagar ? 'Pagos' : 'Recebidos', count: counts.pago },
-    ...(isPagar ? [
-      { key: 'fixas', label: 'Despesas fixas', count: counts.fixas },
-      { key: 'impostos', label: `Impostos` },
-      { key: 'colaboradores', label: `Colaboradores` },
-    ] : [
-      { key: 'contratos', label: `Mensalidades` },
-      { key: 'servicos', label: `Serviços/Avulsos` },
-    ]),
+    // Despesas fixas, impostos, colaboradores, mensalidades e serviços saíram
+    // daqui: os cards logo acima já filtram por eles. Repetir era ruído.
   ];
 
   return (
-    <div className="space-y-4">
+    // Respiro entre os cards de resumo e a barra de filtros/lista.
+    <div className="space-y-10">
       {isPagar ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <DespesasFixasCard
@@ -964,31 +959,30 @@ function LancamentosTab({
           ativo={filter}
           onChange={(id) => setFilter(id as FilterTab)}
         />
-        <div className="flex items-center gap-2">
+        {/* Ações secundárias em texto, como os filtros; só a principal é botão. */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
           {isPagar && (
-            <button
-              type="button"
-              onClick={() => setShowFixas((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink-soft hover:text-ink transition-all"
-            >
-              <Repeat className="h-4 w-4" />
-              Despesas Fixas
-            </button>
-          )}
-          {isPagar && (
-            <button
-              type="button"
-              onClick={() => setShowColar(true)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink hover:text-ink transition-all"
-            >
-              <ClipboardPaste className="h-4 w-4" />
-              Colar boleto ou Pix
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setShowColar(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-ink"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" /> Colar boleto ou Pix
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFixas((v) => !v)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold transition-colors ${showFixas ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}
+              >
+                <Repeat className="h-3.5 w-3.5" /> Despesas fixas
+              </button>
+            </>
           )}
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.02]"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest px-4 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.02] hover:bg-hexxa-green"
           >
             <Plus className="h-4 w-4" />
             Nova conta a {label}
@@ -1690,7 +1684,7 @@ export function HubFinanceiro({
         <div className="flex items-center gap-3">
           <SegmentedTabs
             tabs={[
-              { id: 'geral', label: 'Visão Geral', icon: LayoutGrid },
+              { id: 'geral', label: 'Meu mês', icon: LayoutGrid },
               {
                 id: 'pagar',
                 label: 'Contas a Pagar',

@@ -40,11 +40,12 @@ export function FiltrosEmTexto<T extends string = string>({
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${className}`}>
       {filtros.map((f) => {
         const cls = `inline-flex items-center gap-1.5 text-xs font-semibold transition-colors ${
-          ativo === f.id ? 'text-ink underline decoration-2 underline-offset-8' : 'text-ink-soft hover:text-ink'
+          ativo === f.id ? 'text-ink' : 'text-ink-soft hover:text-ink'
         }`;
+        // O traço fica só sob o rótulo — a contagem ao lado não é sublinhada.
         const conteudo = (
           <>
-            {f.label}
+            <span className={ativo === f.id ? 'underline decoration-2 underline-offset-8' : ''}>{f.label}</span>
             {f.count !== undefined && <span className="tabular opacity-60">{f.count}</span>}
             {f.badge ? (
               <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white no-underline">{f.badge}</span>

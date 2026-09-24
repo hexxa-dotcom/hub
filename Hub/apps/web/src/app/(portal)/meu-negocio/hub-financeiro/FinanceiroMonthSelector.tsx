@@ -63,16 +63,29 @@ export function FinanceiroMonthSelector({
           <ChevronLeft className="h-4 w-4" />
         </button>
 
+        {/* O mês é texto; a lista de meses abre pela seta à direita, fora dele. */}
+        <span className="inline-block px-1.5 py-1 text-xs font-bold tracking-tight text-ink first-letter:uppercase select-none sm:text-sm">
+          {monthLabel}
+        </span>
+
+        <button
+          type="button"
+          onClick={onNextMonth}
+          disabled={!onNextMonth}
+          aria-label="Próximo mês"
+          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
         <div className="relative">
           <button
             type="button"
             onClick={() => setDropdownOpen((o) => !o)}
-            className="tap-target pressable focusable flex items-center justify-between gap-1.5 px-1.5 py-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            aria-label="Escolher o mês"
+            className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/5"
           >
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink tracking-tight select-none">
-              <span className="inline-block first-letter:uppercase">{monthLabel}</span>
-            </div>
-            <ChevronDown className="h-3.5 w-3.5 text-ink-soft shrink-0" />
+            <ChevronDown className={`h-4 w-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownOpen && (
@@ -112,16 +125,6 @@ export function FinanceiroMonthSelector({
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={onNextMonth}
-          disabled={!onNextMonth}
-          aria-label="Próximo mês"
-          className="tap-target pressable focusable grid h-7 w-7 place-items-center rounded-full text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
 
       {!isCurrentMonth && onCurrentMonth && (
