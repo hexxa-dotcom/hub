@@ -1,14 +1,15 @@
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import type { Style } from '@react-pdf/types';
 import { MODELOS, clausulasDoContrato, type DadosDoContrato } from './modelos';
 
 /** O PDF do contrato, a partir de um modelo (ver `modelos.ts`). */
 
 const s = StyleSheet.create({
-  page: { paddingTop: 56, paddingBottom: 64, paddingHorizontal: 60, fontFamily: 'Helvetica', fontSize: 10.5, lineHeight: 1.55, color: '#1a1a1a' },
+  page: { paddingTop: 52, paddingBottom: 60, paddingHorizontal: 60, fontFamily: 'Helvetica', fontSize: 10, lineHeight: 1.5, color: '#1a1a1a' },
   titulo: { fontSize: 14, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 22, letterSpacing: 1, textTransform: 'uppercase' },
-  secao: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', marginTop: 12, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  paragrafo: { marginBottom: 6, textAlign: 'justify' },
+  secao: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginTop: 10, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  paragrafo: { marginBottom: 5, textAlign: 'justify' },
   negrito: { fontFamily: 'Helvetica-Bold' },
   bloco: { width: '45%', borderTopWidth: 0.8, borderTopColor: '#000', paddingTop: 6, textAlign: 'center', fontSize: 9.5 },
   rodape: { position: 'absolute', bottom: 28, left: 60, right: 60, fontSize: 8, color: '#888', textAlign: 'center' },
@@ -35,7 +36,20 @@ export interface Verificacao {
   qr: string;
 }
 
-export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; verificacao?: Verificacao }) {
+export function ContratoPdf({
+  dados,
+  verificacao,
+  paginaDeAssinaturas = false,
+}: {
+  dados: DadosDoContrato;
+  verificacao?: Verificacao;
+  /**
+   * true: as assinaturas vão numa página só delas, em posições fixas — é o
+   * que o DocuSeal precisa para pôr o campo de cada parte. false (assinatura
+   * no Hub): vêm logo depois da última cláusula, sem página a mais.
+   */
+  paginaDeAssinaturas?: boolean;
+}) {
   const clausulas = clausulasDoContrato(dados);
   const parte = (p: DadosDoContrato['contratante'], papel: string) => (
     <Text style={s.paragrafo}>
@@ -43,6 +57,32 @@ export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; ve
       {p.endereco ? `, com endereço em ${p.endereco}` : ''}, doravante denominada <Text style={s.negrito}>{papel}</Text>.
     </Text>
   );
+
+  const fechamento = (
+    <>
+      <Text style={s.paragrafo}>
+        E, por estarem de acordo, {dados.contratante.nome} e {dados.contratada.nome} assinam eletronicamente este{' '}
+        {MODELOS[dados.modelo].titulo.replace(/^Contrato/, 'contrato')}, com os mesmos efeitos da assinatura em papel.
+      </Text>
+      <Text style={[s.paragrafo, { marginTop: 6 }]}>{dados.cidadeData}</Text>
+    </>
+  );
+  const selo = (estilo: Style) =>
+    verificacao ? (
+      <View style={[{ flexDirection: 'row', alignItems: 'center', borderWidth: 0.8, borderColor: '#cfcfcf', borderRadius: 6, padding: 12 }, estilo]}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image src={verificacao.qr} style={{ width: 64, height: 64, marginRight: 14 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={[s.negrito, { fontSize: 9.5 }]}>Verificação de autenticidade</Text>
+          <Text style={{ fontSize: 8.5, color: '#444', marginTop: 3 }}>
+            Este contrato foi assinado eletronicamente pelo Hexxa Hub. Quem assinou, quando e de onde fica registrado, junto com o código (hash SHA-256) deste arquivo.
+          </Text>
+          <Text style={{ fontSize: 8.5, marginTop: 4 }}>
+            Código <Text style={s.negrito}>{verificacao.codigo}</Text> · {verificacao.url}
+          </Text>
+        </View>
+      </View>
+    ) : null;
 
   return (
     <Document title={MODELOS[dados.modelo].titulo}>
@@ -66,7 +106,8 @@ export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; ve
 
         {clausulas.map((c, i) => (
           <View key={c.titulo} wrap>
-            <Text style={s.secao}>
+            {/* O título não fica sozinho no pé da página, longe do texto dele. */}
+            <Text style={s.secao} minPresenceAhead={60}>
               Cláusula {i + 1}ª — {c.titulo}
             </Text>
             {c.itens.map((item, j) => (
@@ -80,17 +121,36 @@ export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; ve
           </View>
         ))}
 
-        <Text style={[s.paragrafo, { marginTop: 18, textAlign: 'center' }]}>{dados.cidadeData}</Text>
-
+        {/* Assinatura no Hub: fechamento, assinaturas e selo logo depois do
+            texto, num bloco que não se parte — se não couber, vai inteiro
+            para a página seguinte, sem deixar uma folha quase vazia. */}
+        {!paginaDeAssinaturas && (
+          <View wrap={false} style={{ marginTop: 16 }}>
+            {fechamento}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 40 }}>
+              {([
+                ['CONTRATANTE', dados.contratante],
+                ['CONTRATADA', dados.contratada],
+              ] as const).map(([papel, p]) => (
+                <View key={papel} style={[s.bloco, { textAlign: 'left' }]}>
+                  <Text style={s.negrito}>{p.nome}</Text>
+                  <Text>
+                    {papel} · {p.documento}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {selo({ marginTop: 20 })}
+          </View>
+        )}
       </Page>
 
-      {/* Página só das assinaturas, com posições fixas: é onde o DocuSeal põe
-          o campo de cada parte (ver AREAS_DE_ASSINATURA). */}
+      {paginaDeAssinaturas && (
+        // Página só das assinaturas, com posições fixas: é onde o DocuSeal
+        // põe o campo de cada parte (ver AREAS_DE_ASSINATURA).
       <Page size="A4" style={s.page}>
         <Text style={s.titulo}>Assinaturas</Text>
-        <Text style={[s.paragrafo, { textAlign: 'center', color: '#555' }]}>
-          {MODELOS[dados.modelo].titulo} entre {dados.contratante.nome} e {dados.contratada.nome}.
-        </Text>
+        {fechamento}
         {([
           ['CONTRATANTE', dados.contratante, LINHA_CONTRATANTE],
           ['CONTRATADA', dados.contratada, LINHA_CONTRATADA],
@@ -102,25 +162,12 @@ export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; ve
             </Text>
           </View>
         ))}
-        {verificacao && (
-          <View style={{ position: 'absolute', top: 600, left: 60, right: 60, flexDirection: 'row', alignItems: 'center', borderWidth: 0.8, borderColor: '#cfcfcf', borderRadius: 6, padding: 12 }}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={verificacao.qr} style={{ width: 72, height: 72, marginRight: 14 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[s.negrito, { fontSize: 10 }]}>Verificação de autenticidade</Text>
-              <Text style={{ fontSize: 9, color: '#444', marginTop: 3 }}>
-                Este contrato foi assinado eletronicamente pelo Hexxa Hub. Quem assinou, quando e de onde fica registrado, junto com o código (hash SHA-256) deste arquivo.
-              </Text>
-              <Text style={{ fontSize: 9, marginTop: 4 }}>
-                Código <Text style={s.negrito}>{verificacao.codigo}</Text> · {verificacao.url}
-              </Text>
-            </View>
-          </View>
-        )}
+        {selo({ position: 'absolute', top: 600, left: 60, right: 60 })}
         <Text style={s.rodape}>
           Assinado eletronicamente — MP 2.200-2/2001, art. 10, § 2º{verificacao ? ` · código ${verificacao.codigo}` : ''}.
         </Text>
       </Page>
+      )}
     </Document>
   );
 }

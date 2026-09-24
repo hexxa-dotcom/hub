@@ -185,6 +185,7 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
           indice: input.indice,
           cidadeData: `${minha.city ?? ''}${minha.state ? `/${minha.state}` : ''}, ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}`,
         }}
+        paginaDeAssinaturas={assinatura === 'DOCUSEAL'}
         verificacao={{
           codigo,
           url: urlDeConferencia.replace(/^https?:\/\//, ''),
