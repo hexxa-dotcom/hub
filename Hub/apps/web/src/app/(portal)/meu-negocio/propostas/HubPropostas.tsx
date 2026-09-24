@@ -1,445 +1,383 @@
 'use client';
 
-import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import Link from 'next/link';
+import type { Route } from 'next';
+import { Loader2, Plus, Trash2, X } from 'lucide-react';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
-import {
-  Pencil,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  ArrowRight,
-  Trash2,
-  QrCode,
-  Plus,
-  FileText,
-  Clock,
-  Send,
-  CheckCircle2,
-  XCircle,
-  X,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
-import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
-import { Card } from '@/components/ui/Card';
-import type { PropostaRow } from './actions';
-import { savePropostaAction, setPropostaStatusAction, deletePropostaAction } from './actions';
+import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
+import type { Proposta, StatusDaProposta } from '@/lib/server/propostas';
+import { NovoContrato } from '../contratos/NovoContrato';
+import { enviarPropostaAction, excluirPropostaAction, ligarContratoAction, salvarPropostaAction } from './actions';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+/**
+ * PROPOSTAS.
+ *
+ * Cada linha diz em que pé está: rascunho, enviada, vista pelo cliente,
+ * aceita (com quem aceitou), recusada, expirada. As ações seguem o caminho:
+ * enviar o link → ver o PDF → transformar em contrato.
+ */
 
-type PropStatus = 'rascunho' | 'enviada' | 'aprovada' | 'rejeitada' | 'expirada';
+type Cliente = { id: string; nome: string; documento: string | null; email: string | null };
+type Filtro = 'TODAS' | 'ABERTAS' | 'ACEITAS' | 'ENCERRADAS';
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const br = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('pt-BR');
+const campo =
+  'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
 
-type PropostaItem = { id: string; descricao: string; qtd: number; valor: number };
-
-type Proposta = PropostaRow;
-
-// ── Config ────────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<PropStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  rascunho:  { label: 'Rascunho',  cls: 'bg-black/5 text-ink-soft dark:bg-white/10 border border-black/5 dark:border-white/10', icon: Pencil },
-  enviada:   { label: 'Enviada',   cls: 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset)', icon: Send },
-  aprovada:  { label: 'Aprovada',  cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20', icon: CheckCircle2 },
-  rejeitada: { label: 'Rejeitada', cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: XCircle },
-  expirada:  { label: 'Expirada',  cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20', icon: Clock },
+const SITUACAO: Record<StatusDaProposta, { texto: (p: Proposta) => string; cor: string }> = {
+  rascunho: { texto: () => 'Rascunho — ainda não enviada', cor: 'text-ink-soft' },
+  enviada: { texto: (p) => `Enviada${p.enviadaEm ? ` em ${br(p.enviadaEm)}` : ''} — o cliente ainda não abriu`, cor: 'text-ink-soft' },
+  vista: { texto: (p) => `Vista pelo cliente${p.vistaEm ? ` em ${br(p.vistaEm)}` : ''}`, cor: 'text-amber-700 dark:text-amber-400' },
+  aprovada: { texto: (p) => `Aceita por ${p.decisao?.nome ?? 'o cliente'}${p.decisao ? ` em ${br(p.decisao.em)}` : ''}`, cor: 'text-emerald-700 dark:text-emerald-400' },
+  rejeitada: { texto: (p) => `Recusada${p.decisao?.nota ? `: ${p.decisao.nota}` : ''}`, cor: 'text-rose-600 dark:text-rose-400' },
+  expirada: { texto: (p) => `Expirou em ${br(p.validade)}`, cor: 'text-ink-soft/70' },
 };
 
-const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const fi =
-  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
-const lb = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
-
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-function totalProposta(p: Proposta) {
-  return p.itens.reduce((s, i) => s + i.qtd * i.valor, 0);
-}
-
-// ── Modal Nova Proposta ───────────────────────────────────────────────────────
-
-function ModalProposta({
-  proposta, onSaved, onClose, nextNumero,
-}: {
-  proposta: Proposta | null;
-  onSaved: () => void;
-  onClose: () => void;
-  nextNumero: string;
-}) {
-  const [cliente, setCliente] = useState(proposta?.cliente ?? '');
-  const [titulo, setTitulo] = useState(proposta?.titulo ?? '');
-  const [validade, setValidade] = useState(proposta?.validade ?? '');
-  const [obs, setObs] = useState(proposta?.obs ?? '');
-  const [itens, setItens] = useState<PropostaItem[]>(
-    proposta?.itens ?? [{ id: '1', descricao: '', qtd: 1, valor: 0 }],
-  );
-  const [saving, setSaving] = useState(false);
-
-  function addItem() {
-    setItens(prev => [...prev, { id: Date.now().toString(), descricao: '', qtd: 1, valor: 0 }]);
-  }
-  function removeItem(id: string) { setItens(prev => prev.filter(i => i.id !== id)); }
-  function updateItem(id: string, field: keyof PropostaItem, value: string | number) {
-    setItens(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await savePropostaAction({
-        id: proposta?.id,
-        numero: proposta?.numero ?? nextNumero,
-        cliente, titulo, validade, obs,
-        itens: itens.map(i => ({ descricao: i.descricao, qtd: Number(i.qtd), valor: Number(i.valor) })),
-      });
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const total = itens.reduce((s, i) => s + Number(i.qtd) * Number(i.valor), 0);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
-      <div className="my-8 w-full max-w-2xl rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card p-6 sm:p-8 shadow-(--elev-3) card-finish space-y-5 animate-in fade-in">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h2 className="font-serif font-bold text-lg text-ink">{proposta ? 'Editar Proposta' : 'Nova Proposta Comercial'}</h2>
-          <button type="button" onClick={onClose}
-            className="tap-target pressable focusable rounded-full p-1.5 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className={lb}>Cliente *</label>
-              <input value={cliente} onChange={e => setCliente(e.target.value)} required placeholder="Nome completo ou empresa" className={`mt-1.5 ${fi}`} />
-            </div>
-            <div>
-              <label className={lb}>Data de Validade *</label>
-              <input value={validade} onChange={e => setValidade(e.target.value)} type="date" required className={`mt-1.5 ${fi}`} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={lb}>Título da Proposta *</label>
-              <input value={titulo} onChange={e => setTitulo(e.target.value)} required placeholder="Ex.: Prestação de Serviços Contábeis e Fiscais" className={`mt-1.5 ${fi}`} />
-            </div>
-          </div>
-
-          {/* Itens */}
-          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/10">
-            <div className="flex items-center justify-between">
-              <label className={lb}>Itens / Serviços</label>
-              <button type="button" onClick={addItem}
-                className="inline-flex items-center gap-1 text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline">
-                <Plus className="h-3.5 w-3.5" /> Adicionar Item
-              </button>
-            </div>
-            <div className="space-y-2">
-              {itens.map((item, idx) => (
-                <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2">
-                  <input value={item.descricao} onChange={e => updateItem(item.id, 'descricao', e.target.value)}
-                    placeholder={`Item ${idx + 1}`} className={fi} />
-                  <input value={item.qtd} onChange={e => updateItem(item.id, 'qtd', Number(e.target.value))}
-                    type="number" min="1" className="w-16 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
-                  <input value={item.valor || ''} onChange={e => updateItem(item.id, 'valor', Number(e.target.value.replace(',', '.')))}
-                    inputMode="decimal" placeholder="R$" className="w-28 rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime" />
-                  <button type="button" onClick={() => removeItem(item.id)} disabled={itens.length === 1}
-                    className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-30">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex justify-end">
-              <p className="font-serif font-bold text-base text-ink tabular">Total: {BRL.format(total)}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className={lb}>Observações &amp; Condições (opcional)</label>
-            <textarea value={obs} onChange={e => setObs(e.target.value)} rows={2}
-              placeholder="Condições de pagamento, prazos de entrega, etc." className={`mt-1.5 ${fi} resize-none`} />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 rounded-full border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) py-2.5 text-xs font-bold transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 py-2.5 text-xs font-bold transition-all disabled:opacity-60">
-              {saving ? <span className="inline-flex items-center gap-1.5"><Loader2 className="h-4 w-4 animate-spin"/> Salvando...</span> : proposta ? 'Salvar Alterações' : 'Criar Proposta'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-type StatusFilter = PropStatus | 'todas';
-
-export function HubPropostas({ initialPropostas }: { initialPropostas: Proposta[] }) {
+export function HubPropostas({ propostas, clientes, clienteInicial }: { propostas: Proposta[]; clientes: Cliente[]; clienteInicial: string | null }) {
   const router = useRouter();
-  const propostas = initialPropostas;
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todas');
-  const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
-  const [pixModal, setPixModal] = useState<{ open: boolean; propostaId: string | null }>({ open: false, propostaId: null });
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState<Filtro>('TODAS');
+  const [editando, setEditando] = useState<Proposta | 'nova' | null>(null);
+  const [vendo, setVendo] = useState<Proposta | null>(null);
+  const [virandoContrato, setVirandoContrato] = useState<Proposta | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const jaAbriu = useRef(false);
 
-  const filtered = propostas.filter(p => statusFilter === 'todas' || p.status === statusFilter);
+  // Vindo da ficha do cliente ("Nova proposta"): já abre com ele escolhido.
+  useEffect(() => {
+    if (clienteInicial && !jaAbriu.current) {
+      jaAbriu.current = true;
+      setEditando('nova');
+      router.replace('/meu-negocio/propostas' as never, { scroll: false });
+    }
+  }, [clienteInicial, router]);
 
-  const aprovadas = propostas.filter(p => p.status === 'aprovada');
-  const emNeg = propostas.filter(p => p.status === 'enviada');
-  const valorAprovado = aprovadas.reduce((s, p) => s + totalProposta(p), 0);
-  const valorNeg = emNeg.reduce((s, p) => s + totalProposta(p), 0);
+  const abertas = propostas.filter((p) => ['rascunho', 'enviada', 'vista'].includes(p.status));
+  const aceitas = propostas.filter((p) => p.status === 'aprovada');
+  const lista =
+    filtro === 'TODAS' ? propostas : filtro === 'ABERTAS' ? abertas : filtro === 'ACEITAS' ? aceitas : propostas.filter((p) => p.status === 'rejeitada' || p.status === 'expirada');
+  const emAberto = abertas.filter((p) => p.status !== 'rascunho').reduce((s, p) => s + p.total, 0);
+  const decididas = propostas.filter((p) => p.status === 'aprovada' || p.status === 'rejeitada');
+  const conversao = decididas.length ? Math.round((aceitas.length / decididas.length) * 100) : null;
 
-  const nextNumero = `PROP-${new Date().getFullYear()}-${String(propostas.length + 1).padStart(3, '0')}`;
+  const avisar = (m: string) => {
+    setAviso(m);
+    setTimeout(() => setAviso(null), 7000);
+  };
 
-  function handleSaved() {
-    setModal({ open: false, editId: null });
+  async function enviar(p: Proposta) {
+    setOcupado(p.id);
+    const r = await enviarPropostaAction(p.id);
+    setOcupado(null);
+    if (!r.ok || !r.link) return avisar(r.message);
+    avisar(`Link da proposta: ${r.link} — mande para ${p.cliente.nome} por e-mail ou WhatsApp.`);
+    router.refresh();
+    // Copiar pode pedir permissão e nunca responder: não trava a tela por isso.
+    const copiou = await Promise.race([
+      navigator.clipboard?.writeText(r.link).then(() => true).catch(() => false) ?? Promise.resolve(false),
+      new Promise<boolean>((ok) => setTimeout(() => ok(false), 1500)),
+    ]);
+    if (copiou) avisar(`Link copiado: ${r.link} — mande para ${p.cliente.nome} por e-mail ou WhatsApp.`);
+  }
+
+  async function excluir(p: Proposta) {
+    if (!confirm(`Excluir a proposta ${p.numero}?`)) return;
+    await excluirPropostaAction(p.id);
     router.refresh();
   }
 
-  async function setStatus(id: string, status: PropStatus) {
-    setBusyId(id);
-    try {
-      await setPropostaStatusAction(id, status);
-      router.refresh();
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function deleteProposta(id: string) {
-    setBusyId(id);
-    try {
-      await deletePropostaAction(id);
-      router.refresh();
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  const editingProposta = modal.editId ? propostas.find(p => p.id === modal.editId) ?? null : null;
-
-  const statusBtns: { key: StatusFilter; label: string }[] = [
-    { key: 'todas', label: `Todas (${propostas.length})` },
-    { key: 'rascunho', label: `Rascunhos (${propostas.filter(p => p.status === 'rascunho').length})` },
-    { key: 'enviada', label: `Enviadas (${emNeg.length})` },
-    { key: 'aprovada', label: `Aprovadas (${aprovadas.length})` },
-    { key: 'rejeitada', label: `Rejeitadas (${propostas.filter(p => p.status === 'rejeitada').length})` },
-  ];
+  const whatsapp = (p: Proposta) =>
+    p.link ? `https://wa.me/?text=${encodeURIComponent(`Olá! Segue a proposta "${p.titulo}": ${p.link}`)}` : null;
 
   return (
-    <div className="space-y-6">
-      {/* Summary */}
-      <GradeDeResumo>
-        <CardResumo destaque rotulo="Em negociação" valor={BRL.format(valorNeg)} nota={`${emNeg.length} proposta(s) em aberto`} />
-        <CardResumo rotulo="Aprovadas" valor={BRL.format(valorAprovado)} tom={aprovadas.length > 0 ? 'positivo' : 'padrao'} nota={`${aprovadas.length} proposta(s)`} />
-        <CardResumo rotulo="Total de propostas" valor={propostas.length} nota="Todas as situações" />
-        <CardResumo
-          rotulo="Taxa de conversão"
-          valor={
-            propostas.filter((p) => p.status !== 'rascunho').length > 0
-              ? `${Math.round((aprovadas.length / propostas.filter((p) => p.status !== 'rascunho').length) * 100)}%`
-              : '—'
-          }
-          nota="Aprovadas sobre as enviadas"
-        />
+    <div className="space-y-10">
+      {aviso && <p className="break-all rounded-2xl border border-black/5 bg-black/[0.03] px-4 py-3 text-xs font-semibold text-ink dark:border-white/10 dark:bg-white/5">{aviso}</p>}
+
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo="Em negociação" valor={BRL.format(emAberto)} nota={`${abertas.filter((p) => p.status !== 'rascunho').length} propostas enviadas, sem resposta`} onClick={() => setFiltro('ABERTAS')} />
+        <CardResumo rotulo="Aceitas" valor={aceitas.length} nota={aceitas.filter((p) => !p.contratoId).length ? `${aceitas.filter((p) => !p.contratoId).length} esperando virar contrato` : 'Todas já viraram contrato'} onClick={() => setFiltro('ACEITAS')} />
+        <CardResumo rotulo="Taxa de aceite" valor={conversao === null ? '—' : `${conversao}%`} nota={decididas.length ? `${decididas.length} propostas respondidas` : 'Nenhuma resposta ainda'} />
       </GradeDeResumo>
 
-      {/* Filters + new */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <FiltrosEmTexto
-          filtros={statusBtns.map(s => ({ id: s.key, label: s.label }))}
-          ativo={statusFilter}
-          onChange={setStatusFilter}
-        />
-        <button
-          type="button"
-          onClick={() => setModal({ open: true, editId: null })}
-          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-5 py-2.5 text-xs font-bold transition-all"
-        >
-          <Plus className="h-4 w-4" /> Nova Proposta
-        </button>
-      </div>
-
-      {/* List */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center text-ink-soft">
-          <FileText className="h-10 w-10 opacity-30" />
-          <p className="text-sm">Nenhuma proposta encontrada com este filtro.</p>
+      <section className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <FiltrosEmTexto<Filtro>
+            ativo={filtro}
+            onChange={setFiltro}
+            filtros={[
+              { id: 'TODAS', label: 'Todas', count: propostas.length },
+              { id: 'ABERTAS', label: 'Em aberto', count: abertas.length },
+              { id: 'ACEITAS', label: 'Aceitas', count: aceitas.length, badge: aceitas.filter((p) => !p.contratoId).length || undefined },
+              { id: 'ENCERRADAS', label: 'Recusadas e expiradas', count: propostas.filter((p) => p.status === 'rejeitada' || p.status === 'expirada').length },
+            ]}
+          />
+          <button
+            type="button"
+            onClick={() => setEditando('nova')}
+            className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) dark:bg-hexxa-lime dark:text-hexxa-forest"
+          >
+            <Plus className="h-3.5 w-3.5" /> Nova proposta
+          </button>
         </div>
-      ) : (
-        <div className="rounded-3xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) card-finish divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
-          {filtered.map(p => {
-            const st = STATUS_CONFIG[p.status];
-            const StatusIcon = st.icon;
-            const isExp = expanded === p.id;
-            const total = totalProposta(p);
-            const expirado = new Date(p.validade) < new Date() && p.status !== 'aprovada' && p.status !== 'rejeitada';
 
-            return (
-              <div key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isExp ? null : p.id)}
-                  className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
+        {lista.length === 0 ? (
+          <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+            {propostas.length === 0 ? 'Nenhuma proposta ainda.' : 'Nada neste filtro.'}{' '}
+            {propostas.length === 0 && (
+              <button type="button" onClick={() => setEditando('nova')} className="font-semibold text-ink underline-offset-4 hover:underline">
+                Criar a primeira
+              </button>
+            )}
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+            {lista.map((p) => {
+              const s = SITUACAO[p.status];
+              const aberta = ['rascunho', 'enviada', 'vista', 'expirada'].includes(p.status);
+              return (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono font-bold text-ink-soft">{p.numero}</span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${st.cls}`}>
-                        <StatusIcon className="h-3 w-3" />{st.label}
-                      </span>
-                      {expirado && p.status === 'enviada' && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                          <Clock className="h-3 w-3" /> Validade expirada
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 font-serif font-bold text-sm text-ink">{p.titulo}</p>
-                    <p className="text-xs text-ink-soft">{p.cliente} · válida até {fmtDate(p.validade)}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{p.titulo}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">
+                      {p.numero} · {p.cliente.nome} · válida até {br(p.validade)}
+                    </p>
+                    <p className={`mt-1 text-xs font-medium ${s.cor}`}>{s.texto(p)}</p>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-serif font-bold text-sm sm:text-base text-ink tabular">{BRL.format(total)}</p>
-                    <p className="text-xs text-ink-soft tabular">{p.itens.length} item(ns)</p>
-                  </div>
-                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
-                </button>
-
-                {isExp && (
-                  <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
-                    {/* Items table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs sm:text-sm">
-                        <thead>
-                          <tr className="rotulo text-left text-ink-soft">
-                            <th className="pb-2">Descrição</th>
-                            <th className="pb-2 text-center w-12">Qtd</th>
-                            <th className="pb-2 text-right w-28">Unitário</th>
-                            <th className="pb-2 text-right w-28">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                          {p.itens.map(i => (
-                            <tr key={i.id}>
-                              <td className="py-2.5 font-medium text-ink">{i.descricao}</td>
-                              <td className="py-2.5 text-center text-ink-soft tabular">{i.qtd}</td>
-                              <td className="py-2.5 text-right text-ink-soft tabular">{BRL.format(i.valor)}</td>
-                              <td className="py-2.5 text-right font-bold text-ink tabular">{BRL.format(i.qtd * i.valor)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="border-t border-black/10 dark:border-white/10 font-bold">
-                            <td colSpan={3} className="rotulo pt-3 text-ink-soft">Total da Proposta</td>
-                            <td className="pt-3 text-right font-serif text-base text-ink tabular">{BRL.format(total)}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-
-                    {p.obs && <p className="text-xs text-ink-soft italic">"{p.obs}"</p>}
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-black/5 dark:border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => setModal({ open: true, editId: p.id })}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-                      >
-                        <Pencil className="h-3.5 w-3.5" /> Editar
+                  <div className="flex shrink-0 flex-wrap items-center gap-4 text-xs font-semibold">
+                    <p className="font-serif text-sm font-bold tabular text-ink">
+                      {BRL.format(p.total)}
+                      <span className="font-sans text-[11px] font-normal text-ink-soft">{p.recorrencia === 'MENSAL' ? '/mês' : ''}</span>
+                    </p>
+                    <button type="button" onClick={() => setVendo(p)} className="text-ink-soft hover:text-ink">
+                      PDF
+                    </button>
+                    {aberta && (
+                      <button type="button" onClick={() => setEditando(p)} className="text-ink-soft hover:text-ink">
+                        Editar
                       </button>
-                      {p.status === 'rascunho' && (
+                    )}
+                    {aberta && (
+                      <button type="button" onClick={() => enviar(p)} disabled={ocupado === p.id} className="text-ink hover:underline underline-offset-4 disabled:opacity-50">
+                        {ocupado === p.id ? <Loader2 className="inline h-3 w-3 animate-spin" /> : p.link ? 'Copiar link' : 'Enviar'}
+                      </button>
+                    )}
+                    {aberta && p.link && (
+                      <a href={whatsapp(p)!} target="_blank" rel="noreferrer" className="text-ink-soft hover:text-ink">
+                        WhatsApp
+                      </a>
+                    )}
+                    {p.status === 'aprovada' &&
+                      (p.contratoId ? (
+                        <Link href={`/meu-negocio/contratos/${p.contratoId}` as Route} className="text-emerald-700 hover:underline dark:text-emerald-400">
+                          Ver contrato
+                        </Link>
+                      ) : (
                         <button
                           type="button"
-                          onClick={() => setStatus(p.id, 'enviada')}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all"
+                          onClick={() => setVirandoContrato(p)}
+                          className="rounded-full bg-hexxa-forest px-4 py-1.5 text-hexxa-lime dark:bg-hexxa-lime dark:text-hexxa-forest"
                         >
-                          <Send className="h-3.5 w-3.5" /> Marcar como Enviada
+                          Transformar em contrato
                         </button>
-                      )}
-                      {p.status === 'enviada' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setStatus(p.id, 'aprovada')}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-4 py-1.5 text-xs font-bold"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Aprovada
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setStatus(p.id, 'rejeitada')}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-4 py-1.5 text-xs font-bold"
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Rejeitada
-                          </button>
-                        </>
-                      )}
-                      {p.status === 'aprovada' && (
-                        <>
-                          <a
-                            href="/meu-negocio/fiscal"
-                            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5" /> Emitir NF
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => setPixModal({ open: true, propostaId: p.id })}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-4 py-1.5 text-xs font-bold"
-                          >
-                            <QrCode className="h-3.5 w-3.5" /> Cobrança PIX
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => deleteProposta(p.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 ml-auto transition-colors"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" /> Excluir
+                      ))}
+                    {(p.status === 'rascunho' || p.status === 'rejeitada' || p.status === 'expirada') && (
+                      <button type="button" onClick={() => excluir(p)} aria-label="Excluir" className="text-ink-soft hover:text-rose-600">
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-      {modal.open && (
-        <ModalProposta
-          proposta={editingProposta}
-          nextNumero={nextNumero}
-          onSaved={handleSaved}
-          onClose={() => setModal({ open: false, editId: null })}
+      {editando && (
+        <EditorDeProposta
+          proposta={editando === 'nova' ? null : editando}
+          clientes={clientes}
+          clienteInicial={editando === 'nova' ? clienteInicial : null}
+          onClose={() => setEditando(null)}
+          onDone={(m) => {
+            setEditando(null);
+            avisar(m);
+            router.refresh();
+          }}
         />
       )}
-
-      {pixModal.open && pixModal.propostaId && (
-        <GeneratePixModal
-          isOpen={pixModal.open}
-          onClose={() => setPixModal({ open: false, propostaId: null })}
-          initialCustomerName={propostas.find(p => p.id === pixModal.propostaId)?.cliente || ''}
-          initialValue={totalProposta(propostas.find(p => p.id === pixModal.propostaId)!)}
-          initialDescription={`Proposta ${propostas.find(p => p.id === pixModal.propostaId)?.numero}`}
+      {vendo && <VisualizadorDeArquivo src={`/api/propostas/${vendo.id}/pdf`} titulo={`${vendo.numero} · ${vendo.titulo}`} onClose={() => setVendo(null)} />}
+      {virandoContrato && (
+        <NovoContrato
+          tipoInicial="ENTRADA"
+          preenchido={{
+            documento: virandoContrato.cliente.documento ?? '',
+            nome: virandoContrato.cliente.nome,
+            email: virandoContrato.decisao?.email ?? virandoContrato.cliente.email ?? '',
+            objeto: [virandoContrato.titulo, ...virandoContrato.itens.map((i) => i.descricao)].join('; '),
+            valor: virandoContrato.total,
+            meses: virandoContrato.prazoMeses,
+          }}
+          onCriado={(id) => ligarContratoAction(virandoContrato.id, id)}
+          onClose={() => setVirandoContrato(null)}
+          onDone={(m) => {
+            setVirandoContrato(null);
+            avisar(m);
+            router.refresh();
+          }}
         />
       )}
     </div>
   );
 }
 
+function EditorDeProposta({
+  proposta,
+  clientes,
+  clienteInicial,
+  onClose,
+  onDone,
+}: {
+  proposta: Proposta | null;
+  clientes: Cliente[];
+  clienteInicial: string | null;
+  onClose: () => void;
+  onDone: (m: string) => void;
+}) {
+  const daquiA30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const [clienteId, setClienteId] = useState(proposta?.cliente.id ?? clienteInicial ?? '');
+  const [titulo, setTitulo] = useState(proposta?.titulo ?? '');
+  const [itens, setItens] = useState(proposta?.itens.length ? proposta.itens.map((i) => ({ ...i, valorTexto: String(i.valor).replace('.', ',') })) : [{ descricao: '', qtd: 1, valor: 0, valorTexto: '' }]);
+  const [recorrencia, setRecorrencia] = useState<'MENSAL' | 'UNICA'>(proposta?.recorrencia ?? 'MENSAL');
+  const [meses, setMeses] = useState(proposta?.prazoMeses ? String(proposta.prazoMeses) : '12');
+  const [validade, setValidade] = useState(proposta?.validade ?? daquiA30);
+  const [obs, setObs] = useState(proposta?.observacoes ?? '');
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const total = itens.reduce((s, i) => s + i.qtd * (Number(i.valorTexto.replace(/\./g, '').replace(',', '.')) || 0), 0);
+
+  function mudar(k: number, campoNome: 'descricao' | 'qtd' | 'valorTexto', v: string) {
+    setItens((lista) => lista.map((i, j) => (j === k ? { ...i, [campoNome]: campoNome === 'qtd' ? Math.max(0, Number(v) || 0) : v } : i)));
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setErro(null);
+    try {
+      const r = await salvarPropostaAction({
+        id: proposta?.id,
+        customerId: clienteId,
+        titulo,
+        itens: itens.map((i) => ({ descricao: i.descricao, qtd: i.qtd, valor: Number(i.valorTexto.replace(/\./g, '').replace(',', '.')) || 0 })),
+        recorrencia,
+        prazoMeses: recorrencia === 'MENSAL' && meses ? Number(meses) : null,
+        validade,
+        observacoes: obs,
+      });
+      if (!r.ok) return setErro(r.message);
+      onDone(r.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-black/5 bg-surface shadow-(--elev-3) dark:border-white/10">
+        <div className="flex items-start justify-between gap-3 border-b border-black/5 px-6 py-5 dark:border-white/10">
+          <div>
+            <p className="rotulo text-ink-soft">{proposta ? `Editar ${proposta.numero}` : 'Nova proposta'}</p>
+            <h2 className="mt-1 text-lg font-light uppercase tracking-[0.05em] text-ink">{titulo || 'Proposta'}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-ink-soft hover:bg-black/5 hover:text-ink dark:hover:bg-white/10">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="rotulo text-ink-soft">Cliente</span>
+              <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={campo}>
+                <option value="">Escolha…</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+              <Link href="/relacionamento" className="mt-1 inline-block text-[11px] text-ink-soft hover:text-ink">
+                Cliente novo? Cadastre em Clientes
+              </Link>
+            </label>
+            <label className="block">
+              <span className="rotulo text-ink-soft">Válida até</span>
+              <input type="date" value={validade} onChange={(e) => setValidade(e.target.value)} className={campo} />
+            </label>
+          </div>
+          <label className="block">
+            <span className="rotulo text-ink-soft">Título</span>
+            <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Gestão de redes sociais" className={campo} />
+          </label>
+
+          <div className="space-y-2">
+            <p className="rotulo text-ink-soft">Itens</p>
+            {itens.map((i, k) => (
+              <div key={k} className="grid grid-cols-[1fr_64px_110px_24px] items-center gap-2">
+                <input value={i.descricao} onChange={(e) => mudar(k, 'descricao', e.target.value)} placeholder="O que será entregue" className={`${campo} mt-0`} />
+                <input value={i.qtd} onChange={(e) => mudar(k, 'qtd', e.target.value)} inputMode="decimal" className={`${campo} mt-0 text-right`} />
+                <input value={i.valorTexto} onChange={(e) => mudar(k, 'valorTexto', e.target.value)} inputMode="decimal" placeholder="0,00" className={`${campo} mt-0 text-right`} />
+                <button type="button" onClick={() => setItens((l) => (l.length > 1 ? l.filter((_, j) => j !== k) : l))} aria-label="Remover item" className="text-ink-soft hover:text-rose-600">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setItens((l) => [...l, { descricao: '', qtd: 1, valor: 0, valorTexto: '' }])} className="text-xs font-semibold text-ink-soft hover:text-ink">
+              + Adicionar item
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-black/5 pt-4 dark:border-white/10">
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              {(['MENSAL', 'UNICA'] as const).map((r) => (
+                <label key={r} className="flex cursor-pointer items-center gap-2 text-ink">
+                  <input type="radio" checked={recorrencia === r} onChange={() => setRecorrencia(r)} />
+                  {r === 'MENSAL' ? 'Mensal' : 'Pagamento único'}
+                </label>
+              ))}
+              {recorrencia === 'MENSAL' && (
+                <label className="flex items-center gap-2 text-xs text-ink-soft">
+                  por
+                  <input value={meses} onChange={(e) => setMeses(e.target.value.replace(/\D/g, ''))} className="w-12 rounded-lg border border-black/10 bg-transparent px-2 py-1 text-right text-sm text-ink dark:border-white/10" />
+                  meses
+                </label>
+              )}
+            </div>
+            <p className="font-serif text-xl font-bold tabular text-ink">
+              {BRL.format(total)}
+              <span className="font-sans text-xs font-normal text-ink-soft">{recorrencia === 'MENSAL' ? ' por mês' : ''}</span>
+            </p>
+          </div>
+
+          <label className="block">
+            <span className="rotulo text-ink-soft">Observações para o cliente (opcional)</span>
+            <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={3} placeholder="Escopo, prazos de entrega, o que não está incluso…" className={`${campo} resize-none`} />
+          </label>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-black/5 px-6 py-4 dark:border-white/10">
+          {erro ? <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{erro}</p> : <span />}
+          <button
+            type="button"
+            onClick={salvar}
+            disabled={salvando}
+            className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-6 py-2.5 text-xs font-bold text-hexxa-lime disabled:opacity-60 dark:bg-hexxa-lime dark:text-hexxa-forest"
+          >
+            {salvando && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Salvar proposta
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -14,6 +14,8 @@ function isPublicRoute(pathname: string): boolean {
     '/e',
     // Conferência pública de contrato assinado (código impresso no PDF).
     '/v',
+    // Proposta que o cliente abre para aceitar ou recusar.
+    '/p',
     '/api/leads',
     '/api/webhooks',
     '/api/docuseal/token',

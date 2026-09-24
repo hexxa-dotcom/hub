@@ -2,116 +2,96 @@
 
 import { revalidatePath } from 'next/cache';
 import { getTenantContext } from '@/lib/server/tenant';
-import { withTenant, eq, and, desc } from '@hexxa/db';
-import { inArray } from 'drizzle-orm';
+import { withTenant, eq, and, sql } from '@hexxa/db';
 import { proposal, proposalItem } from '@hexxa/db/schema';
+import { novoToken, proximoNumero } from '@/lib/server/propostas';
+import { origemPublica } from '@/lib/server/origem';
 
-export type PropostaItemInput = { descricao: string; qtd: number; valor: number };
+export type Resultado = { ok: boolean; message: string; id?: string; link?: string };
 
-export type PropostaRow = {
-  id: string;
-  numero: string;
-  cliente: string;
-  titulo: string;
-  validade: string;
-  status: 'rascunho' | 'enviada' | 'aprovada' | 'rejeitada' | 'expirada';
-  criadaEm: string;
-  obs: string | null;
-  itens: (PropostaItemInput & { id: string })[];
-};
-
-export async function listPropostasAction(): Promise<PropostaRow[]> {
-  const ctx = await getTenantContext();
-  const { propostas, itensReais } = await withTenant(ctx.companyId, async (tx) => {
-    const p = await tx.select().from(proposal).where(eq(proposal.companyId, ctx.companyId)).orderBy(desc(proposal.createdAt));
-    const all = p.length === 0
-      ? []
-      : await tx.select().from(proposalItem).where(inArray(proposalItem.proposalId, p.map((row) => row.id)));
-    return { propostas: p, itensReais: all };
-  });
-
-  return propostas.map((p) => ({
-    id: p.id,
-    numero: p.numero,
-    cliente: p.cliente,
-    titulo: p.titulo,
-    validade: p.validade,
-    status: p.status as PropostaRow['status'],
-    criadaEm: p.createdAt.toISOString().slice(0, 10),
-    obs: p.observacoes,
-    itens: itensReais
-      .filter((i) => i.proposalId === p.id)
-      .map((i) => ({ id: i.id, descricao: i.descricao, qtd: Number(i.qtd), valor: Number(i.valor) })),
-  }));
+function atualizar() {
+  revalidatePath('/meu-negocio/propostas');
+  revalidatePath('/relacionamento');
 }
 
-export type SavePropostaState = { ok: boolean; message: string };
-
-export async function savePropostaAction(input: {
+/** Cria ou atualiza a proposta. Proposta já respondida pelo cliente não muda. */
+export async function salvarPropostaAction(input: {
   id?: string;
-  numero: string;
-  cliente: string;
+  customerId: string;
   titulo: string;
+  itens: { descricao: string; qtd: number; valor: number }[];
+  recorrencia: 'MENSAL' | 'UNICA';
+  prazoMeses: number | null;
   validade: string;
-  obs: string;
-  itens: PropostaItemInput[];
-}): Promise<SavePropostaState> {
+  observacoes: string;
+}): Promise<Resultado> {
   const ctx = await getTenantContext();
+  const itens = input.itens.filter((i) => i.descricao.trim() && i.valor > 0 && i.qtd > 0);
+  if (!input.customerId) return { ok: false, message: 'Escolha o cliente.' };
+  if (!input.titulo.trim()) return { ok: false, message: 'Dê um título à proposta.' };
+  if (!itens.length) return { ok: false, message: 'Inclua pelo menos um item com valor.' };
+  if (!input.validade) return { ok: false, message: 'Informe até quando a proposta vale.' };
 
-  await withTenant(ctx.companyId, async (tx) => {
-    let proposalId = input.id;
-    if (proposalId) {
-      await tx
-        .update(proposal)
-        .set({ cliente: input.cliente, titulo: input.titulo, validade: input.validade, observacoes: input.obs || null })
-        .where(and(eq(proposal.id, proposalId), eq(proposal.companyId, ctx.companyId)));
-      await tx.delete(proposalItem).where(eq(proposalItem.proposalId, proposalId));
+  const numero = input.id ? null : await proximoNumero(ctx);
+  const id = await withTenant(ctx.companyId, async (tx) => {
+    const [cli] = (await tx.execute(sql`SELECT name FROM customer WHERE id = ${input.customerId}::uuid AND company_id = ${ctx.companyId}`)) as unknown as { name: string }[];
+    if (!cli) return null;
+    const valores = {
+      customerId: input.customerId,
+      cliente: cli.name,
+      titulo: input.titulo.trim(),
+      validade: input.validade,
+      observacoes: input.observacoes.trim() || null,
+      recorrencia: input.recorrencia,
+      prazoMeses: input.recorrencia === 'MENSAL' ? input.prazoMeses : null,
+    };
+    let pid = input.id;
+    if (pid) {
+      const [atual] = await tx.select({ status: proposal.status }).from(proposal).where(and(eq(proposal.id, pid), eq(proposal.companyId, ctx.companyId)));
+      if (!atual || atual.status === 'aprovada' || atual.status === 'rejeitada') return null;
+      await tx.update(proposal).set(valores).where(eq(proposal.id, pid));
+      await tx.delete(proposalItem).where(eq(proposalItem.proposalId, pid));
     } else {
-      const [created] = await tx
-        .insert(proposal)
-        .values({
-          companyId: ctx.companyId,
-          numero: input.numero,
-          cliente: input.cliente,
-          titulo: input.titulo,
-          validade: input.validade,
-          observacoes: input.obs || null,
-        })
-        .returning({ id: proposal.id });
-      proposalId = created!.id;
+      const [p] = await tx.insert(proposal).values({ ...valores, companyId: ctx.companyId, numero: numero! }).returning({ id: proposal.id });
+      pid = p!.id;
     }
-
-    const itensValidos = input.itens.filter((item) => item.descricao.trim());
-    if (itensValidos.length > 0) {
-      await tx.insert(proposalItem).values(
-        itensValidos.map((item) => ({
-          proposalId: proposalId!,
-          descricao: item.descricao,
-          qtd: String(item.qtd),
-          valor: String(item.valor),
-        })),
-      );
-    }
+    await tx.insert(proposalItem).values(itens.map((i) => ({ proposalId: pid!, descricao: i.descricao.trim(), qtd: String(i.qtd), valor: String(i.valor) })));
+    return pid!;
   });
-
-  revalidatePath('/meu-negocio/propostas');
-  return { ok: true, message: 'Proposta salva.' };
+  if (!id) return { ok: false, message: 'Não dá para alterar: a proposta não existe ou já foi respondida pelo cliente.' };
+  atualizar();
+  return { ok: true, message: input.id ? 'Proposta atualizada.' : `Proposta ${numero} criada.`, id };
 }
 
-export async function setPropostaStatusAction(id: string, status: PropostaRow['status']): Promise<SavePropostaState> {
+/** Gera (ou devolve) o link para o cliente ver e responder, e marca como enviada. */
+export async function enviarPropostaAction(id: string): Promise<Resultado> {
   const ctx = await getTenantContext();
-  await withTenant(ctx.companyId, async (tx) => {
-    await tx.update(proposal).set({ status }).where(and(eq(proposal.id, id), eq(proposal.companyId, ctx.companyId)));
+  const token = await withTenant(ctx.companyId, async (tx) => {
+    const [p] = await tx.select({ token: proposal.publicToken, status: proposal.status }).from(proposal).where(and(eq(proposal.id, id), eq(proposal.companyId, ctx.companyId)));
+    if (!p) return null;
+    const t = p.token ?? novoToken();
+    await tx
+      .update(proposal)
+      .set({ publicToken: t, ...(p.status === 'rascunho' || p.status === 'expirada' ? { status: 'enviada', sentAt: new Date() } : {}) })
+      .where(eq(proposal.id, id));
+    return t;
   });
-  revalidatePath('/meu-negocio/propostas');
-  return { ok: true, message: 'Status atualizado.' };
+  if (!token) return { ok: false, message: 'Proposta não encontrada.' };
+  atualizar();
+  return { ok: true, message: 'Link pronto para enviar.', link: `${await origemPublica()}/p/${token}` };
 }
 
-export async function deletePropostaAction(id: string): Promise<SavePropostaState> {
+export async function excluirPropostaAction(id: string): Promise<Resultado> {
   const ctx = await getTenantContext();
-  await withTenant(ctx.companyId, async (tx) => {
-    await tx.delete(proposal).where(and(eq(proposal.id, id), eq(proposal.companyId, ctx.companyId)));
-  });
-  revalidatePath('/meu-negocio/propostas');
+  await withTenant(ctx.companyId, (tx) => tx.delete(proposal).where(and(eq(proposal.id, id), eq(proposal.companyId, ctx.companyId))));
+  atualizar();
   return { ok: true, message: 'Proposta excluída.' };
+}
+
+/** Liga a proposta aceita ao contrato que nasceu dela. */
+export async function ligarContratoAction(id: string, contratoId: string): Promise<Resultado> {
+  const ctx = await getTenantContext();
+  await withTenant(ctx.companyId, (tx) => tx.update(proposal).set({ contractId: contratoId }).where(and(eq(proposal.id, id), eq(proposal.companyId, ctx.companyId))));
+  atualizar();
+  return { ok: true, message: 'Contrato criado a partir da proposta.' };
 }

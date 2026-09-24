@@ -42,37 +42,58 @@ function Rotulo({ children }: { children: React.ReactNode }) {
   return <span className="rotulo text-ink-soft">{children}</span>;
 }
 
+/** Dados para começar o contrato já preenchido (ex.: a partir de uma proposta aceita). */
+export interface PreenchimentoDoContrato {
+  documento: string;
+  nome: string;
+  email: string;
+  objeto: string;
+  valor: number;
+  meses: number | null;
+}
+
 export function NovoContrato({
   tipoInicial,
   onClose,
   onDone,
+  preenchido,
+  onCriado,
 }: {
   tipoInicial: 'ENTRADA' | 'SAIDA';
   onClose: () => void;
   onDone: (mensagem: string) => void;
+  preenchido?: PreenchimentoDoContrato;
+  /** Chamado com o id assim que o contrato é criado (antes da assinatura). */
+  onCriado?: (id: string) => void;
 }) {
-  const [passo, setPasso] = useState(1);
+  const [passo, setPasso] = useState(preenchido ? 2 : 1);
   const [modelo, setModelo] = useState<Modelo>(tipoInicial === 'ENTRADA' ? 'CLIENTE' : 'PJ');
   const [tipoProprio, setTipoProprio] = useState<'ENTRADA' | 'SAIDA'>(tipoInicial);
   const [pdf, setPdf] = useState<{ base64: string; nome: string } | null>(null);
   const [jaAssinado, setJaAssinado] = useState(false);
   const [assinadoEm, setAssinadoEm] = useState(hoje());
 
-  const [documento, setDocumento] = useState('');
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
+  const [documento, setDocumento] = useState(preenchido ? mascaraDoc(preenchido.documento) : '');
+  const [nome, setNome] = useState(preenchido?.nome ?? '');
+  const [email, setEmail] = useState(preenchido?.email ?? '');
   const [endereco, setEndereco] = useState('');
   const [usaOHub, setUsaOHub] = useState<boolean | null>(null);
   const [consultando, setConsultando] = useState(false);
   const [avisoParte, setAvisoParte] = useState<string | null>(null);
 
   const [area, setArea] = useState('');
-  const [objeto, setObjeto] = useState('');
+  const [objeto, setObjeto] = useState(preenchido?.objeto ?? '');
   const [melhorando, setMelhorando] = useState(false);
-  const [valor, setValor] = useState('');
+  const [valor, setValor] = useState(preenchido ? preenchido.valor.toFixed(2).replace('.', ',') : '');
   const [dia, setDia] = useState('10');
   const [inicio, setInicio] = useState(hoje());
-  const [fim, setFim] = useState(maisUmAno(hoje()));
+  const [fim, setFim] = useState(() => {
+    if (!preenchido?.meses) return maisUmAno(hoje());
+    const d = new Date(`${hoje()}T12:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() + preenchido.meses);
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  });
   const [indice, setIndice] = useState<IndiceDeReajuste>('IPCA');
   const [forma, setForma] = useState('Pix ou boleto bancário');
   const [emitirNota, setEmitirNota] = useState(false);
@@ -190,6 +211,7 @@ export function NovoContrato({
         jaAssinadoEm: modelo === 'PROPRIO' && jaAssinado ? assinadoEm : undefined,
       });
       if (!r.ok || !r.id) return setErro(r.message);
+      onCriado?.(r.id);
       if (r.assinatura === 'FORA') return onDone(r.message);
       // Já abre a assinatura: é o passo que faltava.
       setParaAssinar({

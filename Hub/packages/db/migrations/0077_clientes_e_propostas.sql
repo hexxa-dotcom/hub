@@ -35,3 +35,8 @@ SELECT DISTINCT ON (d.company_id, d.tomador_documento)
 -- CPF cadastrado como PJ (cadastros antigos): corrige o tipo pelo tamanho.
 UPDATE customer SET type = 'PF'
  WHERE length(regexp_replace(coalesce(document, ''), '[^0-9]', '', 'g')) = 11 AND type <> 'PF';
+
+-- "vista": o cliente abriu o link da proposta.
+ALTER TABLE proposal DROP CONSTRAINT IF EXISTS proposal_status_check;
+ALTER TABLE proposal ADD CONSTRAINT proposal_status_check
+  CHECK (status IN ('rascunho', 'enviada', 'vista', 'aprovada', 'rejeitada', 'expirada'));
