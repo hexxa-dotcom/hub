@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { ticket, ticketMessage, company, appUser } from '@hexxa/db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc, inArray, sql } from 'drizzle-orm';
 import { SolicitacoesList, type Solicitacao } from './SolicitacoesList';
 
 const TICKETS_LIMIT = 200;
@@ -14,6 +14,7 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
       .select({
         id: ticket.id,
         subject: ticket.subject,
+        category: ticket.category,
         status: ticket.status,
         priority: ticket.priority,
         createdAt: ticket.createdAt,
@@ -38,6 +39,8 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
         createdAt: ticketMessage.createdAt,
         sender: ticketMessage.sender,
         authorName: appUser.name,
+        anexoNome: ticketMessage.attachmentName,
+        temAnexo: sql<boolean>`${ticketMessage.attachment} IS NOT NULL`,
       })
       .from(ticketMessage)
       .leftJoin(appUser, eq(ticketMessage.authorUserId, appUser.id))
@@ -57,6 +60,7 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
     id: t.id,
     cliente: t.useTradeName && t.tradeName ? t.tradeName : t.legalName,
     titulo: t.subject,
+    tipo: t.category === 'SERVICO' ? 'Serviço' : 'Suporte',
     prioridade: t.priority,
     status: t.status,
     criada: t.createdAt.toISOString().slice(0, 10),
@@ -64,6 +68,7 @@ async function getSolicitacoes(): Promise<Solicitacao[]> {
       autor: m.sender === 'ACCOUNTING' ? (m.authorName ?? 'Equipe Contábil') : 'Cliente',
       msg: m.body,
       quando: m.createdAt.toLocaleString('pt-BR'),
+      anexo: m.temAnexo ? { nome: m.anexoNome ?? 'anexo', href: `/api/chamados/anexo/${m.id}` } : null,
     })),
   }));
 }

@@ -1,515 +1,385 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FileUp, Loader2, Paperclip, Search, X } from 'lucide-react';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
-import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
-import { Card } from '@/components/ui/Card';
-import {
-  Building2,
-  FileText,
-  LayoutGrid,
-  Plus,
-  X,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Layers,
-  Briefcase,
-  FileCheck,
-  TrendingUp,
-  Users,
-  Send,
-  Calendar,
-  ArrowRight,
-  MessageSquare,
-  Loader2,
-  Trash2,
-} from 'lucide-react';
-import type { SolicitacaoRow, SolicitacaoStatus } from './actions';
-import { criarSolicitacaoAction, cancelarSolicitacaoAction } from './actions';
+import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
+import { textoDoPreco } from '@/lib/servicos-preco';
+import type { Pedido, ServicoDoCatalogo, SituacaoDoPedido } from '@/lib/server/servicos';
+import { cancelarPedidoAction, pedirServicoAction, responderPedidoAction } from './actions';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+/**
+ * SERVIÇOS ADICIONAIS.
+ *
+ * Duas abas: o catálogo (lista por categoria, com busca, o prazo e o preço
+ * que o contador definiu) e os pedidos (cada um com protocolo, situação e a
+ * conversa inteira, com anexos). "Pedir" abre o pedido já com o serviço; um
+ * link com ?pedir=<nome> (vindo dos Documentos) abre direto.
+ */
 
-type Prioridade = 'normal' | 'urgente';
+type Anexo = { dataUrl: string; nome: string } | null;
+const OUTRO = 'Outro serviço (descreva)';
 
-type Solicitacao = SolicitacaoRow;
-
-type Servico = {
-  id: string;
-  nome: string;
-  descricao: string;
-  prazo: string;
-  categoria: string;
+const SITUACAO: Record<SituacaoDoPedido, { texto: string; cor: string }> = {
+  RECEBIDO: { texto: 'Recebido', cor: 'text-ink-soft' },
+  EM_ANDAMENTO: { texto: 'Em andamento', cor: 'text-amber-700 dark:text-amber-400' },
+  AGUARDANDO_VOCE: { texto: 'Aguardando você', cor: 'text-rose-600 dark:text-rose-400' },
+  CONCLUIDO: { texto: 'Concluído', cor: 'text-emerald-700 dark:text-emerald-400' },
+  CANCELADO: { texto: 'Cancelado', cor: 'text-ink-soft/70' },
 };
+const quando = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+const campo =
+  'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<SolicitacaoStatus, { label: string; cls: string; icon: React.FC<{ className?: string }> }> = {
-  solicitado:   { label: 'Solicitado',   cls: 'bg-black/5 text-ink-soft dark:bg-white/10 border border-black/5 dark:border-white/10', icon: Clock },
-  em_analise:   { label: 'Em análise',   cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime border border-hexxa-forest/20', icon: Search },
-  em_andamento: { label: 'Em andamento', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20', icon: AlertTriangle },
-  concluido:    { label: 'Concluído',    cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20', icon: CheckCircle2 },
-  cancelado:    { label: 'Cancelado',    cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20', icon: XCircle },
-};
-
-const CATALOGO: { categoria: string; icon: React.FC<{ className?: string }>; cls: string; servicos: Servico[] }[] = [
-  {
-    categoria: 'Alterações Empresariais',
-    icon: Building2,
-    cls: 'bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime',
-    servicos: [
-      { id: 's1', nome: 'Alteração de endereço',          descricao: 'Atualização do endereço da sede ou filial junto à Receita Federal e órgãos municipais.',         prazo: '5–10 dias úteis', categoria: 'Alterações Empresariais' },
-      { id: 's2', nome: 'Inclusão ou exclusão de sócio',  descricao: 'Alteração no quadro societário com elaboração de contrato social e registro na Junta Comercial.', prazo: '10–20 dias úteis', categoria: 'Alterações Empresariais' },
-      { id: 's3', nome: 'Alteração de atividade (CNAE)', descricao: 'Inclusão, exclusão ou substituição de atividades econômicas no CNPJ e alvará.',                   prazo: '7–15 dias úteis', categoria: 'Alterações Empresariais' },
-      { id: 's4', nome: 'Alteração de razão social',     descricao: 'Mudança da razão social ou nome fantasia com atualização em todos os órgãos competentes.',         prazo: '10–20 dias úteis', categoria: 'Alterações Empresariais' },
-      { id: 's5', nome: 'Alteração de capital social',   descricao: 'Aumento ou redução do capital social com lavratura de ata e registro.',                            prazo: '7–15 dias úteis', categoria: 'Alterações Empresariais' },
-    ],
-  },
-  {
-    categoria: 'Parcelamentos e Regularização',
-    icon: TrendingUp,
-    cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-    servicos: [
-      { id: 's6', nome: 'Parcelamento REFIS / PERT',      descricao: 'Negociação e adesão a programas federais de parcelamento de débitos tributários.',               prazo: '3–7 dias úteis',  categoria: 'Parcelamentos e Regularização' },
-      { id: 's7', nome: 'Parcelamento PGFN',               descricao: 'Renegociação de dívidas inscritas em Dívida Ativa da União com a Procuradoria-Geral.',          prazo: '5–10 dias úteis', categoria: 'Parcelamentos e Regularização' },
-      { id: 's8', nome: 'Parcelamento ISS municipal',     descricao: 'Negociação junto à prefeitura para parcelamento de débitos de ISS em atraso.',                   prazo: '5–10 dias úteis', categoria: 'Parcelamentos e Regularização' },
-      { id: 's9', nome: 'Regularização de pendências',    descricao: 'Levantamento e regularização de pendências fiscais, previdenciárias e cadastrais.',               prazo: '10–30 dias úteis', categoria: 'Parcelamentos e Regularização' },
-    ],
-  },
-  {
-    categoria: 'Certidões e Declarações',
-    icon: FileCheck,
-    cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-    servicos: [
-      { id: 's10', nome: 'Certidão Negativa Federal (CND)',  descricao: 'Obtenção de CND ou CPEND junto à Receita Federal e PGFN.',                                    prazo: '1–3 dias úteis', categoria: 'Certidões e Declarações' },
-      { id: 's11', nome: 'Certidão FGTS (CRF)',             descricao: 'Certidão de Regularidade do FGTS emitida pela Caixa Econômica Federal.',                       prazo: '1–3 dias úteis', categoria: 'Certidões e Declarações' },
-      { id: 's12', nome: 'Declaração de faturamento',       descricao: 'Elaboração de declaração de faturamento para fins contratuais, bancários ou licitatórios.',    prazo: '2–5 dias úteis', categoria: 'Certidões e Declarações' },
-      { id: 's13', nome: 'DIRF',                            descricao: 'Declaração do Imposto de Renda Retido na Fonte para prestadores e tomadores de serviço.',      prazo: '5–10 dias úteis', categoria: 'Certidões e Declarações' },
-      { id: 's14', nome: 'RAIS / eSocial',                  descricao: 'Entrega da Relação Anual de Informações Sociais e obrigações acessórias do eSocial.',          prazo: '5–15 dias úteis', categoria: 'Certidões e Declarações' },
-    ],
-  },
-  {
-    categoria: 'Regime Tributário',
-    icon: Layers,
-    cls: 'bg-purple-500/15 text-purple-700 dark:text-purple-400',
-    servicos: [
-      { id: 's15', nome: 'Migração para Simples Nacional',  descricao: 'Análise de elegibilidade e adesão ao Simples Nacional no período de opção.',                   prazo: 'Conforme calendário', categoria: 'Regime Tributário' },
-      { id: 's16', nome: 'Migração Lucro Presumido → Real', descricao: 'Estudo comparativo e transição entre regimes com ajuste das obrigações acessórias.',           prazo: '15–30 dias úteis', categoria: 'Regime Tributário' },
-      { id: 's17', nome: 'Planejamento tributário',         descricao: 'Análise do regime mais vantajoso com projeção de economia fiscal para o exercício.',           prazo: '10–20 dias úteis', categoria: 'Regime Tributário' },
-      { id: 's18', nome: 'Exclusão do Simples Nacional',   descricao: 'Formalização da saída voluntária do Simples Nacional e migração para outro regime.',            prazo: '5–10 dias úteis', categoria: 'Regime Tributário' },
-    ],
-  },
-  {
-    categoria: 'Abertura e Encerramento',
-    icon: Briefcase,
-    cls: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400',
-    servicos: [
-      { id: 's19', nome: 'Abertura de filial',              descricao: 'Registro de estabelecimento filial com CNPJ, alvará e demais licenças necessárias.',           prazo: '15–30 dias úteis', categoria: 'Abertura e Encerramento' },
-      { id: 's20', nome: 'Encerramento de empresa',         descricao: 'Distrato social, baixa do CNPJ e encerramento junto a todos os órgãos.',                       prazo: '30–90 dias úteis', categoria: 'Abertura e Encerramento' },
-      { id: 's21', nome: 'Suspensão de atividades',         descricao: 'Comunicação de inatividade temporária e manutenção das obrigações mínimas.',                   prazo: '5–10 dias úteis', categoria: 'Abertura e Encerramento' },
-      { id: 's22', nome: 'Transformação societária',        descricao: 'Conversão de EIRELI em Ltda, Ltda em SA ou outros tipos societários.',                          prazo: '20–45 dias úteis', categoria: 'Abertura e Encerramento' },
-    ],
-  },
-  {
-    categoria: 'Consultoria Especializada',
-    icon: Users,
-    cls: 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
-    servicos: [
-      { id: 's23', nome: 'Consultoria trabalhista',         descricao: 'Orientação sobre CLT, eSocial, rescisões, benefícios e gestão de folha.',                      prazo: 'Agendamento', categoria: 'Consultoria Especializada' },
-      { id: 's24', nome: 'Reestruturação societária',       descricao: 'Reorganização do quadro social, holding familiar e proteção patrimonial.',                     prazo: '30–60 dias úteis', categoria: 'Consultoria Especializada' },
-      { id: 's25', nome: 'Due diligence contábil',          descricao: 'Revisão aprofundada das demonstrações financeiras para fusões, aquisições ou investimentos.',   prazo: '15–30 dias úteis', categoria: 'Consultoria Especializada' },
-      { id: 's26', nome: 'Consultoria para licitações',     descricao: 'Preparação de documentação, certidões e habilitação para participação em editais.',            prazo: '5–15 dias úteis', categoria: 'Consultoria Especializada' },
-    ],
-  },
-];
-
-const field =
-  'w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime transition-all';
-const lbl = 'text-xs font-bold text-ink-soft uppercase tracking-wide';
-
-function fmtDate(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR');
+function useAnexo() {
+  const [anexo, setAnexo] = useState<Anexo>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+  function ler(f: File | undefined) {
+    if (!f) return;
+    if (!/^(application\/pdf|image\/(png|jpe?g|webp))$/.test(f.type)) return setErro('Anexe um PDF ou uma imagem.');
+    if (f.size > 3 * 1024 * 1024) return setErro('O anexo pode ter até 3 MB.');
+    setErro(null);
+    const r = new FileReader();
+    r.onload = () => setAnexo({ dataUrl: String(r.result), nome: f.name });
+    r.readAsDataURL(f);
+  }
+  const input = (
+    <input ref={ref} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => ler(e.target.files?.[0])} />
+  );
+  return { anexo, setAnexo, erro, abrir: () => ref.current?.click(), input };
 }
 
-// ── Formulário de solicitação ─────────────────────────────────────────────────
+export function HubServicos({ catalogo, pedidos, pedirInicial }: { catalogo: ServicoDoCatalogo[]; pedidos: Pedido[]; pedirInicial: string | null }) {
+  const router = useRouter();
+  const abertos = pedidos.filter((p) => p.situacao !== 'CONCLUIDO' && p.situacao !== 'CANCELADO');
+  const comVoce = pedidos.filter((p) => p.situacao === 'AGUARDANDO_VOCE').length;
+  const [aba, setAba] = useState<'catalogo' | 'pedidos'>(abertos.length && !pedirInicial ? 'pedidos' : 'catalogo');
+  const [busca, setBusca] = useState('');
+  const [categoria, setCategoria] = useState('TODAS');
+  const [pedindo, setPedindo] = useState<ServicoDoCatalogo | { nome: string } | null>(null);
+  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
-function FormSolicitacao({ servico, onClose, onSubmitted }: {
-  servico: Servico;
-  onClose: () => void;
-  onSubmitted: () => void;
-}) {
-  const [prioridade, setPrioridade] = useState<Prioridade>('normal');
+  // Vindo de "Pedir à contabilidade" nos Documentos: já abre o pedido certo —
+  // uma vez só, e tira o ?pedir= do endereço para não reabrir ao atualizar.
+  const jaAbriu = useRef(false);
+  useEffect(() => {
+    if (!pedirInicial || jaAbriu.current) return;
+    jaAbriu.current = true;
+    setPedindo(catalogo.find((s) => s.nome === pedirInicial) ?? { nome: pedirInicial });
+    router.replace('/mais/servicos' as never, { scroll: false });
+  }, [pedirInicial, catalogo, router]);
+
+  const categorias = useMemo(() => Array.from(new Set(catalogo.map((s) => s.categoria))), [catalogo]);
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return catalogo.filter(
+      (s) =>
+        (categoria === 'TODAS' || s.categoria === categoria) &&
+        (!q || `${s.nome} ${s.descricao} ${s.categoria}`.toLowerCase().includes(q)),
+    );
+  }, [catalogo, busca, categoria]);
+
+  const concluir = (m: string) => {
+    setAviso(m);
+    setTimeout(() => setAviso(null), 6000);
+    router.refresh();
+  };
+
+  return (
+    <div className="space-y-10">
+      {aviso && <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{aviso}</p>}
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <SegmentedTabs
+          tabs={[
+            { id: 'catalogo', label: 'Catálogo' },
+            { id: 'pedidos', label: 'Meus pedidos', badge: alertaDaAba(comVoce) },
+          ]}
+          activeTab={aba}
+          onChange={(id) => setAba(id as 'catalogo' | 'pedidos')}
+          layoutId="servicosAbas"
+        />
+        <button type="button" onClick={() => setPedindo({ nome: OUTRO })} className="text-xs font-semibold text-ink-soft hover:text-ink">
+          Precisa de algo fora da lista?
+        </button>
+      </div>
+
+      {aba === 'catalogo' ? (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <FiltrosEmTexto
+              ativo={categoria}
+              onChange={setCategoria}
+              filtros={[{ id: 'TODAS', label: 'Todos' }, ...categorias.map((c) => ({ id: c, label: c }))]}
+            />
+            <label className="flex w-full items-center gap-2 border-b border-black/10 pb-1.5 sm:w-64 dark:border-white/15">
+              <Search className="h-3.5 w-3.5 text-ink-soft" />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar serviço" className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft/60" />
+            </label>
+          </div>
+
+          {filtrados.length === 0 ? (
+            <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+              Nenhum serviço encontrado.{' '}
+              <button type="button" onClick={() => setPedindo({ nome: OUTRO })} className="font-semibold text-ink underline-offset-4 hover:underline">
+                Descrever o que preciso
+              </button>
+            </p>
+          ) : (
+            (categoria === 'TODAS' ? categorias : [categoria]).map((cat) => {
+              const daCat = filtrados.filter((s) => s.categoria === cat);
+              if (!daCat.length) return null;
+              return (
+                <section key={cat} className="space-y-3">
+                  <p className="rotulo text-ink-soft">{cat}</p>
+                  <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+                    {daCat.map((s) => (
+                      <li key={s.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-ink">{s.nome}</p>
+                          <p className="mt-0.5 text-xs text-ink-soft">{s.descricao}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-6">
+                          <div className="text-right">
+                            <p className={`text-xs font-semibold ${s.precoTipo === 'INCLUSO' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink'}`}>{textoDoPreco(s.precoTipo, s.preco)}</p>
+                            <p className="text-[11px] text-ink-soft">{s.prazo}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPedindo(s)}
+                            className="rounded-full px-4 py-2 text-xs font-bold text-ink ring-1 ring-black/10 transition-colors hover:ring-black/25 dark:ring-white/15 dark:hover:ring-white/30"
+                          >
+                            Pedir
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })
+          )}
+        </div>
+      ) : pedidos.length === 0 ? (
+        <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
+          Nenhum pedido ainda.{' '}
+          <button type="button" onClick={() => setAba('catalogo')} className="font-semibold text-ink underline-offset-4 hover:underline">
+            Ver o catálogo
+          </button>
+        </p>
+      ) : (
+        <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+          {pedidos.map((p) => (
+            <li key={p.id}>
+              <button type="button" onClick={() => setAbertoId(p.id)} className="flex w-full flex-wrap items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{p.servico}</p>
+                  <p className="text-xs text-ink-soft">
+                    {p.protocolo} · pedido em {quando(p.criadoEm)}
+                    {p.urgente ? ' · urgente' : ''} · {p.mensagens.length} {p.mensagens.length === 1 ? 'mensagem' : 'mensagens'}
+                  </p>
+                </div>
+                <span className={`text-xs font-semibold ${SITUACAO[p.situacao].cor}`}>{SITUACAO[p.situacao].texto}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {pedindo && (
+        <NovoPedido
+          servico={pedindo}
+          onClose={() => setPedindo(null)}
+          onDone={(m) => {
+            setPedindo(null);
+            setAba('pedidos');
+            concluir(m);
+          }}
+        />
+      )}
+      {abertoId && pedidos.find((p) => p.id === abertoId) && (
+        <ConversaDoPedido pedido={pedidos.find((p) => p.id === abertoId)!} onClose={() => setAbertoId(null)} onChange={concluir} />
+      )}
+    </div>
+  );
+}
+
+function NovoPedido({ servico, onClose, onDone }: { servico: ServicoDoCatalogo | { nome: string }; onClose: () => void; onDone: (m: string) => void }) {
+  const doCatalogo = 'precoTipo' in servico ? servico : null;
+  const [nome, setNome] = useState(servico.nome === OUTRO ? '' : servico.nome);
+  const [descricao, setDescricao] = useState('');
+  const [urgente, setUrgente] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const a = useAnexo();
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  async function enviar() {
     setEnviando(true);
+    setErro(null);
     try {
-      await criarSolicitacaoAction({
-        servico: servico.nome,
-        descricao: String(fd.get('descricao') ?? '').trim(),
-        prioridade,
-      });
-      onSubmitted();
-      onClose();
+      const r = await pedirServicoAction({ servico: nome, descricao, urgente, anexo: a.anexo });
+      if (!r.ok) return setErro(r.message);
+      onDone(r.message);
+    } catch {
+      setErro('Não consegui enviar. Tente de novo.');
     } finally {
       setEnviando(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
-      <Card level={2} tone="deep" className="card-finish w-full max-w-lg shadow-(--elev-3) overflow-hidden p-0">
-        <div className="flex items-start justify-between border-b border-black/5 dark:border-white/10 p-6 sm:p-8">
-          <div>
-            <p className="rotulo text-ink-soft">{servico.categoria}</p>
-            <h2 className="mt-1 font-serif font-bold text-xl text-ink">{servico.nome}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-3xl border border-black/5 bg-surface p-6 shadow-(--elev-3) dark:border-white/10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="rotulo text-ink-soft">Pedir à contabilidade</p>
+            {doCatalogo ? (
+              <>
+                <h2 className="mt-1 text-lg font-light uppercase tracking-[0.05em] text-ink">{doCatalogo.nome}</h2>
+                <p className="mt-1 text-xs text-ink-soft">
+                  {textoDoPreco(doCatalogo.precoTipo, doCatalogo.preco)} · {doCatalogo.prazo}
+                </p>
+              </>
+            ) : (
+              <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Qual serviço?" className={campo} autoFocus />
+            )}
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-soft hover:text-ink hover:bg-black/5 transition-colors">
-            <X className="h-5 w-5" />
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-ink-soft hover:bg-black/5 hover:text-ink dark:hover:bg-white/10">
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-6 sm:p-8">
-          <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 text-xs text-ink-soft">
-            <p>{servico.descricao}</p>
-            <p className="mt-2 font-bold text-hexxa-forest dark:text-hexxa-lime">Prazo estimado: {servico.prazo}</p>
-          </div>
-          <div>
-            <label className={lbl}>Descreva sua necessidade</label>
-            <textarea name="descricao" required rows={4} placeholder="Detalhe o que precisa, inclua datas, valores ou informações relevantes…" className={`mt-1.5 ${field} resize-none`} />
-          </div>
-          <div>
-            <label className={lbl}>Prioridade de Atendimento</label>
-            <div className="mt-1.5 flex gap-2">
-              {(['normal', 'urgente'] as const).map(p => (
-                <button key={p} type="button" onClick={() => setPrioridade(p)}
-                  className={`flex-1 rounded-full border py-2.5 text-xs font-bold transition-all ${
-                    prioridade === p
-                      ? p === 'urgente'
-                        ? 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400 shadow-(--elev-1)'
-                        : 'border-hexxa-forest bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
-                      : 'border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
-                  }`}>
-                  {p === 'urgente' ? '⚡ Urgente' : '📋 Padrão'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2 pt-3">
-            <button type="submit" disabled={enviando} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-3 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95 disabled:opacity-60">
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {enviando ? 'Enviando...' : 'Enviar Solicitação'}
+        <div className="mt-5 space-y-4">
+          <label className="block">
+            <span className="rotulo text-ink-soft">O que você precisa</span>
+            <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} placeholder="Datas, valores, para que é — o que ajudar a contabilidade a resolver de primeira." className={`${campo} resize-none`} />
+          </label>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {a.input}
+            <button type="button" onClick={a.abrir} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+              <FileUp className="h-3.5 w-3.5" /> {a.anexo ? a.anexo.nome : 'Anexar arquivo'}
             </button>
-            <button type="button" onClick={onClose} className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-3 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1)">
-              Cancelar
-            </button>
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-ink">
+              <input type="checkbox" checked={urgente} onChange={(e) => setUrgente(e.target.checked)} /> É urgente
+            </label>
           </div>
-        </form>
-      </Card>
-    </div>
-  );
-}
-
-// ── Catálogo ──────────────────────────────────────────────────────────────────
-
-function CatalogoTab({ onSolicitar }: { onSolicitar: (s: Servico) => void }) {
-  const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState<string>('todas');
-
-  const categorias = CATALOGO.map(c => c.categoria);
-  const filtered = CATALOGO
-    .filter(c => catFilter === 'todas' || c.categoria === catFilter)
-    .map(c => ({
-      ...c,
-      servicos: search
-        ? c.servicos.filter(s => s.nome.toLowerCase().includes(search.toLowerCase()) || s.descricao.toLowerCase().includes(search.toLowerCase()))
-        : c.servicos,
-    }))
-    .filter(c => c.servicos.length > 0);
-
-  return (
-    <div className="space-y-6 animate-in fade-in">
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar serviço por nome ou palavra-chave…"
-            className="w-full rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) py-2.5 pl-10 pr-4 text-xs text-ink placeholder:text-ink-soft/60 outline-none focus:ring-2 focus:ring-hexxa-green dark:focus:ring-hexxa-lime"
-          />
+          {(erro || a.erro) && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{erro || a.erro}</p>}
+          <button
+            type="button"
+            onClick={enviar}
+            disabled={enviando}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-hexxa-forest px-5 py-3 text-sm font-bold text-hexxa-lime disabled:opacity-60 dark:bg-hexxa-lime dark:text-hexxa-forest"
+          >
+            {enviando && <Loader2 className="h-4 w-4 animate-spin" />} Enviar pedido
+          </button>
         </div>
-        <FiltrosEmTexto
-          filtros={[
-            { id: 'todas', label: 'Todas' },
-            ...categorias.map(cat => ({ id: cat, label: cat.split(' ')[0] })),
-          ]}
-          ativo={catFilter}
-          onChange={setCatFilter}
-        />
       </div>
-
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
-          <Search className="h-10 w-10 opacity-20 text-ink" />
-          <p className="text-sm">Nenhum serviço encontrado para sua busca.</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {filtered.map(cat => {
-            const Icon = cat.icon;
-            return (
-              <div key={cat.categoria} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className={`grid h-8 w-8 place-items-center rounded-xl ${cat.cls}`}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <h2 className="font-serif font-bold text-base text-ink">{cat.categoria}</h2>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {cat.servicos.map(s => (
-                    <Card key={s.id} level={1} className="p-6 flex flex-col justify-between gap-4 group">
-                      <div className="space-y-1">
-                        <p className="font-serif font-bold text-base text-ink">{s.nome}</p>
-                        <p className="text-xs text-ink-soft leading-relaxed">{s.descricao}</p>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/10">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
-                          <Calendar className="h-3.5 w-3.5" /> {s.prazo}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onSolicitar(s)}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest hover:brightness-110 px-4 py-1.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all active:scale-95"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Solicitar
-                        </button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
 
-// ── Minhas Solicitações ───────────────────────────────────────────────────────
+function ConversaDoPedido({ pedido, onClose, onChange }: { pedido: Pedido; onClose: () => void; onChange: (m: string) => void }) {
+  const [texto, setTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [vendo, setVendo] = useState<{ href: string; nome: string } | null>(null);
+  const a = useAnexo();
+  const fim = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    fim.current?.scrollIntoView({ block: 'end' });
+  }, [pedido.mensagens.length]);
 
-function SolicitacoesTab({ solicitacoes }: { solicitacoes: Solicitacao[] }) {
-  const router = useRouter();
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [filter, setFilter] = useState<SolicitacaoStatus | 'todas'>('todas');
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  async function handleCancelar(id: string) {
-    setBusyId(id);
+  async function responder() {
+    setEnviando(true);
+    setErro(null);
     try {
-      await cancelarSolicitacaoAction(id);
-      router.refresh();
+      const r = await responderPedidoAction(pedido.id, texto, a.anexo);
+      if (!r.ok) return setErro(r.message);
+      setTexto('');
+      a.setAnexo(null);
+      onChange(r.message);
     } finally {
-      setBusyId(null);
+      setEnviando(false);
     }
   }
 
-  const filtered = filter === 'todas' ? solicitacoes : solicitacoes.filter(s => s.status === filter);
-  const counts = { todas: solicitacoes.length, solicitado: 0, em_analise: 0, em_andamento: 0, concluido: 0, cancelado: 0 } as Record<string, number>;
-  solicitacoes.forEach(s => { counts[s.status] = (counts[s.status] ?? 0) + 1; });
-
-  if (solicitacoes.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-20 text-center text-ink-soft">
-        <FileText className="h-12 w-12 opacity-20 text-ink" />
-        <div>
-          <p className="font-serif font-bold text-base text-ink">Nenhuma solicitação ainda</p>
-          <p className="mt-1 text-xs">Acesse a aba Catálogo de Serviços para solicitar um serviço contábil.</p>
-        </div>
-      </div>
-    );
+  async function cancelar() {
+    if (!confirm('Cancelar este pedido?')) return;
+    const r = await cancelarPedidoAction(pedido.id);
+    onClose();
+    onChange(r.message);
   }
 
+  const encerrado = pedido.situacao === 'CANCELADO';
   return (
-    <div className="space-y-4 animate-in fade-in">
-      <div className="flex flex-wrap gap-1.5">
-        {([['todas', 'Todas'], ['solicitado', 'Solicitadas'], ['em_analise', 'Em análise'], ['em_andamento', 'Em andamento'], ['concluido', 'Concluídas']] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-              filter === key
-                ? 'bg-hexxa-forest text-hexxa-lime shadow-(--elev-1)'
-                : 'border border-black/5 dark:border-white/5 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1)'
-            }`}
-          >
-            {label} ({counts[key] ?? 0})
+    <>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-black/5 bg-surface shadow-(--elev-3) dark:border-white/10">
+        <div className="flex items-start justify-between gap-3 border-b border-black/5 px-6 py-5 dark:border-white/10">
+          <div className="min-w-0">
+            <p className="rotulo text-ink-soft">
+              {pedido.protocolo} · <span className={SITUACAO[pedido.situacao].cor}>{SITUACAO[pedido.situacao].texto}</span>
+            </p>
+            <h2 className="mt-1 truncate text-lg font-light uppercase tracking-[0.05em] text-ink">{pedido.servico}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1.5 text-ink-soft hover:bg-black/5 hover:text-ink dark:hover:bg-white/10">
+            <X className="h-4 w-4" />
           </button>
-        ))}
-      </div>
+        </div>
 
-      <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden p-0">
-        {filtered.map(s => {
-          const cfg = STATUS_CONFIG[s.status];
-          const StatusIcon = cfg.icon;
-          const isExp = expanded === s.id;
-          return (
-            <div key={s.id}>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+          {pedido.mensagens.map((m) => (
+            <div key={m.id} className={`flex ${m.daContabilidade ? 'justify-start' : 'justify-end'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${m.daContabilidade ? 'bg-black/[0.04] dark:bg-white/[0.06]' : 'bg-hexxa-forest text-white dark:bg-hexxa-lime/15 dark:text-ink'}`}>
+                <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${m.daContabilidade ? 'text-ink-soft' : 'text-white/60 dark:text-ink-soft'}`}>
+                  {m.daContabilidade ? 'Contabilidade' : 'Você'} · {quando(m.em)}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{m.texto}</p>
+                {m.anexo && (
+                  <button type="button" onClick={() => setVendo(m.anexo)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold underline-offset-4 hover:underline">
+                    <Paperclip className="h-3 w-3" /> {m.anexo.nome}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={fim} />
+        </div>
+
+        {!encerrado && (
+          <div className="space-y-3 border-t border-black/5 px-6 py-4 dark:border-white/10">
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} placeholder="Escreva para a contabilidade" className={`${campo} mt-0 resize-none`} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                {a.input}
+                <button type="button" onClick={a.abrir} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+                  <FileUp className="h-3.5 w-3.5" /> {a.anexo ? a.anexo.nome : 'Anexar'}
+                </button>
+                {pedido.situacao !== 'CONCLUIDO' && (
+                  <button type="button" onClick={cancelar} className="text-xs font-semibold text-ink-soft hover:text-rose-600">
+                    Cancelar pedido
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => setExpanded(isExp ? null : s.id)}
-                className="flex w-full items-center gap-4 px-6 py-4 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                onClick={responder}
+                disabled={enviando}
+                className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2 text-xs font-bold text-hexxa-lime disabled:opacity-60 dark:bg-hexxa-lime dark:text-hexxa-forest"
               >
-                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${cfg.cls.split(' ')[0]}`}>
-                  <StatusIcon className={`h-4 w-4 ${cfg.cls.split(' ')[1]}`} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-ink">{s.servico}</p>
-                  <p className="text-xs text-ink-soft">Solicitado em {fmtDate(s.criadaEm)}</p>
-                </div>
-                <div className="hidden shrink-0 items-center gap-2 sm:flex">
-                  {s.prioridade === 'urgente' && (
-                    <span className="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 dark:text-rose-400 border border-rose-500/20">⚡ Urgente</span>
-                  )}
-                  <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${cfg.cls}`}>
-                    <StatusIcon className="h-3.5 w-3.5" />{cfg.label}
-                  </span>
-                </div>
-                {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
+                {enviando && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Enviar
               </button>
-              {isExp && (
-                <div className="mx-6 mb-4 space-y-3 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
-                  <div>
-                    <p className={lbl}>Sua Solicitação</p>
-                    <p className="mt-1 text-xs sm:text-sm text-ink whitespace-pre-wrap">{s.descricao}</p>
-                  </div>
-                  {s.resposta && (
-                    <div className="rounded-2xl border border-hexxa-forest/20 bg-hexxa-forest/10 p-4">
-                      <p className={`${lbl} text-hexxa-forest dark:text-hexxa-lime`}>Parecer da Contabilidade</p>
-                      <p className="mt-1 text-xs sm:text-sm text-ink">{s.resposta}</p>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft pt-2 border-t border-black/5 dark:border-white/10">
-                    <span>Criada em {fmtDate(s.criadaEm)}</span>
-                    <span>•</span>
-                    <span>Atualizada em {fmtDate(s.atualizadaEm)}</span>
-                    {(s.status === 'solicitado' || s.status === 'em_analise') && (
-                      <button
-                        type="button"
-                        onClick={() => handleCancelar(s.id)}
-                        disabled={busyId === s.id}
-                        className="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 disabled:opacity-50 transition-all"
-                      >
-                        {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Cancelar Solicitação
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
-          );
-        })}
-      </Card>
-    </div>
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-type TabKey = 'catalogo' | 'solicitacoes';
-
-export function HubServicos({ initialSolicitacoes }: { initialSolicitacoes: Solicitacao[] }) {
-  const router = useRouter();
-  const [tab, setTab] = useState<TabKey>('catalogo');
-  const solicitacoes = initialSolicitacoes;
-  const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null);
-
-  const pendentes = solicitacoes.filter(s => ['solicitado', 'em_analise', 'em_andamento'].includes(s.status)).length;
-
-  function handleSolicitar(s: Servico) {
-    setServicoSelecionado(s);
-  }
-
-  function handleSubmitted() {
-    setTab('solicitacoes');
-    router.refresh();
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Stats rápidos */}
-      <GradeDeResumo colunas={3}>
-        <CardResumo
-          destaque
-          rotulo="Em andamento"
-          valor={pendentes}
-          nota={pendentes === 0 ? 'Nenhuma solicitação aberta' : 'Com a sua contabilidade'}
-          onClick={() => setTab('solicitacoes')}
-        />
-        <CardResumo
-          rotulo="Concluídas"
-          valor={solicitacoes.filter((s) => s.status === 'concluido').length}
-          nota="Solicitações entregues"
-          onClick={() => setTab('solicitacoes')}
-        />
-        <CardResumo
-          rotulo="Serviços no catálogo"
-          valor={CATALOGO.reduce((s, c) => s + c.servicos.length, 0)}
-          nota="Prontos para pedir"
-          onClick={() => setTab('catalogo')}
-        />
-      </GradeDeResumo>
-
-      {/* Banner de contato */}
-      <Card level={2} tone="deep" className="card-finish flex flex-wrap items-center justify-between gap-4 p-6 shadow-(--elev-2)">
-        <div className="flex items-center gap-3">
-          <div>
-            <p className="font-serif font-bold text-sm text-ink">Precisa de um serviço sob medida?</p>
-            <p className="text-xs text-ink-soft">Fale diretamente com nossa consultoria pelo chat ou agende uma reunião com seu time contábil.</p>
+            {(erro || a.erro) && <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{erro || a.erro}</p>}
           </div>
-        </div>
-        <div className="flex gap-2">
-          <a
-            href="/suporte"
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card px-5 py-2 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) hover:brightness-105 active:scale-95 transition-all"
-          >
-            Ir para Suporte <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      </Card>
-
-      {/* Tabs */}
-      <div className="flex">
-        <SegmentedTabs
-          tabs={[
-            { id: 'catalogo', label: 'Catálogo de Serviços', icon: LayoutGrid },
-            { id: 'solicitacoes', label: 'Minhas Solicitações', icon: FileText, badge: alertaDaAba(pendentes) },
-          ]}
-          activeTab={tab}
-          onChange={setTab}
-          layoutId="servicosTabsIndicator"
-        />
+        )}
       </div>
-
-      {tab === 'catalogo'     && <CatalogoTab onSolicitar={handleSolicitar} />}
-      {tab === 'solicitacoes' && <SolicitacoesTab solicitacoes={solicitacoes} />}
-
-      {/* Modal de solicitação */}
-      {servicoSelecionado && (
-        <FormSolicitacao
-          servico={servicoSelecionado}
-          onClose={() => setServicoSelecionado(null)}
-          onSubmitted={handleSubmitted}
-        />
-      )}
     </div>
+    {vendo && <VisualizadorDeArquivo src={vendo.href} titulo={vendo.nome} onClose={() => setVendo(null)} />}
+    </>
   );
 }

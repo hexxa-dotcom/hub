@@ -2,6 +2,7 @@ import 'server-only';
 import { withTenant, sql } from '@hexxa/db';
 import type { TenantContext } from '@hexxa/core';
 import { getStatusDoCertificado } from '@/lib/server/certificado';
+import { anexosDaContabilidade, protocoloDoPedido } from '@/lib/server/servicos';
 
 /**
  * DOCUMENTOS DA EMPRESA — tudo num lugar só.
@@ -65,6 +66,20 @@ function categoriaDaEntrega(tipo: string, titulo: string): Categoria {
 }
 
 export async function listarDocumentos(ctx: TenantContext): Promise<Documento[]> {
+  // O que a contabilidade anexou ao atender um pedido de serviço (a certidão
+  // pedida, a declaração) também é documento da empresa.
+  const anexos = await anexosDaContabilidade(ctx).catch(() => []);
+  const dosPedidos: Documento[] = anexos.map((a) => ({
+    id: a.id,
+    origem: 'CONTADOR',
+    categoria: categoriaDaEntrega(/certid|crf|cnd/i.test(a.subject) ? 'CERTIDAO' : 'OUTRO', `${a.subject} ${a.attachment_name ?? ''}`),
+    nome: a.attachment_name ? `${a.subject} — ${a.attachment_name}` : a.subject,
+    emitidoEm: a.em,
+    validoAte: null,
+    temArquivo: true,
+    href: `/api/chamados/anexo/${a.id}`,
+    protocolo: protocoloDoPedido(a.pedido),
+  }));
   return withTenant(ctx.companyId, async (tx) => {
     const proprios = (await tx.execute(sql`
       SELECT id, category, name, to_char(issued_at, 'YYYY-MM-DD') AS emitido, to_char(expires_at, 'YYYY-MM-DD') AS validade,
@@ -106,6 +121,7 @@ export async function listarDocumentos(ctx: TenantContext): Promise<Documento[]>
         href: d.tem_arquivo ? `/api/documentos/${d.id}` : null,
         protocolo: d.protocolo,
       })),
+      ...dosPedidos,
     ];
   });
 }

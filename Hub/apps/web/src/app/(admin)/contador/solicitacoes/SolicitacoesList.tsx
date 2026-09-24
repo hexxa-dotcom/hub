@@ -11,6 +11,7 @@ import {
   Send,
   Loader2,
   Sparkles,
+  Paperclip,
 } from 'lucide-react';
 import { replyToTicketAction, resolveTicketAction } from './actions';
 
@@ -21,10 +22,11 @@ export type Solicitacao = {
   id: string;
   cliente: string;
   titulo: string;
+  tipo: 'Serviço' | 'Suporte';
   prioridade: Prioridade;
   status: StatusReq;
   criada: string;
-  respostas: { autor: string; msg: string; quando: string }[];
+  respostas: { autor: string; msg: string; quando: string; anexo: { nome: string; href: string } | null }[];
 };
 
 const P_CLS: Record<Prioridade, string> = {
@@ -49,20 +51,36 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
   const [reply, setReply] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<StatusReq | 'todas'>('todas');
+  const [anexos, setAnexos] = useState<Record<string, { dataUrl: string; nome: string } | null>>({});
+
+  function lerAnexo(id: string, f: File | undefined) {
+    if (!f) return;
+    if (!/^(application\/pdf|image\/(png|jpe?g|webp))$/.test(f.type) || f.size > 3 * 1024 * 1024) {
+      alert('Anexe um PDF ou imagem de até 3 MB.');
+      return;
+    }
+    const r = new FileReader();
+    r.onload = () => setAnexos((a) => ({ ...a, [id]: { dataUrl: String(r.result), nome: f.name } }));
+    r.readAsDataURL(f);
+  }
 
   const filtered = items.filter(i => filterStatus === 'todas' || i.status === filterStatus);
 
-  async function sendReply(id: string) {
-    const msg = reply[id]?.trim();
-    if (!msg) return;
+  async function sendReply(id: string, pedirAoCliente = false) {
+    const msg = reply[id]?.trim() ?? '';
+    const anexo = anexos[id] ?? null;
+    if (!msg && !anexo) return;
     setBusy(id);
-    const res = await replyToTicketAction(id, msg);
+    const res = await replyToTicketAction(id, msg, anexo, pedirAoCliente);
     if (!('error' in res)) {
       setItems(prev => prev.map(i => i.id === id ? {
-        ...i, status: 'IN_PROGRESS' as StatusReq,
-        respostas: [...i.respostas, { autor: 'Admin', msg, quando: new Date().toLocaleString('pt-BR') }],
+        ...i, status: (pedirAoCliente ? 'WAITING_CLIENT' : 'IN_PROGRESS') as StatusReq,
+        respostas: [...i.respostas, { autor: 'Admin', msg: msg || '(arquivo anexado)', quando: new Date().toLocaleString('pt-BR'), anexo: anexo ? { nome: anexo.nome, href: '#' } : null }],
       } : i));
       setReply(r => ({ ...r, [id]: '' }));
+      setAnexos(a => ({ ...a, [id]: null }));
+    } else {
+      alert(res.error);
     }
     setBusy(null);
   }
@@ -132,6 +150,7 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${P_CLS[s.prioridade]}`}>
                       {P_LABEL[s.prioridade]}
                     </span>
+                    <span className="rounded-full bg-black/5 px-2.5 py-0.5 text-[10px] font-bold text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]">{s.tipo}</span>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${stCfg.cls}`}>
                       <StIcon className="h-3 w-3" /> {stCfg.label}
                     </span>
@@ -165,7 +184,13 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                           <p className={`text-[10px] font-bold uppercase tracking-wider ${r.autor === 'Admin' ? 'text-[#DFFFAE]' : 'text-[#6E6A61] dark:text-[#A8A49C]'}`}>
                             {r.autor} · {r.quando}
                           </p>
-                          <p className="mt-1 text-sm">{r.msg}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm">{r.msg}</p>
+                          {r.anexo && r.anexo.href !== '#' && (
+                            <a href={r.anexo.href} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold underline underline-offset-4">
+                              <Paperclip className="h-3 w-3" /> {r.anexo.nome}
+                            </a>
+                          )}
+                          {r.anexo && r.anexo.href === '#' && <p className="mt-2 text-xs font-semibold">📎 {r.anexo.nome}</p>}
                         </div>
                       ))}
                     </div>
@@ -180,7 +205,18 @@ export function SolicitacoesList({ initial }: { initial: Solicitacao[] }) {
                         placeholder="Digite sua resposta técnica ou orientação para o cliente…"
                         className="w-full resize-none rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] p-4 text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none focus:border-[#2F4A3C] focus:ring-2 focus:ring-[#DFFFAE]"
                       />
-                      <div className="flex flex-wrap gap-2.5">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-black/10 px-4 py-2.5 text-xs font-bold text-[#6E6A61] hover:bg-black/5 dark:border-white/10 dark:text-[#A8A49C]">
+                          <Paperclip className="h-3.5 w-3.5" /> {anexos[s.id]?.nome ?? 'Anexar'}
+                          <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => lerAnexo(s.id, e.target.files?.[0])} />
+                        </label>
+                        <button
+                          disabled={busy === s.id}
+                          onClick={() => sendReply(s.id, true)}
+                          className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-xs font-bold text-[#231F20] hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:text-[#F5F6F4]"
+                        >
+                          Pedir informação ao cliente
+                        </button>
                         <button
                           disabled={busy === s.id}
                           onClick={() => sendReply(s.id)}

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, date, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, date, timestamp, boolean, jsonb, integer } from 'drizzle-orm/pg-core';
 import { company, appUser } from './tenancy';
 import {
   ticketStatus,
@@ -64,7 +64,24 @@ export const ticketMessage = pgTable('ticket_message', {
   authorUserId: uuid('author_user_id').references(() => appUser.id),
   sender: text('sender').notNull().default('CLIENT'), // 'CLIENT' | 'ACCOUNTING'
   body: text('body').notNull(),
+  /** Anexo da mensagem (data URL) e o nome dele. Ver 0076. */
+  attachment: text('attachment'),
+  attachmentName: text('attachment_name'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Catálogo de Serviços Adicionais do escritório, com o preço que o contador define. Ver 0076. */
+export const serviceCatalog = pgTable('service_catalog', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  categoria: text('categoria').notNull(),
+  nome: text('nome').notNull(),
+  descricao: text('descricao').notNull(),
+  prazo: text('prazo').notNull(),
+  /** INCLUSO | A_PARTIR | FIXO | ORCAMENTO */
+  precoTipo: text('preco_tipo').notNull().default('ORCAMENTO'),
+  preco: numeric('preco', { precision: 14, scale: 2 }),
+  ativo: boolean('ativo').notNull().default(true),
+  ordem: integer('ordem').notNull().default(0),
 });
 
 /** Catálogo de planos (Início, Crescimento...). monthlyValue = valor mensal. */
