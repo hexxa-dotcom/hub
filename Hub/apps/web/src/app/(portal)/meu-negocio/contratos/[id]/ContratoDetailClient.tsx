@@ -30,6 +30,7 @@ import {
 import { reenviarParaAssinaturaAction } from '../unified-actions';
 import { reajustarAction, indiceAction } from '../contratos-actions';
 import { AssinarContrato } from '../AssinarContrato';
+import { VerContrato } from '../VerContrato';
 import { situacao } from '../ListaDeContratos';
 import { INDICES } from '../modelos-info';
 import { useEffect } from 'react';
@@ -84,6 +85,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
 
   const [showPix, setShowPix] = useState(false);
   const [assinar, setAssinar] = useState(false);
+  const [vendo, setVendo] = useState(false);
   const [indice, setIndice] = useState<{ percentual: number; ate: string } | null>(null);
 
   // O índice oficial dos últimos 12 meses, para sugerir o reajuste.
@@ -195,7 +197,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
   }
 
   async function handleVerPdf() {
-    window.open(`/api/contratos/${c.id}/pdf`, '_blank');
+    setVendo(true);
   }
 
   async function handleReenviar() {
@@ -452,6 +454,8 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
           Encerrar este contrato
         </button>
       )}
+
+      {vendo && <VerContrato id={c.id} titulo={c.title} onClose={() => setVendo(false)} />}
 
       {assinar && (
         <AssinarContrato

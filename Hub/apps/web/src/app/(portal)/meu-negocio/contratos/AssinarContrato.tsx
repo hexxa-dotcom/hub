@@ -76,7 +76,7 @@ export function AssinarContrato({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-black/5 bg-surface shadow-(--elev-3) dark:border-white/10"
+        className="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-black/5 bg-surface shadow-(--elev-3) dark:border-white/10"
       >
         <div className="flex items-start justify-between gap-4 border-b border-black/5 px-6 py-5 dark:border-white/10">
           <div className="min-w-0">
@@ -90,9 +90,10 @@ export function AssinarContrato({
         </div>
 
         {noHub ? (
-          <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto md:grid-cols-[1.4fr_1fr]">
-            <iframe title="Contrato" src={`/api/contratos/${contrato.id}/pdf`} className="h-[46vh] w-full border-0 bg-white md:h-[64vh]" />
-            <div className="flex flex-col justify-between gap-6 p-6">
+          <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto md:grid-cols-[1fr_340px] md:overflow-hidden">
+            {/* O contrato ocupa quase a tela toda: dá para ler inteiro sem baixar. */}
+            <iframe title="Contrato" src={`/api/contratos/${contrato.id}/pdf#navpanes=0&view=FitH`} className="h-[70vh] w-full border-0 bg-white md:h-full" />
+            <div className="flex flex-col justify-between gap-6 overflow-y-auto p-6">
               <div className="space-y-4">
                 <label className="block">
                   <span className="rotulo text-ink-soft">Seu nome completo</span>
