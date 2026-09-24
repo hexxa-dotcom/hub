@@ -41,6 +41,8 @@ export interface FichaDaEmpresa {
   capitalAIntegralizar: number;
   atividadeCodigo: string | null;
   atividadeTexto: string | null;
+  /** A atividade nas palavras da empresa (vazio = usa o texto do CNAE). */
+  atividadeDescricao: string | null;
   endereco: string | null;
   city: string | null;
   state: string | null;
@@ -78,7 +80,7 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
         id, legal_name, trade_name, cnpj, tax_regime::text AS regime, closed_at,
         to_char(founded_at, 'YYYY-MM-DD') AS abertura,
         share_capital, unpaid_share_capital,
-        main_activity_code, main_activity_text,
+        main_activity_code, main_activity_text, activity_description,
         address_line1, address_number, neighborhood, city, state, zipcode,
         logo_url, website, instagram, linkedin, whatsapp, email, phone
       FROM company WHERE id = ${ctx.companyId}
@@ -189,6 +191,7 @@ export async function getFichaDaEmpresa(ctx: TenantContext): Promise<FichaDaEmpr
       capitalAIntegralizar: Number(empresa.unpaid_share_capital ?? 0),
       atividadeCodigo: empresa.main_activity_code ?? null,
       atividadeTexto: empresa.main_activity_text ?? null,
+      atividadeDescricao: empresa.activity_description?.trim() || null,
       endereco,
       city: empresa.city ?? null,
       state: empresa.state ?? null,

@@ -10,6 +10,7 @@ import { getLinkDaFicha, qrDaFicha, urlDaFicha } from '@/lib/server/ficha-public
 import { CartaoDaEmpresa } from '@/components/ficha/CartaoDaEmpresa';
 import { CopyButton, CompanyLogoBadge, PartnerAvatarBadge } from './CompanyProfileActions';
 import { LinkDaFicha } from './LinkDaFicha';
+import { DescricaoDaAtividade } from './DescricaoDaAtividade';
 import { contatosDaEmpresa } from '@/components/ficha/contatos';
 
 export const dynamic = 'force-dynamic';
@@ -125,7 +126,7 @@ export default async function Page() {
         <CartaoDaEmpresa
           dados={{
             nome,
-            atividade: ficha.atividadeTexto,
+            atividade: ficha.atividadeDescricao ?? ficha.atividadeTexto,
             cnpj: formattedCNPJ,
             desde: ficha.abertura?.slice(0, 4) ?? null,
             sede: ficha.city ? `${ficha.city}${ficha.state ? `/${ficha.state}` : ''}` : null,
@@ -165,13 +166,11 @@ export default async function Page() {
         <div className="grid gap-10 p-8 sm:p-10 lg:grid-cols-2">
           {/* Atividade e sede */}
           <div className="space-y-8">
-            {ficha.atividadeTexto && (
-              <section>
-                <p className="rotulo text-ink-soft">Atividade principal</p>
-                <p className="mt-2 text-base leading-relaxed text-ink">{ficha.atividadeTexto}</p>
-                {ficha.atividadeCodigo && <p className="mt-1 font-mono text-xs text-ink-soft">CNAE {ficha.atividadeCodigo}</p>}
-              </section>
-            )}
+            <DescricaoDaAtividade
+              descricao={ficha.atividadeDescricao}
+              cnaeTexto={ficha.atividadeTexto}
+              cnaeCodigo={ficha.atividadeCodigo}
+            />
             {fullAddress && (
               <section>
                 <p className="rotulo text-ink-soft">Endereço</p>

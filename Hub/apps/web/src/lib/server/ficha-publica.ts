@@ -25,7 +25,10 @@ export interface FichaPublica {
   abertura: string | null;
   capitalSocial: number | null;
   atividadeCodigo: string | null;
+  /** Como a empresa descreve o que faz; sem descrição própria, o texto do CNAE. */
   atividadeTexto: string | null;
+  /** Texto oficial do CNAE — só quando difere de `atividadeTexto`. */
+  cnaeTexto: string | null;
   cidade: string | null;
   uf: string | null;
   logoUrl: string | null;
@@ -44,7 +47,7 @@ export async function getFichaPublica(slug: string): Promise<FichaPublica | null
   const [e] = (await db.execute(sql`
     SELECT id, ficha_publica_slug AS slug, legal_name, trade_name, cnpj, closed_at,
            to_char(founded_at, 'YYYY-MM-DD') AS abertura, share_capital,
-           main_activity_code, main_activity_text, city, state,
+           main_activity_code, main_activity_text, nullif(trim(activity_description), '') AS descricao, city, state,
            logo_url, website, instagram, linkedin, whatsapp, email, phone
       FROM company
      WHERE ficha_publica_slug = ${slug} AND ficha_publica_ativa
@@ -67,7 +70,8 @@ export async function getFichaPublica(slug: string): Promise<FichaPublica | null
     abertura: v('abertura'),
     capitalSocial: e.share_capital ? Number(e.share_capital) : null,
     atividadeCodigo: v('main_activity_code'),
-    atividadeTexto: v('main_activity_text'),
+    atividadeTexto: v('descricao') ?? v('main_activity_text'),
+    cnaeTexto: v('descricao') ? v('main_activity_text') : null,
     cidade: v('city'),
     uf: v('state'),
     logoUrl: v('logo_url'),

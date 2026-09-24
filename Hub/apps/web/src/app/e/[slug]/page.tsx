@@ -66,7 +66,7 @@ export default async function FichaPublicaPage({ params }: { params: Promise<{ s
     abertura && { rotulo: 'Abertura', valor: `${abertura} · ${tempoDeEmpresa(f.abertura!)}` },
     f.capitalSocial && { rotulo: 'Capital social', valor: BRL.format(f.capitalSocial) },
     sede && { rotulo: 'Sede', valor: sede },
-    f.atividadeTexto && { rotulo: 'Atividade principal', valor: f.atividadeTexto, nota: f.atividadeCodigo ? `CNAE ${f.atividadeCodigo}` : null },
+    f.atividadeTexto && { rotulo: 'Atividade principal', valor: f.atividadeTexto, nota: [f.atividadeCodigo && `CNAE ${f.atividadeCodigo}`, f.cnaeTexto].filter(Boolean).join(' · ') || null },
   ].filter(Boolean) as { rotulo: string; valor: string; mono?: boolean; nota?: string | null }[];
 
   return (
@@ -130,7 +130,7 @@ export default async function FichaPublicaPage({ params }: { params: Promise<{ s
                 <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-black/45">{d.rotulo}</dt>
                 <dd className={`text-sm text-[#0C110E] ${d.mono ? 'font-mono tabular' : ''}`}>
                   {d.valor}
-                  {d.nota && <span className="mt-0.5 block font-mono text-xs text-black/45">{d.nota}</span>}
+                  {d.nota && <span className="mt-0.5 block text-xs text-black/45">{d.nota}</span>}
                 </dd>
               </div>
             ))}

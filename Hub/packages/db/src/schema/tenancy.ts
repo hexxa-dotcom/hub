@@ -47,6 +47,8 @@ export const company = pgTable('company', {
   foundedAt: date('founded_at'),
   mainActivityCode: text('main_activity_code'),
   mainActivityText: text('main_activity_text'),
+  /** A atividade nas palavras da empresa; vazio = texto do CNAE. Ver 0072. */
+  activityDescription: text('activity_description'),
   declaredRevenue12m: numeric('declared_revenue_12m', { precision: 14, scale: 2 }),
   declaredRevenueAt: date('declared_revenue_at'),
   logoUrl: text('logo_url'),
