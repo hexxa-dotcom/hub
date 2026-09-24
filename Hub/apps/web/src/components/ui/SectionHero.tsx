@@ -152,7 +152,7 @@ export function SectionHero({
         {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
         <div className="hero-title-block w-fit min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="font-bold text-2xl sm:text-3xl text-ink tracking-tight">
+            <h1 className="text-2xl font-light uppercase tracking-[0.08em] text-ink sm:text-[28px]">
               {title}
             </h1>
             {/* Ícone de informação (i) */}
