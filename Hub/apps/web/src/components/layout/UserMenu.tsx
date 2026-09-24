@@ -192,7 +192,7 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
 
         {!compact && (
           <>
-            <span className="hidden max-w-[150px] truncate text-xs font-semibold text-ink xl:block">
+            <span className="hidden max-w-[140px] truncate text-xs font-semibold text-ink lg:block">
               {displayName}
             </span>
 

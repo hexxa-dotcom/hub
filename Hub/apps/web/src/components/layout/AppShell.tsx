@@ -740,7 +740,6 @@ function AppShellInner({
             {/* Menu do Usuário Logado: Foto, Nome e Dropdown com contexto da Empresa */}
             <div className="ml-1 flex items-center border-l border-line pl-3">
               <UserMenu
-                compact
                 user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
                 companyName={company?.tradeName || company?.legalName}
                 companyCnpj={company?.cnpj}
