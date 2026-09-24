@@ -53,7 +53,8 @@ export async function GET(
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="nfse_${nota.providerProtocol}.pdf"`,
+          // Abre dentro do Hub; ?modo=baixar baixa.
+          'Content-Disposition': `${req.nextUrl.searchParams.get('modo') === 'baixar' ? 'attachment' : 'inline'}; filename="nfse_${nota.providerProtocol}.pdf"`,
         },
       });
     }

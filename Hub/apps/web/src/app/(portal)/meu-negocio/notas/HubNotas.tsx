@@ -421,7 +421,7 @@ const DEST_TABS: { key: DestinatarioMode; label: string; icon: React.ComponentTy
   { key: 'avulso', label: 'Tomador Avulso', icon: UserX },
 ];
 
-function EmitirNota({
+export function EmitirNota({
   mode,
   customers,
   prefillName,

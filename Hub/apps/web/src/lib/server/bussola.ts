@@ -66,3 +66,22 @@ export async function ultimaGuiaDeImposto(
   if (!g) return null;
   return { nome: g.tax_name, valor: Number(g.amount), mes: g.mes, vencimento: g.vencimento, paga: g.status === 'PAID' };
 }
+
+/**
+ * A alíquota que vale para o faturamento do mês — a mesma conta da Bússola,
+ * para as Notas e a Bússola mostrarem o mesmo imposto. Apurada pela
+ * contabilidade quando houver; senão a efetiva do Simples (ou a da faixa 1,
+ * para quem ainda não faturou); no Presumido, a dos tributos federais.
+ */
+export async function aliquotaDoFaturamento(ctx: TenantContext): Promise<{ aliquota: number; apurada: boolean }> {
+  const { getSimplesInputs, enquadramentoApurado, posicaoSimples } = await import('@/lib/server/fiscal');
+  const [regime, apurado] = await Promise.all([regimeDaEmpresa(ctx), enquadramentoApurado(ctx)]);
+  if (apurado) return { aliquota: apurado.aliquotaEfetiva, apurada: true };
+  if (regime === 'LUCRO_PRESUMIDO') {
+    const { estimativaPresumido } = await import('@hexxa/core/presumido');
+    return { aliquota: estimativaPresumido(10_000).aliquotaEfetiva, apurada: false };
+  }
+  const entradas = await getSimplesInputs(ctx);
+  const s = await posicaoSimples(ctx, { rbt12: entradas.rbt12, folha12: entradas.folha12 });
+  return { aliquota: entradas.rbt12 > 0 ? s.effectiveRate : s.nominalRate, apurada: false };
+}

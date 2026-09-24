@@ -1,109 +1,80 @@
-import { Suspense } from 'react';
-import { HubNotas } from './HubNotas';
-import { serviceInvoiceRepository, nfseMode } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getNfseConfig, estimateInvoiceTaxRate, isCertConfiguredForTenant, isFiscalComplete, listServiceProfiles } from '@/lib/server/fiscal';
 import { withTenant, customer, eq } from '@hexxa/db';
-import { getContextualInsight } from '@/lib/server/ai-insight';
-import { InsightCard } from '@/components/ui/InsightCard';
-
-import { Card } from '@/components/ui/Card';
+import { nfseMode } from '@/lib/server/container';
+import { getNfseConfig, estimateInvoiceTaxRate, isCertConfiguredForTenant, isFiscalComplete, listServiceProfiles } from '@/lib/server/fiscal';
+import { regimeDaEmpresa, aliquotaDoFaturamento } from '@/lib/server/bussola';
+import { notasDoMes, mesesComNotas } from '@/lib/server/notas';
 import { SectionHero } from '@/components/ui/SectionHero';
+import { NotasClient } from './NotasClient';
+
+/**
+ * NOTAS — o faturamento, nota por nota.
+ *
+ * Uma lista só, com o Emissor Nacional como fonte (ver lib/server/notas.ts):
+ * as notas emitidas (o faturamento) e as recebidas (despesas com nota). Os
+ * números do topo saem dessa lista — antes contavam só o que a Hexx emitiu e
+ * diziam "R$ 0,00" ao lado de uma nota real.
+ *
+ * Emitir pela Hexx: para o Simples, só a partir de novembro/2026 (quando o
+ * Emissor Nacional abre a emissão por API). Até lá a aba explica e manda para
+ * o Emissor Nacional — a nota volta sozinha para cá.
+ */
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Notas · Hexx Digital' };
 
-// Isolado em Suspense pra não travar a página inteira esperando a chamada de IA.
-async function NotasInsight({ companyId, insightContext }: { companyId: string; insightContext: string }) {
-  const insight = await getContextualInsight(companyId, 'meu-negocio/notas', insightContext);
-  return <InsightCard pageKey="meu-negocio/notas" insight={insight} />;
-}
+const LIBERA_SIMPLES = '2026-11-01';
 
-export default async function Page() {
-  let recent: Awaited<ReturnType<typeof serviceInvoiceRepository.listRecent>> = [];
-  let mode: 'gov' | 'mock' = 'mock';
-  let config = null;
-  let certOk = false;
-  let customers: { id: string; name: string; document: string | null; email: string | null }[] = [];
-  let profiles: any[] = [];
-  let taxRatePercent = 0;
-  let companyId = '';
+export default async function Page({ searchParams }: { searchParams: Promise<{ mes?: string; aba?: string }> }) {
+  const ctx = await getTenantContext();
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const { mes: mesPedido, aba } = await searchParams;
+  const mes = /^\d{4}-\d{2}$/.test(mesPedido ?? '') ? mesPedido! : hoje.slice(0, 7);
 
-  try {
-    const ctx = await getTenantContext();
-    companyId = ctx.companyId;
-    const [recentData, modeData, configData, certData, profilesData] = await Promise.all([
-      serviceInvoiceRepository.listRecent(ctx, 50),
-      nfseMode(ctx),
-      getNfseConfig(ctx),
-      isCertConfiguredForTenant(ctx),
-      listServiceProfiles(ctx),
-    ]);
+  const [notas, meses, regime, config, certOk, profiles, taxa, mode, clientes] = await Promise.all([
+    notasDoMes(ctx, mes),
+    mesesComNotas(ctx),
+    regimeDaEmpresa(ctx),
+    getNfseConfig(ctx).catch(() => null),
+    isCertConfiguredForTenant(ctx).catch(() => false),
+    listServiceProfiles(ctx).catch(() => []),
+    aliquotaDoFaturamento(ctx).catch(() => ({ aliquota: 0, apurada: false })),
+    nfseMode(ctx).catch(() => 'mock' as const),
+    withTenant(ctx.companyId, (tx) =>
+      tx.select({ id: customer.id, name: customer.name, document: customer.document, email: customer.email }).from(customer).where(eq(customer.companyId, ctx.companyId)),
+    ),
+  ]);
 
-    // Busca clientes do tenant real
-    const customersData = await withTenant(ctx.companyId, async (tx) => {
-      return tx
-        .select({
-          id: customer.id,
-          name: customer.name,
-          document: customer.document,
-          email: customer.email,
-        })
-        .from(customer)
-        .where(eq(customer.companyId, ctx.companyId));
-    });
-
-    customersData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    recent = recentData;
-    mode = modeData;
-    config = configData;
-    certOk = certData;
-    customers = customersData ?? [];
-    profiles = profilesData;
-    if (configData) {
-      taxRatePercent = await estimateInvoiceTaxRate(ctx, configData, profilesData[0]?.aliquotaIss);
-    }
-  } catch (err) {
-    // tolera falha de container/tenant sem derrubar a página, mas registra
-    // pra não ficar invisível (ex.: ENCRYPTION_KEY ausente faria a leitura
-    // do certificado falhar e a página cairia aqui em silêncio).
-    console.error('[meu-negocio/notas/page] falha ao carregar dados fiscais:', err);
-  }
-
-  const fiscalOk = isFiscalComplete(config);
-
-  const issuedThisMonth = recent.filter((n) => n.status === 'ISSUED' && n.referenceMonth === new Date().toISOString().slice(0, 7));
-  const withError = recent.filter((n) => n.status === 'ERROR');
-  const insightContext = [
-    `Tela: emissão de Notas Fiscais de Serviço (NFSe) de uma empresa optante do Simples Nacional.`,
-    `Cadastro fiscal completo: ${fiscalOk ? 'sim' : 'não'}. Certificado digital configurado: ${certOk ? 'sim' : 'não'}. Modo: ${mode === 'gov' ? 'produção (governo)' : 'teste (mock)'}.`,
-    `Notas emitidas este mês: ${issuedThisMonth.length}, total R$ ${issuedThisMonth.reduce((s, n) => s + n.amount, 0).toFixed(2)}.`,
-    `Notas com erro de emissão: ${withError.length}.`,
-    `Clientes cadastrados: ${customers.length}.`,
-  ].join('\n');
+  const aliquota = taxa.aliquota;
+  // Para o formulário de emissão, a estimativa por nota que considera o ISS do perfil.
+  const aliquotaDaNota = config ? await estimateInvoiceTaxRate(ctx, config, profiles[0]?.aliquotaIss).catch(() => aliquota) : aliquota;
+  const emissaoBloqueada = regime === 'SIMPLES_NACIONAL' && hoje < LIBERA_SIMPLES;
+  clientes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   return (
-    <div className="mx-auto w-full space-y-16 animate-fade-up">
-      {companyId && (
-        <Suspense fallback={null}>
-          <NotasInsight companyId={companyId} insightContext={insightContext} />
-        </Suspense>
-      )}
+    <div className="w-full space-y-12 pb-20">
       <SectionHero
-        title="Notas Fiscais de Serviço"
-        infoTitle="Sobre as Notas Fiscais"
-        infoDescription="Emissão simplificada, acompanhamento no Emissor Nacional e gestão de tomadores."
+        title="Notas"
+        subtitulo="O faturamento nota por nota, direto do Emissor Nacional"
+        infoTitle="Sobre as Notas"
+        infoDescription="Toda nota emitida ou recebida pelo CNPJ da empresa, venha do sistema que vier, chega pelo Emissor Nacional do governo — é ela que vale como faturamento. A sincronização roda todo dia de madrugada; você também pode sincronizar na hora."
       />
-
-      <HubNotas
-        recent={recent as never}
-        customers={customers}
-        mode={mode}
-        certOk={certOk}
-        fiscalOk={fiscalOk}
-        config={config}
-        profiles={profiles}
-        taxRatePercent={taxRatePercent}
+      <NotasClient
+        mes={mes}
+        meses={meses}
+        notas={notas}
+        aliquota={aliquota}
+        aliquotaApurada={taxa.apurada}
+        abaInicial={aba === 'emitir' ? 'emitir' : aba === 'recebidas' ? 'recebidas' : 'emitidas'}
+        emissao={{
+          bloqueada: emissaoBloqueada,
+          mode,
+          certOk,
+          fiscalOk: isFiscalComplete(config),
+          profiles,
+          customers: clientes,
+          taxRatePercent: aliquotaDaNota,
+        }}
       />
     </div>
   );

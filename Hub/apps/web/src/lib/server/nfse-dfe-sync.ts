@@ -170,7 +170,8 @@ export async function getResumoMensalDfe(ctx: TenantContext, meses = 6): Promise
         to_char(date_trunc('month', data_emissao), 'YYYY-MM') AS mes,
         direction,
         count(*)::int AS qtd,
-        coalesce(sum(valor_liquido), 0) AS total
+        -- Faturamento é o valor bruto do serviço, não o líquido de retenções.
+        coalesce(sum(coalesce(valor_servico, valor_liquido)), 0) AS total
       FROM nfse_distribuicao_doc
       WHERE company_id = ${ctx.companyId}
         AND tipo_documento = 'NFSE'
