@@ -1,4 +1,5 @@
 import 'server-only';
+import { aliquotaDoFaturamento } from '@/lib/server/bussola';
 import type { TenantContext } from '@hexxa/core';
 import { TaxThermometerService } from '@hexxa/core';
 import { withTenant, getDb, sql } from '@hexxa/db';
@@ -29,11 +30,22 @@ export async function getCompanyIdentity(ctx: TenantContext): Promise<ReportComp
 
 // ── Balanço e DRE ────────────────────────────────────────────────────────────
 
-export type BalancoEntry = { amount: number; type: string; status: string; reference_month: string; description: string | null; category_name: string | null };
+export type BalancoEntry = { amount: number; type: string; status: string; reference_month: string; description: string | null; category_name: string | null; source: string | null };
+
+/**
+ * Receita é só o que tem NOTA — emitida pela Hexx (NFSE) ou trazida do
+ * Emissor Nacional (DFE_SYNC). Parcela de contrato sem nota, boleto, entrada
+ * do extrato ou recebível digitado são "outras entradas": dinheiro que
+ * entrou, mas não faturamento. É a mesma regra da Bússola e das Notas; antes
+ * os relatórios somavam tudo e o faturamento não batia com elas.
+ */
+export const FONTES_DE_RECEITA = ['NFSE', 'DFE_SYNC'];
+const ehReceita = (e: { type: string; source: string | null }) => e.type === 'RECEIVABLE' && FONTES_DE_RECEITA.includes(e.source ?? '');
 
 export type BalancoMonthSummary = {
   month: string;
   receita: number;
+  outrasEntradas: number;
   despesasOperacionais: number;
   prolabore: number;
   impostoEstimado: number;
@@ -61,7 +73,8 @@ export function lastNMonths(n: number) {
 }
 
 export function summarizeBalanco(entries: BalancoEntry[], effectiveRate: number) {
-  const receita = entries.filter((e) => e.type === 'RECEIVABLE').reduce((s, e) => s + Number(e.amount), 0);
+  const receita = entries.filter(ehReceita).reduce((s, e) => s + Number(e.amount), 0);
+  const outrasEntradas = entries.filter((e) => e.type === 'RECEIVABLE' && !ehReceita(e)).reduce((s, e) => s + Number(e.amount), 0);
   const prolabore = entries
     .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
     .reduce((s, e) => s + Number(e.amount), 0);
@@ -70,7 +83,7 @@ export function summarizeBalanco(entries: BalancoEntry[], effectiveRate: number)
     .reduce((s, e) => s + Number(e.amount), 0);
   const impostoEstimado = receita * (effectiveRate / 100);
   const lucroLiquido = receita - despesasOperacionais - prolabore - impostoEstimado;
-  return { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido };
+  return { receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido };
 }
 
 export interface BalancoDreData {
@@ -80,6 +93,8 @@ export interface BalancoDreData {
   options: string[];
   hasData: boolean;
   receita: number;
+  /** Entradas sem nota (não são faturamento). */
+  outrasEntradas: number;
   prolabore: number;
   despesasOperacionais: number;
   impostoEstimado: number;
@@ -105,7 +120,7 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
 
   const allEntries = await withTenant(ctx.companyId, async (tx) => {
     const rows = await tx.execute(sql`
-      SELECT fe.amount, fe.type, fe.status, fe.reference_month, fe.description,
+      SELECT fe.amount, fe.type, fe.status, fe.reference_month, fe.description, fe.source,
              c.name AS category_name
       FROM financial_entry fe
       LEFT JOIN category c ON c.id = fe.category_id
@@ -118,7 +133,8 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
   });
 
   const entries = allEntries.filter((e) => e.reference_month >= deOrdered && e.reference_month <= ateOrdered);
-  const { receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarizeBalanco(entries, simples.effectiveRate);
+  const taxa = await aliquotaDoFaturamento(ctx);
+  const { receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarizeBalanco(entries, taxa.aliquota);
   const despesasTotais = despesasOperacionais + prolabore + impostoEstimado;
   const margem = receita > 0 ? (lucroLiquido / receita) * 100 : 0;
 
@@ -133,13 +149,13 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
 
   const monthly: BalancoMonthSummary[] = [...options]
     .reverse()
-    .map((m) => ({ month: m, ...summarizeBalanco(allEntries.filter((e) => e.reference_month === m), simples.effectiveRate) }));
+    .map((m) => ({ month: m, ...summarizeBalanco(allEntries.filter((e) => e.reference_month === m), taxa.aliquota) }));
 
   const periodoLabel = deOrdered === ateOrdered ? monthLabel(deOrdered) : `${monthLabel(deOrdered)} a ${monthLabel(ateOrdered)}`;
 
   return {
     periodoLabel, deOrdered, ateOrdered, options, hasData: entries.length > 0,
-    receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
+    receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
     categorias, monthly, simples, rbt12,
   };
 }
@@ -162,6 +178,7 @@ export async function getFaturamentoData(ctx: TenantContext, params: { ano?: str
       SELECT to_char(reference_month, 'YYYY') AS ano, to_char(reference_month, 'YYYY-MM') AS mes, coalesce(sum(amount), 0) AS total
       FROM financial_entry
       WHERE company_id = ${ctx.companyId} AND type = 'RECEIVABLE' AND status != 'CANCELED'
+        AND source IN ('NFSE', 'DFE_SYNC')
       GROUP BY 1, 2
       ORDER BY 2
     `);
@@ -181,8 +198,7 @@ export async function getFaturamentoData(ctx: TenantContext, params: { ano?: str
   const anosDisponiveis = Array.from(new Set([anoAtual, ...receitaPorMes.map((r) => r.ano)])).sort().reverse();
   const ano = params.ano && anosDisponiveis.includes(params.ano) ? params.ano : anoAtual;
 
-  const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
+  const taxa = await aliquotaDoFaturamento(ctx);
 
   const receitaPorMesDoAno = new Map(
     receitaPorMes.filter((r) => r.ano === ano).map((r) => [r.mes.slice(5, 7), Number(r.total)]),
@@ -197,7 +213,7 @@ export async function getFaturamentoData(ctx: TenantContext, params: { ano?: str
     .map((a) => {
       const receita = receitaPorMes.filter((r) => r.ano === a).reduce((s, r) => s + Number(r.total), 0);
       const despesas = despesaPorAno.get(a) ?? 0;
-      const impostoEstimado = receita * (simples.effectiveRate / 100);
+      const impostoEstimado = receita * (taxa.aliquota / 100);
       const lucroLiquido = receita - despesas - impostoEstimado;
       const margem = receita > 0 ? (lucroLiquido / receita) * 100 : 0;
       return { ano: a, receita, despesas, impostoEstimado, lucroLiquido, margem };
@@ -231,6 +247,7 @@ export async function getFaturamentoPorClienteData(ctx: TenantContext, params: {
       LEFT JOIN customer c ON c.id = si.customer_id
       LEFT JOIN nfse_distribuicao_doc ndd ON fe.source = 'DFE_SYNC' AND ndd.company_id = fe.company_id AND ndd.chave_acesso = fe.external_id
       WHERE fe.company_id = ${ctx.companyId} AND fe.type = 'RECEIVABLE' AND fe.status != 'CANCELED'
+        AND fe.source IN ('NFSE', 'DFE_SYNC')
     `);
     const despesaRows = await tx.execute(sql`
       SELECT to_char(reference_month, 'YYYY') AS ano, coalesce(sum(amount), 0) AS total
@@ -248,13 +265,12 @@ export async function getFaturamentoPorClienteData(ctx: TenantContext, params: {
   const anos = Array.from(new Set([anoAtual, ...porCliente.map((r) => r.ano)])).sort().reverse();
   const ano = params.ano && anos.includes(params.ano) ? params.ano : anoAtual;
 
-  const { rbt12, folha12 } = await getSimplesInputs(ctx);
-  const simples = await posicaoSimples(ctx, { rbt12, folha12 });
+  const taxa = await aliquotaDoFaturamento(ctx);
 
   const doAno = porCliente.filter((r) => r.ano === ano);
   const receitaTotal = doAno.reduce((s, r) => s + Number(r.amount), 0);
   const despesasAno = despesaPorAno.get(ano) ?? 0;
-  const impostoEstimado = receitaTotal * (simples.effectiveRate / 100);
+  const impostoEstimado = receitaTotal * (taxa.aliquota / 100);
   const lucroLiquidoAno = receitaTotal - despesasAno - impostoEstimado;
   const margemLiquidaAno = receitaTotal > 0 ? lucroLiquidoAno / receitaTotal : 0;
 

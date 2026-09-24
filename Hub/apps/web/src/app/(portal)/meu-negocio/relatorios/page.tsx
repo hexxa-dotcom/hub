@@ -1,74 +1,51 @@
 import Link from 'next/link';
-import { BarChart3, Scale, Users, Clock, ArrowRight } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Relatórios · Hexx Digital' };
 
-const REPORTS: { href: string; icon: LucideIcon; title: string; description: string }[] = [
-  {
-    href: '/meu-negocio/relatorios/faturamento',
-    icon: BarChart3,
-    title: 'Faturamento',
-    description: 'Receita por mês ou por ano — visão mensal detalhada ou comparativo entre anos.',
-  },
-  {
-    href: '/meu-negocio/relatorios/faturamento-por-cliente',
-    icon: Users,
-    title: 'Faturamento por Cliente',
-    description: 'Quanto cada cliente representou no ano, com participação % e margem estimada.',
-  },
-  {
-    href: '/meu-negocio/relatorios/balanco',
-    icon: Scale,
-    title: 'Balanço e DRE',
-    description: 'Resultado do período em tempo real — receita, despesas e lucro líquido, com histórico de 12 meses.',
-  },
-  {
-    href: '/meu-negocio/relatorios/informe-rendimentos',
-    icon: Users,
-    title: 'Informe de Rendimentos',
-    description: 'Lucros distribuídos a cada sócio no ano — para o Imposto de Renda pessoa física.',
-  },
-  {
-    href: '/meu-negocio/relatorios/fechamento',
-    icon: Clock,
-    title: 'Fechamento Mensal',
-    description: 'O fechamento oficial gerado no início de cada mês, com indicadores e alertas contábeis.',
-  },
+/**
+ * RELATÓRIOS — os números da empresa prontos para ler, imprimir e mandar.
+ *
+ * Todos saem dos mesmos dados das telas: faturamento é só nota fiscal (como
+ * na Bússola e nas Notas), e o imposto usa a mesma alíquota.
+ */
+const RELATORIOS: { href: string; titulo: string; descricao: string; grupo: string }[] = [
+  { grupo: 'Faturamento', href: '/meu-negocio/relatorios/faturamento', titulo: 'Faturamento', descricao: 'As notas fiscais mês a mês e o comparativo entre anos.' },
+  { grupo: 'Faturamento', href: '/meu-negocio/relatorios/faturamento-por-cliente', titulo: 'Faturamento por cliente', descricao: 'Quanto cada cliente representou no ano, com a participação de cada um.' },
+  { grupo: 'Resultado', href: '/meu-negocio/relatorios/balanco', titulo: 'Balanço e DRE', descricao: 'Receita, despesas, imposto e lucro de um mês ou de um período, com os últimos 12 meses.' },
+  { grupo: 'Resultado', href: '/meu-negocio/relatorios/fechamento', titulo: 'Fechamento mensal', descricao: 'O fechamento oficial de cada mês, com indicadores e alertas da contabilidade.' },
+  { grupo: 'Sócios', href: '/meu-negocio/relatorios/informe-rendimentos', titulo: 'Informe de rendimentos', descricao: 'Pró-labore e lucros distribuídos a cada sócio no ano — para o Imposto de Renda.' },
 ];
 
-export default function RelatoriosHubPage() {
+export default function RelatoriosPage() {
+  const grupos = Array.from(new Set(RELATORIOS.map((r) => r.grupo)));
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-16 animate-fade-up">
+    <div className="w-full space-y-12 pb-20">
       <SectionHero
+        title="Relatórios"
         subtitulo="Os números da empresa, prontos para ler e imprimir"
-        title="Relatórios Financeiros"
-        infoTitle="Sobre os Relatórios"
-        infoDescription="Escolha um relatório abaixo — todos gerados em tempo real a partir dos lançamentos já no sistema."
+        infoTitle="Sobre os relatórios"
+        infoDescription="Todos gerados na hora a partir dos lançamentos e das notas. Faturamento é só nota fiscal, e o imposto é estimado com a mesma alíquota da Bússola Tributária."
       />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {REPORTS.map((r) => (
-          <Link
-            key={r.href}
-            href={r.href as never}
-            className="group block"
-          >
-            <Card level={1} className="card-finish p-6 hover:shadow-(--elev-2) hover:-translate-y-0.5 transition-all">
-              <div className="flex items-center justify-between">
-                <div className="rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-2.5">
-                  <r.icon className="h-5 w-5 text-hexxa-green dark:text-hexxa-lime" />
-                </div>
-                <ArrowRight className="h-4 w-4 text-ink-soft group-hover:text-ink group-hover:translate-x-1 transition-all" />
-              </div>
-              <h2 className="mt-4 font-serif font-bold text-lg text-ink">{r.title}</h2>
-              <p className="mt-1 text-xs text-ink-soft">{r.description}</p>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {grupos.map((g) => (
+        <section key={g} className="space-y-3">
+          <p className="rotulo text-ink-soft">{g}</p>
+          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+            {RELATORIOS.filter((r) => r.grupo === g).map((r) => (
+              <li key={r.href}>
+                <Link href={r.href as never} className="flex items-center justify-between gap-6 px-6 py-4 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink">{r.titulo}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">{r.descricao}</p>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold text-ink-soft">Abrir</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

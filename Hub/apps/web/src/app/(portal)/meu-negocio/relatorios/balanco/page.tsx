@@ -20,7 +20,7 @@ export default async function BalancoInstantaneoPage({
   const params = await searchParams;
   const {
     periodoLabel, deOrdered, ateOrdered, options, hasData,
-    receita, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
+    receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
     categorias, monthly, simples, rbt12,
   } = await getBalancoDreData(ctx, params);
 
@@ -88,6 +88,7 @@ export default async function BalancoInstantaneoPage({
               <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
                 <p className="rotulo text-ink-soft">Receita Bruta</p>
                 <p className="font-serif text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(receita)}</p>
+                <p className="text-[11px] text-ink-soft">só notas fiscais{outrasEntradas > 0 ? ` · + ${BRL.format(outrasEntradas)} em outras entradas, sem nota` : ''}</p>
               </div>
               <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
                 <p className="rotulo text-ink-soft">Despesas Totais</p>
@@ -158,9 +159,15 @@ export default async function BalancoInstantaneoPage({
                 <table className="w-full text-sm">
                   <tbody className="divide-y divide-black/5 dark:divide-white/10">
                     <tr>
-                      <td className="py-3.5 font-bold text-ink">Receita Bruta</td>
+                      <td className="py-3.5 font-bold text-ink">Receita Bruta <span className="font-normal text-ink-soft">(notas fiscais)</span></td>
                       <td className="py-3.5 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(receita)}</td>
                     </tr>
+                    {outrasEntradas > 0 && (
+                      <tr>
+                        <td className="py-3 text-xs text-ink-soft">Outras entradas, sem nota — não são faturamento nem entram no resultado</td>
+                        <td className="py-3 text-right text-xs font-serif font-semibold text-ink-soft tabular">{BRL.format(outrasEntradas)}</td>
+                      </tr>
+                    )}
                     <tr>
                       <td className="py-3 text-xs text-ink-soft">(−) Despesas operacionais</td>
                       <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(despesasOperacionais)}</td>
@@ -171,7 +178,7 @@ export default async function BalancoInstantaneoPage({
                     </tr>
                     <tr>
                       <td className="py-3 text-xs text-ink-soft">
-                        (−) Imposto {simples.fonte === 'APURADO' ? 'pela alíquota apurada' : 'estimado'} (Simples, {pct(simples.effectiveRate)} efetiva · Anexo {simples.anexo})
+                        (−) Imposto {simples.fonte === 'APURADO' ? 'pela alíquota apurada' : 'estimado'} ({pct(receita > 0 ? (impostoEstimado / receita) * 100 : 0)} sobre a receita · Anexo {simples.anexo})
                       </td>
                       <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(impostoEstimado)}</td>
                     </tr>
@@ -185,7 +192,7 @@ export default async function BalancoInstantaneoPage({
                 </table>
                 <p className="flex items-start gap-1.5 text-caption text-ink-soft pt-2">
                   <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Imposto é uma estimativa pela alíquota efetiva atual do Simples Nacional — o valor exato da guia (DAS) é apurado pelo PGDAS oficial da Receita.
+                  Imposto é uma estimativa pela mesma alíquota da Bússola Tributária — o valor exato da guia (DAS) é apurado pelo PGDAS oficial da Receita.
                 </p>
               </div>
 
