@@ -53,7 +53,7 @@ export const NAV: NavSection[] = [
       // resolvem a navegação entre pagar/receber. As rotas /contas-a-pagar
       // e /contas-a-receber continuam existindo (usadas como link direto
       // pelos cards do Início), só saíram do menu lateral.
-      { label: 'Financeiro', href: '/meu-negocio/hub-financeiro' },
+      { label: 'Meu mês', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
       // Sem adaptador ainda: a porta existe, nenhum implementador. O item fica
       // visível com o selo para o empresário saber que a lacuna tem solução

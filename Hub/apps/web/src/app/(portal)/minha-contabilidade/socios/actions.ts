@@ -120,5 +120,5 @@ export async function lancarProLaboreMesAction(partnerId: string): Promise<SaveP
   revalidatePath('/minha-contabilidade/socios');
   revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/cliente');
-  return { ok: true, message: `Pró-labore de ${p.name} lançado no Financeiro.` };
+  return { ok: true, message: `Pró-labore de ${p.name} lançado em Meu mês.` };
 }

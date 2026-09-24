@@ -195,7 +195,7 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
           href="/meu-negocio/hub-financeiro"
           className="tap-target pressable focusable inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/10 shadow-(--elev-1) px-4 py-2 text-xs font-bold text-ink hover:text-hexxa-forest dark:hover:text-hexxa-lime transition-all"
         >
-          Ver no Financeiro
+          Ver em Meu mês
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>

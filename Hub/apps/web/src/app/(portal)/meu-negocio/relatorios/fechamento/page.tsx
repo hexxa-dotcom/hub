@@ -234,7 +234,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
                     <div>
                       <p className="text-sm font-bold text-ink">Inadimplentes</p>
                       <p className="text-xs text-ink-soft mt-0.5">
-                        Existem faturas não pagas neste mês. Recomendamos acessar o Financeiro para acionar a régua de cobrança automática.
+                        Existem faturas não pagas neste mês. Recomendamos acessar Meu mês para acionar a régua de cobrança automática.
                       </p>
                     </div>
                   </li>

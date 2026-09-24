@@ -120,7 +120,7 @@ export function LucroCard() {
               <ExternalLink className="h-3 w-3" /> Faturamento: NFSe emitidas no mês
             </span>
             <span className="inline-flex items-center gap-1 text-hexxa-lime/80">
-              <ExternalLink className="h-3 w-3" /> Despesas: Contas pagas no Financeiro
+              <ExternalLink className="h-3 w-3" /> Despesas: contas pagas em Meu mês
             </span>
             <span className="inline-flex items-center gap-1 text-hexxa-lime/80">
               <ExternalLink className="h-3 w-3" /> DAS: Guia única quitada no mês
@@ -147,7 +147,7 @@ export function LucroCard() {
             value={-despesas}
             cls="text-white/80"
             muted
-            source="Financeiro · contas pagas no mês"
+            source="Meu mês · contas pagas no mês"
           />
           <ResultRow
             label="(−) DAS pago"
