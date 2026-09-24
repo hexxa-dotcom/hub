@@ -395,7 +395,7 @@ function AppShellInner({
                     }`}
                   >
                     <GroupIcon
-                      weight="duotone"
+                      weight="light"
                       className={`h-6 w-6 ${active ? 'text-hexxa-lime dark:text-hexxa-green' : ''}`}
                     />
                     <span className="text-[15px] font-bold text-ink">{s.title}</span>
@@ -412,7 +412,7 @@ function AppShellInner({
                   className="mb-2 flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
                   <GroupIcon
-                    weight="duotone"
+                    weight="light"
                     className={`h-6 w-6 ${activeGroup === s.title ? 'text-hexxa-lime dark:text-hexxa-green' : ''}`}
                   />
                   <span className="text-[15px] font-bold text-ink">{s.title}</span>
@@ -553,7 +553,7 @@ function AppShellInner({
                           )}
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
-                              weight="duotone"
+                              weight="light"
                               className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
@@ -602,7 +602,7 @@ function AppShellInner({
                         >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
-                              weight="duotone"
+                              weight="light"
                               className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
