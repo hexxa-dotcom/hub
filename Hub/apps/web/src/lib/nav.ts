@@ -33,7 +33,7 @@ export const NAV: NavSection[] = [
     title: 'Contabilidade',
     items: [
       { label: 'Central de Guias', href: '/minha-contabilidade/guias' },
-      { label: 'Termômetro Tributário', href: '/minha-contabilidade/termometro-tributario' },
+      { label: 'Bússola Tributária', href: '/minha-contabilidade/termometro-tributario' },
       { label: 'Documentos da Empresa', href: '/minha-contabilidade/arquivos' },
       { label: 'Serviços Adicionais', href: '/mais/servicos' },
       // A fila de decisões do agente NÃO é um item de menu. Era "O que a IA

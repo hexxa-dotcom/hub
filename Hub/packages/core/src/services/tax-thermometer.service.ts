@@ -77,7 +77,9 @@ export class TaxThermometerService {
    * 18%) para quem paga pelas do III (6%, 11,2%).
    */
   simplesPosition(input: { rbt12: number; payroll12: number; anexo?: 'III' | 'V' }): SimplesPosition {
-    const fatorR = input.rbt12 > 0 ? input.payroll12 / input.rbt12 : 0;
+    // Sem faturamento ainda e com folha/pró-labore, a razão é "infinita" —
+    // a empresa está acima dos 28%. Dividir por zero dava 0 e jogava no V.
+    const fatorR = input.rbt12 > 0 ? input.payroll12 / input.rbt12 : input.payroll12 > 0 ? 1 : 0;
     const anexo: 'III' | 'V' = input.anexo ?? (fatorR >= FATOR_R_LIMIT ? 'III' : 'V');
     const rates = anexo === 'III' ? RATES_III : RATES_V;
     const pds = anexo === 'III' ? PD_III : PD_V;

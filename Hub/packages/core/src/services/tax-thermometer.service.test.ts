@@ -18,3 +18,11 @@ describe('simplesPosition — anexo apurado', () => {
     expect(svc.simplesPosition({ rbt12: 100000, payroll12: 30000 }).anexo).toBe('III');
   });
 });
+
+describe('simplesPosition sem faturamento', () => {
+  it('com pró-labore e sem faturamento, fica no Anexo III', () => {
+    const p = new TaxThermometerService().simplesPosition({ rbt12: 0, payroll12: 60_000 });
+    expect(p.anexo).toBe('III');
+    expect(p.nominalRate).toBe(6);
+  });
+});
