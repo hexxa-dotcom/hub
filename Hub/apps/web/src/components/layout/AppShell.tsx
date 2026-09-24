@@ -167,7 +167,8 @@ function HeaderSearchBar({ onOpenCommand }: { onOpenCommand: () => void }) {
         }}
         initial={false}
         animate={{
-          width: isExpanded ? 340 : 32,
+          // Abre o suficiente para dizer o que é — o resto a paleta de busca mostra.
+          width: isExpanded ? 150 : 32,
         }}
         transition={springTransition}
         title="Buscar por comandos, clientes ou páginas (⌘K)"
@@ -181,7 +182,7 @@ function HeaderSearchBar({ onOpenCommand }: { onOpenCommand: () => void }) {
           initial={false}
           animate={{
             opacity: isExpanded ? 1 : 0,
-            maxWidth: isExpanded ? 300 : 0,
+            maxWidth: isExpanded ? 120 : 0,
           }}
           transition={
             reduceMotion
@@ -190,7 +191,7 @@ function HeaderSearchBar({ onOpenCommand }: { onOpenCommand: () => void }) {
           }
           className="pointer-events-none inline-block overflow-hidden truncate whitespace-nowrap pl-2 text-xs font-medium text-ink-soft select-none"
         >
-          Buscar comandos, clientes, páginas… <span className="opacity-60">⌘K</span>
+          Buscar… <span className="ml-1 opacity-60">⌘K</span>
         </motion.span>
       </motion.button>
     </div>
