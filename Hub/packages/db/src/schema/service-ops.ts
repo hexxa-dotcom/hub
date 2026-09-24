@@ -179,8 +179,43 @@ export const businessContract = pgTable('business_contract', {
   repassePercent: numeric('repasse_percent', { precision: 5, scale: 2 }),
   /** MENSAL | QUINZENAL — só afeta como o valor a pagar é agrupado/exibido (dias 1-15 / 16-fim), não muda quando o evento chega do webhook. */
   paymentFrequency: text('payment_frequency').notNull().default('MENSAL'),
+  /** Ver 0073: modelo (CLIENTE | PJ | FORNECEDOR | PROPRIO), objeto, forma de pagamento. */
+  model: text('model'),
+  description: text('description'),
+  paymentTerms: text('payment_terms'),
+  /** IPCA | IGPM | NENHUM — e quando é o próximo reajuste. */
+  adjustmentIndex: text('adjustment_index').notNull().default('IPCA'),
+  nextAdjustmentDate: date('next_adjustment_date'),
+  /** HUB | DOCUSEAL | FORA — como o contrato é assinado. */
+  signatureMethod: text('signature_method'),
+  /** SHA-256 do PDF assinado — o que cada assinatura no Hub confirma. */
+  documentHash: text('document_hash'),
+  /** Link para esta empresa assinar embutido (DocuSeal). */
+  ownSignUrl: text('own_sign_url'),
+  /** false no lado espelho: o contrato veio de outra empresa do Hub. */
+  initiatedHere: boolean('initiated_here').notNull().default(true),
+  partyEmail: text('party_email'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Assinatura feita dentro do Hub (quando as duas partes usam o sistema). Ver 0073. */
+export const contractSignature = pgTable('contract_signature', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .references(() => company.id, { onDelete: 'cascade' }),
+  contractId: uuid('contract_id')
+    .notNull()
+    .references(() => businessContract.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id'),
+  signerName: text('signer_name').notNull(),
+  signerCpf: text('signer_cpf'),
+  signerEmail: text('signer_email'),
+  signedAt: timestamp('signed_at', { withTimezone: true }).notNull().defaultNow(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  documentHash: text('document_hash').notNull(),
 });
 
 /**

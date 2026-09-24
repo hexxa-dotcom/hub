@@ -38,6 +38,11 @@ import dynamic from 'next/dynamic';
 import type { SignatureRequestSummary, SignerInput } from '@/lib/signature-types';
 import { type ContractRow, type RepasseRow, createContractAction } from './actions';
 import { STATUS_LABEL, STATUS_CLASS } from './contract-status';
+import { alertaDaAba } from '@/components/ui/SegmentedTabs';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
+import { ListaDeContratos } from './ListaDeContratos';
+import { NovoContrato } from './NovoContrato';
+import { AssinarContrato } from './AssinarContrato';
 
 // @react-pdf/renderer é pesado — só carrega quando o wizard é aberto.
 const UnifiedContractWizard = dynamic(() => import('./UnifiedContractWizard').then(m => m.UnifiedContractWizard), { ssr: false });
@@ -51,14 +56,15 @@ const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const TABS = [
-  { key: 'entrada', label: 'Contratos de Entrada (Clientes)', icon: ArrowUpRight },
-  { key: 'saida', label: 'Contratos de Saída (Fornecedores)', icon: ArrowDownRight },
-  { key: 'mutuo', label: 'Mútuos (Societário)', icon: Sparkles },
-  { key: 'repasses', label: 'Repasses (Integração SaaS)', icon: Wallet },
-  { key: 'criar', label: 'Criar & Assinar Contrato (PDF/Wizard)', icon: FilePenLine },
-  { key: 'docuseal', label: 'Construtor DocuSeal', icon: FileSignature },
-];
+// As duas abas do dia a dia: o que entra e o que sai. O resto (mútuo,
+// repasses, documento avulso, construtor de modelos) fica num menu de texto
+// discreto ao lado — existe, mas não disputa a atenção.
+const MAIS = [
+  { id: 'mutuo', label: 'Mútuos' },
+  { id: 'repasses', label: 'Repasses' },
+  { id: 'criar', label: 'Documento avulso' },
+  { id: 'docuseal', label: 'Modelos DocuSeal' },
+] as const;
 
 export function ContratosClient({
   initialDocs,
@@ -79,7 +85,9 @@ export function ContratosClient({
   const [repasses, setRepasses] = useState<RepasseRow[]>(initialRepasses);
   const [docs, setDocs] = useState<SignatureRequestSummary[]>(initialDocs);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [wizardMode, setWizardMode] = useState<'upload' | 'generate'>('generate');
+  const [wizardMode, setWizardMode] = useState<'upload' | 'generate'>('upload');
+  const [novo, setNovo] = useState(false);
+  const [assinando, setAssinando] = useState<ContractRow | null>(null);
   const [savingContract, setSavingContract] = useState(false);
 
   useEffect(() => setContracts(initialContracts), [initialContracts]);
@@ -211,47 +219,81 @@ export function ContratosClient({
 
   return (
     <div className="space-y-8">
-      {/* 🟢 BARRA DE ABAS PADRÃO */}
-      <div className="flex overflow-x-auto no-scrollbar py-1">
-        <SegmentedTabs
-          tabs={TABS.map(t => ({
-            id: t.key,
-            label: t.label,
-            icon: t.icon,
-          }))}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          layoutId="contratosTabIndicator"
-        />
-      </div>
-
       {actionMessage && (
         <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs font-bold text-emerald-800 dark:text-emerald-300 animate-in fade-in">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           {actionMessage}
         </div>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex overflow-x-auto no-scrollbar py-1">
+          <SegmentedTabs
+            tabs={[
+              { id: 'entrada', label: 'Entrada', icon: ArrowUpRight, badge: alertaDaAba(contracts.filter((c) => c.type === 'ENTRADA' && c.meFaltaAssinar).length) },
+              { id: 'saida', label: 'Saída', icon: ArrowDownRight, badge: alertaDaAba(contracts.filter((c) => c.type === 'SAIDA' && c.meFaltaAssinar).length) },
+            ]}
+            activeTab={activeTab === 'entrada' || activeTab === 'saida' ? activeTab : ('' as string)}
+            onChange={setActiveTab}
+            layoutId="contratosTabIndicator"
+          />
+        </div>
+        <FiltrosEmTexto filtros={MAIS} ativo={activeTab} onChange={setActiveTab} />
+      </div>
+
+      {(activeTab === 'entrada' || activeTab === 'saida') && (
+        <ListaDeContratos
+          tipo={activeTab === 'entrada' ? 'ENTRADA' : 'SAIDA'}
+          contratos={activeTab === 'entrada' ? entradas : saidas}
+          onNovo={() => setNovo(true)}
+          onAssinar={setAssinando}
+        />
+      )}
+
+      {novo && (
+        <NovoContrato
+          tipoInicial={activeTab === 'saida' ? 'SAIDA' : 'ENTRADA'}
+          onClose={() => setNovo(false)}
+          onDone={(m) => {
+            setNovo(false);
+            flashMessage(m);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {assinando && (
+        <AssinarContrato
+          contrato={assinando}
+          onClose={() => setAssinando(null)}
+          onDone={(m) => {
+            setAssinando(null);
+            flashMessage(m);
+            router.refresh();
+          }}
+        />
+      )}
+
 
       {/* 📥 / 📤 CONTRATOS DE ENTRADA OU SAÍDA */}
-      {(activeTab === 'entrada' || activeTab === 'saida' || activeTab === 'mutuo') && (
+      {activeTab === 'mutuo' && (
         <div className="space-y-6 animate-in fade-in">
           {/* Cards KPI */}
           <GradeDeResumo colunas={3}>
             <CardResumo
               destaque
-              rotulo={activeTab === 'entrada' ? 'Receita contratual prevista' : 'Total pago a fornecedores'}
-              valor={`${BRL.format(activeTab === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês`}
-              nota={`${activeTab === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)`}
+              rotulo={(activeTab as string) === 'entrada' ? 'Receita contratual prevista' : 'Total pago a fornecedores'}
+              valor={`${BRL.format((activeTab as string) === 'entrada' ? totalEntradaMensal : totalSaidaMensal)}/mês`}
+              nota={`${(activeTab as string) === 'entrada' ? entradas.length : saidas.length} contrato(s) registrado(s)`}
             />
             <CardResumo
               rotulo="Contratos ativos"
-              valor={(activeTab === 'entrada' ? entradas : saidas).filter((c) => c.status === 'ATIVO').length}
+              valor={((activeTab as string) === 'entrada' ? entradas : saidas).filter((c) => c.status === 'ATIVO').length}
               nota="Gerando lançamentos recorrentes"
             />
             <CardResumo
-              rotulo={activeTab === 'entrada' ? 'Faturamento com nota emitida' : activeTab === 'saida' ? 'Provisão de saída comprometida' : 'Mútuos faturados'}
+              rotulo={(activeTab as string) === 'entrada' ? 'Faturamento com nota emitida' : (activeTab as string) === 'saida' ? 'Provisão de saída comprometida' : 'Mútuos faturados'}
               valor={BRL.format(
-                (activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos)
+                ((activeTab as string) === 'entrada' ? entradas : (activeTab as string) === 'saida' ? saidas : mutuos)
                   .filter((c) => c.lastNfseEmitted)
                   .reduce((sum, c) => sum + c.value, 0),
               )}
@@ -262,14 +304,14 @@ export function ContratosClient({
           {/* Botão de Adicionar Contrato */}
           <div className="flex items-center justify-between">
             <h2 className="font-serif font-bold text-base text-ink">
-              {activeTab === 'entrada' ? 'Contratos de Serviços Prestados (Clientes)' : activeTab === 'saida' ? 'Contratos de Serviços Contratados (Fornecedores)' : 'Contratos de Mútuo Financeiro (Societário)'}
+              {(activeTab as string) === 'entrada' ? 'Contratos de Serviços Prestados (Clientes)' : (activeTab as string) === 'saida' ? 'Contratos de Serviços Contratados (Fornecedores)' : 'Contratos de Mútuo Financeiro (Societário)'}
             </h2>
             <button
               type="button"
               onClick={() => setShowNewContractForm(v => !v)}
               className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest hover:brightness-110 px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) transition-all hover:scale-105 active:scale-95"
             >
-              <Plus className="h-4 w-4" /> Novo Contrato de {activeTab === 'entrada' ? 'Entrada' : activeTab === 'saida' ? 'Saída' : 'Mútuo'}
+              <Plus className="h-4 w-4" /> Novo Contrato de {(activeTab as string) === 'entrada' ? 'Entrada' : (activeTab as string) === 'saida' ? 'Saída' : 'Mútuo'}
             </button>
           </div>
 
@@ -278,14 +320,14 @@ export function ContratosClient({
             <form onSubmit={handleCreateContract} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish animate-in fade-in">
               <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
                 <h3 className="font-serif font-bold text-base text-ink">
-                  Novo Contrato de {activeTab === 'entrada' ? 'Entrada (Serviço Prestado)' : activeTab === 'saida' ? 'Saída (Prestador/Fornecedor)' : 'Mútuo (Empréstimo)'}
+                  Novo Contrato de {(activeTab as string) === 'entrada' ? 'Entrada (Serviço Prestado)' : (activeTab as string) === 'saida' ? 'Saída (Prestador/Fornecedor)' : 'Mútuo (Empréstimo)'}
                 </h3>
                 <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {activeTab === 'mutuo' && (
+              {(activeTab as string) === 'mutuo' && (
                 <div className="mb-4">
                   <label className={lbl}>Natureza do Mútuo *</label>
                   <select name="mutuoType" required className={`mt-1.5 ${field}`}>
@@ -302,7 +344,7 @@ export function ContratosClient({
                 </div>
 
                 <div>
-                  <label className={lbl}>{activeTab === 'entrada' ? 'Nome do Cliente *' : activeTab === 'saida' ? 'Nome do Fornecedor / Terceirizado *' : 'Nome do Sócio / Contraparte *'}</label>
+                  <label className={lbl}>{(activeTab as string) === 'entrada' ? 'Nome do Cliente *' : (activeTab as string) === 'saida' ? 'Nome do Fornecedor / Terceirizado *' : 'Nome do Sócio / Contraparte *'}</label>
                   <input name="partyName" required placeholder="Razão social ou Nome completo" className={`mt-1.5 ${field}`} />
                 </div>
 
@@ -340,7 +382,7 @@ export function ContratosClient({
                   <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Deixe em branco se ainda não foi assinado — dá pra registrar depois.</p>
                 </div>
 
-                {activeTab === 'entrada' && (
+                {(activeTab as string) === 'entrada' && (
                   <div className="sm:col-span-2 flex items-center gap-2 pt-2">
                     <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded border-black/10 dark:border-white/10 text-hexxa-green focus:ring-hexxa-lime" />
                     <label htmlFor="autoEmitNfse" className="text-xs font-bold text-ink cursor-pointer">
@@ -364,7 +406,7 @@ export function ContratosClient({
 
           {/* Lista de Contratos — visual, cada card leva pro detalhe do vínculo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {(activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos).map(c => (
+            {((activeTab as string) === 'entrada' ? entradas : (activeTab as string) === 'saida' ? saidas : mutuos).map(c => (
               <Link
                 key={c.id}
                 href={`/meu-negocio/contratos/${c.id}` as Route}
@@ -379,7 +421,7 @@ export function ContratosClient({
                       </span>
                     </div>
                     <p className="text-footnote text-ink-soft mt-1 truncate">
-                      {activeTab === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong className="text-ink">{c.partyName}</strong>
+                      {(activeTab as string) === 'entrada' ? 'Cliente:' : 'Fornecedor:'} <strong className="text-ink">{c.partyName}</strong>
                     </p>
                     {c.status === 'RECUSADO' && c.refusalReason && (
                       <p className="text-caption text-status-danger mt-1">Motivo da recusa: {c.refusalReason}</p>
@@ -421,8 +463,8 @@ export function ContratosClient({
               </Link>
             ))}
 
-            {(activeTab === 'entrada' ? entradas : activeTab === 'saida' ? saidas : mutuos).length === 0 && (
-              <p className="sm:col-span-2 text-sm text-ink-soft py-12 text-center">Nenhum contrato de {activeTab === 'entrada' ? 'entrada' : activeTab === 'saida' ? 'saída' : 'mútuo'} cadastrado ainda.</p>
+            {((activeTab as string) === 'entrada' ? entradas : (activeTab as string) === 'saida' ? saidas : mutuos).length === 0 && (
+              <p className="sm:col-span-2 text-sm text-ink-soft py-12 text-center">Nenhum contrato de {(activeTab as string) === 'entrada' ? 'entrada' : (activeTab as string) === 'saida' ? 'saída' : 'mútuo'} cadastrado ainda.</p>
             )}
           </div>
         </div>

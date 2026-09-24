@@ -1,6 +1,7 @@
 import 'server-only';
 import { withTenant, sql } from '@hexxa/db';
 import { financialEntry } from '@hexxa/db/schema';
+import { diasDeVencimento } from '@hexxa/core/vencimentos';
 import { impostoAluguel } from '@/app/(portal)/patrimonial/lib';
 
 /**
@@ -26,19 +27,16 @@ export async function gerarLancamentosDoContrato(params: {
   const { companyId, contractId, tipo, descricao, valor, dueDay, startDate, endDate } = params;
   const typeStr = tipo === 'PAGAR' ? 'PAYABLE' : 'RECEIVABLE';
 
-  const start = new Date(startDate + 'T12:00:00');
-  const end = new Date(endDate + 'T12:00:00');
-  const months = Math.max(
-    1,
-    Math.min(60, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1),
-  );
+  // Uma parcela por mês, no dia de vencimento, de início a fim da vigência.
+  // A primeira é a do primeiro dia de vencimento a partir do início — um
+  // contrato que começa dia 24 com vencimento dia 10 paga a primeira em 10
+  // do mês seguinte, não numa data anterior ao próprio contrato.
+  const vencimentos = diasDeVencimento(startDate, endDate, dueDay);
+  const months = vencimentos.length;
 
   await withTenant(companyId, async (tx) => {
     for (let i = 0; i < months; i++) {
-      const due = new Date(start);
-      due.setMonth(due.getMonth() + i);
-      due.setDate(Math.min(dueDay, 28));
-      const dueDateStr = due.toISOString().split('T')[0]!;
+      const dueDateStr = vencimentos[i]!;
       const refMonth = dueDateStr.substring(0, 8) + '01';
 
       await tx.insert(financialEntry).values({

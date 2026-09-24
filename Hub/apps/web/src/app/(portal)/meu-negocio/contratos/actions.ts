@@ -30,6 +30,18 @@ export type ContractRow = {
   repassePercent: number | null;
   paymentFrequency: 'MENSAL' | 'QUINZENAL' | 'SEMANAL';
   createdAt: string;
+  model: string | null;
+  description: string | null;
+  adjustmentIndex: 'IPCA' | 'IGPM' | 'NENHUM';
+  nextAdjustmentDate: string | null;
+  signatureMethod: 'HUB' | 'DOCUSEAL' | 'FORA' | null;
+  /** false: o contrato veio de outra empresa do Hub. */
+  initiatedHere: boolean;
+  /** Falta a assinatura desta empresa (no Hub, ou no DocuSeal embutido). */
+  meFaltaAssinar: boolean;
+  /** A outra parte já assinou (só dá para saber quando a assinatura é no Hub). */
+  outraAssinou: boolean;
+  ownSignUrl: string | null;
 };
 
 export type ContractPaymentRow = {
@@ -43,10 +55,21 @@ export type ContractPaymentRow = {
   hasReceipt: boolean;
 };
 
+export type AssinaturaRegistrada = {
+  daMinhaEmpresa: boolean;
+  nome: string;
+  cpf: string | null;
+  em: string;
+  ip: string | null;
+};
+
 export type ContractDetail = {
   contract: ContractRow;
   mirrorPartyName: string | null;
   payments: ContractPaymentRow[];
+  /** Assinaturas feitas no Hub (as duas partes). */
+  assinaturas: AssinaturaRegistrada[];
+  documentHash: string | null;
 };
 
 function toRow(r: typeof businessContract.$inferSelect): ContractRow {
@@ -72,7 +95,36 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
     repassePercent: r.repassePercent != null ? Number(r.repassePercent) : null,
     paymentFrequency: r.paymentFrequency as 'MENSAL' | 'QUINZENAL' | 'SEMANAL',
     createdAt: r.createdAt.toISOString(),
+    model: r.model,
+    description: r.description,
+    adjustmentIndex: (r.adjustmentIndex as ContractRow['adjustmentIndex']) ?? 'IPCA',
+    nextAdjustmentDate: r.nextAdjustmentDate,
+    signatureMethod: (r.signatureMethod as ContractRow['signatureMethod']) ?? null,
+    initiatedHere: r.initiatedHere,
+    meFaltaAssinar: r.status === 'AGUARDANDO_ASSINATURA' && r.signatureMethod === 'DOCUSEAL' && !!r.ownSignUrl,
+    outraAssinou: false,
+    ownSignUrl: r.ownSignUrl,
   };
+}
+
+/** Nas assinaturas feitas no Hub: quem já assinou de cada lado. */
+async function comAssinaturasDoHub(companyId: string, rows: ContractRow[], raw: (typeof businessContract.$inferSelect)[]): Promise<ContractRow[]> {
+  const pendentes = raw.filter((r) => r.signatureMethod === 'HUB' && r.status === 'AGUARDANDO_ASSINATURA');
+  if (!pendentes.length) return rows;
+  const ids = pendentes.flatMap((r) => [r.id, r.mirrorContractId].filter(Boolean) as string[]);
+  const assinaturas = (await getDb().execute(sql`
+    SELECT contract_id, company_id FROM contract_signature WHERE contract_id IN (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})
+  `)) as unknown as { contract_id: string; company_id: string }[];
+  return rows.map((row) => {
+    const r = pendentes.find((p) => p.id === row.id);
+    if (!r) return row;
+    const doContrato = assinaturas.filter((a) => a.contract_id === r.id || a.contract_id === r.mirrorContractId);
+    return {
+      ...row,
+      meFaltaAssinar: !doContrato.some((a) => a.company_id === companyId),
+      outraAssinou: doContrato.some((a) => a.company_id === r.counterpartyCompanyId),
+    };
+  });
 }
 
 export async function listContractsAction(): Promise<ContractRow[]> {
@@ -84,7 +136,7 @@ export async function listContractsAction(): Promise<ContractRow[]> {
       .where(eq(businessContract.companyId, ctx.companyId))
       .orderBy(desc(businessContract.createdAt));
   });
-  return rows.map(toRow);
+  return comAssinaturasDoHub(ctx.companyId, rows.map(toRow), rows);
 }
 
 export type CreateContractState = { ok: boolean; message: string; linked?: boolean };
@@ -251,12 +303,32 @@ export async function getContractDetailAction(contractId: string): Promise<Contr
       .select()
       .from(financialEntry)
       .where(and(inArray(financialEntry.source, ['CONTRACT', 'INTEGRATION_SAAS', 'CONTRACT_EXTRA']), eq(financialEntry.sourceId, self.id)))
-      .orderBy(desc(financialEntry.dueDate));
+      // Da próxima para a última: o que vence primeiro vem em cima.
+      .orderBy(financialEntry.dueDate);
   });
 
+  const [contract] = await comAssinaturasDoHub(ctx.companyId, [toRow(self)], [self]);
+  const assinaturas =
+    self.signatureMethod === 'HUB'
+      ? ((await getDb().execute(sql`
+          SELECT company_id, signer_name, signer_cpf, signed_at, ip FROM contract_signature
+           WHERE contract_id IN (${self.id}::uuid${self.mirrorContractId ? sql`, ${self.mirrorContractId}::uuid` : sql``})
+           ORDER BY signed_at
+        `)) as unknown as { company_id: string; signer_name: string; signer_cpf: string | null; signed_at: Date; ip: string | null }[])
+      : [];
+
   return {
-    contract: toRow(self),
+    contract: contract!,
     mirrorPartyName,
+    documentHash: self.documentHash,
+    assinaturas: assinaturas.map((a) => ({
+      daMinhaEmpresa: a.company_id === ctx.companyId,
+      nome: a.signer_name,
+      // CPF mascarado na tela: ***.456.789-**
+      cpf: a.signer_cpf ? a.signer_cpf.replace(/^\d{3}\.(\d{3})\.(\d{3})-\d{2}$/, '***.$1.$2-**') : null,
+      em: new Date(a.signed_at).toISOString(),
+      ip: a.ip,
+    })),
     payments: paymentRows.map((p) => ({
       id: p.id,
       description: p.description,

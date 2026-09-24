@@ -7,6 +7,10 @@ export interface SignatureSigner {
   name: string;
   email: string;
   role?: string;
+  /** false: não manda e-mail para este signatário (ele assina embutido no Hub). */
+  sendEmail?: boolean;
+  /** Onde fica o campo de assinatura; `page: 'last'` = última página do PDF. */
+  area?: { x: number; y: number; w: number; h: number; page: number | 'last' };
 }
 
 export interface SignatureCreateInput {

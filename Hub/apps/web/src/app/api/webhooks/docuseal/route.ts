@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { signatureRequest, businessContract, lease, property } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
-import { gerarLancamentosDoContrato, jaTemLancamentosDoContrato, gerarLancamentosDoAluguel, jaTemLancamentosDoAluguel } from '@/lib/server/contract-financials';
+import { gerarLancamentosDoAluguel, jaTemLancamentosDoAluguel } from '@/lib/server/contract-financials';
+import { ativarContrato } from '@/lib/server/contratos';
+import { and, isNotNull, ne } from 'drizzle-orm';
 
 type EnvelopeStatus = 'SIGNED' | 'REFUSED' | 'EXPIRED';
 
@@ -23,22 +25,8 @@ async function activateLinkedRecords(signatureRequestId: string, status: Envelop
   for (const c of contracts) {
     try {
       if (status === 'SIGNED') {
-        if (c.status === 'ATIVO' || (await jaTemLancamentosDoContrato(c.companyId, c.id))) continue;
-        const today = new Date().toISOString().split('T')[0]!;
-        await withDbTimeout(
-          db.update(businessContract).set({ status: 'ATIVO', signingDate: today, updatedAt: new Date() }).where(eq(businessContract.id, c.id)),
-          8000,
-        );
-        await gerarLancamentosDoContrato({
-          companyId: c.companyId,
-          contractId: c.id,
-          tipo: c.type === 'ENTRADA' || c.type === 'MUTUO_ATIVO' ? 'RECEBER' : 'PAGAR',
-          descricao: `[Contrato] ${c.title} — ${c.partyName}`,
-          valor: Number(c.value),
-          dueDay: c.dueDay,
-          startDate: c.startDate,
-          endDate: c.endDate,
-        });
+        // Ativa os dois lados e lança as parcelas — idempotente.
+        await ativarContrato(c.id);
       } else if (status === 'REFUSED') {
         await withDbTimeout(
           db.update(businessContract).set({ status: 'RECUSADO', refusalReason, updatedAt: new Date() }).where(eq(businessContract.id, c.id)),
@@ -146,6 +134,30 @@ export async function POST(req: Request) {
           : eventType === 'submission.expired'
             ? 'EXPIRED'
             : null;
+
+    // Um signatário terminou: se não foi a outra parte, foi a própria
+    // empresa — o "Assinar agora" some da tela dela.
+    if (eventType === 'form.completed' && data?.email) {
+      const [req] = await withDbTimeout(
+        getDb().select({ id: signatureRequest.id }).from(signatureRequest).where(eq(signatureRequest.providerEnvelopeId, String(submissionId))).limit(1),
+        8000,
+      );
+      if (req) {
+        await withDbTimeout(
+          getDb()
+            .update(businessContract)
+            .set({ ownSignUrl: null, updatedAt: new Date() })
+            .where(
+              and(
+                eq(businessContract.signatureRequestId, req.id),
+                isNotNull(businessContract.ownSignUrl),
+                ne(businessContract.partyEmail, String(data.email)),
+              ),
+            ),
+          8000,
+        );
+      }
+    }
 
     if (!status) {
       return NextResponse.json({ received: true });

@@ -62,10 +62,10 @@ export default async function Page() {
   return (
     <div className="mx-auto w-full space-y-16">
       <SectionHero
-        subtitulo="Os contratos de serviço com seus clientes"
-        title="Gestão de Contratos de Serviços"
-        infoTitle="Sobre a Gestão de Contratos"
-        infoDescription="Gerencie contratos de receita (clientes) e despesa (fornecedores), emissão de NFSe, cobranças Pix e assinaturas digitais."
+        subtitulo="O que você recebe e o que você paga, assinado e no financeiro"
+        title="Contratos"
+        infoTitle="Sobre os contratos"
+        infoDescription="Crie o contrato a partir de um modelo ou do seu PDF, assine com a outra parte sem sair do Hub e, com as duas assinaturas, as parcelas entram sozinhas no financeiro e no calendário. Entrada é o que você recebe; saída, o que você paga."
       />
 
       <Suspense fallback={null}>

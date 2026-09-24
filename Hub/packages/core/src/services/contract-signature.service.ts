@@ -24,7 +24,10 @@ export interface ContractSignatureDeps {
 export class ContractSignatureService {
   constructor(private readonly deps: ContractSignatureDeps) {}
 
-  async send(ctx: TenantContext, input: SendForSignatureInput): Promise<{ id: string; status: string }> {
+  async send(
+    ctx: TenantContext,
+    input: SendForSignatureInput,
+  ): Promise<{ id: string; status: string; signUrls: { email: string; url: string }[] }> {
     if (!input.title.trim()) throw new Error('Informe um nome para o documento.');
     if (!input.signers.length) throw new Error('Adicione ao menos um signatário.');
 
@@ -48,7 +51,7 @@ export class ContractSignatureService {
         status: envelope.status,
         providerEnvelopeId: envelope.providerEnvelopeId,
       });
-      return { id, status: envelope.status };
+      return { id, status: envelope.status, signUrls: envelope.signUrls };
     } catch (err) {
       await this.deps.requests.updateStatus(ctx, id, { status: 'EXPIRED' });
       throw err;

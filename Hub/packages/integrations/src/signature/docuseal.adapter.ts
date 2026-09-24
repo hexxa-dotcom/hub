@@ -23,12 +23,21 @@ export class DocusealAdapter implements SignaturePort {
       throw new Error('DocuSeal requer o PDF em base64 (documentBuffer).');
     }
 
+    // Páginas do PDF — para pôr a assinatura na última quando o chamador pede.
+    const paginas = Math.max(
+      1,
+      (Buffer.from(input.documentBuffer.base64, 'base64').toString('latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length,
+    );
     const fields = input.signers.map((s, i) => ({
       name: `Assinatura — ${s.role ?? s.name ?? `Parte ${i + 1}`}`,
       type: 'signature',
       role: s.role ?? `Parte ${i + 1}`,
       required: true,
-      areas: [{ x: 0.58, y: Math.min(0.9, 0.7 + i * 0.08), w: 0.32, h: 0.06, page: 1 }],
+      areas: [
+        s.area
+          ? { x: s.area.x, y: s.area.y, w: s.area.w, h: s.area.h, page: s.area.page === 'last' ? paginas : s.area.page }
+          : { x: 0.58, y: Math.min(0.9, 0.7 + i * 0.08), w: 0.32, h: 0.06, page: 1 },
+      ],
     }));
 
     const templateRes = await fetch(`${BASE_URL}/templates/pdf`, {
@@ -48,6 +57,7 @@ export class DocusealAdapter implements SignaturePort {
       name: s.name,
       email: s.email,
       role: s.role ?? `Parte ${i + 1}`,
+      ...(s.sendEmail === false ? { send_email: false } : {}),
     }));
 
     const subRes = await fetch(`${BASE_URL}/submissions`, {

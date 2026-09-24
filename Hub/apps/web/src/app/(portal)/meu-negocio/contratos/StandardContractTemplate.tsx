@@ -79,7 +79,7 @@ export interface ContractData {
  * IMPORTANTE: isto é um modelo de referência de mercado, não substitui
  * revisão por um advogado antes de uso em contratos de valor relevante.
  */
-const CATEGORY_CLAUSES: Record<string, { heading: string; items: string[] }> = {
+export const CATEGORY_CLAUSES: Record<string, { heading: string; items: string[] }> = {
   MEDICO: {
     heading: 'DISPOSIÇÕES ESPECÍFICAS — SERVIÇOS DE SAÚDE',
     items: [
