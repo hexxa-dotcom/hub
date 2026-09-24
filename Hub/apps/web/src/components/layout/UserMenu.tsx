@@ -167,10 +167,10 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
         aria-expanded={isOpen}
         aria-haspopup="true"
         title={displayName}
-        className={`tap-target pressable group flex items-center gap-2 rounded-full transition-all ${
+        className={`tap-target pressable group flex items-center gap-1.5 rounded-full transition-all ${
           compact
             ? 'p-0.5'
-            : 'border border-black/8 dark:border-white/10 bg-surface/80 hover:bg-black/5 dark:hover:bg-white/5 py-1 pl-1.5 pr-2.5 shadow-(--elev-1)'
+            : 'h-8 border border-black/8 dark:border-white/10 bg-surface/80 hover:bg-black/5 dark:hover:bg-white/5 pl-3.5 pr-3 shadow-(--elev-1)'
         }`}
       >
         {/* Avatar só no celular (compact); no topo do desktop fica só o nome —
@@ -195,7 +195,7 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
 
         {!compact && (
           <>
-            <span className="max-w-[160px] truncate pl-1.5 text-xs font-semibold text-ink">
+            <span className="max-w-[160px] truncate text-xs font-bold text-ink">
               {displayName}
             </span>
 
