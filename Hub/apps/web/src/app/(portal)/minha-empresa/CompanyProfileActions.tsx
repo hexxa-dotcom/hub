@@ -115,7 +115,7 @@ export function ShareCompanyButton({ companyData, className = '' }: ShareCompany
   const [copied, setCopied] = useState(false);
 
   const textToShare = [
-    `🏢 ${companyData.nome}`,
+    companyData.nome.toUpperCase(),
     companyData.razaoSocial !== companyData.nome ? `Razão Social: ${companyData.razaoSocial}` : null,
     `CNPJ: ${companyData.cnpj}`,
     companyData.regime ? `Regime Tributário: ${companyData.regime}` : null,
@@ -156,19 +156,19 @@ export function ShareCompanyButton({ companyData, className = '' }: ShareCompany
       onClick={handleShare}
       className={`tap-target pressable inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-xs ${
         copied
-          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-          : 'bg-[#1E3328] hover:bg-[#2F4A3C] text-[#DFFFAE] border border-[#2F4A3C]'
+          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+          : 'bg-hexxa-forest text-hexxa-lime hover:bg-hexxa-green dark:bg-hexxa-lime dark:text-hexxa-forest'
       } ${className}`}
     >
       {copied ? (
         <>
           <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Ficha copiada!</span>
+          <span>Ficha copiada</span>
         </>
       ) : (
         <>
           <Share2 className="h-3.5 w-3.5" />
-          <span>Compartilhar Ficha</span>
+          <span>Compartilhar ficha</span>
         </>
       )}
     </button>
