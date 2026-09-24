@@ -55,7 +55,6 @@ export const NAV: NavSection[] = [
       // pelos cards do Início), só saíram do menu lateral.
       { label: 'Financeiro', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
-      { label: 'Conciliação', href: '/meu-negocio/conciliacao' },
       // Sem adaptador ainda: a porta existe, nenhum implementador. O item fica
       // visível com o selo para o empresário saber que a lacuna tem solução
       // prevista, em vez de descobrir sozinho que o extrato não chega.

@@ -4,6 +4,8 @@ import { getLancamentos } from './actions';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
+import { ExtratoConteudo } from '../conciliacao/ExtratoConteudo';
+import { getReconciliationData } from '../conciliacao/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +33,26 @@ async function HubFinanceiroInsight() {
   return <InsightCard pageKey="meu-negocio/hub-financeiro" insight={insight} />;
 }
 
-export default async function Page() {
+const ABAS = ['geral', 'pagar', 'receber', 'extrato', 'agenda'] as const;
+
+export default async function Page({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
+  const aba = (await searchParams).aba;
+  const initialTab = (ABAS as readonly string[]).includes(aba ?? '') ? (aba as (typeof ABAS)[number]) : 'geral';
+  // Só o número para a aba; o conteúdo do extrato carrega no próprio Suspense.
+  const extratoPendentes = await getReconciliationData()
+    .then((d) => d.transactions.length)
+    .catch(() => 0);
+
   return (
     <div className="mx-auto w-full space-y-16 animate-fade-up">
       <HubFinanceiro
+        initialTab={initialTab}
+        extratoPendentes={extratoPendentes}
+        extratoSlot={
+          <Suspense fallback={<p className="py-16 text-center text-sm text-ink-soft">Carregando o extrato…</p>}>
+            <ExtratoConteudo />
+          </Suspense>
+        }
         insightSlot={
           <Suspense fallback={null}>
             <HubFinanceiroInsight />

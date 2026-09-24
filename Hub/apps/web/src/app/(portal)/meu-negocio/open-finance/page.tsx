@@ -82,7 +82,7 @@ export default function OpenFinancePage() {
               </li>
             </ul>
             <Link
-              href="/meu-negocio/conciliacao"
+              href="/meu-negocio/hub-financeiro?aba=extrato"
               className="tap-target pressable focusable mt-6 inline-flex items-center gap-1.5 text-footnote font-semibold text-hexxa-green dark:text-hexxa-lime"
             >
               Ir para a conciliação

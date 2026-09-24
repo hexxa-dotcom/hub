@@ -125,7 +125,7 @@ export async function matchTransaction(
   });
 
   if (result.ok) {
-    revalidatePath('/meu-negocio/conciliacao');
+    revalidatePath('/meu-negocio/hub-financeiro');
     revalidatePath('/meu-negocio/hub-financeiro');
   }
   return result;
@@ -141,7 +141,7 @@ export async function ignoreTransaction(bankTransactionId: string) {
       .where(eq(bankTransaction.id, bankTransactionId));
   });
 
-  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/hub-financeiro');
 }
 
 /**
@@ -262,7 +262,7 @@ export async function applyAiNewEntryAction(
   });
 
   if (result.ok) {
-    revalidatePath('/meu-negocio/conciliacao');
+    revalidatePath('/meu-negocio/hub-financeiro');
     revalidatePath('/meu-negocio/hub-financeiro');
   }
   return result;
@@ -355,7 +355,7 @@ export async function applyBatchAiSuggestionsAction(
     }
   });
 
-  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/meu-negocio/hub-financeiro');
   return { ok: true, count: appliedCount };
 }

@@ -76,7 +76,7 @@ export async function subirExtratoAction(
     const ia = await identificarMovimentos(ctx.companyId);
     const t = await saldoDaTransitoria(db, ctx.companyId, '2999-12-01');
 
-    revalidatePath('/meu-negocio/conciliacao');
+    revalidatePath('/meu-negocio/hub-financeiro');
     revalidatePath('/meu-negocio/hub-financeiro');
 
     const periodo = imp.de && imp.ate
@@ -145,7 +145,7 @@ export async function criarContaAction(
   const ctx = await getTenantContext();
   try {
     const r = await criarContaBancaria(getDb(), ctx.companyId, banco, numero);
-    revalidatePath('/meu-negocio/conciliacao');
+    revalidatePath('/meu-negocio/hub-financeiro');
     return { ok: true, id: r.id };
   } catch (err) {
     return { ok: false, erro: err instanceof Error ? err.message : String(err) };

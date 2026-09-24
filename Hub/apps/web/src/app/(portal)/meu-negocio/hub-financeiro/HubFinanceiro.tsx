@@ -4,8 +4,10 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import { AgendaDaCentral } from '../../minha-contabilidade/guias/AgendaDaCentral';
 import { GraficoEntradasSaidas, periodosPorDia } from '@/components/ui/GraficoEntradasSaidas';
-import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { ColarPagamento } from './ColarPagamento';
+import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import { twMerge } from 'tailwind-merge';
@@ -43,6 +45,8 @@ import {
   PauseCircle,
   PlayCircle,
   Users,
+  CalendarDays,
+  ClipboardPaste,
 } from 'lucide-react';
 import { GeneratePixModal } from '@/components/ui/GeneratePixModal';
 import {
@@ -806,6 +810,7 @@ function LancamentosTab({
   const [filter, setFilter] = useState<FilterTab>('todos');
   const [showForm, setShowForm] = useState(false);
   const [showFixas, setShowFixas] = useState(false);
+  const [showColar, setShowColar] = useState(false);
   const [marking, setMarking] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -969,6 +974,16 @@ function LancamentosTab({
               Despesas Fixas
             </button>
           )}
+          {isPagar && (
+            <button
+              type="button"
+              onClick={() => setShowColar(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2 text-xs font-bold text-ink hover:text-ink transition-all"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              Colar boleto ou Pix
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
@@ -979,6 +994,8 @@ function LancamentosTab({
           </button>
         </div>
       </div>
+
+      {showColar && <ColarPagamento categorias={categorias} onClose={() => setShowColar(false)} onSaved={() => onAdd({} as Lancamento)} />}
 
       {isPagar && showFixas && (
         <DespesasFixasPanel categorias={categorias} onClose={() => setShowFixas(false)} onChanged={() => onUpdate({} as Lancamento)} />
@@ -1476,7 +1493,7 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
 
 // ── Main Financeiro Component ───────────────────────────────────────────
 
-type TabKey = 'geral' | 'pagar' | 'receber';
+type TabKey = 'geral' | 'pagar' | 'receber' | 'extrato' | 'agenda';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'geral', label: 'Visão Geral', icon: LayoutGrid },
@@ -1568,7 +1585,19 @@ function DreModal({ data, selectedMonth, onClose }: { data: Lancamento[]; select
   );
 }
 
-export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTab?: TabKey; insightSlot?: React.ReactNode }) {
+export function HubFinanceiro({
+  initialTab = 'geral',
+  insightSlot,
+  extratoSlot,
+  extratoPendentes = 0,
+}: {
+  initialTab?: TabKey;
+  insightSlot?: React.ReactNode;
+  /** A aba Extrato é montada no servidor (ver ExtratoConteudo) e chega pronta. */
+  extratoSlot?: React.ReactNode;
+  /** Transações do extrato ainda sem lançamento — o número vermelho da aba. */
+  extratoPendentes?: number;
+}) {
   const currentMonthStr = currentMonth();
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [data, setData] = useState<Lancamento[]>([]);
@@ -1623,9 +1652,11 @@ export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTa
   }
 
   const vencidos = data.filter((l) => getStatus(l) === 'vencido').length;
+  const mesDaAgenda = /^\d{4}-\d{2}$/.test(String(selectedMonth)) ? String(selectedMonth) : currentMonthStr;
 
   return (
-    <div className="space-y-6">
+    // Mesmo respiro da Central de Guias: seções separadas por 4rem.
+    <div className="space-y-16">
       {/* Hero Card do Financeiro */}
       <SectionHero
         title="Financeiro"
@@ -1652,6 +1683,8 @@ export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTa
                 ) : undefined,
               },
               { id: 'receber', label: 'Contas a Receber', icon: ArrowUpCircle },
+              { id: 'extrato', label: 'Extrato', icon: Landmark, badge: alertaDaAba(extratoPendentes) },
+              { id: 'agenda', label: 'Agenda', icon: CalendarDays },
             ]}
             activeTab={tab}
             onChange={setTab}
@@ -1670,15 +1703,6 @@ export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTa
             onNextMonth={handleNextMonth}
             onCurrentMonth={handleCurrentMonth}
           />
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={refreshing || loading}
-            title="Atualizar"
-            className="tap-target pressable focusable rounded-full bg-surface-card shadow-(--elev-1) hover:shadow-(--elev-2) p-2.5 text-ink-soft hover:text-ink transition-all cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </div>
 
@@ -1702,6 +1726,27 @@ export function HubFinanceiro({ initialTab = 'geral', insightSlot }: { initialTa
           {tab === 'geral' && <VisaoGeral data={data} selectedMonth={selectedMonth} onNavigate={setTab} />}
           {tab === 'pagar' && <LancamentosTab tipo="PAGAR" data={data} categorias={categorias} selectedMonth={selectedMonth} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
           {tab === 'receber' && <LancamentosTab tipo="RECEBER" data={data} categorias={categorias} selectedMonth={selectedMonth} onAdd={refresh} onUpdate={refresh} onDelete={refresh} />}
+          {tab === 'extrato' && extratoSlot}
+          {tab === 'agenda' && (
+            <AgendaDaCentral
+              itens={data
+                .filter((l) => l.vencimento.slice(0, 7) === mesDaAgenda)
+                .map((l) => {
+                  const st = getStatus(l);
+                  return {
+                    id: l.id,
+                    data: l.vencimento,
+                    titulo: l.descricao,
+                    selo: `${l.tipo === 'RECEBER' ? 'A receber' : 'A pagar'} · ${grupoDe(l)}`,
+                    valor: l.valor,
+                    situacao: st === 'pago' ? ('PAID' as const) : st === 'vencido' ? ('OVERDUE' as const) : ('OPEN' as const),
+                    entrada: l.tipo === 'RECEBER',
+                  };
+                })}
+              mes={mesDaAgenda}
+              rotuloDoMes={getFormattedMonth(mesDaAgenda)}
+            />
+          )}
         </>
       )}
     </div>

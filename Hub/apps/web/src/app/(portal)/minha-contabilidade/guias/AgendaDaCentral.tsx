@@ -26,6 +26,8 @@ export interface ItemDaAgenda {
   selo: string;
   valor: number | null;
   situacao: SituacaoNaAgenda;
+  /** Dinheiro que entra (conta a receber). Muda os rótulos: "a receber", "recebida". */
+  entrada?: boolean;
 }
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -38,11 +40,12 @@ const SITUACAO: Record<SituacaoNaAgenda, { label: string; cls: string; ponto: st
   DOC: { label: 'Documento', cls: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20', ponto: 'bg-sky-500', icon: FileText },
 };
 
-function Selo({ s }: { s: SituacaoNaAgenda }) {
+function Selo({ s, entrada }: { s: SituacaoNaAgenda; entrada?: boolean }) {
   const c = SITUACAO[s];
+  const label = entrada ? (s === 'PAID' ? 'Recebida' : s === 'OPEN' ? 'A receber' : c.label) : c.label;
   return (
     <span className={`inline-flex w-full items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${c.cls}`}>
-      <c.icon className="h-3 w-3" /> {c.label}
+      <c.icon className="h-3 w-3" /> {label}
     </span>
   );
 }
@@ -60,8 +63,12 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
     return m;
   }, [itens]);
 
-  const aPagar = itens.filter((i) => i.situacao === 'OPEN' || i.situacao === 'OVERDUE').reduce((s, i) => s + (i.valor ?? 0), 0);
-  const pago = itens.filter((i) => i.situacao === 'PAID').reduce((s, i) => s + (i.valor ?? 0), 0);
+  const soma = (l: ItemDaAgenda[]) => l.reduce((s, i) => s + (i.valor ?? 0), 0);
+  const emAberto = (i: ItemDaAgenda) => i.situacao === 'OPEN' || i.situacao === 'OVERDUE';
+  const aPagar = soma(itens.filter((i) => !i.entrada && emAberto(i)));
+  const aReceber = soma(itens.filter((i) => i.entrada && emAberto(i)));
+  const pago = soma(itens.filter((i) => !i.entrada && i.situacao === 'PAID'));
+  const temEntradas = itens.some((i) => i.entrada);
 
 
   return (
@@ -72,7 +79,9 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
           <p className="text-xs text-ink-soft sm:text-sm">
             {itens.length === 0
               ? 'Nada com data neste mês.'
-              : `A pagar ${BRL.format(aPagar)} · pago ${BRL.format(pago)}`}
+              : temEntradas
+                ? `A pagar ${BRL.format(aPagar)} · a receber ${BRL.format(aReceber)}`
+                : `A pagar ${BRL.format(aPagar)} · pago ${BRL.format(pago)}`}
           </p>
         </div>
         <SegmentedTabs
@@ -89,7 +98,7 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
 
       {visao === 'extrato' ? (
         itens.length === 0 ? (
-          <p className="py-10 text-center text-sm text-ink-soft">Nenhuma guia, cobrança ou documento neste mês.</p>
+          <p className="py-10 text-center text-sm text-ink-soft">Nada com vencimento neste mês.</p>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-black/5 dark:border-white/10">
             {/* Cabeçalho e linhas na MESMA grade: é o que mantém tudo alinhado. */}
@@ -117,7 +126,7 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
                       {i.valor != null ? BRL.format(i.valor) : '—'}
                     </span>
                     <span className="col-start-2 w-32 sm:col-start-auto sm:w-auto">
-                      <Selo s={i.situacao} />
+                      <Selo s={i.situacao} entrada={i.entrada} />
                     </span>
                   </div>
                 ))}
@@ -211,7 +220,7 @@ function Calendario({
                 <span className="text-xs text-ink-soft">{i.selo}</span>
               </span>
               <span className="text-right text-sm font-serif font-bold tabular text-ink">{i.valor != null ? BRL.format(i.valor) : '—'}</span>
-              <Selo s={i.situacao} />
+              <Selo s={i.situacao} entrada={i.entrada} />
             </div>
           ))}
         </div>

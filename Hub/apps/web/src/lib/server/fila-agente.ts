@@ -66,7 +66,7 @@ export async function decidir(
 
   // As duas telas que hospedam a fila. Revalidar só uma deixaria a outra
   // mostrando um item já decidido.
-  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/meu-negocio/relatorios/fechamento');
   return { ok: r.ok, message: r.mensagem };
 }
@@ -94,7 +94,7 @@ export async function decidirTodas(
     }
   }
 
-  revalidatePath('/meu-negocio/conciliacao');
+  revalidatePath('/meu-negocio/hub-financeiro');
   revalidatePath('/meu-negocio/relatorios/fechamento');
   return { ok: true, message: `${itens.length} ação(ões) confirmada(s) com sucesso.` };
 }
