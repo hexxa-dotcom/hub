@@ -56,6 +56,9 @@ export const company = pgTable('company', {
   whatsapp: text('whatsapp'),
   email: text('email'),
   phone: text('phone'),
+  /** Link público da ficha (/e/<slug>) e se ele está no ar. Ver 0071. */
+  fichaPublicaSlug: text('ficha_publica_slug'),
+  fichaPublicaAtiva: boolean('ficha_publica_ativa').notNull().default(false),
   oneflowCreatedAt: timestamp('oneflow_created_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

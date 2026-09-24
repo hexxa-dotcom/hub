@@ -10,6 +10,8 @@ function isPublicRoute(pathname: string): boolean {
     '/opengraph-image',
     '/icon',
     '/auth',
+    // Ficha pública da empresa (cartão de visita) — só abre se a empresa ligou o link.
+    '/e',
     '/api/leads',
     '/api/webhooks',
     '/api/docuseal/token',

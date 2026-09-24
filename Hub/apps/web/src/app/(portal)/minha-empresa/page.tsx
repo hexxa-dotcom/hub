@@ -1,43 +1,16 @@
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Building2,
-  Users,
-  FileText,
-  Calendar,
-  Briefcase,
-  MapPin,
-  Pencil,
-  ShieldCheck,
-  TrendingUp,
-  Coins,
-  Clock,
-  ArrowUpRight,
-  Receipt,
-  FolderOpen,
-  CheckCircle2,
-  Lock,
-  Wallet,
-  Sparkles,
-  Globe,
-  MessageSquare,
-  Mail,
-  Phone,
-  ExternalLink,
-} from 'lucide-react';
-import { Instagram, Linkedin } from '@/components/ui/SocialIcons';
+import { Pencil, Lock } from 'lucide-react';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getFichaDaEmpresa } from '@/lib/server/ficha-da-empresa';
 import { getStatusDoCertificado } from '@/lib/server/certificado';
 import { SectionHero } from '@/components/ui/SectionHero';
-import {
-  CopyButton,
-  ShareCompanyButton,
-  OpenMapsButton,
-  CompanyLogoBadge,
-  PartnerAvatarBadge,
-} from './CompanyProfileActions';
+import { getLinkDaFicha, qrDaFicha, urlDaFicha } from '@/lib/server/ficha-publica';
+import { CartaoDaEmpresa } from '@/components/ficha/CartaoDaEmpresa';
+import { CopyButton, CompanyLogoBadge, PartnerAvatarBadge } from './CompanyProfileActions';
+import { LinkDaFicha } from './LinkDaFicha';
+import { contatosDaEmpresa } from '@/components/ficha/contatos';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Minha empresa · Hexxa Hub' };
@@ -69,15 +42,6 @@ function formatCNPJ(cnpj: string): string {
   return cnpj;
 }
 
-function maskCPF(cpf: string | null): string {
-  if (!cpf) return '—';
-  const digits = cpf.replace(/\D/g, '');
-  if (digits.length === 11) {
-    return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
-  }
-  return cpf;
-}
-
 function formatCEP(cep: string | null): string {
   if (!cep) return '';
   const digits = cep.replace(/\D/g, '');
@@ -85,18 +49,6 @@ function formatCEP(cep: string | null): string {
     return `${digits.slice(0, 5)}-${digits.slice(5)}`;
   }
   return cep;
-}
-
-function formatPhone(phone: string | null): string {
-  if (!phone) return '';
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 11) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  }
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  }
-  return phone;
 }
 
 export default async function Page() {
@@ -125,111 +77,83 @@ export default async function Page() {
     ? new Date(`${certStatus.ficha.validoAte}T12:00:00Z`).toLocaleDateString('pt-BR')
     : null;
 
-  // Formatação de links sociais
-  const instagramHandle = ficha.instagram
-    ? ficha.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '@').replace(/\/$/, '')
-    : null;
-  const instagramUrl = ficha.instagram
-    ? ficha.instagram.startsWith('http')
-      ? ficha.instagram
-      : `https://instagram.com/${ficha.instagram.replace(/^@/, '')}`
-    : null;
-
-  const websiteUrl = ficha.website
-    ? ficha.website.startsWith('http')
-      ? ficha.website
-      : `https://${ficha.website}`
-    : null;
-
-  const whatsappClean = ficha.whatsapp ? ficha.whatsapp.replace(/\D/g, '') : null;
-  const whatsappUrl = whatsappClean ? `https://wa.me/55${whatsappClean.replace(/^55/, '')}` : null;
-
-  const hasAnySocial = Boolean(
-    ficha.website || ficha.instagram || ficha.linkedin || ficha.whatsapp || ficha.email || ficha.phone,
-  );
-
   const nome = ficha.nomeFantasia || ficha.razaoSocial;
   const regime = ficha.regime ? (REGIME[ficha.regime] ?? ficha.regime) : null;
   const abertura = ficha.abertura ? new Date(`${ficha.abertura}T12:00:00Z`).toLocaleDateString('pt-BR') : null;
-  const linkedinUrl = ficha.linkedin ? (ficha.linkedin.startsWith('http') ? ficha.linkedin : `https://${ficha.linkedin}`) : null;
-  const contatos = [
-    websiteUrl && { rotulo: 'Site', valor: ficha.website!.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), href: websiteUrl },
-    instagramUrl && { rotulo: 'Instagram', valor: instagramHandle!, href: instagramUrl },
-    linkedinUrl && { rotulo: 'LinkedIn', valor: ficha.linkedin!.replace(/^https?:\/\/(www\.)?linkedin\.com\//, '').replace(/\/$/, ''), href: linkedinUrl },
-    whatsappUrl && { rotulo: 'WhatsApp', valor: formatPhone(ficha.whatsapp), href: whatsappUrl },
-    ficha.email && { rotulo: 'E-mail', valor: ficha.email, href: `mailto:${ficha.email}` },
-    ficha.phone && { rotulo: 'Telefone', valor: formatPhone(ficha.phone), href: `tel:${ficha.phone.replace(/\D/g, '')}` },
-  ].filter(Boolean) as { rotulo: string; valor: string; href: string }[];
+  // Os mesmos contatos, na mesma forma, que o link público mostra.
+  const contatos = contatosDaEmpresa({ ...ficha, telefone: ficha.phone });
   const fatos = [
     { rotulo: 'Situação', valor: ficha.situacao === 'ATIVA' ? 'Ativa' : 'Encerrada' },
     regime && { rotulo: 'Regime', valor: regime },
     { rotulo: 'Em atividade há', valor: tempo(ficha.tempoDeAtividade) },
     abertura && { rotulo: 'Fundada em', valor: abertura },
+    capitalSocialTotal > 0 && { rotulo: 'Capital social', valor: BRL.format(capitalSocialTotal) },
     ficha.city && { rotulo: 'Sede', valor: `${ficha.city}${ficha.state ? `/${ficha.state}` : ''}` },
   ].filter(Boolean) as { rotulo: string; valor: string }[];
 
+  const link = await getLinkDaFicha(tenantCtx);
+  const url = link.slug ? await urlDaFicha(link.slug) : null;
+  const qr = link.ativa && url ? await qrDaFicha(url) : null;
+
   /*
-   * A FICHA DA EMPRESA.
+   * MINHA EMPRESA — O CARTÃO DE VISITA.
    *
-   * Em cima, a identidade — o que se compartilha: nome, CNPJ, atividade,
-   * sócios, contatos e sede, numa peça só, em texto, sem cards e sem ícones
-   * de enfeite. Embaixo, separado, o que é só de quem administra: números do
-   * ano, capital, pró-labore e o certificado. Antes eram oito blocos, cada um
-   * com ícone, pílula e estilo próprios, misturando as duas coisas.
+   * Em cima, o cartão (o mesmo que aparece no link público) e o link em si:
+   * ligar, copiar, compartilhar, baixar o QR. No meio, tudo o que o link
+   * mostra, onde se troca o logo e as fotos. Embaixo, separado, o que é só de
+   * quem administra: faturamento, pró-labore e o certificado.
    */
   return (
     <div className="w-full space-y-16 animate-fade-up pb-20">
       <SectionHero
         title="Minha empresa"
-        subtitulo="A ficha da sua empresa"
+        subtitulo="O cartão de visita da sua empresa"
         infoTitle="Sobre a ficha da empresa"
-        infoDescription="Os dados oficiais da empresa, prontos para compartilhar, e os números internos que só você vê."
+        infoDescription="Os dados oficiais da empresa num cartão de visita com link próprio, para usar na bio das redes, e os números internos que só você vê."
         rightSlot={
-          <div className="flex items-center gap-4">
-            <Link
-              href={'/minha-empresa/editar' as never}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-ink"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Editar cadastro
-            </Link>
-            <ShareCompanyButton
-              companyData={{
-                nome,
-                razaoSocial: ficha.razaoSocial,
-                cnpj: formattedCNPJ,
-                regime,
-                endereco: fullAddress,
-                atividade: ficha.atividadeTexto,
-                cnae: ficha.atividadeCodigo,
-                website: ficha.website,
-                instagram: instagramHandle,
-                whatsapp: ficha.whatsapp,
-              }}
-            />
-          </div>
+          <Link
+            href={'/minha-empresa/editar' as never}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-ink"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar cadastro
+          </Link>
         }
       />
 
-      {/* ── A FICHA ─────────────────────────────────────────────────────── */}
+      {/* ── O CARTÃO E O LINK ───────────────────────────────────────────── */}
+      <section className="grid items-stretch gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-14">
+        <CartaoDaEmpresa
+          dados={{
+            nome,
+            atividade: ficha.atividadeTexto,
+            cnpj: formattedCNPJ,
+            desde: ficha.abertura?.slice(0, 4) ?? null,
+            sede: ficha.city ? `${ficha.city}${ficha.state ? `/${ficha.state}` : ''}` : null,
+            ativa: ficha.situacao === 'ATIVA',
+            logoUrl: ficha.logoUrl,
+          }}
+          qrSvg={qr}
+        />
+        <LinkDaFicha url={url} ativa={link.ativa} nome={nome} qrSvg={qr} />
+      </section>
+
+      {/* ── O QUE APARECE NO LINK ───────────────────────────────────────── */}
       <article className="overflow-hidden rounded-[32px] border border-white/70 bg-white/80 shadow-[0_12px_40px_rgba(0,0,0,0.05)] ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/80 dark:ring-white/5">
-        {/* Identidade */}
         <header className="flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:p-10">
           <CompanyLogoBadge logoUrl={ficha.logoUrl} companyName={nome} />
           <div className="min-w-0 flex-1">
-            <p className="rotulo text-ink-soft">Ficha da empresa</p>
-            <h2 className="mt-2 text-3xl font-light uppercase leading-tight tracking-[0.04em] text-ink sm:text-4xl">{nome}</h2>
-            {ficha.nomeFantasia && ficha.nomeFantasia !== ficha.razaoSocial && (
-              <p className="mt-1 text-sm text-ink-soft">{ficha.razaoSocial}</p>
-            )}
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <span className="font-mono text-sm tabular text-ink">CNPJ {formattedCNPJ}</span>
+            <p className="rotulo text-ink-soft">O que aparece no link</p>
+            <p className="mt-2 text-xl font-light uppercase leading-tight tracking-[0.04em] text-ink sm:text-2xl">{ficha.razaoSocial}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <span className="font-mono text-sm tabular text-ink-soft">CNPJ {formattedCNPJ}</span>
               <CopyButton text={formattedCNPJ} label="Copiar" variant="ghost" />
             </div>
+            <p className="mt-2 text-xs text-ink-soft">Clique no logo para trocar — ele vai para o cartão.</p>
           </div>
         </header>
 
-        {/* Os fatos, numa linha */}
-        <dl className="grid grid-cols-2 gap-px border-y border-black/5 bg-black/5 sm:grid-cols-3 lg:grid-cols-5 dark:border-white/10 dark:bg-white/10">
+      {/* Os fatos, numa linha */}
+        <dl className="grid grid-cols-2 gap-px border-y border-black/5 bg-black/5 sm:grid-cols-3 lg:grid-cols-6 dark:border-white/10 dark:bg-white/10">
           {fatos.map((f) => (
             <div key={f.rotulo} className="bg-white/80 px-8 py-5 dark:bg-[#151916]/80">
               <dt className="rotulo text-ink-soft">{f.rotulo}</dt>
@@ -251,6 +175,7 @@ export default async function Page() {
             {fullAddress && (
               <section>
                 <p className="rotulo text-ink-soft">Endereço</p>
+                <p className="mt-1 text-[11px] text-ink-soft">No link aparece só a cidade.</p>
                 <p className="mt-2 text-base leading-relaxed text-ink">{fullAddress}</p>
                 <div className="mt-2 flex items-center gap-4 text-xs text-ink-soft">
                   {formattedCEP && <span className="font-mono">CEP {formattedCEP}</span>}
@@ -324,18 +249,13 @@ export default async function Page() {
           <Lock className="h-3.5 w-3.5 text-ink-soft" />
           <p className="rotulo text-ink-soft">Só para você — não entra na ficha compartilhada</p>
         </div>
-        <GradeDeResumo>
+        <GradeDeResumo colunas={3}>
           <CardResumo
             destaque
             rotulo={`Faturamento em ${ficha.ano}`}
             valor={BRL.format(ficha.faturamentoNoAno)}
             nota={`${ficha.notasNoAno} ${ficha.notasNoAno === 1 ? 'nota emitida' : 'notas emitidas'} · média ${BRL.format(mediaMensalFaturamento)}/mês`}
             href="/meu-negocio/relatorios/faturamento"
-          />
-          <CardResumo
-            rotulo="Capital social"
-            valor={capitalSocialTotal > 0 ? BRL.format(capitalSocialTotal) : 'Não informado'}
-            nota={ficha.capitalAIntegralizar > 0 ? `${BRL.format(ficha.capitalAIntegralizar)} a integralizar` : 'Conforme o contrato social'}
           />
           <CardResumo
             rotulo="Pró-labore mensal"
@@ -351,7 +271,10 @@ export default async function Page() {
             href="/configuracoes/fiscal"
           />
         </GradeDeResumo>
-        <p className="text-xs text-ink-soft">Ticket médio no ano: {BRL.format(ticketMedio)}</p>
+        <p className="text-xs text-ink-soft">
+          Ticket médio no ano: {BRL.format(ticketMedio)}
+          {ficha.capitalAIntegralizar > 0 && ` · ${BRL.format(ficha.capitalAIntegralizar)} de capital a integralizar`}
+        </p>
       </section>
     </div>
   );
