@@ -14,7 +14,7 @@ import {
 /**
  * ESCRITURAÇÃO CONTÁBIL — razão de partidas dobradas.
  *
- * Por que isto existe: até aqui o Hub guardava movimento de caixa
+ * Por que isto existe: até aqui a Hexx guardava movimento de caixa
  * (`financial_entry`) e um "fechamento" que era a soma desse movimento. Soma
  * não é escrituração: não se confere, não vira balanço, e não se entrega à
  * contabilidade. Sem um razão, qualquer trabalho que uma IA fizesse sobre

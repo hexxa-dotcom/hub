@@ -55,7 +55,7 @@ export const accountingInvoice = pgTable('accounting_invoice', {
 });
 
 /**
- * Contrato de prestação de serviço da Hexxa com o CLIENTE (empresa), gerado
+ * Contrato de prestação de serviço da Hexx com o CLIENTE (empresa), gerado
  * em /contador/contratos. Não confundir com `contract` (contrato do tenant
  * com OS CLIENTES dele).
  */

@@ -586,7 +586,7 @@ export class AberturaNaoFechaError extends Error {
  *
  * Cliente que troca de contabilidade no meio do ano não traz lançamento
  * nenhum — traz um balancete da contabilidade anterior. Sem uma partida de
- * abertura, o razão do Hub começaria do zero e o balanço diria que a empresa
+ * abertura, o razão da Hexx começaria do zero e o balanço diria que a empresa
  * não tem caixa, não deve a ninguém e não tem capital. Todo relatório sairia
  * errado até o primeiro exercício fechar.
  *

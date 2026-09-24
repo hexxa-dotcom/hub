@@ -4,7 +4,7 @@ import { resolverMotor, credencialDoAmbiente } from './llm-config';
 
 /**
  * Sugestão de texto por IA pra campos de preenchimento livre (ex.: descrição
- * de serviço, forma de pagamento) — independente do painel de "Hexxa
+ * de serviço, forma de pagamento) — independente do painel de "Hexx
  * Insights" (apps/web/src/lib/server/ai-insight.ts), que tem um switch do
  * contador que pode estar desligado.
  *

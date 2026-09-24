@@ -22,8 +22,8 @@ import { eq, and } from 'drizzle-orm';
  * ter duas categorias com o mesmo rótulo na tela.
  *
  * Não inclui Ativo/Passivo/Patrimônio Líquido (grupos 1 e 2) — só contas de
- * Resultado fazem sentido como "categoria" de lançamento no Hub; o restante
- * do plano de contas contábil completo fica pra quando o Hub tiver
+ * Resultado fazem sentido como "categoria" de lançamento na Hexx; o restante
+ * do plano de contas contábil completo fica pra quando a Hexx tiver
  * escrituração contábil de verdade, não só fluxo de caixa.
  *
  * Executar: npx tsx packages/db/src/seed-categories-anexo7.ts <companyId>
@@ -108,7 +108,7 @@ const CATEGORIES: Cat[] = [
   { code: '3.3.2.02.13', name: 'Bens de Pequeno Valor', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
   { code: '3.3.2.02.14', name: 'Material de Escritório', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
   // Assinaturas/software não constava no Anexo 7 original (norma de 2012/2022,
-  // pré-SaaS) — adicionado porque é um custo real e recorrente do Hub e de
+  // pré-SaaS) — adicionado porque é um custo real e recorrente da Hexx e de
   // qualquer empresa de serviços digital hoje.
   { code: '3.3.2.02.15', name: 'Softwares e Assinaturas (SaaS)', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
 

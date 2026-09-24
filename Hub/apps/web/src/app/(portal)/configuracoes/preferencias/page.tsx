@@ -3,7 +3,7 @@ import { QuickActionsPreferencesForm } from './QuickActionsPreferencesForm';
 import { Card } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Preferências da Tela Inicial | Hexxa Hub',
+  title: 'Preferências da Tela Inicial | Hexx Digital',
 };
 
 export default function PreferenciasPage() {

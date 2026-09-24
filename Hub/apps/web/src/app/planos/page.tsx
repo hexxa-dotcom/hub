@@ -15,9 +15,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Planos & Preços Transparentes | Hexx Hub',
+  title: 'Planos & Preços Transparentes | Hexx Digital',
   description:
-    'Conheça os planos do Hexx Hub: Hub Start, Hub Pro + Contabilidade ou Holding & Private. Sem taxa de cancelamento e sem surpresas.',
+    'Conheça os planos da Hexx: Hub Start, Hub Pro + Contabilidade ou Holding & Private. Sem taxa de cancelamento e sem surpresas.',
 };
 
 export default function PlanosPage() {

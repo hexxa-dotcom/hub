@@ -5,7 +5,7 @@ import { isAdminUser } from '@/lib/server/admin-guard';
 import { McpTokensClient } from './McpTokensClient';
 
 export const metadata = {
-  title: 'Assistente de IA & API | Hexxa Hub',
+  title: 'Assistente de IA & API | Hexx Digital',
 };
 
 export default async function McpSetupPage() {

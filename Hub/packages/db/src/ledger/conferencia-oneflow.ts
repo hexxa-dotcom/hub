@@ -4,7 +4,7 @@ import { traduzirConta, DE_PARA_ONEFLOW } from '@hexxa/core';
 import { clienteOneflow } from './oneflow-client';
 
 /**
- * CONFERÊNCIA: balancete do Hub × balancete do OneFlow.
+ * CONFERÊNCIA: balancete da Hexx × balancete do OneFlow.
  *
  * É o que prova que a integração está certa. Enviar sem conferir seria trocar
  * uma escrituração não verificada por outra — o mesmo erro do `SUM()` que o
@@ -31,7 +31,7 @@ export interface LinhaConferencia {
 export interface Conferencia {
   linhas: LinhaConferencia[];
   bate: boolean;
-  /** Partidas que o Hub registrou como enviadas. */
+  /** Partidas que a Hexx registrou como enviadas. */
   enviadas: number;
   naoEnviadas: number;
 }
@@ -73,7 +73,7 @@ export async function conferirContraOneflow(
     GROUP BY a.code
   `)) as unknown as { code: string; d: string; c: string }[];
 
-  // Agrega pelo destino: várias contas do Hub podem cair na mesma do OneFlow.
+  // Agrega pelo destino: várias contas da Hexx podem cair na mesma do OneFlow.
   const porDestino = new Map<string, { d: number; c: number }>();
   for (const h of doHub) {
     const dest = traduzirConta(h.code);
@@ -215,7 +215,7 @@ export async function conferirPlanoDoOneflow(
     }
   }
 
-  // Um destino pode servir a várias contas do Hub — dizer quais ajuda a
+  // Um destino pode servir a várias contas da Hexx — dizer quais ajuda a
   // entender o tamanho do estrago antes de enviar.
   const porDestino = new Map<string, string[]>();
   for (const [contaDoHub, destino] of Object.entries(DE_PARA_ONEFLOW)) {

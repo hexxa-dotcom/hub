@@ -168,7 +168,7 @@ export default async function FichaPublicaPage({ params }: { params: Promise<{ s
         <footer className="text-center text-[11px] leading-relaxed text-black/40">
           Dados conferidos com o cadastro da Receita Federal.
           <br />
-          Ficha publicada pela própria empresa no <span className="font-semibold text-black/60">Hexxa Hub</span>.
+          Ficha publicada pela própria empresa na <span className="font-semibold text-black/60">Hexx Digital</span>.
         </footer>
       </div>
     </main>

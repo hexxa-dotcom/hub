@@ -7,7 +7,7 @@ import type { ClienteDoNibo } from '@/lib/server/clientes-do-nibo';
 import { habilitarClienteDoNiboAction, entrarNaAreaDoClienteAction } from '../actions';
 
 /**
- * A carteira do Nibo, esperando o contador decidir quem entra no Hub.
+ * A carteira do Nibo, esperando o contador decidir quem entra na Hexx.
  * Habilitar cria a empresa; quem já foi habilitado mostra o atalho para a
  * área do cliente.
  */
@@ -42,7 +42,7 @@ export function ClientesDoNibo({ clientes }: { clientes: ClienteDoNibo[] }) {
         <div>
           <h2 className="font-serif text-lg font-bold text-[#231F20] dark:text-[#F5F6F4]">Clientes do Nibo</h2>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-            {lista.length} empresas na carteira · {pendentes} ainda fora do Hub. Habilite quem deve entrar.
+            {lista.length} empresas na carteira · {pendentes} ainda fora da Hexx. Habilite quem deve entrar.
           </p>
         </div>
         <label className="relative">
@@ -70,7 +70,7 @@ export function ClientesDoNibo({ clientes }: { clientes: ClienteDoNibo[] }) {
             {c.companyId ? (
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> No Hub
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Na Hexx
                 </span>
                 <Link
                   href={`/contador/clientes/${c.companyId}` as never}
@@ -94,7 +94,7 @@ export function ClientesDoNibo({ clientes }: { clientes: ClienteDoNibo[] }) {
                 className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#1E3328] px-3 py-1.5 text-xs font-bold text-[#1E3328] hover:bg-[#1E3328] hover:text-[#DFFFAE] disabled:opacity-40 dark:border-[#DFFFAE] dark:text-[#DFFFAE]"
               >
                 <Plus className="h-3.5 w-3.5" />
-                {ocupado === c.document ? 'Consultando a Receita…' : 'Habilitar no Hub'}
+                {ocupado === c.document ? 'Consultando a Receita…' : 'Habilitar na Hexx'}
               </button>
             )}
           </li>

@@ -30,7 +30,7 @@ export default function AdminConfiguracoes() {
             <Sparkles className="h-6 w-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-serif font-bold text-base text-[#F5F6F4]">Hexxa Insights</h3>
+            <h3 className="font-serif font-bold text-base text-[#F5F6F4]">Hexx Insights</h3>
             <p className="text-xs text-[#DFFFAE]/70 mt-0.5">
               Dicas contextuais por IA nas telas dos clientes — chave da API, liga/desliga geral e por seção.
             </p>
@@ -45,7 +45,7 @@ export default function AdminConfiguracoes() {
           <div className="space-y-3.5">
             <div>
               <label className={lb}>Razão social</label>
-              <input defaultValue="Hexxa Contabilidade LTDA" className={`mt-1.5 ${fi}`} />
+              <input defaultValue="HEXX SERVIÇOS DIGITAIS LTDA" className={`mt-1.5 ${fi}`} />
             </div>
             <div>
               <label className={lb}>CNPJ</label>

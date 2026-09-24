@@ -16,7 +16,7 @@ const ACCOUNTS_DE_ABERTURA = {
  * ── Por que não um balancete ───────────────────────────────────────────
  *
  * `abrirSaldos` aceita um balancete inteiro, e é o caminho certo quando ele
- * existe — o contador já tem essa tela. Mas quem está abrindo o Hub sozinho,
+ * existe — o contador já tem essa tela. Mas quem está abrindo a Hexx sozinho,
  * cinco minutos depois de pagar, não tem balancete à mão; pedir um é o mesmo
  * que dizer "volte quando falar com seu contador". A pessoa não volta.
  *
@@ -27,7 +27,7 @@ const ACCOUNTS_DE_ABERTURA = {
  * ── Por que o saldo vira Lucros Acumulados ─────────────────────────────
  *
  * Toda partida precisa de contrapartida. O dinheiro que já estava na conta
- * antes de o Hub existir veio do resultado passado da empresa — não de
+ * antes de a Hexx existir veio do resultado passado da empresa — não de
  * integralização de capital nova, que seria afirmar um ato societário que não
  * aconteceu. Lucros Acumulados é a conta honesta para "veio de antes", e o
  * contador reclassifica depois se for o caso.
@@ -66,7 +66,7 @@ export async function salvarPontoDePartida(
        * Saldo zero também é resposta.
        *
        * Empresa recém-aberta tem conta zerada, e isso é informação: sem a
-       * partida de abertura, o Hub não sabe se o saldo é zero ou se ninguém
+       * partida de abertura, a Hexx não sabe se o saldo é zero ou se ninguém
        * contou — e é essa diferença que faz o card do caixa livre falar ou
        * se calar. Por isso grava-se a abertura mesmo com zero.
        */

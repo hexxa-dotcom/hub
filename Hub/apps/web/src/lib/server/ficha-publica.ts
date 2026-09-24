@@ -140,7 +140,7 @@ export async function definirFichaPublica(ctx: TenantContext, ativa: boolean): P
   });
 }
 
-/** Endereço completo do link, no domínio por onde a pessoa está usando o Hub. */
+/** Endereço completo do link, no domínio por onde a pessoa está usando a Hexx. */
 export async function urlDaFicha(slug: string): Promise<string> {
   return `${await origemPublica()}/e/${slug}`;
 }

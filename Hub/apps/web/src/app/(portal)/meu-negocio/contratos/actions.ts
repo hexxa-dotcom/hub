@@ -35,11 +35,11 @@ export type ContractRow = {
   adjustmentIndex: 'IPCA' | 'IGPM' | 'NENHUM';
   nextAdjustmentDate: string | null;
   signatureMethod: 'HUB' | 'DOCUSEAL' | 'FORA' | null;
-  /** false: o contrato veio de outra empresa do Hub. */
+  /** false: o contrato veio de outra empresa da Hexx. */
   initiatedHere: boolean;
-  /** Falta a assinatura desta empresa (no Hub, ou no DocuSeal embutido). */
+  /** Falta a assinatura desta empresa (na Hexx, ou no DocuSeal embutido). */
   meFaltaAssinar: boolean;
-  /** A outra parte já assinou (só dá para saber quando a assinatura é no Hub). */
+  /** A outra parte já assinou (só dá para saber quando a assinatura é na Hexx). */
   outraAssinou: boolean;
   ownSignUrl: string | null;
   verificationCode: string | null;
@@ -68,7 +68,7 @@ export type ContractDetail = {
   contract: ContractRow;
   mirrorPartyName: string | null;
   payments: ContractPaymentRow[];
-  /** Assinaturas feitas no Hub (as duas partes). */
+  /** Assinaturas feitas na Hexx (as duas partes). */
   assinaturas: AssinaturaRegistrada[];
   documentHash: string | null;
 };
@@ -109,7 +109,7 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
   };
 }
 
-/** Nas assinaturas feitas no Hub: quem já assinou de cada lado. */
+/** Nas assinaturas feitas na Hexx: quem já assinou de cada lado. */
 async function comAssinaturasDoHub(companyId: string, rows: ContractRow[], raw: (typeof businessContract.$inferSelect)[]): Promise<ContractRow[]> {
   const pendentes = raw.filter((r) => r.signatureMethod === 'HUB' && r.status === 'AGUARDANDO_ASSINATURA');
   if (!pendentes.length) return rows;
@@ -158,7 +158,7 @@ export async function createContractAction(input: {
   const ctx = await getTenantContext();
   const cnpjDigits = input.partyCnpj ? normalizeDocument(input.partyCnpj) : '';
 
-  // A contraparte também é uma empresa cadastrada na Hexxa? (busca global por CNPJ)
+  // A contraparte também é uma empresa cadastrada na Hexx? (busca global por CNPJ)
   let counterparty: { id: string; legalName: string; cnpj: string } | null = null;
   if (cnpjDigits.length === 14) {
     const db = getDb();
@@ -263,7 +263,7 @@ export async function createContractAction(input: {
     ok: true,
     linked,
     message: linked
-      ? `Contrato salvo e sincronizado automaticamente com ${counterparty!.legalName} (também cliente Hexxa) — os lançamentos financeiros de ambos os lados já foram gerados.`
+      ? `Contrato salvo e sincronizado automaticamente com ${counterparty!.legalName} (também cliente Hexx) — os lançamentos financeiros de ambos os lados já foram gerados.`
       : 'Contrato salvo e lançamentos financeiros gerados.',
   };
 }

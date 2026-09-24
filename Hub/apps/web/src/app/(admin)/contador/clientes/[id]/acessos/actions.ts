@@ -56,7 +56,7 @@ export async function convidarAction(
     const mensagem = r.jaEraMembro
       ? `${r.email} já tinha acesso — o papel foi atualizado para ${papel}.`
       : r.jaTinhaConta
-        ? `${r.email} já tem conta no Hub e agora acessa esta empresa.`
+        ? `${r.email} já tem conta na Hexx e agora acessa esta empresa.`
         : `Convite criado para ${r.email}. O acesso vale assim que ela se cadastrar com esse e-mail.`;
 
     return { ok: true, mensagem, resultado: r };

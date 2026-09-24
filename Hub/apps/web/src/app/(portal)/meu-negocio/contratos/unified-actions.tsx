@@ -47,7 +47,7 @@ function formatCompanyAddress(c: {
   return parts.join(' — ') || 'Endereço não informado';
 }
 
-/** Acha o dono (OWNER) de uma empresa cadastrada na Hexxa, pra auto-preencher signatário. */
+/** Acha o dono (OWNER) de uma empresa cadastrada na Hexx, pra auto-preencher signatário. */
 async function findCompanyOwnerContact(companyId: string): Promise<{ name: string; email: string } | null> {
   const [member] = await withDbTimeout(
     getDb().select({ userId: membership.userId }).from(membership).where(and(eq(membership.companyId, companyId), eq(membership.role, 'OWNER'))).limit(1),
@@ -65,7 +65,7 @@ export type CounterpartyLookup =
   | { found: false }
   | { found: true; legalName: string; ownerName: string; ownerEmail: string };
 
-/** Detecta se um CNPJ pertence a outra empresa já cadastrada na Hexxa — usado pelo wizard pra auto-preencher nome/e-mail do signatário. */
+/** Detecta se um CNPJ pertence a outra empresa já cadastrada na Hexx — usado pelo wizard pra auto-preencher nome/e-mail do signatário. */
 export async function lookupCounterpartyAction(cnpj: string): Promise<CounterpartyLookup> {
   const ctx = await getTenantContext();
   const digits = normalizeDocument(cnpj);
@@ -395,7 +395,7 @@ async function criarContratoFinanceiro(
       input.documentSource === 'ALREADY_SIGNED'
         ? 'Contrato registrado como ativo e lançamentos financeiros gerados.'
         : mirrorRow
-          ? 'Contrato enviado para assinatura — como a contraparte também é cliente Hexxa, os dois lados assinam o mesmo envelope e ativam juntos.'
+          ? 'Contrato enviado para assinatura — como a contraparte também é cliente Hexx, os dois lados assinam o mesmo envelope e ativam juntos.'
           : 'Contrato enviado para assinatura eletrônica.',
   };
 }

@@ -6,7 +6,7 @@ import { clienteOneflow } from './oneflow-client';
 /**
  * ENVIO DAS NOTAS AO MÓDULO FISCAL DO ONEFLOW.
  *
- * A perna que faltava. O Hub já mandava o razão CONTÁBIL; o módulo FISCAL —
+ * A perna que faltava. A Hexx já mandava o razão CONTÁBIL; o módulo FISCAL —
  * que apura o Simples e gera a guia — nunca recebeu nota nenhuma. Por isso a
  * apuração da HEXX voltava zerada em toda competência: não havia receita
  * escriturada lá para apurar.

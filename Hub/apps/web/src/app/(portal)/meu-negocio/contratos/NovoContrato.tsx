@@ -12,8 +12,8 @@ import { AssinarContrato, type ContratoParaAssinar } from './AssinarContrato';
  *
  *   1. Qual contrato: um modelo pronto (cliente, profissional PJ,
  *      fornecedor) ou o seu próprio PDF.
- *   2. Com quem e quanto: pelo CNPJ o Hub preenche nome e endereço, e diz se
- *      a outra parte usa o Hub (aí ela assina e recebe tudo lá dentro).
+ *   2. Com quem e quanto: pelo CNPJ a Hexx preenche nome e endereço, e diz se
+ *      a outra parte usa a Hexx (aí ela assina e recebe tudo lá dentro).
  *   3. Revisar e assinar: cria o contrato e já abre a assinatura.
  *
  * As parcelas só entram no financeiro quando as duas partes assinarem.
@@ -340,7 +340,7 @@ export function NovoContrato({
                 {avisoParte && <p className="text-xs text-ink-soft">{avisoParte}</p>}
                 {usaOHub === true && (
                   <p className="rounded-xl bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
-                    <strong>{nome}</strong> usa o Hub: o contrato aparece para ela na hora, para assinar, e as parcelas entram no financeiro dela
+                    <strong>{nome}</strong> usa a Hexx: o contrato aparece para ela na hora, para assinar, e as parcelas entram no financeiro dela
                     também.
                   </p>
                 )}
@@ -467,7 +467,7 @@ export function NovoContrato({
                 {modelo === 'PROPRIO' && jaAssinado
                   ? 'O contrato entra ativo e as parcelas vão direto para o financeiro.'
                   : usaOHub
-                    ? `Você assina agora, aqui mesmo. ${nome} recebe o aviso no Hub para assinar. Com as duas assinaturas, as parcelas entram no financeiro de cada um.`
+                    ? `Você assina agora, aqui mesmo. ${nome} recebe o aviso na Hexx para assinar. Com as duas assinaturas, as parcelas entram no financeiro de cada um.`
                     : `Você assina agora, aqui mesmo. ${nome} recebe o contrato em ${email} para assinar. Com as duas assinaturas, as parcelas entram no seu financeiro.`}
               </p>
               {modelo !== 'PROPRIO' && (

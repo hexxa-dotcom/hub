@@ -21,7 +21,7 @@ import {
 import { journalEntry } from '../schema/ledger';
 
 /**
- * ESCRITURAÇÃO — liga os documentos que já existem no Hub às regras de
+ * ESCRITURAÇÃO — liga os documentos que já existem na Hexx às regras de
  * lançamento.
  *
  * Cada função aqui lê um documento, monta os rascunhos de partida que ele
@@ -470,7 +470,7 @@ export async function reescriturarLancamento(
  * Refaz a escrituração de uma guia cujo valor mudou.
  *
  * O caso que a exige é a mão de volta do OneFlow: a apuração oficial pode
- * divergir da guia que o Hub já tinha (retificação, competência reaberta), e
+ * divergir da guia que a Hexx já tinha (retificação, competência reaberta), e
  * lá é que está a verdade fiscal. Mesma regra da reclassificação — estorno,
  * nunca alteração.
  */

@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://hexxdigital.com.br'),
-  title: 'Hexx Hub • digital',
+  title: 'Hexx Gestão Digital',
   description: 'Portal do Cliente e Hub Operacional de Autogestão',
 };
 

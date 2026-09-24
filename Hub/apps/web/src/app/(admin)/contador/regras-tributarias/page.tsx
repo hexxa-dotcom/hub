@@ -98,7 +98,7 @@ export default async function RegrasTributariasPage() {
               Auditor e Simulador de Impostos
             </h2>
             <p className="text-sm text-[#6E6A61] dark:text-[#A8A49C] mb-6">
-              Use esta ferramenta para testar o Motor Tributário do Hexx Hub. O cálculo será processado 100% no servidor (pure function) e um Trace de Auditoria será gerado.
+              Use esta ferramenta para testar o Motor Tributário da Hexx. O cálculo será processado 100% no servidor (pure function) e um Trace de Auditoria será gerado.
             </p>
             
             <TaxSimulatorForm />

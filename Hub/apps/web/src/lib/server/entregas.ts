@@ -223,7 +223,7 @@ export async function enviarDocumento(d: DocumentoParaEnviar): Promise<{ protoco
 
 /**
  * Avisa o cliente por e-mail, pela conta do escritório. O aviso não leva o
- * arquivo: leva o protocolo e o caminho para abrir no Hub — é a abertura lá
+ * arquivo: leva o protocolo e o caminho para abrir na Hexx — é a abertura lá
  * que fica registrada, e é ela que prova o recebimento.
  */
 export async function avisarPorEmail(deliveryId: string): Promise<string> {
@@ -281,7 +281,7 @@ export async function avisarPorEmail(deliveryId: string): Promise<string> {
           `Olá, ${e.legal_name}!\n\n` +
           `Sua contabilidade enviou um documento: ${e.titulo}${valor}${venc}.\n` +
           `Protocolo: ${e.protocolo}\n\n` +
-          `Abra no Hub: ${url}\n\n` +
+          `Abra na Hexx: ${url}\n\n` +
           `HEXX Contabilidade`,
       });
   } catch (err) {

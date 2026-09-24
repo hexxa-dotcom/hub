@@ -34,7 +34,7 @@ import { valorBr } from '../banking/extrato-parser';
  */
 
 export interface LinhaDeBalancete {
-  /** Código da conta no plano de ORIGEM — pode não existir no plano do Hub. */
+  /** Código da conta no plano de ORIGEM — pode não existir no plano da Hexx. */
   conta: string;
   descricao: string;
   /**

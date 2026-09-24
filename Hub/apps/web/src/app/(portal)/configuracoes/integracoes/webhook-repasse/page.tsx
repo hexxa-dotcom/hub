@@ -7,7 +7,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { Card } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Faturamento do SaaS do Cliente | Hexxa Hub',
+  title: 'Faturamento do SaaS do Cliente | Hexx Digital',
 };
 
 export default async function WebhookRepassePage() {

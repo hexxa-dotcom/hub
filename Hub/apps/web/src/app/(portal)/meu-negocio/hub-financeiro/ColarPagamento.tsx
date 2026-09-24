@@ -8,7 +8,7 @@ import { createLancamento } from './actions';
 /**
  * COLAR O BOLETO OU O PIX E PRONTO.
  *
- * A pessoa cola a linha digitável ou o "Pix copia e cola"; o Hub lê valor,
+ * A pessoa cola a linha digitável ou o "Pix copia e cola"; a Hexx lê valor,
  * vencimento e quem recebe (ver `lerPagamentoColado`) e mostra a conta pronta
  * para confirmar. Só a descrição e a categoria ficam para ela — e já vêm
  * sugeridas.

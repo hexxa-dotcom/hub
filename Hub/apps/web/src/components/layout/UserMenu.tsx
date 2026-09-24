@@ -23,7 +23,7 @@ interface UserMenuProps {
   companyName?: string;
   companyCnpj?: string;
   companyLogoUrl?: string | null;
-  /** Empresa encerrada/inativa também acessa o Hub — o menu diz qual é o caso. */
+  /** Empresa encerrada/inativa também acessa a Hexx — o menu diz qual é o caso. */
   companyActive?: boolean;
   onSignOut?: () => void;
   compact?: boolean;
@@ -294,7 +294,7 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
                 }}
                 className="flex w-full items-center rounded-xl px-2 py-2 text-left text-sm text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
               >
-                Sair do Hexx Hub
+                Sair da Hexx
               </button>
             </div>
           </motion.div>

@@ -266,7 +266,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
           <div className="rounded-3xl border border-black/8 dark:border-white/10 bg-surface p-6 shadow-(--elev-1) space-y-4">
             <h3 className="text-base font-bold text-ink mb-1">Dados Pessoais</h3>
             <p className="text-xs text-ink-soft mb-4">
-              Informações do usuário logado na plataforma Hexx Hub.
+              Informações do usuário logado na plataforma Hexx Digital.
             </p>
 
             <div className="space-y-4">

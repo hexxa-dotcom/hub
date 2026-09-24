@@ -10,7 +10,7 @@ import { escriturarLancamento } from './escrituracao';
  * ── A ordem importa mais que qualquer outra coisa aqui ──────────────────
  *
  * Primeiro CASAR, depois classificar. Um pagamento de fornecedor que já está
- * no Hub como conta a pagar não é uma despesa nova: é a BAIXA daquela conta.
+ * na Hexx como conta a pagar não é uma despesa nova: é a BAIXA daquela conta.
  * Tratá-lo como fato novo lançaria a despesa duas vezes — uma pela nota, uma
  * pelo extrato — e o razão fecharia nas duas, porque cada partida fecha
  * isoladamente. O erro apareceria só na DRE, como um custo dobrado que

@@ -36,7 +36,7 @@ function nomeComercial(features: unknown): string | null {
  * ── Por que é uma rota separada ─────────────────────────────────────────
  *
  * Isto vivia dentro de `/api/cron/fechamento`, misturado com o fechamento
- * contábil. São coisas sem relação: faturar o cliente pelo serviço da Hexxa é
+ * contábil. São coisas sem relação: faturar o cliente pelo serviço da Hexx é
  * cobrança da plataforma, e encerrar um período é contabilidade. Estavam
  * juntas só porque as duas aconteciam no dia 1.
  *

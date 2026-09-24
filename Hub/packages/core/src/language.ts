@@ -1,5 +1,5 @@
 /**
- * Regras de linguagem do Hexx Hub Digital — FONTE ÚNICA DE VERDADE.
+ * Regras de linguagem do Hexx Digital — FONTE ÚNICA DE VERDADE.
  *
  * CRÍTICO (definido pelo produto):
  *   1. NUNCA "investimento" para preços/honorários  → use "valor".

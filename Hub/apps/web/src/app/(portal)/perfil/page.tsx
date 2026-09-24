@@ -5,8 +5,8 @@ import { SectionHero } from '@/components/ui/SectionHero';
 import { ProfileForm } from './ProfileForm';
 
 export const metadata = {
-  title: 'Meu Perfil | Hexx Hub Digital',
-  description: 'Gerencie seus dados de acesso, foto de perfil e visualize seus poderes e permissões no Hexx Hub.',
+  title: 'Meu Perfil | Hexx Digital',
+  description: 'Gerencie seus dados de acesso, foto de perfil e visualize seus poderes e permissões na Hexx.',
 };
 
 export default async function PerfilPage() {
@@ -104,9 +104,9 @@ export default async function PerfilPage() {
   return (
     <div className="space-y-6">
       <SectionHero
-        subtitulo="Seus dados e seu acesso ao Hub"
+        subtitulo="Seus dados e seu acesso à Hexx"
         title="Meu Perfil"
-        infoDescription="Gerencie seus dados pessoais, foto de identificação e consulte seus poderes e privilégios no Hexx Hub."
+        infoDescription="Gerencie seus dados pessoais, foto de identificação e consulte seus poderes e privilégios na Hexx."
         showMonthSelector={false}
       />
 

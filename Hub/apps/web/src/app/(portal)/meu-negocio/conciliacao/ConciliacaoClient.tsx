@@ -738,10 +738,10 @@ export function ConciliacaoClient({
                 </div>
               )}
 
-              {/* Lista de Lançamentos Pendentes no Hub */}
+              {/* Lista de Lançamentos Pendentes na Hexx */}
               {entries.length === 0 ? (
                 <div className="p-6 text-center text-ink-soft bg-surface-card rounded-2xl border border-black/5 dark:border-white/10 shadow-(--elev-1)">
-                  <p className="text-sm mb-4">Não há lançamentos pendentes no Hub.</p>
+                  <p className="text-sm mb-4">Não há lançamentos pendentes na Hexx.</p>
                   <button className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) px-4 py-2 text-xs font-bold hover:brightness-110">
                     <Plus className="h-3 w-3" /> Criar Lançamento a partir do Extrato
                   </button>

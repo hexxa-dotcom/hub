@@ -26,7 +26,7 @@ export function PricingSection() {
       name: 'Hub Pro + Contabilidade',
       badge: 'Mais Escolhido • Completo',
       tagline: 'Autogestão + Contador Dedicado',
-      desc: 'A experiência definitiva: a plataforma do Hub integrada a uma assessoria contábil consultiva e estratégica.',
+      desc: 'A experiência definitiva: a plataforma da Hexx integrada a uma assessoria contábil consultiva e estratégica.',
       price: 'R$ 389',
       period: '/mês',
       featured: true,

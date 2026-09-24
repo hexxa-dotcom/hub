@@ -27,7 +27,7 @@ export function Hero() {
         </p>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 reveal in reveal-d2 w-full sm:w-auto">
           <Link href="/planos" className="btn-landing btn-landing-lime text-center justify-center">
-            Experimentar o Hub →
+            Experimentar a Hexx →
           </Link>
           <a href="#contato" className="btn-landing btn-landing-dark text-center justify-center">
             Falar com a Hexx

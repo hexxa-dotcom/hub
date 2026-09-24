@@ -352,7 +352,7 @@ export function ContratosClient({
                   <label className={lbl}>CNPJ da Contraparte (opcional)</label>
                   <input name="partyCnpj" placeholder="00.000.000/0000-00" className={`mt-1.5 ${field}`} />
                   <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
-                    Se a contraparte também for cliente Hexxa, os lançamentos sincronizam automaticamente.
+                    Se a contraparte também for cliente Hexx, os lançamentos sincronizam automaticamente.
                   </p>
                 </div>
 

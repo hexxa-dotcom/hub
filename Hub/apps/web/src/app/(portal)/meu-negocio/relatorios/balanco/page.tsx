@@ -271,17 +271,17 @@ export default async function BalancoInstantaneoPage({
       </section>
 
       <div className="text-center text-xs text-ink-soft print:pt-4">
-        <p>Hexxa Hub — relatórios gerados automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
+        <p>Hexx Digital — relatórios gerados automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
       </div>
     </div>
   );
 }
 
 /**
- * Sem lançamento no Hub, mas com apuração no contábil: a empresa FATURA, só
+ * Sem lançamento na Hexx, mas com apuração no contábil: a empresa FATURA, só
  * que a nota sai pela prefeitura e chega direto ao OneFlow.
  *
- * "Nenhum lançamento encontrado" é verdade sobre o Hub e mentira sobre a
+ * "Nenhum lançamento encontrado" é verdade sobre a Hexx e mentira sobre a
  * empresa — lido por um cliente, diz que ele não faturou nada. Onde o
  * contábil tem o faturamento, a tela diz isso e aponta onde está o número.
  */

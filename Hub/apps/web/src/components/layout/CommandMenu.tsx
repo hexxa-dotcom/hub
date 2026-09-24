@@ -262,7 +262,7 @@ export function CommandMenu({
             <span>↑↓ Navegar</span>
             <span>↵ Executar</span>
           </div>
-          <span className="font-serif font-semibold">Hexxa Spotlight</span>
+          <span className="font-serif font-semibold">Hexx Spotlight</span>
         </div>
       </div>
     </div>

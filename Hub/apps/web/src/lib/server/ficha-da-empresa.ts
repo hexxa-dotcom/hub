@@ -12,7 +12,7 @@ import type { TenantContext } from '@hexxa/core';
  * faturou, quem são os sócios e com que participação.
  *
  * Por isso a ficha junta cadastro (o que a Receita diz) com movimento (o que
- * o Hub viu acontecer). É a diferença entre um formulário e um retrato.
+ * a Hexx viu acontecer). É a diferença entre um formulário e um retrato.
  */
 
 export interface Socio {

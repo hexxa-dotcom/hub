@@ -9,12 +9,12 @@ import { cadastrarDoOneflow, type ResultadoCadastro } from './cadastro-oneflow';
  *
  * O ciclo, como o escritório definiu:
  *
- *   1. O cliente se cadastra no Hub com o básico: CNPJ (a Receita preenche
+ *   1. O cliente se cadastra na Hexx com o básico: CNPJ (a Receita preenche
  *      o resto da empresa) e quem responde por ela — nome, CPF, celular.
  *   2. O portal mostra "cadastro em validação" até o contador aprovar.
  *   3. O contador revisa na ficha e aprova. A aprovação cria a empresa no
  *      OneFlow, com os módulos, e libera o acesso.
- *   4. As regras tributárias o contador define LÁ. O Hub traz de volta
+ *   4. As regras tributárias o contador define LÁ. A Hexx traz de volta
  *      (`cadastrarDoOneflow`): regime, sócios, cadastro. O OneFlow prevalece.
  *
  * Um cadastro só, feito aqui — sem digitar a mesma empresa duas vezes.
@@ -27,7 +27,7 @@ import { cadastrarDoOneflow, type ResultadoCadastro } from './cadastro-oneflow';
  *
  * ── Por que o regime vai na criação ─────────────────────────────────────
  *
- * O OneFlow exige `regimeTributario` para criar. O Hub sugere pelo que a
+ * O OneFlow exige `regimeTributario` para criar. A Hexx sugere pelo que a
  * Receita diz (optante do Simples) e o contador confirma; o que ele ajustar
  * depois no OneFlow é o que vale, e volta para cá.
  */
@@ -72,7 +72,7 @@ export function competenciaInicialPadrao(hoje: string, aberturaAAAAMM?: string |
 }
 
 /**
- * Monta o corpo da criação a partir do que o Hub tem, e diz o que falta.
+ * Monta o corpo da criação a partir do que a Hexx tem, e diz o que falta.
  *
  * Nada é inventado: campo obrigatório vazio entra em `faltando` e a
  * aprovação não segue. Mandar um CEP ou um celular de enfeite criaria no
@@ -176,7 +176,7 @@ export async function montarCadastroOneflow(
 }
 
 export interface ResultadoAprovacao {
-  /** 'CRIADA' = o Hub criou lá; 'JA_EXISTIA' = já estava no OneFlow, só vinculou. */
+  /** 'CRIADA' = a Hexx criou lá; 'JA_EXISTIA' = já estava no OneFlow, só vinculou. */
   noOneflow: 'CRIADA' | 'JA_EXISTIA';
   /** O que voltou do OneFlow logo depois — pode faltar se ele ainda não refletiu. */
   sincronizacao: ResultadoCadastro | null;
@@ -189,7 +189,7 @@ export interface ResultadoAprovacao {
  *
  * A ordem importa. O acesso só é liberado DEPOIS de a empresa existir lá: se
  * a criação falhar, o cliente continua em validação e o contador vê o erro —
- * em vez de um cliente operando no Hub sem contabilidade do outro lado.
+ * em vez de um cliente operando na Hexx sem contabilidade do outro lado.
  */
 export async function aprovarCadastro(
   tx: DbHandle,
@@ -246,7 +246,7 @@ export async function aprovarCadastro(
         'de Contas Dinâmico — o mesmo modelo que as outras já usam, não um ' +
         'plano novo e vazio. Pela API o assistente conclui sem criar plano. ' +
         'Sem plano, o contábil não recebe lançamento nenhum — nem do fiscal, ' +
-        'nem da folha, nem do Hub.',
+        'nem da folha, nem da Hexx.',
     );
   }
 

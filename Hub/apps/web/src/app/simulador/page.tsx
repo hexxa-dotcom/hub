@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Simulador de Autonomia & Economia | Hexx Hub',
+  title: 'Simulador de Autonomia & Economia | Hexx Digital',
   description:
     'Calcule quanto tempo e dinheiro sua empresa de serviços economiza integrando finanças, emissão de NFSe e contabilidade consultiva em um único lugar.',
 };

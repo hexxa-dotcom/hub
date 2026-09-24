@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       billingType: billingType as BillingType,
       value,
       nextDueDate: nextDueDate(),
-      description: `Hexx Hub Digital — Plano ${plano}`,
+      description: `Hexx Digital — Plano ${plano}`,
       externalReference: clienteId,
     });
 

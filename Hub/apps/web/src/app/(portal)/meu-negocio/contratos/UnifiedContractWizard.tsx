@@ -394,7 +394,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
             {lookupStatus === 'checking' && <p className="mt-1 text-caption text-ink-soft">Verificando...</p>}
             {lookupStatus === 'found' && (
               <p className="rotulo mt-1 text-status-success">
-                <Sparkles className="inline h-3 w-3 mr-1" /> Cliente Hexxa detectado — e-mail preenchido automaticamente, os lançamentos financeiros sincronizam nos dois lados.
+                <Sparkles className="inline h-3 w-3 mr-1" /> Cliente Hexx detectado — e-mail preenchido automaticamente, os lançamentos financeiros sincronizam nos dois lados.
               </p>
             )}
           </div>
@@ -481,7 +481,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                         </select>
                       </div>
                       <p className="sm:col-span-2 text-caption text-ink-soft">
-                        O Hub escuta o webhook de repasses da sua plataforma e lança o valor exato a pagar a cada ciclo.
+                        A Hexx escuta o webhook de repasses da sua plataforma e lança o valor exato a pagar a cada ciclo.
                       </p>
                     </div>
                   )}

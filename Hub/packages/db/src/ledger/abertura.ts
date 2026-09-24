@@ -19,7 +19,7 @@ import { conferirBalanco } from './apuracao';
  * entra: uma única partida, datada no último dia do período que veio pronto,
  * com os saldos de cada conta.
  *
- * Daí em diante o Hub escritura normalmente, e o balanço já nasce com o
+ * Daí em diante a Hexx escritura normalmente, e o balanço já nasce com o
  * passado da empresa dentro dele.
  *
  * ── O que NÃO é ────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ import { conferirBalanco } from './apuracao';
  */
 
 export interface LinhaDeAbertura {
-  /** Código no plano de contas do Hub. */
+  /** Código no plano de contas da Hexx. */
   conta: string;
   /**
    * Saldo COM SINAL segundo a natureza da conta.
@@ -48,7 +48,7 @@ export interface ResultadoAbertura {
   linhas: number;
   debito: number;
   credito: number;
-  /** Contas do balancete que não existem no plano de contas do Hub. */
+  /** Contas do balancete que não existem no plano de contas da Hexx. */
   desconhecidas: string[];
   /** Depois de abrir: Ativo = Passivo + PL? */
   balancoFecha: boolean;
@@ -82,7 +82,7 @@ export async function abrirSaldos(
   for (const l of linhas) {
     const tipo = conhecidas.get(l.conta);
     if (!tipo) {
-      // Conta que o Hub não tem é informação perdida, não linha a descartar.
+      // Conta que a Hexx não tem é informação perdida, não linha a descartar.
       // Nomeá-la deixa a decisão com quem tem o balancete: mapear para outra
       // conta, ou criar a conta que falta.
       desconhecidas.push(l.conta);

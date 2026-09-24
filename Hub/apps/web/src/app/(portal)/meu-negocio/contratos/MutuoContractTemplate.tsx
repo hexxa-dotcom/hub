@@ -84,7 +84,7 @@ export function MutuoContractTemplate({ data }: { data: MutuoContractData }) {
           </View>
         </View>
 
-        <Text style={styles.footer}>Gerado através da plataforma Hexx Hub — Evidência Tributária e Compliance Societário.</Text>
+        <Text style={styles.footer}>Gerado através da plataforma Hexx Digital — Evidência Tributária e Compliance Societário.</Text>
       </Page>
     </Document>
   );

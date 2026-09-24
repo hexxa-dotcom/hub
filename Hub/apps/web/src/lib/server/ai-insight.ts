@@ -6,7 +6,7 @@ import { callLlm, type LlmProvider } from '@hexxa/integrations';
 import { resolverMotor } from './llm-config';
 
 /**
- * Hexxa Insights — dica contextual por IA, com cache. Só chama o modelo
+ * Hexx Insights — dica contextual por IA, com cache. Só chama o modelo
  * quando o `context` muda (dado relevante mudou de verdade) ou quando o
  * cache passa de 24h, pra não ficar "maçante" nem gerar custo à toa.
  *

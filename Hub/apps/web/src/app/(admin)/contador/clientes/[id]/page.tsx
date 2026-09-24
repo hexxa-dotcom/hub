@@ -68,7 +68,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
 
   /**
    * Aprovação do cadastro: o que iria para o OneFlow e o que falta. Montar
-   * não fala com o OneFlow — só lê o que o Hub tem.
+   * não fala com o OneFlow — só lê o que a Hexx tem.
    */
   const hojeSP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
   const competenciaPadrao = competenciaInicialPadrao(hojeSP);

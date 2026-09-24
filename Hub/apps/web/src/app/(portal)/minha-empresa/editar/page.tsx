@@ -9,7 +9,7 @@ import { CompanyForm } from '@/app/(portal)/configuracoes/CompanyForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Editar Cadastro da Empresa | Hexxa Hub',
+  title: 'Editar Cadastro da Empresa | Hexx Digital',
 };
 
 export default async function EditarEmpresaPage() {

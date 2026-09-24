@@ -18,7 +18,7 @@ export default async function IaInsightsPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4] leading-tight">Hexxa Insights</h1>
+          <h1 className="font-serif font-bold text-2xl text-[#231F20] dark:text-[#F5F6F4] leading-tight">Hexx Insights</h1>
           <p className="text-xs sm:text-sm text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">
             Dicas contextuais por IA nas telas dos clientes — gerencie a chave, ligue/desligue globalmente ou por seção.
           </p>

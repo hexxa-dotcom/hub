@@ -4,7 +4,7 @@ import { getPlanoAtualAction, getHistoricoCobrancasAction } from './actions';
 import { SectionHero } from '@/components/ui/SectionHero';
 
 export const metadata = {
-  title: 'Meu Plano & Pagamentos | Hexxa',
+  title: 'Meu Plano & Pagamentos | Hexx Digital',
 };
 
 export const dynamic = 'force-dynamic';

@@ -23,7 +23,7 @@ export default async function TermometroTributarioPage() {
   const simples = await posicaoSimples(ctx, { rbt12, folha12 });
 
   /**
-   * O que o contábil apurou manda sobre o que o Hub estima.
+   * O que o contábil apurou manda sobre o que a Hexx estima.
    *
    * O cálculo interno decide III ou V pelo Fator R para TODA empresa. Para
    * quem está no Anexo III pela própria atividade, isso virava "Anexo V —
@@ -199,7 +199,7 @@ export default async function TermometroTributarioPage() {
                   </p>
                   {foraEstimado ? (
                     <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-                      O contábil apurou sua empresa no Anexo III, e pela folha que o Hub enxerga o
+                      O contábil apurou sua empresa no Anexo III, e pela folha que a Hexx enxerga o
                       Fator R ficaria abaixo de 28% — o que só é possível se a sua atividade não
                       depender dele. Antes de mexer no pró-labore, fale com o seu contador.
                     </p>

@@ -87,7 +87,7 @@ export async function signatarioAction() {
 
 /**
  * Com quem é o contrato: pelo CNPJ, os dados da Receita e se a empresa já
- * usa o Hub (aí a assinatura e o financeiro dela ficam ligados ao contrato).
+ * usa a Hexx (aí a assinatura e o financeiro dela ficam ligados ao contrato).
  */
 export async function consultarParteAction(documento: string): Promise<
   | { ok: false; message: string }

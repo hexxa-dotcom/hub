@@ -54,7 +54,7 @@ export function CardStatusConciliacao({
             </div>
 
             <p className="text-xs text-ink-soft leading-relaxed pt-2">
-              Todas as movimentações bancárias importadas já foram devidamente pareadas e categorizadas no Hub. Quando você baixar um novo extrato do banco, envie-o no cartão ao lado.
+              Todas as movimentações bancárias importadas já foram devidamente pareadas e categorizadas na Hexx. Quando você baixar um novo extrato do banco, envie-o no cartão ao lado.
             </p>
           </div>
         </div>

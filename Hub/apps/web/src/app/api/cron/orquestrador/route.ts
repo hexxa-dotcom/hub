@@ -8,7 +8,7 @@ export const maxDuration = 300;
  *
  * ── Por que existe ──────────────────────────────────────────────────────
  *
- * O plano Hobby da Vercel aceita só 2 crons, e o Hub tem 14 rotinas. Cortar
+ * O plano Hobby da Vercel aceita só 2 crons, e a Hexx tem 14 rotinas. Cortar
  * para 2 deixou dez delas sem rodar: nada ia para o OneFlow, nada voltava,
  * nada era classificado. Em vez de escolher quais sobrevivem, os dois crons
  * chamam esta rota, cada um com um turno, e ela dispara as rotinas daquele

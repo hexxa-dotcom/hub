@@ -1,7 +1,7 @@
 /**
  * ADAPTADOR DO ONEFLOW (Omie) — contabilidade oficial.
  *
- * O OneFlow é quem transmite DEFIS, ECD, EFD-Reinf e DCTF. A missão do Hub não
+ * O OneFlow é quem transmite DEFIS, ECD, EFD-Reinf e DCTF. A missão da Hexx não
  * é transmitir: é juntar informação fidedigna e entregar a quem transmite.
  * Isso define o escopo deste adaptador — ele leva o razão para lá e traz de
  * volta folha e guias. Nada mais.
@@ -90,7 +90,7 @@ export interface ContaContabilOneflow {
   descricao: string;
   /**
    * Modelo do plano ("Plano de Contas Dinâmico OneFlow", "…Padrão OneFlow").
-   * É o que diz se o de-para do Hub serve para esta empresa: a numeração dos
+   * É o que diz se o de-para da Hexx serve para esta empresa: a numeração dos
    * dois modelos diverge a partir do terceiro nível.
    */
   nomeModelo?: string | null;
@@ -122,7 +122,7 @@ export interface LancamentoOneflow {
  *
  * Os campos obrigatórios são os da especificação deles; `codigoLC116` é
  * obrigatório na prática, porque sem ele o OneFlow exige `codigoServico`
- * (o código interno de lá), que o Hub não conhece.
+ * (o código interno de lá), que a Hexx não conhece.
  */
 export interface NotaFiscalOneflow {
   /** 'P' = prestado (o que a empresa emitiu), 'T' = tomado. */
@@ -156,7 +156,7 @@ export interface NotaFiscalOneflow {
 const INTERVALO_ENTRE_CHAMADAS_MS = 1100;
 
 /**
- * Corpo do `escritorio/empresas/criar` — só os campos que o Hub preenche.
+ * Corpo do `escritorio/empresas/criar` — só os campos que a Hexx preenche.
  * Códigos conforme a documentação da API (swaggerhub oneflowoficial 2.0.0).
  */
 export interface CadastroEmpresaOneflow {
@@ -488,8 +488,8 @@ export class OneflowAdapter {
   /**
    * Cliente autenticado para uma empresa.
    *
-   * `companyId` é o id no Hub, e `appHash` o da empresa no OneFlow — os dois
-   * porque o token é guardado pela chave do Hub, mas pedido pela do OneFlow.
+   * `companyId` é o id na Hexx, e `appHash` o da empresa no OneFlow — os dois
+   * porque o token é guardado pela chave da Hexx, mas pedido pela do OneFlow.
    */
   private async tokenDaEmpresa(companyId: string, appHash: string): Promise<string> {
     return this.tokenDoApp(appHash, 'COMPANY', companyId);
@@ -540,7 +540,7 @@ export class OneflowAdapter {
   /**
    * Envia uma partida contábil.
    *
-   * Confere o equilíbrio ANTES de mandar. O razão do Hub já garante isso por
+   * Confere o equilíbrio ANTES de mandar. O razão da Hexx já garante isso por
    * trigger, mas o de-para de contas acontece no caminho, e um erro de
    * mapeamento pode produzir um payload desbalanceado a partir de uma partida
    * que fechava. Descobrir isso aqui é muito melhor que descobrir num erro do
@@ -583,7 +583,7 @@ export class OneflowAdapter {
    * Exclui um lançamento contábil pelo id que o próprio OneFlow devolveu.
    *
    * Responde `201` quando exclui. A listagem do razão de lá não devolve ids,
-   * então só dá para excluir o que o Hub enviou e cujo id guardou em
+   * então só dá para excluir o que a Hexx enviou e cujo id guardou em
    * `oneflow_envio.oneflow_id` — que é exatamente o que precisa sair quando
    * algo foi enviado sem dever.
    */
@@ -602,11 +602,11 @@ export class OneflowAdapter {
    * Habilitar o módulo NÃO basta: sem esta configuração a empresa fica sem
    * plano de contas (`idPlanoContas: 0`), o balancete volta vazio e o
    * contábil não recebe lançamento nenhum — nem do fiscal, nem da folha,
-   * nem do Hub. Foi o que se viu na BM3 e na Nathalia, com o módulo
+   * nem da Hexx. Foi o que se viu na BM3 e na Nathalia, com o módulo
    * habilitado e nada dentro.
    *
    * O plano "D" (dinâmico) é o mesmo que a HEXX usa, e é o que o de-para de
-   * contas do Hub já conhece.
+   * contas da Hexx já conhece.
    *
    * ⚠️ NÃO CHAME ISTO. Medido em 2026-09-20, na HEXX, três vezes: responde
    * 201, marca o onboarding como **concluído** e não cria plano de contas
@@ -756,7 +756,7 @@ export class OneflowAdapter {
    *
    * Decide entre o Anexo III (alíquota menor) e o Anexo V do Simples quando a
    * folha passa de 28% da receita bruta. É a informação da folha com maior
-   * efeito sobre o imposto, e hoje o Hub não a tem de lado nenhum.
+   * efeito sobre o imposto, e hoje a Hexx não a tem de lado nenhum.
    */
   async fatorR(companyId: string, appHash: string, competencia: string): Promise<unknown> {
     const token = await this.tokenDaEmpresa(companyId, appHash);
@@ -818,7 +818,7 @@ export class OneflowAdapter {
    * isto o módulo fiscal não tem receita, apura zero, e a mão de volta não
    * tem guia para trazer.
    *
-   * Usa o layout estruturado, não o envio de XML, porque o Hub não guarda o
+   * Usa o layout estruturado, não o envio de XML, porque a Hexx não guarda o
    * XML da nota emitida: guarda número, valor, tomador e perfil fiscal. Com
    * esses campos o layout próprio do OneFlow é suficiente, e não depende de
    * rebuscar o XML no Emissor Nacional a cada envio.
@@ -929,7 +929,7 @@ export class OneflowAdapter {
   /**
    * Cadastro da empresa no OneFlow: razão, fantasia, endereço, módulos.
    *
-   * É a fonte do cadastro no Hub. Os dados já foram conferidos por alguém ao
+   * É a fonte do cadastro na Hexx. Os dados já foram conferidos por alguém ao
    * abrir a empresa lá — pedir ao cliente que os digite de novo só cria uma
    * segunda versão da verdade, com erros próprios.
    */
@@ -945,7 +945,7 @@ export class OneflowAdapter {
     return (r.result ?? r) as Record<string, unknown>;
   }
 
-  /** Quadro societário cadastrado lá — confere contra os sócios do Hub. */
+  /** Quadro societário cadastrado lá — confere contra os sócios da Hexx. */
   async quadroSocietario(companyId: string, appHash: string): Promise<unknown> {
     const token = await this.tokenDaEmpresa(companyId, appHash);
     return this.pedir(`${API}/oneflow/empresa/geral/quadrosocietario`, { token });
@@ -982,7 +982,7 @@ export class OneflowAdapter {
  * id, e sem id o OneFlow não deixa excluir pela API.
  *
  * Devolve `null` em vez de lançar: o lançamento JÁ EXISTE lá, e tratá-lo
- * como falha faria o Hub reenviá-lo no dia seguinte, em dobro. Quem envia
+ * como falha faria a Hexx reenviá-lo no dia seguinte, em dobro. Quem envia
  * decide o que fazer com a falta — `enviarRazao` para o lote.
  */
 export function idDoLancamento(resposta: Record<string, unknown>): string | null {

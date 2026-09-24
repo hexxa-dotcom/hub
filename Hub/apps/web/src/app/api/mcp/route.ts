@@ -28,7 +28,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 /**
- * Servidor MCP do Hexx Hub — expõe LEITURA dos dados financeiros pra
+ * Servidor MCP da Hexx — expõe LEITURA dos dados financeiros pra
  * assistentes de IA externos (Claude, ChatGPT, etc.) autenticados por token
  * de API (gerado em Configurações → Integrações → Assistente de IA).
  *
@@ -65,7 +65,7 @@ function buildServer(auth: ApiTokenAuth): McpServer {
       {
         title: 'Buscar ou listar clientes',
         description:
-          'Lista ou pesquisa clientes/empresas cadastrados no Hub por nome, razão social ou CNPJ. ' +
+          'Lista ou pesquisa clientes/empresas cadastrados na Hexx por nome, razão social ou CNPJ. ' +
           'Use para identificar qual empresa consultar ou para listar as empresas ativas da carteira.',
         inputSchema: {
           termo: z.string().optional().describe('Termo de busca (nome, razão social ou dígitos do CNPJ). Se omitido, lista todas as empresas cadastradas.'),
@@ -578,7 +578,7 @@ export async function GET() {
       version: '1.0.0',
       protocol: 'mcp',
       transport: 'streamable-http',
-      message: 'Hexx Hub MCP Server está ativo.',
+      message: 'Hexx Digital MCP Server está ativo.',
     },
     { status: 200, headers: corsHeaders }
   );

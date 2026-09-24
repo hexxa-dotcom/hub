@@ -37,7 +37,7 @@ export interface ContaDoPlano {
   nature: 'DEBIT' | 'CREDIT';
 }
 
-/** Contas analíticas do Hub — as únicas que recebem saldo. */
+/** Contas analíticas da Hexx — as únicas que recebem saldo. */
 export async function contasDoPlano(tx: DbHandle, companyId: string): Promise<ContaDoPlano[]> {
   await ensureChartOfAccounts(tx, companyId);
   const r = (await tx.execute(sql`
@@ -51,14 +51,14 @@ export async function contasDoPlano(tx: DbHandle, companyId: string): Promise<Co
 export type SituacaoDaLinha =
   /** Conta resolvida — entra na abertura. */
   | 'PRONTA'
-  /** Sem conta no Hub e sem de-para: precisa da escolha do contador. */
+  /** Sem conta na Hexx e sem de-para: precisa da escolha do contador. */
   | 'SEM_CONTA'
   /** Saldo zero: não vira lançamento, e não é erro. */
   | 'ZERADA';
 
 export interface LinhaConferida extends LinhaDeBalancete {
   situacao: SituacaoDaLinha;
-  /** Conta do Hub que vai receber o saldo, quando resolvida. */
+  /** Conta da Hexx que vai receber o saldo, quando resolvida. */
   contaHub?: string;
   nomeHub?: string;
   /** Como foi resolvida — para a tela poder mostrar o que foi palpite. */
@@ -91,9 +91,9 @@ export interface EnsaioAbertura {
 }
 
 /**
- * Confere o balancete contra o plano do Hub, sem gravar nada.
+ * Confere o balancete contra o plano da Hexx, sem gravar nada.
  *
- * @param dePara código de origem → código no Hub, escolhido na tela
+ * @param dePara código de origem → código na Hexx, escolhido na tela
  */
 export async function ensaiarAbertura(
   tx: DbHandle,
@@ -186,7 +186,7 @@ export async function ensaiarAbertura(
   const diferenca = Number((totalDebito - totalCredito).toFixed(2));
 
   /**
-   * Duas linhas na mesma conta do Hub não são erro — o plano de origem é mais
+   * Duas linhas na mesma conta da Hexx não são erro — o plano de origem é mais
    * detalhado que o nosso, e várias contas dele caem numa só aqui. Mas vale
    * dizer, porque é a diferença entre um de-para deliberado e um clique
    * repetido por engano.
@@ -196,7 +196,7 @@ export async function ensaiarAbertura(
   const agrupadas = [...usos.entries()].filter(([, q]) => q > 1);
   if (agrupadas.length) {
     avisos.push(
-      `${agrupadas.length} conta(s) do Hub recebem saldo de mais de uma conta do balancete — ` +
+      `${agrupadas.length} conta(s) da Hexx recebem saldo de mais de uma conta do balancete — ` +
         'os valores serão somados.',
     );
   }
@@ -242,7 +242,7 @@ export async function confirmarAbertura(
 
   if (ensaio.pendentes > 0) {
     throw new Error(
-      `${ensaio.pendentes} conta(s) do balancete ainda não têm destino no plano do Hub. ` +
+      `${ensaio.pendentes} conta(s) do balancete ainda não têm destino no plano da Hexx. ` +
         'Escolha o destino de cada uma antes de abrir — deixar de fora desequilibra a abertura.',
     );
   }

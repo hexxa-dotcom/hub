@@ -244,7 +244,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
           </div>
 
           <div className="mt-8 text-center pt-8 border-t border-black/5 dark:border-white/10 text-xs text-ink-soft print:pt-4">
-            <p>Hexxa Hub — Documento auxiliar gerado automaticamente em {new Date(closure.createdAt).toLocaleString('pt-BR')}.</p>
+            <p>Hexx Digital — Documento auxiliar gerado automaticamente em {new Date(closure.createdAt).toLocaleString('pt-BR')}.</p>
             {closure.stage === 'ENVIADO' && <p>A contabilidade já recebeu estes dados para processamento.</p>}
           </div>
         </div>

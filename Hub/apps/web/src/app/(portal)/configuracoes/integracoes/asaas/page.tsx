@@ -7,7 +7,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { Card } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Configurar Integração Asaas | Hexxa Hub',
+  title: 'Configurar Integração Asaas | Hexx Digital',
 };
 
 export default async function AsaasSetupPage() {

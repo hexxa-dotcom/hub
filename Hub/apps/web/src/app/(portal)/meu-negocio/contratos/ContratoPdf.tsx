@@ -46,7 +46,7 @@ export function ContratoPdf({
   /**
    * true: as assinaturas vão numa página só delas, em posições fixas — é o
    * que o DocuSeal precisa para pôr o campo de cada parte. false (assinatura
-   * no Hub): vêm logo depois da última cláusula, sem página a mais.
+   * na Hexx): vêm logo depois da última cláusula, sem página a mais.
    */
   paginaDeAssinaturas?: boolean;
 }) {
@@ -75,7 +75,7 @@ export function ContratoPdf({
         <View style={{ flex: 1 }}>
           <Text style={[s.negrito, { fontSize: 9.5 }]}>Verificação de autenticidade</Text>
           <Text style={{ fontSize: 8.5, color: '#444', marginTop: 3 }}>
-            Este contrato foi assinado eletronicamente pelo Hexxa Hub. Quem assinou, quando e de onde fica registrado, junto com o código (hash SHA-256) deste arquivo.
+            Este contrato foi assinado eletronicamente pela Hexx. Quem assinou, quando e de onde fica registrado, junto com o código (hash SHA-256) deste arquivo.
           </Text>
           <Text style={{ fontSize: 8.5, marginTop: 4 }}>
             Código <Text style={s.negrito}>{verificacao.codigo}</Text> · {verificacao.url}
@@ -93,7 +93,7 @@ export function ContratoPdf({
         {verificacao && (
           <View style={s.rodape} fixed>
             <Text>
-              Assinado eletronicamente pelo Hexxa Hub · código {verificacao.codigo} · confira em {verificacao.url}
+              Assinado eletronicamente pela Hexx · código {verificacao.codigo} · confira em {verificacao.url}
             </Text>
           </View>
         )}
@@ -121,7 +121,7 @@ export function ContratoPdf({
           </View>
         ))}
 
-        {/* Assinatura no Hub: fechamento, assinaturas e selo logo depois do
+        {/* Assinatura na Hexx: fechamento, assinaturas e selo logo depois do
             texto, num bloco que não se parte — se não couber, vai inteiro
             para a página seguinte, sem deixar uma folha quase vazia. */}
         {!paginaDeAssinaturas && (

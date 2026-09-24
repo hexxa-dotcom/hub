@@ -14,7 +14,7 @@ import { DescricaoDaAtividade } from './DescricaoDaAtividade';
 import { contatosDaEmpresa } from '@/components/ficha/contatos';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Minha empresa · Hexxa Hub' };
+export const metadata = { title: 'Minha empresa · Hexx Digital' };
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 

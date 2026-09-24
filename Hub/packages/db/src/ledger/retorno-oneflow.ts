@@ -9,20 +9,20 @@ import { accrueFolha } from '@hexxa/core';
 import { clienteOneflow } from './oneflow-client';
 
 /**
- * A MÃO DE VOLTA: o que o OneFlow sabe e o Hub não.
+ * A MÃO DE VOLTA: o que o OneFlow sabe e a Hexx não.
  *
  * O envio leva o razão para a contabilidade oficial. Esta é a direção
  * contrária, e ela existe porque dois fatos nascem lá, não aqui:
  *
  *   **Guias de imposto** — quem apura é o módulo fiscal do OneFlow, a partir
- *   dos documentos escriturados. O valor do DAS não é uma conta que o Hub
+ *   dos documentos escriturados. O valor do DAS não é uma conta que a Hexx
  *   possa refazer por conta própria sem reimplementar a LC 123 inteira e
  *   arriscar divergir do que foi efetivamente declarado.
  *
  *   **Folha** — quem calcula é o módulo de folha, com rubricas, encargos e
- *   eSocial. O Hub tem `payslip` e `employee`, mas hoje são preenchidos à mão.
+ *   eSocial. A Hexx tem `payslip` e `employee`, mas hoje são preenchidos à mão.
  *
- * Sem esta volta o cliente vê no Hub um balanço sem imposto e sem pessoal —
+ * Sem esta volta o cliente vê na Hexx um balanço sem imposto e sem pessoal —
  * exatamente as duas maiores linhas de despesa da maioria das empresas.
  *
  * ── O que esta volta NÃO faz ────────────────────────────────────────────
@@ -91,7 +91,7 @@ function primeiroDia(competencia: string): string {
  * É a única data que a apuração não devolve, e sem ela a guia não pode ser
  * gravada (`due_date` é NOT NULL). A LC 123 art. 21 §1º fixa o dia 20; o
  * deslocamento para o dia útil seguinte quando cai em fim de semana fica com
- * quem paga, porque o Hub não tem calendário de feriados municipais.
+ * quem paga, porque a Hexx não tem calendário de feriados municipais.
  */
 function vencimentoPadrao(competencia: string, dia = 20): string {
   const ano = Number(competencia.slice(0, 4));
@@ -100,7 +100,7 @@ function vencimentoPadrao(competencia: string, dia = 20): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Nome do tributo no Hub a partir do código de apuração do OneFlow. */
+/** Nome do tributo na Hexx a partir do código de apuração do OneFlow. */
 const NOME_DO_IMPOSTO: Record<string, string> = {
   SIMPLES: 'DAS',
   ISS: 'ISS',
@@ -197,7 +197,7 @@ export interface RetornoGuia {
   valor: number;
   acao: 'criada' | 'atualizada' | 'inalterada' | 'zerada' | 'arquivo anexado';
   guiaId: string | null;
-  /** Valor que o Hub tinha antes, quando houve divergência. */
+  /** Valor que a Hexx tinha antes, quando houve divergência. */
   valorAnterior?: number;
 }
 
@@ -488,7 +488,7 @@ async function importarGuiasDaApuracao(
       continue;
     }
 
-    // Divergência: a apuração oficial manda. O Hub pode ter a guia de um
+    // Divergência: a apuração oficial manda. A Hexx pode ter a guia de um
     // PGDAS antigo, ou de antes de uma retificação. Corrigir por estorno
     // deixa as duas versões no razão, que é o que permite explicar depois
     // por que o imposto do mês mudou.
@@ -521,7 +521,7 @@ async function importarGuiasDaApuracao(
  *
  * ── Por que isto existe ─────────────────────────────────────────────────
  *
- * Ao emitir uma nota, o Hub mostra ao cliente um "imposto aproximado". Esse
+ * Ao emitir uma nota, a Hexx mostra ao cliente um "imposto aproximado". Esse
  * número era calculado aqui dentro, por conta própria — e um número calculado
  * em dois lugares diverge nos dois. O cliente veria uma estimativa na emissão
  * e um DAS diferente no fim do mês, sem nada que explicasse a diferença.
@@ -735,7 +735,7 @@ async function importarFolha(
 
 /**
  * Grava o contracheque como documento, criando o funcionário se ele ainda não
- * existir no Hub.
+ * existir na Hexx.
  *
  * O funcionário é casado pelo CPF. Sem CPF não dá para casar com segurança, e
  * criar um homônimo novo a cada mês é pior que não criar — então o recibo
@@ -782,7 +782,7 @@ async function gravarContracheque(
  *
  * É a razão entre folha e receita bruta que decide se a empresa de serviços
  * paga pelo Anexo III ou pelo Anexo V do Simples — a diferença entre 6% e
- * 15,5% de alíquota inicial. O Hub não tem como calculá-lo sem a folha, e é
+ * 15,5% de alíquota inicial. A Hexx não tem como calculá-lo sem a folha, e é
  * por isso que ele vem junto com ela.
  */
 async function lerFatorR(

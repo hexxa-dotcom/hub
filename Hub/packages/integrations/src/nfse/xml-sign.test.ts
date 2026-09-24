@@ -15,7 +15,7 @@ beforeAll(() => {
   cert.serialNumber = '01';
   cert.validity.notBefore = new Date();
   cert.validity.notAfter = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-  const attrs = [{ name: 'commonName', value: 'Teste Hexxa Hub' }];
+  const attrs = [{ name: 'commonName', value: 'Teste Hexx Digital' }];
   cert.setSubject(attrs);
   cert.setIssuer(attrs);
   cert.sign(keys.privateKey, forge.md.sha256.create());

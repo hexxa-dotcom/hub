@@ -2,7 +2,7 @@ import { pgTable, uuid, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 
 /**
- * Config global da Hexxa Insights (feature de dicas contextuais por IA) —
+ * Config global da Hexx Insights (feature de dicas contextuais por IA) —
  * plataforma inteira, não por empresa cliente. Uma única linha ("singleton").
  * A chave da API fica cifrada (ver secret-crypto.ts), nunca em texto puro.
  */
@@ -15,7 +15,7 @@ export const aiInsightConfig = pgTable('ai_insight_config', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** Liga/desliga a Hexxa Insights por seção específica do sistema (pageKey). */
+/** Liga/desliga a Hexx Insights por seção específica do sistema (pageKey). */
 export const aiInsightSection = pgTable('ai_insight_section', {
   pageKey: text('page_key').primaryKey(),
   enabled: boolean('enabled').notNull().default(true),

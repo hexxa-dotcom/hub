@@ -109,7 +109,7 @@ describe('cTribNacParaItemLC116', () => {
  * nota sai com a alíquota errada.
  */
 describe('ida e volta com o buildDps', () => {
-  it('lê de volta o que o Hub acabou de escrever', async () => {
+  it('lê de volta o que a Hexx acabou de escrever', async () => {
     const { buildDps } = await import('./dps-builder');
     const { xml } = buildDps(
       {

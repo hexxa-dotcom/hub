@@ -13,7 +13,7 @@ export type CompanyInfo = {
 };
 
 /**
- * Busca empresas cadastradas no Hub (por nome fantasia, razão social ou CNPJ).
+ * Busca empresas cadastradas na Hexx (por nome fantasia, razão social ou CNPJ).
  * Se termo for omitido, retorna as primeiras 50 empresas.
  */
 export async function searchCompanies(term?: string): Promise<CompanyInfo[]> {

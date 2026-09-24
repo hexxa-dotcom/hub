@@ -8,7 +8,7 @@ import { IntegrationStatusBlock } from './IntegrationStatusBlock';
 import { Card } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Integrações Financeiras | Hexxa Hub',
+  title: 'Integrações Financeiras | Hexx Digital',
 };
 
 const BASE_ERPS = [
@@ -189,7 +189,7 @@ export default async function IntegracoesPage() {
               </div>
             </div>
             <p className="text-xs text-ink-soft leading-relaxed mb-6">
-              Conecte a caixa de e-mail (IMAP/SMTP) que o Hub usa para encaminhar a NFS-e automaticamente para o tomador assim que ela for autorizada.
+              Conecte a caixa de e-mail (IMAP/SMTP) que a Hexx usa para encaminhar a NFS-e automaticamente para o tomador assim que ela for autorizada.
             </p>
           </div>
           <div className="pt-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between">

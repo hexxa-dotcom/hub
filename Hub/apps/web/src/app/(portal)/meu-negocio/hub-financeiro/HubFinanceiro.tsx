@@ -146,7 +146,7 @@ function grupoDe(l: Lancamento): string {
     case 'VENDA':
       return 'Faturamento Avulso';
     case 'DFE_SYNC':
-      // Nota emitida por fora do Hub (ex: sistema próprio do município),
+      // Nota emitida por fora da Hexx (ex: sistema próprio do município),
       // sincronizada da Distribuição de DF-e do governo — mesmo grupo de
       // "Notas Fiscais" porque é exatamente isso: já tem nota emitida.
       return 'Notas Fiscais';

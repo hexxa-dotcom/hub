@@ -204,7 +204,7 @@ export function LucroCard() {
               <span>
                 Sem contabilidade formal, o limite isento para serviços é{' '}
                 <strong>{BRL.format(limitePresumido)}</strong> (32% da receita bruta).
-                Com a escrituração contábil completa da Hexxa, todo o valor apurado é isento.
+                Com a escrituração contábil completa da Hexx, todo o valor apurado é isento.
               </span>
             </div>
           )}

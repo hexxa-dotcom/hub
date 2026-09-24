@@ -189,7 +189,7 @@ export type EstadoDoCertificado = {
  *
  * Um e-CNPJ traz o CNPJ, a razão social, o responsável e o CPF dele — ver
  * `lerDadosDoECnpj`. Com o arquivo e a senha, o passo 1 inteiro se preenche
- * sozinho (só o celular não está no certificado), e o passo 2 também: o Hub
+ * sozinho (só o celular não está no certificado), e o passo 2 também: a Hexx
  * busca no Emissor Nacional a última nota emitida e monta o perfil de
  * emissão. Quem tem o certificado vai direto para o último passo.
  */

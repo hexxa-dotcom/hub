@@ -6,7 +6,7 @@ import { decryptSecret } from './secret-crypto';
 
 /**
  * Importa (read-only) contas a pagar/receber e cadastro de clientes do Nibo
- * pra dentro do Hub — ponte temporária enquanto a empresa migra do Nibo pro
+ * pra dentro da Hexx — ponte temporária enquanto a empresa migra do Nibo pro
  * Hub de vez. Nunca escreve nada no Nibo. Idempotente: lançamentos via
  * `financial_entry.external_id` (`nibo:<scheduleId>`), clientes via
  * `customer.document` — rodar de novo atualiza, nunca duplica.

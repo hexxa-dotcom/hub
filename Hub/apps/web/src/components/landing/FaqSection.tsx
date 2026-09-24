@@ -9,24 +9,24 @@ export function FaqSection() {
       a: 'Não. A contabilidade é a base — o que você recebe é um hub completo de gestão: finanças, contratos, assinatura digital, impostos e relatórios, com um time que conhece empresas de serviço por dentro.',
     },
     {
-      q: 'O que é o Hexx Hub?',
+      q: 'O que é a Hexx?',
       a: 'É a plataforma all-in-one da Hexx Digital: gestão financeira, contratos, assinatura digital, cálculo automático de impostos e relatórios — tudo em um só lugar, com a contabilidade da Hexx nos bastidores.',
     },
     {
-      q: 'Pra quem é o Hub?',
+      q: 'Pra quem é a Hexx?',
       a: 'Para empresas de serviço — principalmente profissionais autônomos que tocam o negócio sozinhos ou com equipe enxuta: consultores, designers, desenvolvedores, terapeutas, advogados e afins.',
     },
     {
       q: 'Ainda não tenho CNPJ. Posso usar?',
-      a: 'Pode — a gente abre pra você. A Hexx cuida da abertura do CNPJ, escolhe o enquadramento tributário certo e já entrega sua empresa funcionando dentro do Hub.',
+      a: 'Pode — a gente abre pra você. A Hexx cuida da abertura do CNPJ, escolhe o enquadramento tributário certo e já entrega sua empresa funcionando dentro da Hexx.',
     },
     {
       q: 'A assinatura digital tem validade jurídica?',
-      a: 'Sim. Os contratos assinados pelo Hub seguem a legislação brasileira de assinaturas eletrônicas, com trilha de auditoria completa: quem assinou, quando e de onde.',
+      a: 'Sim. Os contratos assinados pela Hexx seguem a legislação brasileira de assinaturas eletrônicas, com trilha de auditoria completa: quem assinou, quando e de onde.',
     },
     {
       q: 'Como funciona o cálculo automático de impostos?',
-      a: 'O Hub acompanha seu faturamento, calcula os impostos do seu enquadramento, gera as guias e avisa antes do vencimento. Você só confirma o pagamento — sem susto no fim do mês.',
+      a: 'A Hexx acompanha seu faturamento, calcula os impostos do seu enquadramento, gera as guias e avisa antes do vencimento. Você só confirma o pagamento — sem susto no fim do mês.',
     },
     {
       q: 'Já tenho contador. Consigo migrar?',

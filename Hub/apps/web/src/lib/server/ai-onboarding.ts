@@ -64,7 +64,7 @@ export class AIOnboardingService {
     });
 
     const prompt = `
-    Você é um Auditor Sênior de Onboarding Contábil do Hexx Hub.
+    Você é um Auditor Sênior de Onboarding Contábil da Hexx.
     Extraia os dados societários e contábeis dos dois documentos abaixo.
     
     CONTRATO SOCIAL:

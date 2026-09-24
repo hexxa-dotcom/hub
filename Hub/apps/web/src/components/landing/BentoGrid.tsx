@@ -33,7 +33,7 @@ export function BentoGrid() {
               <div className="val" style={{ color: '#1E3328', fontWeight: 800 }}>Pix &amp; Boleto</div>
             </div>
             <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Cobranças &amp; Baixa Automática</h3>
-            <p>Emita links de pagamento vinculados a notas fiscais. O cliente paga e o Hub concilia na hora.</p>
+            <p>Emita links de pagamento vinculados a notas fiscais. O cliente paga e a Hexx concilia na hora.</p>
           </div>
 
           <div className="bcard bc-olive">
@@ -51,7 +51,7 @@ export function BentoGrid() {
               <div className="val" style={{ color: '#2F4A3C', fontWeight: 800 }}>Protocolo MCP</div>
             </div>
             <h3 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginTop: '12px' }}>Hub Preparado para IA</h3>
-            <p>Conecte agentes de IA ao Hub via protocolo MCP para gerar análises financeiras e projeções com privacidade.</p>
+            <p>Conecte agentes de IA à Hexx via protocolo MCP para gerar análises financeiras e projeções com privacidade.</p>
           </div>
 
           <div className="bcard bc-green">
@@ -65,7 +65,7 @@ export function BentoGrid() {
         </div>
         <div className="bento-cta reveal in">
           <a href="/planos" className="btn-landing btn-landing-lime">
-            Experimentar o Hub →
+            Experimentar a Hexx →
           </a>
         </div>
       </div>

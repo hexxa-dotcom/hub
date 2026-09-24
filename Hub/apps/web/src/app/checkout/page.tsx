@@ -212,7 +212,7 @@ function CheckoutContent() {
             <div className="checkout-guarantee-text">
               <b>Garantia Incondicional de 7 Dias</b>
               <span>
-                Experimente o Hub sem nenhum risco. Cancele a qualquer momento sem burocracia ou multas.
+                Experimente a Hexx sem nenhum risco. Cancele a qualquer momento sem burocracia ou multas.
               </span>
             </div>
           </div>
@@ -224,7 +224,7 @@ function CheckoutContent() {
             <form onSubmit={handleSubmit} noValidate>
               <div className="checkout-form-head">
                 <h2>Finalizar Contratação</h2>
-                <p>Preencha seus dados para configurar a sua empresa no Hub.</p>
+                <p>Preencha seus dados para configurar a sua empresa na Hexx.</p>
               </div>
 
               {/* Price summary box */}
@@ -370,7 +370,7 @@ function CheckoutContent() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <a
                   href={`https://wa.me/5500000000000?text=${encodeURIComponent(
-                    `Olá, acabei de contratar o ${plan.name} para ${form.nome} (${form.empresa || form.email}). Gostaria de iniciar o onboarding do Hub!`
+                    `Olá, acabei de contratar o ${plan.name} para ${form.nome} (${form.empresa || form.email}). Gostaria de iniciar o onboarding da Hexx!`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

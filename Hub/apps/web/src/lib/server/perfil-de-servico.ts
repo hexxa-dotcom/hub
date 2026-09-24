@@ -102,7 +102,7 @@ export async function aplicarConfigDaNota(
 }
 
 /**
- * Com o certificado, a empresa não precisa subir nota nenhuma: o Hub busca no
+ * Com o certificado, a empresa não precisa subir nota nenhuma: a Hexx busca no
  * Emissor Nacional tudo o que ela emitiu (o que também traz o faturamento),
  * pega a última nota e monta o perfil a partir dela.
  */

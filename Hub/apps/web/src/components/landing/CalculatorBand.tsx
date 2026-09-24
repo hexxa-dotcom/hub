@@ -50,7 +50,7 @@ export function CalculatorBand() {
       <div className="landing-wrap">
         <div className="calc-head reveal in">
           <h2 className="landing-serif">O que você faria com tempo de sobra?</h2>
-          <p>Simplificar é multiplicar. Quem usa o Hub libera horas perdidas em burocracia toda semana.</p>
+          <p>Simplificar é multiplicar. Quem usa a Hexx libera horas perdidas em burocracia toda semana.</p>
         </div>
         <div className="calc-card reveal in">
           <div className="calc-copy">

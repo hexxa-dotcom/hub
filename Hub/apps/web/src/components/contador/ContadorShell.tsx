@@ -137,7 +137,7 @@ export function ContadorShell({
         </span>
         {(!collapsed || mobile) && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-serif font-bold text-[#F5F6F4] leading-tight">Hexxa Hub</p>
+            <p className="truncate text-sm font-serif font-bold text-[#F5F6F4] leading-tight">Hexx Digital</p>
             <p className="rotulo text-[#DFFFAE]">Área do Contador</p>
           </div>
         )}

@@ -7,7 +7,7 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { Card } from '@/components/ui/Card';
 
 export const metadata = {
-  title: 'Configurar Integração Omie / OneFlow | Hexxa Hub',
+  title: 'Configurar Integração Omie / OneFlow | Hexx Digital',
 };
 
 export default async function OmieSetupPage() {
@@ -57,7 +57,7 @@ export default async function OmieSetupPage() {
         <Card level={1} className="p-6 sm:p-8 space-y-6">
           <h2 className="font-serif font-bold text-base text-ink">Passo a Passo da Configuração</h2>
           <p className="text-xs text-ink-soft leading-relaxed">
-            Para o Hub se conectar ao sistema contábil, precisamos das credenciais (App Key e App Secret) do seu aplicativo na Omie.
+            Para a Hexx se conectar ao sistema contábil, precisamos das credenciais (App Key e App Secret) do seu aplicativo na Omie.
           </p>
           
           <ol className="relative border-l border-black/10 dark:border-white/10 ml-3 space-y-8">
@@ -94,7 +94,7 @@ export default async function OmieSetupPage() {
               </span>
               <h3 className="font-serif font-bold text-sm text-ink mb-1">A mágica acontece em background</h3>
               <p className="text-xs text-ink-soft mb-2">
-                A partir do momento em que as chaves são salvas, toda baixa no Hub envia automaticamente um espelho para a sua contabilidade! Sem importar arquivos CSV.
+                A partir do momento em que as chaves são salvas, toda baixa na Hexx envia automaticamente um espelho para a sua contabilidade! Sem importar arquivos CSV.
               </p>
             </li>
           </ol>

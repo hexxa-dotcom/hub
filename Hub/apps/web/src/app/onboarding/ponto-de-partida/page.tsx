@@ -5,7 +5,7 @@ import { PontoDePartidaForm } from './PontoDePartidaForm';
 import { lerPontoDePartida } from './actions';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'De onde você está partindo · Hexxa Hub' };
+export const metadata = { title: 'De onde você está partindo · Hexx Digital' };
 
 export default async function Page() {
   const ctx = await getTenantContext();

@@ -190,7 +190,7 @@ export async function habilitarClienteDoNiboAction(document: string): Promise<{ 
     const r = await habilitarClienteDoNibo(document);
     revalidatePath('/contador/clientes');
     revalidatePath('/contador/clientes/nova');
-    return { ok: true, message: `${r.nome} habilitada no Hub.`, companyId: r.companyId };
+    return { ok: true, message: `${r.nome} habilitada na Hexx.`, companyId: r.companyId };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Não consegui habilitar.' };
   }

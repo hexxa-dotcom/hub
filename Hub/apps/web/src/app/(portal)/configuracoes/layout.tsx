@@ -2,7 +2,7 @@ import { SettingsNav } from './SettingsNav';
 import { SectionHero } from '@/components/ui/SectionHero';
 
 export const metadata = {
-  title: 'Configurações | Hexxa Hub',
+  title: 'Configurações | Hexx Digital',
 };
 
 export default function ConfiguracoesLayout({ children }: { children: React.ReactNode }) {

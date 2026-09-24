@@ -108,7 +108,7 @@ export async function PrevisaoCaixaCard() {
             <strong>{MES(avisoDeTeto)}</strong> — faltam {BRL.format(Math.max(0, teto!.folga))} dos{' '}
             {BRL.format(teto!.limite)}. Estourar o limite significa mudar de regime no ano seguinte;
             vale conversar com a contabilidade antes.
-            {!teto!.apurado && ' O cálculo usa as notas do Hub, ainda sem apuração do contábil.'}
+            {!teto!.apurado && ' O cálculo usa as notas da Hexx, ainda sem apuração do contábil.'}
           </span>
         </p>
       )}

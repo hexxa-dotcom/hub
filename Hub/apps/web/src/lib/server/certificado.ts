@@ -43,7 +43,7 @@ export async function getStatusDoCertificado(ctx: TenantContext): Promise<Status
   if (!cfg?.certPfxB64 || !cfg.certPassword) {
     return {
       nivel: 'AUSENTE',
-      mensagem: 'Nenhum certificado digital enviado. Sem ele o Hub não emite nota fiscal.',
+      mensagem: 'Nenhum certificado digital enviado. Sem ele a Hexx não emite nota fiscal.',
       ficha: null,
       titularDivergente: false,
     };

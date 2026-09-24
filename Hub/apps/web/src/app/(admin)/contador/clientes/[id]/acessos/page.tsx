@@ -8,7 +8,7 @@ import { AcessosClient } from './AcessosClient';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Acessos | Hexxa Hub' };
+export const metadata = { title: 'Acessos | Hexx Digital' };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();

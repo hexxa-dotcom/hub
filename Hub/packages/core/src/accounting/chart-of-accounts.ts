@@ -5,7 +5,7 @@
  * Numeração do ANEXO 7 da ITG 1000 (CFC, Resolução 1.418/2012, redação de
  * 15/12/2022). É a mesma base de `seed-categories-anexo7.ts`, que cobriu só o
  * grupo 3 e registrou no próprio comentário que o restante ficaria "pra
- * quando o Hub tiver escrituração contábil de verdade". É agora.
+ * quando a Hexx tiver escrituração contábil de verdade". É agora.
  *
  * As contas de resultado NÃO são repetidas aqui em massa: elas entram no
  * plano derivadas do `accountingCode` das categorias já cadastradas da

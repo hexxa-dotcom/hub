@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Cadastro Fiscal | Hexxa Hub',
+  title: 'Cadastro Fiscal | Hexx Digital',
 };
 
 export default async function FiscalPage() {

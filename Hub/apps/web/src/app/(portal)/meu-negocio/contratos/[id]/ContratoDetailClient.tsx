@@ -274,7 +274,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
             <dd className="mt-1 text-sm font-semibold text-ink">{c.partyName}</dd>
             <dd className="text-xs text-ink-soft">
               {c.partyCnpj ?? ''}
-              {c.linkedOnPlatform ? `${c.partyCnpj ? ' · ' : ''}usa o Hub` : ''}
+              {c.linkedOnPlatform ? `${c.partyCnpj ? ' · ' : ''}usa a Hexx` : ''}
             </dd>
           </div>
           <div>
@@ -320,7 +320,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
                   )}
                 </div>
                 <span className={`text-xs font-semibold ${p.lista[0] ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                  {p.lista[0] ? 'Assinado no Hub' : 'Pendente'}
+                  {p.lista[0] ? 'Assinado na Hexx' : 'Pendente'}
                 </span>
               </li>
             ))}
@@ -328,7 +328,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
         ) : (
           <p className="text-sm text-ink-soft">
             {c.signatureMethod === 'FORA'
-              ? `Assinado fora do Hub${c.signingDate ? ` em ${fmtDate(c.signingDate)}` : ''}; o PDF assinado está anexado.`
+              ? `Assinado fora da Hexx${c.signingDate ? ` em ${fmtDate(c.signingDate)}` : ''}; o PDF assinado está anexado.`
               : c.signatureMethod === 'DOCUSEAL'
                 ? c.status === 'ATIVO'
                   ? `Assinado pelas duas partes pelo DocuSeal${c.signingDate ? ` em ${fmtDate(c.signingDate)}` : ''}.`

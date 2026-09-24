@@ -109,7 +109,7 @@ export default async function PortalLayout({ children }: { children: React.React
    * Cadastro ainda não aprovado pelo escritório: só a tela de validação.
    *
    * O contador revisa, aprova, e a aprovação cria a empresa no OneFlow —
-   * onde as regras tributárias são definidas. Antes disso o Hub não tem
+   * onde as regras tributárias são definidas. Antes disso a Hexx não tem
    * regime nem contabilidade do outro lado, e qualquer número de imposto
    * que mostrasse seria palpite.
    */

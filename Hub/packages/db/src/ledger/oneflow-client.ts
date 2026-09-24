@@ -132,7 +132,7 @@ export async function cotaRestante(db: DbHandle, reserva = 0): Promise<number> {
 /**
  * `app_hash` da empresa no OneFlow, casado pelo CNPJ.
  *
- * O Hub identifica a empresa pelo seu próprio uuid; o OneFlow, por um hash
+ * A Hexx identifica a empresa pelo seu próprio uuid; o OneFlow, por um hash
  * de app. O CNPJ é o único identificador que os dois lados compartilham, e
  * por isso é a junta. Devolve `null` quando a empresa não existe lá — é um
  * estado normal (cliente ainda não aberto no OneFlow), não um erro.

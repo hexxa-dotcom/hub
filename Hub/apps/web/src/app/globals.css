@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   Hexxa Hub — Design System Editorial Fintech
+   Hexx Digital — Design System Editorial Fintech
    Paleta: cinza de sopro verde, verde floresta profundo, lima, oliva.
    Tipografia: Source Serif 4 + Nunito Sans.
    ============================================================ */
@@ -318,7 +318,7 @@
   --hero-from: #CCD8CC;
   --hero-to: #C0CCC0;
 
-  /* Gráficos com cores ricas da marca Hexxa */
+  /* Gráficos com cores ricas da marca Hexx */
   --chart-bar: #5F7A6A;
   --chart-bar-current: #1E3328;
 

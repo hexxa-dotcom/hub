@@ -52,7 +52,7 @@ export async function addCustomerAction(_prev: CustomerState, formData: FormData
         return { kind: 'duplicate' as const };
       }
 
-      // 1. Inserir Cliente no banco do Hexxa Hub
+      // 1. Inserir Cliente no banco da Hexx
       const [created] = await tx.insert(customer).values({
         companyId: ctx.companyId,
         name: nome,
@@ -91,7 +91,7 @@ export async function addCustomerAction(_prev: CustomerState, formData: FormData
           phone: telefone || undefined,
         });
 
-        // B) Criar Contrato no banco do Hexxa Hub
+        // B) Criar Contrato no banco da Hexx
         const nextDate = new Date();
         nextDate.setMonth(nextDate.getMonth() + 1);
         nextDate.setDate(Number(diaVencimento));

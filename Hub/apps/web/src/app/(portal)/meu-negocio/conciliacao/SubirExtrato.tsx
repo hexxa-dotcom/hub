@@ -144,7 +144,7 @@ export function SubirExtrato({ contas, desde }: { contas: { id: string; nome: st
           </p>
 
           <ul className="space-y-1.5 text-xs">
-            <Linha n={d.casadas} rotulo="já estavam lançadas no Hub — foram baixadas" />
+            <Linha n={d.casadas} rotulo="já estavam lançadas na Hexx — foram baixadas" />
             <Linha n={d.identificadasPorHistorico} rotulo="reconhecidas pelo histórico da empresa" />
             <Linha n={d.identificadasPorIA} rotulo="identificadas pela IA" />
             <Linha n={d.paraRevisao} rotulo="esperando sua conferência" tom="atencao" />

@@ -21,9 +21,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Recursos & Módulos do Hub | Hexx Hub',
+  title: 'Recursos & Módulos da Hexx | Hexx Digital',
   description:
-    'Conheça em detalhes os módulos do Hexx Hub: Emissão de NFSe com 1 clique, DRE em tempo real, contratos com assinatura jurídica e gestão tributária consultiva.',
+    'Conheça em detalhes os módulos da Hexx: Emissão de NFSe com 1 clique, DRE em tempo real, contratos com assinatura jurídica e gestão tributária consultiva.',
 };
 
 export default function RecursosPage() {

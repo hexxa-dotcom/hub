@@ -120,7 +120,7 @@ function ReportPdfDocument({ data, signerLabel }: { data: ReportPdfData; signerL
         )}
 
         <Text style={styles.footer} fixed>
-          Hexxa Hub — documento gerado automaticamente a partir dos lançamentos registrados no sistema.
+          Hexx Digital — documento gerado automaticamente a partir dos lançamentos registrados no sistema.
         </Text>
       </Page>
     </Document>

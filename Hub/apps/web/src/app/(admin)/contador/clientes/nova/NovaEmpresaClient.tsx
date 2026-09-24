@@ -97,7 +97,7 @@ export function NovaEmpresaClient() {
         <div className="rounded-2xl border border-black/5 bg-white dark:border-white/10 dark:bg-[#1A1A18]">
           <div className="border-b border-black/5 px-5 py-3.5 dark:border-white/10">
             <h3 className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
-              Ainda não estão no Hub ({pendentes.length})
+              Ainda não estão na Hexx ({pendentes.length})
             </h3>
           </div>
           <ul className="divide-y divide-black/5 dark:divide-white/10">
@@ -119,7 +119,7 @@ export function NovaEmpresaClient() {
                   {ocupada === e.appHash ? (
                     <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Trazendo…</>
                   ) : (
-                    'Trazer para o Hub'
+                    'Trazer para a Hexx'
                   )}
                 </button>
               </li>
@@ -185,7 +185,7 @@ export function NovaEmpresaClient() {
       {cadastradas.length > 0 && (
         <details className="rounded-2xl border border-black/5 bg-white px-5 py-3.5 dark:border-white/10 dark:bg-[#1A1A18]">
           <summary className="cursor-pointer text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">
-            Já no Hub ({cadastradas.length})
+            Já na Hexx ({cadastradas.length})
           </summary>
           <ul className="mt-3 space-y-1.5">
             {cadastradas.map((e) => (
@@ -201,7 +201,7 @@ export function NovaEmpresaClient() {
 
       {empresas && pendentes.length === 0 && (
         <p className="px-1 text-sm text-[#6E6A61] dark:text-[#A8A49C]">
-          Todas as empresas do escritório já estão no Hub.
+          Todas as empresas do escritório já estão na Hexx.
         </p>
       )}
     </div>

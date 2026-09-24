@@ -323,7 +323,7 @@ export async function getSimplesInputs(
     // transação (postgres.js pipeline com segurança dentro de sql.begin).
     const [rbtRes, folhaRes, prolaboreRes, apuradoRes] = await Promise.all([
       tx.execute(sql`
-        -- Só o que tem NOTA: emitida pelo Hub (NFSE) ou trazida do Emissor
+        -- Só o que tem NOTA: emitida pela Hexx (NFSE) ou trazida do Emissor
         -- Nacional (DFE_SYNC). Imposto se paga sobre nota emitida; boleto,
         -- entrada do extrato e recebível digitado não são faturamento
         -- tributável, e somá-los mudaria a faixa do Simples.
@@ -352,7 +352,7 @@ export async function getSimplesInputs(
       /**
        * O RBT12 que a apuração oficial usou.
        *
-       * A soma dos recebíveis do Hub só enxerga o que passa pelo Hub. Para
+       * A soma dos recebíveis da Hexx só enxerga o que passa pela Hexx. Para
        * empresas cuja nota sai pela prefeitura e chega direto ao OneFlow, ela
        * dá zero — e o termômetro dizia "nenhum faturamento nos últimos 12
        * meses" para uma empresa com R$ 85 mil apurados. O de lá prevalece.
@@ -420,7 +420,7 @@ export async function estimateInvoiceTaxRate(
      * apurou — RBT12, alíquota efetiva e anexo. Preferi-la ao cálculo interno
      * é o que impede o descasamento entre o "imposto aproximado" que o
      * cliente vê ao emitir e o DAS que chega depois: quem calcula imposto é
-     * o sistema contábil, e o Hub mostra o que ele calculou.
+     * o sistema contábil, e a Hexx mostra o que ele calculou.
      */
     const real = await ultimaAliquotaApurada(ctx);
     if (real !== null) return real;
@@ -570,7 +570,7 @@ export type PosicaoSimples = Omit<import('@hexxa/core').SimplesPosition, 'anexo'
   mesApurado: string | null;
   /**
    * Faixa, alíquota nominal e projeção de próxima faixa estão na tabela
-   * certa? Falso para os anexos I, II e IV, cujas tabelas o Hub não tem —
+   * certa? Falso para os anexos I, II e IV, cujas tabelas a Hexx não tem —
    * aí a tela esconde a projeção em vez de mostrar a do anexo errado.
    */
   projecaoConfiavel: boolean;
@@ -625,7 +625,7 @@ export async function posicaoSimples(
  * - `fora: 'OFICIAL'` — deduzido de números oficiais: anexo apurado I, II ou
  *   IV; ou Anexo III com Fator R oficial abaixo de 28% (seria V se a
  *   atividade dependesse dele).
- * - `fora: 'ESTIMADO'` — Anexo III apurado, e só a estimativa do Hub dá
+ * - `fora: 'ESTIMADO'` — Anexo III apurado, e só a estimativa da Hexx dá
  *   abaixo de 28%. Conclusão mais fraca; quem mostra deve ser cauteloso. A
  *   recomendação some assim mesmo: esconder por engano tira uma sugestão,
  *   mostrar por engano aconselha a pagar INSS à toa.

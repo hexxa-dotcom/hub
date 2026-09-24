@@ -9,7 +9,7 @@ import { getNfseConfig, getCertForTenant } from './fiscal';
  * ver packages/integrations/src/nfse/dfe-distribuicao.adapter.ts pro porquê
  * disso existir: dá pra ver o VALOR de toda nota emitida OU recebida pelo
  * CNPJ da empresa (não importa o sistema que emitiu — inclusive sistemas
- * próprios de município como o de Navegantes) sem precisar emitir pelo Hub.
+ * próprios de município como o de Navegantes) sem precisar emitir pela Hexx.
  */
 
 const EVENTOS_CANCELAMENTO = new Set([

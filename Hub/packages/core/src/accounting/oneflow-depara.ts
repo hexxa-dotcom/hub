@@ -1,13 +1,13 @@
 import { ACCOUNTS } from './chart-of-accounts';
 
 /**
- * DE-PARA: plano do Hub (ITG 1000, Anexo 7) → plano do OneFlow.
+ * DE-PARA: plano da Hexx (ITG 1000, Anexo 7) → plano do OneFlow.
  *
  * Os dois planos têm esqueleto parecido e numeração diferente a partir do
- * terceiro nível. O Hub segue a norma do CFC; o OneFlow tem padrão comercial
+ * terceiro nível. A Hexx segue a norma do CFC; o OneFlow tem padrão comercial
  * próprio, com grupos separados para Custo (4) e Despesa (5).
  *
- * Mantivemos o Anexo 7 no Hub porque é o que a ITG 1000 determina — e porque
+ * Mantivemos o Anexo 7 na Hexx porque é o que a ITG 1000 determina — e porque
  * o plano do OneFlow não tem onde lançar tributo sobre o lucro nem dedução da
  * receita bruta, que a norma exige separados. A tradução acontece só na saída.
  *
@@ -119,7 +119,7 @@ export const DE_PARA_ONEFLOW: Record<string, DestinoOneflow> = {
 };
 
 /**
- * Contas do Hub que NÃO têm destino no plano padrão do OneFlow.
+ * Contas da Hexx que NÃO têm destino no plano padrão do OneFlow.
  *
  * Não são esquecimento: são contas que a ITG 1000 exige e o plano comercial do
  * OneFlow não traz. Precisam ser criadas lá, uma vez, na tela — a API do
@@ -194,7 +194,7 @@ export const CONTAS_A_CRIAR_NO_ONEFLOW: {
 ];
 
 /**
- * Traduz uma conta do Hub. `null` quando não há destino mapeado.
+ * Traduz uma conta da Hexx. `null` quando não há destino mapeado.
  *
  * REGRA: sem correspondência HONESTA, devolve `null` e a partida fica retida.
  * Nunca "a conta mais parecida".

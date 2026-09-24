@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 
-/** O contrato aberto dentro do Hub, quase em tela cheia — ler sem baixar. */
+/** O contrato aberto dentro da Hexx, quase em tela cheia — ler sem baixar. */
 export function VerContrato({ id, titulo, onClose }: { id: string; titulo: string; onClose: () => void }) {
   useEffect(() => {
     const fechar = (e: KeyboardEvent) => e.key === 'Escape' && onClose();

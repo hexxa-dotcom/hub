@@ -1,5 +1,5 @@
 /**
- * DE-PARA: razão do Hub → lançamento do OneFlow.
+ * DE-PARA: razão da Hexx → lançamento do OneFlow.
  *
  * O formato deles encaixa quase um a um no nosso, o que é sorte e conveniência:
  *
@@ -55,12 +55,12 @@ export interface LancamentoOneflow {
   partidas: PartidaOneflow[];
 }
 
-/** Conta do Hub sem correspondência no plano do OneFlow. */
+/** Conta da Hexx sem correspondência no plano do OneFlow. */
 export class ContaSemMapeamentoError extends Error {
   constructor(public readonly codigos: string[]) {
     super(
       `Contas sem correspondência no plano do OneFlow: ${codigos.join(', ')}. ` +
-        'Cadastre o de-para antes de enviar — mandar o código do Hub faria o lançamento ' +
+        'Cadastre o de-para antes de enviar — mandar o código da Hexx faria o lançamento ' +
         'cair numa conta errada ou ser recusado.',
     );
     this.name = 'ContaSemMapeamentoError';

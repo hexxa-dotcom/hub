@@ -78,7 +78,7 @@ function gerarContratoHTML(dados: {
   <p><strong>Município:</strong> ${dados.cliente.municipio}/${dados.cliente.uf}</p>
 </div>
 <div class="parties">
-  <p><strong>CONTRATADA:</strong> Hexxa Contabilidade LTDA</p>
+  <p><strong>CONTRATADA:</strong> HEXX SERVIÇOS DIGITAIS LTDA</p>
   <p><strong>CNPJ:</strong> 00.000.000/0001-99</p>
   <p><strong>Representante:</strong> Filipe Heck</p>
   <p><strong>E-mail:</strong> suporte@hexxa.com.br</p>
@@ -129,12 +129,12 @@ ${dados.obs ? `<div class="clause"><p class="clause-title">CLÁUSULA 7ª — DAS
   </div>
   <div class="assina">
     <p><strong>CONTRATADA</strong></p>
-    <p>Hexxa Contabilidade LTDA</p>
+    <p>HEXX SERVIÇOS DIGITAIS LTDA</p>
     <p>CNPJ: 00.000.000/0001-99</p>
   </div>
 </div>
 
-<div class="rodape">Gerado via Hexx Hub Digital · ${hoje}</div>
+<div class="rodape">Gerado via Hexx Digital · ${hoje}</div>
 </body></html>`;
 }
 

@@ -26,12 +26,12 @@ export interface EmpresaDisponivel {
   appHash: string;
   cnpj: string;
   razaoSocial: string;
-  /** Já existe no Hub? A lista mostra as duas coisas, para o contador se situar. */
+  /** Já existe na Hexx? A lista mostra as duas coisas, para o contador se situar. */
   jaCadastrada: boolean;
 }
 
 /**
- * Empresas do escritório no OneFlow, marcando quais já vieram para o Hub.
+ * Empresas do escritório no OneFlow, marcando quais já vieram para a Hexx.
  *
  * Custa uma chamada por página de listagem — barato, e é a tela inteira.
  */
@@ -50,7 +50,7 @@ export async function empresasDoEscritorio(tx: DbHandle): Promise<EmpresaDisponi
     if (!lote.length) break;
     for (const e of lote) {
       // Filiais têm cadastro próprio lá, mas contabilidade da matriz. Trazer
-      // as duas criaria duas empresas no Hub para um CNPJ raiz só.
+      // as duas criaria duas empresas na Hexx para um CNPJ raiz só.
       if (/^\[?filial/i.test(e.razaoSocial)) continue;
       out.push({
         appHash: e.appHash,
@@ -75,7 +75,7 @@ export interface ResultadoCadastro {
 }
 
 /**
- * Cria (ou completa) a empresa no Hub com os dados do OneFlow.
+ * Cria (ou completa) a empresa na Hexx com os dados do OneFlow.
  *
  * Idempotente: rodar de novo atualiza o cadastro e não duplica sócio nem
  * conta do plano. É o que permite usar a mesma tela para corrigir um cadastro
@@ -98,7 +98,7 @@ export async function cadastrarDoOneflow(
   `)) as unknown as { id: string }[];
 
   /**
-   * O token é pedido pela chave do Hub, mas a empresa pode não ter id ainda.
+   * O token é pedido pela chave da Hexx, mas a empresa pode não ter id ainda.
    * Usar o appHash como chave provisória e renomear depois evita uma ordem
    * impossível — precisar do id para buscar os dados que criam o id.
    */
@@ -118,7 +118,7 @@ export async function cadastrarDoOneflow(
    * Regime tributário: o de lá prevalece.
    *
    * Era gravado fixo como Simples Nacional para todo cliente — um Lucro
-   * Presumido entraria no Hub com a régua de imposto errada, e nada acusaria.
+   * Presumido entraria na Hexx com a régua de imposto errada, e nada acusaria.
    * O `dadosbasicos` traz `regimeTributario` por extenso; MEI é Simples.
    * Regime que não reconhecemos não vira palpite: a empresa entra, e o aviso
    * manda conferir.
@@ -291,7 +291,7 @@ export async function cadastrarDoOneflow(
   };
 }
 
-/** `regimeTributario` do OneFlow, por extenso → enum do Hub. `null` = não reconhecido. */
+/** `regimeTributario` do OneFlow, por extenso → enum da Hexx. `null` = não reconhecido. */
 export function regimeDoOneflow(
   texto: string,
 ): 'SIMPLES_NACIONAL' | 'LUCRO_PRESUMIDO' | 'LUCRO_REAL' | null {

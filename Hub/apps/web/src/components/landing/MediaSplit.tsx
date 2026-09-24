@@ -44,7 +44,7 @@ export function MediaSplit() {
               </div>
             </div>
             <div className="phone">
-              <div className="p-head">Hexx Hub</div>
+              <div className="p-head">Hexx Digital</div>
               <div className="p-card">
                 Comprovação de despesa <b className="p-ok">Realizada ✓</b>
               </div>

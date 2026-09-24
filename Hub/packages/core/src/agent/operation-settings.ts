@@ -41,14 +41,14 @@ export interface AgentesLigados {
    * Traz guias apuradas e folha do OneFlow e as escritura.
    *
    * Interruptor próprio, e não parte de `escrituracao`, porque é uma decisão
-   * diferente: escriturar é sobre o que já está no Hub; isto cria documento
+   * diferente: escriturar é sobre o que já está na Hexx; isto cria documento
    * novo a partir do que o sistema contábil apurou. Uma empresa cujo fiscal
    * ainda não está implantado lá deve ficar com isto desligado, senão a volta
    * só produz aviso de apuração zerada todo mês.
    */
   retornoOneflow: boolean;
   /**
-   * Manda o razão do Hub para a contabilidade do OneFlow.
+   * Manda o razão da Hexx para a contabilidade do OneFlow.
    *
    * Separado de `retornoOneflow` porque as duas direções dependem de módulos
    * DIFERENTES estarem prontos do lado de lá. Uma empresa pode ter o fiscal

@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       email,
       whats,
       area: area || 'Não informada',
-      origem: 'Landing Page Hexx Hub',
+      origem: 'Landing Page Hexx Digital',
       timestamp: new Date().toISOString(),
     };
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: `🎯 **Novo Lead Capturado - Hexx Hub**\n**Nome:** ${nome}\n**Email:** ${email}\n**WhatsApp:** ${whats}\n**Área / Plano:** ${leadData.area}`,
+            content: `🎯 **Novo Lead Capturado - Hexx Digital**\n**Nome:** ${nome}\n**Email:** ${email}\n**WhatsApp:** ${whats}\n**Área / Plano:** ${leadData.area}`,
           }),
         });
       } catch (webhookErr) {
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     const cleanPhone = whats.replace(/\D/g, '');
-    const whatsappMsg = `Olá! Sou ${nome} (${leadData.area}) e acabei de solicitar uma demonstração/contato pelo site do Hexx Hub.`;
+    const whatsappMsg = `Olá! Sou ${nome} (${leadData.area}) e acabei de solicitar uma demonstração/contato pelo site da Hexx.`;
 
     return NextResponse.json(
       {

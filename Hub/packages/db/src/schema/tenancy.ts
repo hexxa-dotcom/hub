@@ -35,7 +35,7 @@ export const company = pgTable('company', {
    */
   closedAt: timestamp('closed_at', { withTimezone: true }),
   closedReason: text('closed_reason'),
-  /** Quando o Hub criou ou vinculou a empresa no OneFlow, na aprovação. Ver 0066. */
+  /** Quando a Hexx criou ou vinculou a empresa no OneFlow, na aprovação. Ver 0066. */
   /**
    * Faturamento dos últimos 12 meses declarado no primeiro acesso, e quando.
    * É ponto de partida para o termômetro enquanto não há histórico de notas

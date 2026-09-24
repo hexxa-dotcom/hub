@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const cnpjRaw = searchParams.get('cnpj') ?? '';
   // normalizeDocument PRESERVA letras — o PGMEI da Receita ainda não deve
-  // aceitar CNPJ alfanumérico (é um sistema legado), mas não é a Hexxa quem
+  // aceitar CNPJ alfanumérico (é um sistema legado), mas não é a Hexx quem
   // deve descartar as letras localmente antes disso mudar.
   const cnpj = normalizeDocument(cnpjRaw);
   const paRaw = searchParams.get('pa') ?? '';

@@ -83,7 +83,7 @@ export function CoreBenefits() {
             href="/recursos"
             className="inline-flex items-center gap-2 text-xs font-bold text-[#1E3328] dark:text-[#DFFFAE] hover:underline"
           >
-            <span>Quer ver as telas e funcionalidades detalhadas? Acesse o Tour do Hub</span>
+            <span>Quer ver as telas e funcionalidades detalhadas? Acesse o Tour da Hexx</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>

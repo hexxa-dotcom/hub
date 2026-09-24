@@ -14,7 +14,7 @@ import type { LancamentoOneflow } from '@hexxa/integrations';
  * Confirmado com o escritório: no OneFlow os módulos fiscal e de folha são
  * integrados ao contábil — gerar a apuração ou a folha lá já lança no
  * contábil de lá. Devolver esses reconhecimentos daqui duplicaria imposto e
- * folha nos livros oficiais. O que o Hub manda é o que só ele vê: o banco,
+ * folha nos livros oficiais. O que a Hexx manda é o que só ele vê: o banco,
  * as despesas, o pagamento das guias.
  *
  * A RECEITA segue a mesma regra, sem exceção. Definido pelo escritório: a
@@ -22,7 +22,7 @@ import type { LancamentoOneflow } from '@hexxa/integrations';
  * fiscal emitida. A nota vai ao fiscal do OneFlow, e o fiscal lança lá
  * "cliente a receber contra receita" no mês de competência. Daqui vai só o
  * recebimento — banco contra cliente a receber —, que baixa o que o fiscal
- * lançou. A receita que o Hub reconhece por outra via (boleto, entrada do
+ * lançou. A receita que a Hexx reconhece por outra via (boleto, entrada do
  * extrato) é visão interna e nunca sai daqui: mandá-la criaria nos livros
  * oficiais faturamento sem nota, ou dobraria o que tem nota.
  *
@@ -98,7 +98,7 @@ export interface EnsaioResult {
   prontas: PartidaParaEnvio[];
   /** Partidas que não podem ir por falta de de-para. */
   bloqueadas: { journalEntryId: string; memo: string; contasFaltando: string[] }[];
-  /** Contas do Hub sem destino, com a orientação do que criar no OneFlow. */
+  /** Contas da Hexx sem destino, com a orientação do que criar no OneFlow. */
   contasACriar: ReturnType<typeof contasSemDestino>;
   /** Já enviadas antes — não vão de novo. */
   jaEnviadas: number;
@@ -113,7 +113,7 @@ export interface EnsaioResult {
  *    deve virar lançamento lá.
  *
  * 2. **Espelho de estorno cuja original nunca foi enviada** — se o erro nasceu
- *    e morreu dentro do Hub, o OneFlow não precisa saber que existiu. Mandar o
+ *    e morreu dentro da Hexx, o OneFlow não precisa saber que existiu. Mandar o
  *    contra-lançamento sozinho criaria um saldo negativo do nada; mandar o par
  *    poluiria a contabilidade oficial com um erro que nunca chegou lá. Quando
  *    a original TIVER sido enviada, o espelho vai junto — aí ele é necessário
@@ -125,7 +125,7 @@ export interface EnsaioResult {
  *    ele zeraria de novo: o lucro sairia dobrado no patrimônio líquido. *
  * 4. **O que nasceu no OneFlow** — a apuração do imposto (`TAX_GUIDE`,
  *    reconhecimento) e o cálculo da folha (`PAYSLIP`). A volta os importa
- *    para o Hub mostrar o balanço inteiro, mas eles são do fiscal e da folha
+ *    para a Hexx mostrar o balanço inteiro, mas eles são do fiscal e da folha
  *    de lá, que alimentam o contábil de lá. Devolvê-los duplicaria imposto e
  *    folha nos livros oficiais — e a provisão do DAS, que é estimativa nossa,
  *    iria junto. O PAGAMENTO da guia continua indo: é fato do banco, visto
@@ -512,7 +512,7 @@ export async function retirarEnviosNaoAutorizados(
  * Retira do OneFlow as partidas de MESES INFORMADOS que foram enviadas mas
  * que a regra atual não manda — as que hoje caem em `ORIGEM_ONEFLOW`.
  *
- * Existe para a receita da HEXX: o Hub mandou o reconhecimento dos boletos
+ * Existe para a receita da HEXX: a Hexx mandou o reconhecimento dos boletos
  * como receita antes de a regra ficar definida (receita é só a da nota
  * fiscal). Serve para qualquer regra que venha a excluir o que já foi: o
  * critério é o mesmo fragmento que o envio usa, então o que sai daqui é

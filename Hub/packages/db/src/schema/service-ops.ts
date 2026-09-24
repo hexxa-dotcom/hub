@@ -135,10 +135,10 @@ export const contract = pgTable('contract', {
 /**
  * Contrato comercial do próprio tenant com clientes/fornecedores dele
  * (ENTRADA = ele presta o serviço → contas a receber; SAIDA = ele contrata
- * → contas a pagar). Quando a contraparte também é empresa na Hexxa
+ * → contas a pagar). Quando a contraparte também é empresa na Hexx
  * (achada pelo CNPJ), gera o contrato espelho do outro lado e liga os dois
  * via mirrorContractId. Não confundir com `contract` (cliente de assessoria
- * contábil) nem com `accountingContract` (contrato da Hexxa com o tenant).
+ * contábil) nem com `accountingContract` (contrato da Hexx com o tenant).
  */
 export const businessContract = pgTable('business_contract', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -188,11 +188,11 @@ export const businessContract = pgTable('business_contract', {
   nextAdjustmentDate: date('next_adjustment_date'),
   /** HUB | DOCUSEAL | FORA — como o contrato é assinado. */
   signatureMethod: text('signature_method'),
-  /** SHA-256 do PDF assinado — o que cada assinatura no Hub confirma. */
+  /** SHA-256 do PDF assinado — o que cada assinatura na Hexx confirma. */
   documentHash: text('document_hash'),
   /** Link para esta empresa assinar embutido (DocuSeal). */
   ownSignUrl: text('own_sign_url'),
-  /** false no lado espelho: o contrato veio de outra empresa do Hub. */
+  /** false no lado espelho: o contrato veio de outra empresa da Hexx. */
   initiatedHere: boolean('initiated_here').notNull().default(true),
   partyEmail: text('party_email'),
   /** Código impresso no PDF para conferência pública em /v/<código>. Ver 0074. */
@@ -201,7 +201,7 @@ export const businessContract = pgTable('business_contract', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** Assinatura feita dentro do Hub (quando as duas partes usam o sistema). Ver 0073. */
+/** Assinatura feita dentro da Hexx (quando as duas partes usam o sistema). Ver 0073. */
 export const contractSignature = pgTable('contract_signature', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id')

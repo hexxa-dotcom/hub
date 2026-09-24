@@ -5,7 +5,7 @@ import { listarEntregasDoEscritorio, TIPOS_DE_DOCUMENTO } from '@/lib/server/ent
 import { DocumentosDoEscritorio } from './DocumentosDoEscritorio';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Documentos | Hexxa Hub' };
+export const metadata = { title: 'Documentos | Hexx Digital' };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ cliente?: string }> }) {
   await requireAdmin();

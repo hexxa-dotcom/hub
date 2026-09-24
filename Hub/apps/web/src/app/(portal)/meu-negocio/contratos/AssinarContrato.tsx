@@ -8,9 +8,9 @@ import { assinarNoHubAction, marcarQueAssineiAction, signatarioAction } from './
 const DocusealForm = dynamic(() => import('@docuseal/react').then((m) => m.DocusealForm), { ssr: false });
 
 /**
- * ASSINAR UM CONTRATO — sem sair do Hub.
+ * ASSINAR UM CONTRATO — sem sair da Hexx.
  *
- * Quando a outra parte também usa o Hub, a assinatura é do próprio Hub: lê o
+ * Quando a outra parte também usa a Hexx, a assinatura é do próprio Hub: lê o
  * contrato, confirma nome e CPF, marca que leu e concorda, e assina. Ficam
  * registrados data, hora, IP e o código (hash) do PDF.
  *

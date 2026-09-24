@@ -44,7 +44,7 @@ export function getDb(): DbHandle {
   if (!_db) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error('DATABASE_URL ausente. Configure o .env.local (banco PRÓPRIO do Hub).');
+      throw new Error('DATABASE_URL ausente. Configure o .env.local (banco PRÓPRIO da Hexx).');
     }
     // max:5 (não 1): a Vercel roda requisições concorrentes na mesma
     // instância (Fluid Compute) — com max:1 elas disputavam a MESMA conexão

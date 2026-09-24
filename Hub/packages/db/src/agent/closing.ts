@@ -87,9 +87,9 @@ export async function coletarDadosDoMes(
       AND e.type = 'RECEIVABLE'
       AND e.status <> 'CANCELED'
       AND e.reference_month = ${referenceMonth}::date
-      -- Nota emitida pelo Hub (NFSE) ou trazida do Emissor Nacional
+      -- Nota emitida pela Hexx (NFSE) ou trazida do Emissor Nacional
       -- (DFE_SYNC): as duas SÃO nota. Contar a segunda como "sem nota"
-      -- travava o fechamento de quem emite fora do Hub.
+      -- travava o fechamento de quem emite fora da Hexx.
       AND e.source NOT IN ('NFSE', 'DFE_SYNC')
       AND NOT EXISTS (
         -- service_invoice não tem data de emissão própria: o mês da nota é

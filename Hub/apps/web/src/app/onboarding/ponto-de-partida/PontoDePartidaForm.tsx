@@ -14,7 +14,7 @@ const inicial: EstadoDoPontoDePartida = { ok: true, message: '' };
 const inicialPgdas: EstadoDaLeituraPgdas = { ok: true, message: '', faturamento: null };
 
 /**
- * Passo 3: de onde o Hub começa a contar.
+ * Passo 3: de onde a Hexx começa a contar.
  *
  * Dois campos, e os dois explicam o que destravam. Um formulário de abertura
  * contábil pediria plano de contas e balancete; quem acabou de assinar

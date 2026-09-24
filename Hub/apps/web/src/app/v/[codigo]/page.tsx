@@ -5,7 +5,7 @@ import { getConferencia } from '@/lib/server/contratos';
 import { ConferirArquivo } from './ConferirArquivo';
 
 /**
- * CONFERÊNCIA DE CONTRATO — para quem está fora do Hub.
+ * CONFERÊNCIA DE CONTRATO — para quem está fora da Hexx.
  *
  * O código impresso em todas as páginas do contrato traz a pessoa aqui. Ela
  * vê quem são as partes, quem assinou, quando e de onde, e pode conferir se
@@ -13,7 +13,7 @@ import { ConferirArquivo } from './ConferirArquivo';
  */
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Conferência de contrato · Hexxa Hub', robots: { index: false } };
+export const metadata: Metadata = { title: 'Conferência de contrato · Hexx Digital', robots: { index: false } };
 
 const br = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 const quando = (iso: string) =>
@@ -37,7 +37,7 @@ export default async function ConferenciaPage({ params }: { params: Promise<{ co
     <main className="min-h-screen bg-[#F3F2EC] text-[#0C110E]">
       <div className="mx-auto w-full max-w-[640px] space-y-10 px-4 pb-16 pt-12">
         <header>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-black/45">Conferência de contrato · Hexxa Hub</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-black/45">Conferência de contrato · Hexx Digital</p>
           <h1 className="mt-3 text-2xl font-light uppercase leading-tight tracking-[0.05em]">{c.titulo}</h1>
           <p className={`mt-3 flex items-center gap-2 text-sm font-semibold ${situacao.cor}`}>
             <ShieldCheck className="h-4 w-4" /> {situacao.texto}
@@ -90,7 +90,7 @@ export default async function ConferenciaPage({ params }: { params: Promise<{ co
             <p className="mt-3 text-sm text-black/60">
               {c.assinatura === 'DOCUSEAL'
                 ? 'Assinado pelo DocuSeal, que emite o próprio relatório de auditoria com o registro de cada signatário.'
-                : 'Contrato assinado fora do Hub e registrado com o arquivo assinado.'}
+                : 'Contrato assinado fora da Hexx e registrado com o arquivo assinado.'}
             </p>
           )}
         </section>

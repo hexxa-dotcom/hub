@@ -4,7 +4,7 @@ import { Card, CardHeader, Metric } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { Bank, ShieldCheck, ArrowsClockwise, Sparkle, ArrowRight } from '@phosphor-icons/react/dist/ssr';
 
-export const metadata: Metadata = { title: 'Open Finance · Hexxa Hub' };
+export const metadata: Metadata = { title: 'Open Finance · Hexx Digital' };
 
 /**
  * Open Finance — página de antecipação.
@@ -25,7 +25,7 @@ const RECURSOS = [
     icon: ArrowsClockwise,
     titulo: 'Extrato que chega sozinho',
     texto:
-      'As transações das suas contas entram no Hub todo dia, sem exportar OFX nem digitar nada. ' +
+      'As transações das suas contas entram na Hexx todo dia, sem exportar OFX nem digitar nada. ' +
       'Hoje o extrato só existe se alguém lançar à mão.',
   },
   {
@@ -48,7 +48,7 @@ export default function OpenFinancePage() {
   return (
     <div className="space-y-16 animate-fade-up">
       <SectionHero
-        subtitulo="Suas contas bancárias conectadas ao Hub"
+        subtitulo="Suas contas bancárias conectadas à Hexx"
         title="Open Finance"
         infoTitle="Sobre Open Finance"
         infoDescription="Conexão direta com as contas bancárias da empresa para conciliação automática e extratos em tempo real."
@@ -65,7 +65,7 @@ export default function OpenFinancePage() {
             <CardHeader label="O que muda quando ligar" icon={Bank} />
             <Metric value="Conciliação sem digitação" size="title" className="mt-4" />
             <p className="text-callout text-ink-soft mt-4">
-              O Hub já sabe conciliar, classificar e escriturar. O que falta é a fonte:
+              A Hexx já sabe conciliar, classificar e escriturar. O que falta é a fonte:
               enquanto o extrato não chega sozinho, cada transação depende de alguém lançar.
             </p>
           </div>
@@ -74,7 +74,7 @@ export default function OpenFinancePage() {
             <p className="rotulo text-ink-soft">Enquanto não chega</p>
             <ul className="mt-3 space-y-3">
               <li className="text-footnote text-ink-soft">
-                A conciliação funciona com lançamentos registrados no Hub.
+                A conciliação funciona com lançamentos registrados na Hexx.
               </li>
               <li className="text-footnote text-ink-soft">
                 O fechamento avisa que não há saldo bancário para conferir — e essa

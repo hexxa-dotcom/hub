@@ -78,7 +78,7 @@ export function LeadFormSection() {
                     <path d="M1 5l3.5 3.5L11 1" />
                   </svg>
                 </span>
-                Demonstração prática do Hub funcionando
+                Demonstração prática da Hexx funcionando
               </li>
               <li>
                 <span className="ck">
@@ -148,7 +148,7 @@ export function LeadFormSection() {
                   </select>
                 </div>
                 <button type="submit" className="btn-landing btn-landing-green" disabled={loading}>
-                  {loading ? 'Enviando...' : 'Quero Conhecer o Hub →'}
+                  {loading ? 'Enviando...' : 'Quero Conhecer a Hexx →'}
                 </button>
                 <p className="form-note">Seus dados estão 100% seguros. Resposta em até 1 dia útil.</p>
               </form>

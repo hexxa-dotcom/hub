@@ -18,7 +18,7 @@ const botaoPrimario =
  * O COMEÇO DO CADASTRO: PRIMEIRO, O CERTIFICADO.
  *
  * Quem tem o e-CNPJ não digita quase nada: o arquivo traz CNPJ, responsável
- * e CPF, e com ele o Hub já busca no Emissor Nacional a última nota e
+ * e CPF, e com ele a Hexx já busca no Emissor Nacional a última nota e
  * configura a emissão — pula direto para o último passo. Quem não tem segue
  * pelo formulário, e a nota fiscal é configurada à mão no passo seguinte.
  */

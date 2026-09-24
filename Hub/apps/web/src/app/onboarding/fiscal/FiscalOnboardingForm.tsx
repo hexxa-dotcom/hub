@@ -37,7 +37,7 @@ const botao =
 /**
  * PASSO 2: TRÊS CAMINHOS, DO MAIS FÁCIL AO QUE PRECISA DO CONTADOR.
  *
- * O certificado vem primeiro porque resolve tudo de uma vez: sem ele o Hub
+ * O certificado vem primeiro porque resolve tudo de uma vez: sem ele a Hexx
  * não lê as notas no Emissor Nacional, e o faturamento nunca chega sozinho.
  * Quem não tem o arquivo à mão envia o XML da última nota. Quem nunca emitiu
  * não tem de onde copiar — o contador assume.

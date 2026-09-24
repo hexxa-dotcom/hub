@@ -7,7 +7,7 @@ import { listarClientesDoNibo } from '@/lib/server/clientes-do-nibo';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Novo cliente | Hexxa Hub' };
+export const metadata = { title: 'Novo cliente | Hexx Digital' };
 
 export default async function Page() {
   await requireAdmin();

@@ -71,7 +71,7 @@ export async function generatePixCharge(data: PixChargeData) {
 
   // 2. Buscar ou Criar o Cliente no Asaas
   let asaasCustomerId: string;
-  // normalizeDocument PRESERVA letras — não é a Hexxa quem deve descartar o
+  // normalizeDocument PRESERVA letras — não é a Hexx quem deve descartar o
   // CNPJ alfanumérico do cliente antes de mandar pro Asaas.
   const cpfCnpj = normalizeDocument(data.customerCpfCnpj);
   const searchRes = await asaasFetch(`/customers?cpfCnpj=${cpfCnpj}`, { method: 'GET' });

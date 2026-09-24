@@ -22,7 +22,7 @@ interface OmieSyncResult {
  */
 export class OmieIntegrationService {
   /**
-   * Sincroniza um lançamento pago (PAID) do Hub para o Finanças da Omie,
+   * Sincroniza um lançamento pago (PAID) da Hexx para o Finanças da Omie,
    * garantindo que o balanço/DRE feche no sistema contábil.
    */
   public async syncPaidEntry(companyId: string, entryId: string): Promise<OmieSyncResult> {

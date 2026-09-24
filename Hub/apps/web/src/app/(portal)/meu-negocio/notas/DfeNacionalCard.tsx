@@ -17,7 +17,7 @@ const mesLabel = (mes: string) => {
 /**
  * Mostra o valor real de toda nota emitida OU recebida pelo CNPJ da empresa,
  * puxado direto da Distribuição de DF-e do Sistema Nacional NFS-e — funciona
- * mesmo sem o município estar liberado pra emissão pelo Hub (ex: Navegantes),
+ * mesmo sem o município estar liberado pra emissão pela Hexx (ex: Navegantes),
  * porque a nota já é replicada no governo assim que emitida por QUALQUER
  * sistema (inclusive o próprio do município).
  */

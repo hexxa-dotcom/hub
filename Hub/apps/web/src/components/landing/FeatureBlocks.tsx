@@ -70,7 +70,7 @@ export function FeatureBlocks() {
               <span className="chip">Modelos validados</span>
               <span className="chip">Assinatura com validade jurídica</span>
               <span className="chip">Acompanhamento em tempo real</span>
-              <span className="chip">Tudo arquivado no Hub</span>
+              <span className="chip">Tudo arquivado na Hexx</span>
             </div>
           </div>
           <div className="feat-visual reveal in reveal-d1">

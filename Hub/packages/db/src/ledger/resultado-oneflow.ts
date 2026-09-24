@@ -7,7 +7,7 @@ import type { clienteOneflow } from './oneflow-client';
  *
  * ── Por que espelhar em vez de calcular ─────────────────────────────────
  *
- * O Hub é um sistema de gestão integrado a um sistema contábil. As regras e
+ * A Hexx é um sistema de gestão integrado a um sistema contábil. As regras e
  * a conta são do sistema contábil; quando os dois divergem, prevalece o de
  * lá. Para o lucro isso não é preferência, é consequência: a distribuição de
  * lucro isenta ao sócio se apoia no lucro ESCRITURADO, e escriturado é o que

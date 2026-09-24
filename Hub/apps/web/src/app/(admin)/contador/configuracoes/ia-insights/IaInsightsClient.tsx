@@ -52,7 +52,7 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
     try {
       await setAiInsightEnabledAction(next);
       setEnabled(next);
-      flash(next ? 'Hexxa Insights habilitada.' : 'Hexxa Insights desabilitada.');
+      flash(next ? 'Hexx Insights habilitada.' : 'Hexx Insights desabilitada.');
     } finally {
       setBusyMaster(false);
     }
@@ -74,7 +74,7 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
   }
 
   async function handleRemoveKey() {
-    if (!confirm('Remover a chave da API? Isso também desabilita a Hexxa Insights.')) return;
+    if (!confirm('Remover a chave da API? Isso também desabilita a Hexx Insights.')) return;
     await removeAiInsightApiKeyAction();
     setHasApiKey(false);
     setEnabled(false);
@@ -101,13 +101,13 @@ export function IaInsightsClient({ initial }: { initial: AiInsightSettings }) {
 
       <Section
         icon={<Sparkles className="h-4 w-4" />}
-        title="Hexxa Insights"
+        title="Hexx Insights"
         desc="Dicas contextuais geradas por IA nas telas do sistema — contábil, fiscal, financeiro e legal."
         fullWidth
       >
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-4">
           <div>
-            <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Habilitar Hexxa Insights</p>
+            <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Habilitar Hexx Insights</p>
             <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">Liga a feature pra toda a plataforma. Cada seção abaixo pode ser desligada individualmente.</p>
           </div>
           <MasterToggle enabled={enabled} disabled={busyMaster} onChange={handleToggleMaster} />

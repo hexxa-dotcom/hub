@@ -162,7 +162,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
             {clientes.filter(c => c.semAcesso).length} empresa(s) sem nenhum acesso
           </p>
           <p className="mt-1 text-xs leading-relaxed text-amber-800/90 dark:text-amber-300/80">
-            Existem no Hub e são escrituradas, mas ninguém do lado do cliente consegue
+            Existem na Hexx e são escrituradas, mas ninguém do lado do cliente consegue
             entrar. Convide o dono em cada uma.
           </p>
           <div className="mt-2.5 flex flex-wrap gap-1.5">

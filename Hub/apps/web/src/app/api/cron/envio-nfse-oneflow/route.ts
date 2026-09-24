@@ -16,7 +16,7 @@ export const maxDuration = 300;
  * NOTAS DO MÊS QUE ACABOU → FISCAL DO ONEFLOW.
  *
  * O elo que faltava. O envio existia e era testado pela linha de comando,
- * mas nenhum cron o chamava — e para quem emite nota pelo Hub, o fiscal do
+ * mas nenhum cron o chamava — e para quem emite nota pela Hexx, o fiscal do
  * OneFlow recebia zero notas: a apuração da HEXX voltava zerada em toda
  * competência, e nunca haveria DAS oficial para ela.
  *

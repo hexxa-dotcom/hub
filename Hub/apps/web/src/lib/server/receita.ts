@@ -2,7 +2,7 @@ import 'server-only';
 
 /**
  * Consulta um CNPJ na Receita (CNPJá com chave; ReceitaWS de reserva) e
- * devolve o que o Hub usa para cadastrar a empresa. Compartilhado pelo
+ * devolve o que a Hexx usa para cadastrar a empresa. Compartilhado pelo
  * cadastro do cliente e pela área do contador.
  */
 export async function lookupCnpj(doc: string) {

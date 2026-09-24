@@ -8,7 +8,7 @@ import { AberturaClient } from './AberturaClient';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Saldos de abertura | Hexxa Hub' };
+export const metadata = { title: 'Saldos de abertura | Hexx Digital' };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();

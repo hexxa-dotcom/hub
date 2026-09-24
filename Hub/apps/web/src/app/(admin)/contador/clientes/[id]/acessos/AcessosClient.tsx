@@ -72,7 +72,7 @@ export function AcessosClient({
         <h2 className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">Convidar</h2>
         <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#6E6A61] dark:text-[#A8A49C]">
           O convite não manda e-mail: ele deixa o acesso pronto. Quando a pessoa se
-          cadastrar no Hub com esse endereço, ela cai direto em {razaoSocial}, sem
+          cadastrar na Hexx com esse endereço, ela cai direto em {razaoSocial}, sem
           precisar de aprovação sua depois. Avise pelo canal que você já usa com ela.
         </p>
 

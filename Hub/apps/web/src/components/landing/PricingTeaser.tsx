@@ -104,7 +104,7 @@ export function PricingTeaser() {
                     : 'bg-[#1E3328] text-[#DFFFAE] hover:bg-[#2F4A3C]'
                 }`}
               >
-                Experimentar o Hub
+                Experimentar a Hexx
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>

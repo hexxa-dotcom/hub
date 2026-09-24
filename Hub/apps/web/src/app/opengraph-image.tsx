@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Hexx Hub | O Hub de Autogestão para Empresas de Serviços e Autônomos';
+export const alt = 'Hexx Gestão Digital | A plataforma de autogestão para empresas de serviços e autônomos';
 export const size = {
   width: 1200,
   height: 630,

@@ -124,7 +124,7 @@ const tabs = [
       </svg>
     ),
     title: 'Monitore seu Fator R (28%) e pague a menor alíquota (6% vs 15,5%)',
-    desc: 'O Hub calcula sua proporção de folha/pró-labore sobre o faturamento mês a mês para garantir o enquadramento no Anexo III, economizando milhares de reais em impostos.',
+    desc: 'A Hexx calcula sua proporção de folha/pró-labore sobre o faturamento mês a mês para garantir o enquadramento no Anexo III, economizando milhares de reais em impostos.',
     preview: (
       <div className="showcase-preview-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -197,7 +197,7 @@ export function ProductShowcase() {
         <div className="showcase-head reveal in">
           <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.025em' }}>Tudo o que sua empresa de serviço precisa. Em uma só tela.</h2>
           <p>
-            Diga adeus à colcha de retalhos de vários softwares avulsos. No Hexx Hub você tem autonomia total para gerenciar seu negócio com a contabilidade operando em tempo real.
+            Diga adeus à colcha de retalhos de vários softwares avulsos. Na Hexx você tem autonomia total para gerenciar seu negócio com a contabilidade operando em tempo real.
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export function ProductShowcase() {
               <span></span>
               <span></span>
             </div>
-            <div className="showcase-title">Hexx Hub · {tabs[activeTab]?.name}</div>
+            <div className="showcase-title">Hexx Digital · {tabs[activeTab]?.name}</div>
             <div style={{ width: '40px' }}></div>
           </div>
 
@@ -230,7 +230,7 @@ export function ProductShowcase() {
               <h3 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '12px' }}>{tabs[activeTab]?.title}</h3>
               <p style={{ lineHeight: 1.6, opacity: 0.85 }}>{tabs[activeTab]?.desc}</p>
               <Link href="/planos" className="btn-landing btn-landing-lime" style={{ marginTop: '18px' }}>
-                Experimentar o Hub →
+                Experimentar a Hexx →
               </Link>
             </div>
             <div>{tabs[activeTab]?.preview}</div>

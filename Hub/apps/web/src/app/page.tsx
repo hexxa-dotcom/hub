@@ -22,11 +22,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Hexx Hub • digital | Contabilidade e Gestão Financeira para Empresas de Serviços',
+  title: 'Hexx Gestão Digital | Contabilidade e Gestão Financeira para Empresas de Serviços',
   description:
-    'Hexx Hub: finanças em tempo real, emissão de NFSe com 1 clique, contratos digitais e contabilidade consultiva.',
+    'Hexx Digital: finanças em tempo real, emissão de NFSe com 1 clique, contratos digitais e contabilidade consultiva.',
   openGraph: {
-    title: 'Hexx Hub (digital) | Mais que contabilidade',
+    title: 'Hexx Digital | Mais que contabilidade',
     description:
       'Gestão inteligente, contabilidade consultiva e operação simplificada para empresas de serviços e profissionais autônomos.',
     type: 'website',

@@ -9,9 +9,9 @@ import { lookupCnpj, camposDaEmpresa, baseFiscal } from './receita';
  *
  * A sincronização do Nibo grava a carteira da HEXX como clientes DELA (a
  * tabela `customer`, de quem a HEXX fatura). Cada um desses é uma empresa que
- * pode virar cliente do Hub — mas só quando o contador decidir. Por isso eles
+ * pode virar cliente da Hexx — mas só quando o contador decidir. Por isso eles
  * aparecem aqui, na área do contador, e não como empresas: habilitar é o ato
- * que cria a empresa no Hub. Assim a lista de empresas só tem quem já foi
+ * que cria a empresa na Hexx. Assim a lista de empresas só tem quem já foi
  * habilitado, e não a carteira inteira.
  */
 const CNPJ_DO_ESCRITORIO = '62.414.421/0001-16';
@@ -20,7 +20,7 @@ export interface ClienteDoNibo {
   document: string;
   nome: string;
   email: string | null;
-  /** A empresa no Hub, quando já habilitado. */
+  /** A empresa na Hexx, quando já habilitado. */
   companyId: string | null;
 }
 
@@ -36,7 +36,7 @@ export async function listarClientesDoNibo(): Promise<ClienteDoNibo[]> {
         JOIN company escritorio ON escritorio.id = cu.company_id AND escritorio.cnpj = ${CNPJ_DO_ESCRITORIO}
         LEFT JOIN company c
                ON regexp_replace(c.cnpj, '[^0-9A-Za-z]', '', 'g') = regexp_replace(cu.document, '[^0-9A-Za-z]', '', 'g')
-       -- Só CNPJ: pessoa física não vira empresa no Hub.
+       -- Só CNPJ: pessoa física não vira empresa na Hexx.
        WHERE length(regexp_replace(cu.document, '[^0-9A-Za-z]', '', 'g')) = 14
        ORDER BY regexp_replace(cu.document, '[^0-9A-Za-z]', '', 'g'), c.id NULLS LAST
     `),
@@ -49,7 +49,7 @@ export async function listarClientesDoNibo(): Promise<ClienteDoNibo[]> {
 }
 
 /**
- * Cria a empresa no Hub a partir do CNPJ, com os dados da Receita. Ninguém é
+ * Cria a empresa na Hexx a partir do CNPJ, com os dados da Receita. Ninguém é
  * vinculado como dono: o contador entra por "Entrar na área do cliente", e o
  * dono é convidado quando for a hora. A aprovação (que leva ao OneFlow) segue
  * pelo caminho de sempre, na página do cliente.

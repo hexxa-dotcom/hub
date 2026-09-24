@@ -24,7 +24,7 @@ function mesRef(offset: number) {
 }
 
 /**
- * Bento Grid principal da tela inicial do Hub (/cliente), alinhado ao padrão
+ * Bento Grid principal da tela inicial da Hexx (/cliente), alinhado ao padrão
  * visual com cards de KPIs atualizados e cards estratégicos de fluxo de caixa e inadimplência.
  */
 export async function MesHero({ selectedMonth }: { selectedMonth?: string } = {}) {

@@ -175,7 +175,7 @@ export type EstadoDaLeitura = {
 
 /**
  * Caminho 1: o certificado digital. Com ele, nada mais precisa ser enviado —
- * o Hub busca no Emissor Nacional as notas que a empresa já emitiu e monta o
+ * a Hexx busca no Emissor Nacional as notas que a empresa já emitiu e monta o
  * perfil pela última. E o faturamento passa a chegar sozinho, todo dia.
  */
 export async function enviarCertificado(

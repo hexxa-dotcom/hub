@@ -19,7 +19,7 @@ import { MODELOS, type ModeloDeContrato, type IndiceDeReajuste } from '@/app/(po
  *
  *   1. criado (a partir de um modelo, ou de um PDF próprio);
  *   2. assinado pelas DUAS partes —
- *        HUB      quando a outra parte também usa o Hub: cada uma assina
+ *        HUB      quando a outra parte também usa a Hexx: cada uma assina
  *                 dentro do sistema; o contrato aparece para a outra como
  *                 "aguardando sua assinatura", com aviso;
  *        DOCUSEAL quando a outra parte está fora: um envelope com os dois
@@ -99,7 +99,7 @@ export async function quemAssina(ctx: TenantContext): Promise<{ userId: string |
   return m ? { userId: m.id, nome: m.name, email: m.email, cpf: m.cpf } : null;
 }
 
-/** A outra parte usa o Hub? (pelo CNPJ) */
+/** A outra parte usa a Hexx? (pelo CNPJ) */
 export async function empresaDoHubPeloCnpj(documento: string, exceto: string) {
   const digitos = normalizeDocument(documento);
   if (digitos.length !== 14) return null;
@@ -234,7 +234,7 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
   );
   if (!meu) return { ok: false, message: 'Não consegui salvar o contrato.' };
 
-  // A outra parte usa o Hub: o contrato aparece para ela na hora.
+  // A outra parte usa a Hexx: o contrato aparece para ela na hora.
   if (outra) {
     const [espelho] = await withTenant(outra.id, (tx) =>
       tx
@@ -302,7 +302,7 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
       assinatura === 'FORA'
         ? 'Contrato registrado e ativo. As parcelas já estão no financeiro.'
         : assinatura === 'HUB'
-          ? `Contrato criado. Falta a sua assinatura e a de ${ela.nome}, que já recebeu o aviso no Hub.`
+          ? `Contrato criado. Falta a sua assinatura e a de ${ela.nome}, que já recebeu o aviso na Hexx.`
           : `Contrato criado e enviado para ${parte.email}. Assine agora pela sua empresa.`,
   };
 }
@@ -319,7 +319,7 @@ async function novoCodigoDeVerificacao(): Promise<string> {
   throw new Error('Não consegui gerar o código de verificação.');
 }
 
-/** As assinaturas feitas no Hub para este contrato e o espelho dele. */
+/** As assinaturas feitas na Hexx para este contrato e o espelho dele. */
 export async function assinaturasNoHub(contratoId: string, espelhoId: string | null) {
   const ids = [contratoId, espelhoId].filter(Boolean) as string[];
   const rows = await getDb()
@@ -329,7 +329,7 @@ export async function assinaturasNoHub(contratoId: string, espelhoId: string | n
   return rows;
 }
 
-/** Assina, pela empresa logada, um contrato cuja assinatura é no Hub. */
+/** Assina, pela empresa logada, um contrato cuja assinatura é na Hexx. */
 export async function assinarNoHub(
   ctx: TenantContext,
   contratoId: string,

@@ -6,7 +6,7 @@ import { emailAccount } from '@hexxa/db/schema';
 import { getTenantContext } from '@/lib/server/tenant';
 
 export const metadata = {
-  title: 'E-mail (NFSe) | Hexxa Hub',
+  title: 'E-mail (NFSe) | Hexx Digital',
 };
 
 export default async function EmailIntegracaoPage() {
@@ -37,7 +37,7 @@ export default async function EmailIntegracaoPage() {
               E-mail (Envio de NFS-e)
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-soft">
-              Conecte a conta de e-mail que o Hub usa para encaminhar a NFS-e automaticamente para o tomador assim que for autorizada.
+              Conecte a conta de e-mail que a Hexx usa para encaminhar a NFS-e automaticamente para o tomador assim que for autorizada.
             </p>
           </div>
         </div>

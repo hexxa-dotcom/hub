@@ -253,7 +253,7 @@ function StepAssinatura({
       </div>
 
       <div className="space-y-2 rounded-2xl bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 border border-black/5 dark:border-white/10 p-4">
-        <Row label="Plano" value={sub.description.replace('Hexx Hub Digital — ', '')} />
+        <Row label="Plano" value={sub.description.replace(/^Hexx( Hub)? Digital — /, '')} />
         <Row label="Valor" value={BRL.format(sub.value)} />
         <Row label="Forma de pag." value={BILLING_LABELS[sub.billingType]} />
         <Row label="Próximo venc." value={fmtDate(sub.nextDueDate)} />

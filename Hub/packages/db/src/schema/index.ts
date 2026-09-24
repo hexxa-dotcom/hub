@@ -1,4 +1,4 @@
-/** Schema completo do Hexx Hub Digital (Drizzle). */
+/** Schema completo do Hexx Digital (Drizzle). */
 export * from './_enums';
 export * from './tenancy';
 export * from './finance';

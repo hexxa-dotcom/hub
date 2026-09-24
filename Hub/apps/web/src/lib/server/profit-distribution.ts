@@ -123,7 +123,7 @@ export async function getAvailableProfitAction(): Promise<YearlyProfitSummary> {
       'for fechado e liberado pelo seu contador. Até lá, nenhum valor é oferecido — distribuir sobre um ' +
       'lucro não conferido pode tirar a isenção do dividendo.'
     : oficial.contabilImplantado && oficial.motivo
-      ? `O balancete oficial não passou na conferência do Hub (${oficial.motivo}). Até o seu ` +
+      ? `O balancete oficial não passou na conferência da Hexx (${oficial.motivo}). Até o seu ` +
         'contador verificar, nenhum valor é oferecido para distribuição.'
     : !oficial.contabilImplantado || oficial.resultado === null
       ? 'A contabilidade desta empresa ainda não está implantada no sistema contábil. Sem lucro ' +

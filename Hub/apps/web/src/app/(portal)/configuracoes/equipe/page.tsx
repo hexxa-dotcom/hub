@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Equipe e Acessos | Hexxa Hub',
+  title: 'Equipe e Acessos | Hexx Digital',
 };
 
 export default async function EquipePage() {

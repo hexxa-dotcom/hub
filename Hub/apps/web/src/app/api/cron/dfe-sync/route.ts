@@ -14,9 +14,9 @@ const PARAR_EM_MS = 240_000;
  *
  * ── Por que existe ──────────────────────────────────────────────────────
  *
- * Até a emissão pelo Hub ser liberada para o Simples, as notas saem por
+ * Até a emissão pela Hexx ser liberada para o Simples, as notas saem por
  * outros sistemas (Nibo, prefeitura). Todas acabam no Ambiente de Dados
- * Nacional, e é de lá — a fonte, não um intermediário — que o Hub lê o
+ * Nacional, e é de lá — a fonte, não um intermediário — que a Hexx lê o
  * faturamento. A leitura já existia, mas só rodava quando alguém apertava
  * "sincronizar" na tela de notas: sem o clique, o faturamento não aparecia.
  *

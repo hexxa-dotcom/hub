@@ -4,7 +4,7 @@ export function TestimonialsSection() {
       initials: 'RS',
       name: 'Rodrigo Silveira',
       role: 'Consultor de Estratégia & Gestão',
-      text: '“Antes do Hub, eu gastava um sábado inteiro por mês cruzando planilhas, emitindo notas e cobrando clientes. Hoje faço tudo no mesmo lugar em minutos. A contabilidade em realtime me dá segurança total.”',
+      text: '“Antes da Hexx, eu gastava um sábado inteiro por mês cruzando planilhas, emitindo notas e cobrando clientes. Hoje faço tudo no mesmo lugar em minutos. A contabilidade em realtime me dá segurança total.”',
       highlight: 'Economia de 12h/mês',
     },
     {
@@ -18,7 +18,7 @@ export function TestimonialsSection() {
       initials: 'TF',
       name: 'Thiago Fontes',
       role: 'Desenvolvedor & Arquiteto de Software',
-      text: '“Troquei três ferramentas pagas (emissor de nota, assinador e app financeiro) pelo Hexx Hub. Além de pagar menos, o suporte da contabilidade é humano e responde rápido quando preciso.”',
+      text: '“Troquei três ferramentas pagas (emissor de nota, assinador e app financeiro) pela Hexx. Além de pagar menos, o suporte da contabilidade é humano e responde rápido quando preciso.”',
       highlight: '3 ferramentas consolidadas em 1',
     },
   ];
@@ -28,7 +28,7 @@ export function TestimonialsSection() {
       <div className="landing-wrap">
         <div className="testim-head reveal in">
           <span className="hero-eyebrow">Histórias Reais</span>
-          <h2 className="landing-serif">Quem toca a própria empresa confia no Hexx Hub</h2>
+          <h2 className="landing-serif">Quem toca a própria empresa confia na Hexx</h2>
           <p>
             Profissionais autônomos e empresas de serviços que conquistaram tempo e liberdade com a autogestão.
           </p>

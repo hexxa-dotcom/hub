@@ -216,7 +216,7 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
         <div className="mt-6 text-center text-[9px] text-slate-500">
           <p>Documento auxiliar sem validade fiscal por si só — a NFS-e válida é o XML assinado digitalmente.</p>
           <p>Consulte a autenticidade no Portal Nacional da NFS-e (nfse.gov.br) utilizando a chave de acesso ou o QR Code acima.</p>
-          <p className="mt-1 text-slate-400 font-semibold">Emitido através do sistema Hexx Hub Gestão Digital</p>
+          <p className="mt-1 text-slate-400 font-semibold">Emitido através do sistema Hexx Gestão Digital</p>
         </div>
       </div>
     </div>

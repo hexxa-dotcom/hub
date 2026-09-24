@@ -25,7 +25,7 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
  * resolve, e a lista precisa estar legível o bastante para isso valer.
  *
  * Daí a linha mostrar as duas pontas lado a lado: o que o balancete dizia e
- * em que conta do Hub aquilo vai cair. Conferir um de-para olhando só o
+ * em que conta da Hexx aquilo vai cair. Conferir um de-para olhando só o
  * destino é conferir metade.
  */
 export function AberturaClient({
@@ -255,7 +255,7 @@ export function AberturaClient({
           <Passo n={3} titulo="Abrir os saldos" feito={false} />
           <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#6E6A61] dark:text-[#A8A49C]">
             Isto grava uma partida datada no último dia do período que veio pronto. Daí em
-            diante o Hub escritura normalmente, e o balanço de {razaoSocial} já nasce com o
+            diante a Hexx escritura normalmente, e o balanço de {razaoSocial} já nasce com o
             passado da empresa dentro dele.
           </p>
 
@@ -418,7 +418,7 @@ function LinhaDoBalancete({
                 : 'border-black/10 text-[#231F20] dark:border-white/10'
             }`}
           >
-            <option value="">— escolher conta no plano do Hub —</option>
+            <option value="">— escolher conta no plano da Hexx —</option>
             {opcoes.sugeridas.length > 0 && (
               <optgroup label="Sugestões pela descrição">
                 {opcoes.sugeridas.map((c) => (
@@ -434,7 +434,7 @@ function LinhaDoBalancete({
           </select>
 
           <div className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
-            {l.por === 'CODIGO' && <span>código idêntico ao do Hub</span>}
+            {l.por === 'CODIGO' && <span>código idêntico ao da Hexx</span>}
             {l.por === 'DE_PARA' && <span className="text-emerald-700 dark:text-emerald-400">você escolheu</span>}
             {l.ladoFinal && (
               <span className="tabular">

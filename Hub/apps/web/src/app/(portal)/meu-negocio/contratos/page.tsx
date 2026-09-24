@@ -65,7 +65,7 @@ export default async function Page() {
         subtitulo="O que você recebe e o que você paga, assinado e no financeiro"
         title="Contratos"
         infoTitle="Sobre os contratos"
-        infoDescription="Crie o contrato a partir de um modelo ou do seu PDF, assine com a outra parte sem sair do Hub e, com as duas assinaturas, as parcelas entram sozinhas no financeiro e no calendário. Entrada é o que você recebe; saída, o que você paga."
+        infoDescription="Crie o contrato a partir de um modelo ou do seu PDF, assine com a outra parte sem sair da Hexx e, com as duas assinaturas, as parcelas entram sozinhas no financeiro e no calendário. Entrada é o que você recebe; saída, o que você paga."
       />
 
       <Suspense fallback={null}>

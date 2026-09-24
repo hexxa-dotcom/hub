@@ -39,7 +39,7 @@ const AGENTES: { chave: keyof ConfiguracaoDaEmpresa['valores']['agentes']; nome:
   {
     chave: 'envioOneflow',
     nome: 'Enviar o razão ao OneFlow',
-    desc: 'Manda as partidas do Hub para a contabilidade oficial, aos poucos ao longo do mês. Exige o plano de contas já criado lá.',
+    desc: 'Manda as partidas da Hexx para a contabilidade oficial, aos poucos ao longo do mês. Exige o plano de contas já criado lá.',
   },
   {
     chave: 'retornoOneflow',

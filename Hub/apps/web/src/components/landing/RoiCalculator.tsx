@@ -28,7 +28,7 @@ export function RoiCalculator() {
           <div className="calc-interactive reveal in">
             <span className="hero-eyebrow">Simulador de Autonomia</span>
             <h2 className="landing-serif" style={{ fontSize: '32px', marginBottom: '24px', lineHeight: 1.2 }}>
-              Quanto tempo e dinheiro você economiza com o Hexx Hub?
+              Quanto tempo e dinheiro você economiza com a Hexx?
             </h2>
 
             <div className="calc-group">

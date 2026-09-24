@@ -366,7 +366,7 @@ function AppShellInner({
         <div className="flex h-[72px] shrink-0 items-center justify-between px-6 border-b border-black/5 dark:border-white/10 bg-[#1E3328] text-white">
           <div className="flex items-center gap-3">
             <BrandMark size="sm" />
-            <span className="text-base font-serif font-bold text-[#DFFFAE]">Hexx Hub</span>
+            <span className="text-base font-serif font-bold text-[#DFFFAE]">Hexx Digital</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -479,7 +479,7 @@ function AppShellInner({
                     <span className="w-full truncate text-sm font-bold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
                       {company
                         ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
-                        : 'Hexxa Hub'}
+                        : 'Hexx Digital'}
                     </span>
                     <span className="text-[10px] font-medium text-(--sidebar-ink-soft) group-hover:text-ink truncate flex items-center gap-1 transition-colors">
                       Painel da empresa

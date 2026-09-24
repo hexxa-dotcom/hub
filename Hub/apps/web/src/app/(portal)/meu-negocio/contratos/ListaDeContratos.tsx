@@ -180,7 +180,7 @@ export function ListaDeContratos({
                       <p className="truncate text-sm font-semibold text-ink">{c.title}</p>
                       <p className="mt-0.5 truncate text-xs text-ink-soft">
                         {c.partyName}
-                        {c.linkedOnPlatform ? ' · no Hub' : ''}
+                        {c.linkedOnPlatform ? ' · na Hexx' : ''}
                       </p>
                       <p className={`mt-1 text-xs font-medium ${COR[s.tom]}`}>{s.texto}</p>
                     </div>

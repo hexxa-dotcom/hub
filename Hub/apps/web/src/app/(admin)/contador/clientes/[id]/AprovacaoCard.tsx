@@ -141,7 +141,7 @@ export function AprovacaoCard({
         {aprovado ? 'Criar no OneFlow' : 'Cadastro aguardando aprovação'}
       </h2>
       <p className="mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
-        Ao aprovar, a empresa é criada no OneFlow com os módulos abaixo e o cliente passa a acessar o Hub.
+        Ao aprovar, a empresa é criada no OneFlow com os módulos abaixo e o cliente passa a acessar a Hexx.
       </p>
 
       <dl className="mt-4 space-y-1.5 text-xs">

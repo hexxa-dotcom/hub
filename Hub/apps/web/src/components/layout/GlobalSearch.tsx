@@ -72,7 +72,7 @@ export function GlobalSearch() {
             )}
           </div>
           <div className="border-t border-black/5 dark:border-white/5 bg-[#E7EAE5]/50 dark:bg-white/5 px-4 py-2 text-xs text-[#6E6A61] dark:text-[#A8A49C] text-center">
-            Páginas e atalhos do Hexxa Hub
+            Páginas e atalhos da Hexx
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 /**
- * Tipos do banco GERADOS a partir do projeto Supabase do Hexx Hub Digital
+ * Tipos do banco GERADOS a partir do projeto Supabase do Hexx Digital
  * (ref dgixajsmecysehwytlav). NÃO editar à mão.
  *
  * Regerar após mudanças de schema:

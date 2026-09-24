@@ -54,7 +54,7 @@ export function Navbar() {
             </Link>
 
             <nav className="landing-nav-links">
-              <Link href="/recursos">O Hub</Link>
+              <Link href="/recursos">A Hexx</Link>
               <Link href="/simulador">Simulador</Link>
               <a href="/#depoimentos">Depoimentos</a>
               <a href="/#faq">FAQ</a>
@@ -87,7 +87,7 @@ export function Navbar() {
               </div>
             </div>
             <Link className="btn-landing landing-nav-cta" href="/planos">
-              Experimentar o Hub
+              Experimentar a Hexx
             </Link>
             <button
               className="mobile-menu-btn"
@@ -124,7 +124,7 @@ export function Navbar() {
 
         <div className="mobile-drawer-links">
           <Link href="/recursos" onClick={closeMobile}>
-            O Hub por Dentro
+            A Hexx por Dentro
           </Link>
           <Link href="/simulador" onClick={closeMobile}>
             Simulador de Autonomia
@@ -145,7 +145,7 @@ export function Navbar() {
             Entrar como Contador
           </Link>
           <Link href="/planos" className="btn-landing btn-landing-lime" onClick={closeMobile} style={{ width: '100%', justifyContent: 'center' }}>
-            Entrar para o Hub
+            Entrar para a Hexx
           </Link>
         </div>
       </div>

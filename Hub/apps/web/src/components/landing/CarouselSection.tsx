@@ -17,7 +17,7 @@ const slideData = [
   },
   {
     tag: 'Impostos automáticos',
-    desc: '<b>O Hub calcula seus impostos sozinho</b> e avisa quanto e quando pagar.',
+    desc: '<b>A Hexx calcula seus impostos sozinha</b> e avisa quanto e quando pagar.',
   },
   {
     tag: 'Relatórios e indicadores',

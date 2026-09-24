@@ -20,7 +20,7 @@ import { getNfseConfig, isFiscalComplete } from './fiscal';
  * Porque o sistema fica utilizável com três, e a pessoa que acabou de pagar
  * precisa ver isso funcionando em cinco minutos. Certificado digital, perfis
  * de serviço, contas bancárias e o resto são ajustes — importantes, e nenhum
- * deles impede de usar o Hub hoje.
+ * deles impede de usar a Hexx hoje.
  */
 
 export type EstadoDoPasso = 'FEITO' | 'PENDENTE';
@@ -85,14 +85,14 @@ export async function getPrimeirosPassos(ctx: TenantContext): Promise<PrimeirosP
     {
       id: 'empresa',
       titulo: 'Sua empresa e você',
-      porque: 'É o que identifica a empresa em tudo que o Hub emite e declara.',
+      porque: 'É o que identifica a empresa em tudo que a Hexx emite e declara.',
       href: '/onboarding',
       estado: medidas?.empresa && medidas?.responsavel ? 'FEITO' : 'PENDENTE',
     },
     {
       id: 'fiscal',
       titulo: 'Sua nota fiscal',
-      porque: 'Sem isto o Hub não emite nota — e é da nota que nasce seu faturamento.',
+      porque: 'Sem isto a Hexx não emite nota — e é da nota que nasce seu faturamento.',
       href: '/onboarding/fiscal',
       // Entregue ao contador conta como feito para quem está no cadastro: o
       // que falta não depende mais da pessoa. O contador vê o chamado.

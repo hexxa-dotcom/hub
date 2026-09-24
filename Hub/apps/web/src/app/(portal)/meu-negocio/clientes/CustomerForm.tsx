@@ -265,7 +265,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
           <label htmlFor="autoEmitNfse" className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
             <span className="font-bold text-[#231F20] dark:text-[#F5F6F4]">Emitir a nota fiscal automaticamente todo mês</span>
             <br />
-            Sem contrato assinado, sem lançar nada na mão — o Hub emite a NFSe no dia de vencimento
+            Sem contrato assinado, sem lançar nada na mão — a Hexx emite a NFSe no dia de vencimento
             acima usando o valor e a descrição do serviço informados. Precisa do CNPJ e do
             certificado A1 configurados em Meu Negócio {'>'} NFS-e.
           </label>

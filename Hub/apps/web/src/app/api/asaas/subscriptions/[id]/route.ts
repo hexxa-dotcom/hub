@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       const value = PLANO_VALOR[plano];
       if (!value) return NextResponse.json({ error: `Plano inválido: ${plano}` }, { status: 400 });
       updates.value = value;
-      updates.description = `Hexx Hub Digital — Plano ${plano}`;
+      updates.description = `Hexx Digital — Plano ${plano}`;
     }
     if (billingType) updates.billingType = billingType as BillingType;
 

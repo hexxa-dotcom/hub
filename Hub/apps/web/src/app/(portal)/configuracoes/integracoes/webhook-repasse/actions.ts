@@ -11,7 +11,7 @@ const PROVIDER = 'webhook-repasse';
 
 /**
  * Gera (ou rotaciona) o segredo do webhook de faturamento — diferente de
- * Asaas/Omie, aqui o Hub CRIA a credencial (não recebe uma colada de fora),
+ * Asaas/Omie, aqui a Hexx CRIA a credencial (não recebe uma colada de fora),
  * então o valor puro só existe uma vez, no retorno desta função, e fica
  * guardado criptografado (mesmo utilitário já usado pra senha do
  * certificado A1 / IMAP).

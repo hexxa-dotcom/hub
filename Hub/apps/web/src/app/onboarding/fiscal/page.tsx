@@ -5,7 +5,7 @@ import { FiscalOnboardingForm } from './FiscalOnboardingForm';
 import { lerFiscal } from './actions';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Sua nota fiscal · Hexxa Hub' };
+export const metadata = { title: 'Sua nota fiscal · Hexx Digital' };
 
 export default async function Page() {
   const ctx = await getTenantContext();

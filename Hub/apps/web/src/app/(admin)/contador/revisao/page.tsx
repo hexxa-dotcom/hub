@@ -3,7 +3,7 @@ import { carregarFila } from './actions';
 import { RevisaoClient } from './RevisaoClient';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Revisão da IA | Hexxa Hub' };
+export const metadata = { title: 'Revisão da IA | Hexx Digital' };
 
 export default async function Page() {
   await requireAdmin();

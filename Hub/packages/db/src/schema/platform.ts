@@ -14,10 +14,10 @@ import {
  */
 
 /**
- * Config GLOBAL da conta Asaas da própria Hexxa (usada pra cobrar TODAS as
- * empresas-cliente da plataforma pela mensalidade do Hub) — singleton (uma
+ * Config GLOBAL da conta Asaas da própria Hexx (usada pra cobrar TODAS as
+ * empresas-cliente da plataforma pela mensalidade da Hexx) — singleton (uma
  * linha só), mesmo padrão de `ai_insight_config`. NÃO é por tenant: essa é
- * a chave da Hexxa, não de cada empresa-cliente (ver nota em
+ * a chave da Hexx, não de cada empresa-cliente (ver nota em
  * meu-negocio/clientes/actions.ts sobre isolar por empresa no futuro).
  * lib/asaas.ts lê daqui primeiro, cai pra env var (ASAAS_API_KEY etc) se
  * a linha não existir — permite configurar pelo painel do contador sem
@@ -121,7 +121,7 @@ export const integrationCredential = pgTable('integration_credential', {
 /**
  * Token de API pessoal por empresa — dá acesso de leitura aos dados
  * financeiros via o servidor MCP (`/api/mcp`), pra conectar um assistente de
- * IA (Claude, ChatGPT) de fora do Hub. Guarda só o hash (sha256) do token;
+ * IA (Claude, ChatGPT) de fora da Hexx. Guarda só o hash (sha256) do token;
  * o valor puro só existe uma vez, na hora da criação.
  */
 export const apiToken = pgTable('api_token', {

@@ -8,10 +8,10 @@ export type ClienteContato = { id: string; nome: string; status: string; email: 
 type Destinatario = 'todos' | 'ativos' | 'trial' | 'inadimplentes' | 'cliente';
 
 const TEMPLATES = [
-  { id: 't1', nome: 'Boas-vindas', assunto: 'Bem-vindo ao Hexx Hub Digital!', corpo: 'Olá,\n\nSeja bem-vindo ao Hexx Hub Digital! Estamos felizes em ter você como cliente.\n\nNeste e-mail você encontra as informações de acesso ao sistema e os primeiros passos para configurar sua conta.\n\nQualquer dúvida, estamos à disposição.\n\nAtenciosamente,\nEquipe Hexxa' },
-  { id: 't2', nome: 'Trial expirando', assunto: 'Seu período de teste encerra em breve', corpo: 'Olá,\n\nSeu período de trial no Hexx Hub Digital está terminando.\n\nPara continuar com acesso completo, escolha um plano.\n\nQualquer dúvida estamos à disposição.\n\nAtenciosamente,\nEquipe Hexxa' },
-  { id: 't3', nome: 'Cobrança pendente', assunto: 'Regularize sua assinatura Hexx Hub Digital', corpo: 'Olá,\n\nIdentificamos que há uma cobrança em aberto em sua conta.\n\nPara regularizar e manter o acesso ao sistema, entre em contato conosco.\n\nAtenciosamente,\nEquipe Hexxa' },
-  { id: 't4', nome: 'Nova funcionalidade', assunto: 'Novidade no Hexx Hub Digital', corpo: 'Olá,\n\nTemos novidades no Hexx Hub Digital! Acesse o sistema e confira.\n\nAbraços,\nEquipe Hexxa' },
+  { id: 't1', nome: 'Boas-vindas', assunto: 'Bem-vindo à Hexx Digital!', corpo: 'Olá,\n\nSeja bem-vindo à Hexx Digital! Estamos felizes em ter você como cliente.\n\nNeste e-mail você encontra as informações de acesso ao sistema e os primeiros passos para configurar sua conta.\n\nQualquer dúvida, estamos à disposição.\n\nAtenciosamente,\nEquipe Hexx' },
+  { id: 't2', nome: 'Trial expirando', assunto: 'Seu período de teste encerra em breve', corpo: 'Olá,\n\nSeu período de trial na Hexx Digital está terminando.\n\nPara continuar com acesso completo, escolha um plano.\n\nQualquer dúvida estamos à disposição.\n\nAtenciosamente,\nEquipe Hexx' },
+  { id: 't3', nome: 'Cobrança pendente', assunto: 'Regularize sua assinatura Hexx Digital', corpo: 'Olá,\n\nIdentificamos que há uma cobrança em aberto em sua conta.\n\nPara regularizar e manter o acesso ao sistema, entre em contato conosco.\n\nAtenciosamente,\nEquipe Hexx' },
+  { id: 't4', nome: 'Nova funcionalidade', assunto: 'Novidade na Hexx Digital', corpo: 'Olá,\n\nTemos novidades na Hexx Digital! Acesse o sistema e confira.\n\nAbraços,\nEquipe Hexx' },
 ];
 
 const DEST_LABELS: Record<Destinatario, string> = {
@@ -65,7 +65,7 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
         <p>
           Isto abre o app de e-mail configurado no seu computador com os destinatários já em cópia oculta (BCC).
-          O envio em si acontece por lá — a Hexxa ainda não tem um serviço de e-mail próprio para disparo em massa,
+          O envio em si acontece por lá — a Hexx ainda não tem um serviço de e-mail próprio para disparo em massa,
           então não há histórico de envios aqui.
         </p>
       </div>
@@ -115,7 +115,7 @@ export function ComunicacoesForm({ clientes }: { clientes: ClienteContato[] }) {
         <div>
           <label className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">Assunto</label>
           <input value={assunto} onChange={(e) => setAssunto(e.target.value)}
-            placeholder="Ex.: Novidade no Hexx Hub Digital" className={`mt-1.5 ${fi}`} />
+            placeholder="Ex.: Novidade na Hexx Digital" className={`mt-1.5 ${fi}`} />
         </div>
 
         {/* Corpo */}

@@ -42,13 +42,13 @@ export function Footer() {
 
           <div className="foot-col">
             <h4 className="landing-serif">Navegação</h4>
-            <Link href="/recursos">O Hub por Dentro</Link>
+            <Link href="/recursos">A Hexx por Dentro</Link>
             <small>Módulos, emissão de NFSe e DRE</small>
             <Link href="/simulador">Simulador de Economia</Link>
             <small>Diagnóstico interativo e ROI</small>
             <Link href="/planos">Planos e Preços</Link>
             <small>Tabela comparativa de recursos</small>
-            <Link href={'/auth/login' as any}>Acesso ao Hub</Link>
+            <Link href={'/auth/login' as any}>Acesso à Hexx</Link>
             <small>Portal do Cliente e Contador</small>
           </div>
 
