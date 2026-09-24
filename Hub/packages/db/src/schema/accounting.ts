@@ -80,11 +80,15 @@ export const companyDocument = pgTable('company_document', {
   companyId: uuid('company_id')
     .notNull()
     .references(() => company.id, { onDelete: 'cascade' }),
-  category: text('category').notNull(), // ALVARA | CONTRATO | CND | OUTRO
+  /** Ver 0075: CONTRATO_SOCIAL | CNPJ | ALVARA | CND_FEDERAL | CND_ESTADUAL | CND_MUNICIPAL | CRF_FGTS | SOCIOS | CONTRATO | CND | OUTRO */
+  category: text('category').notNull(),
   name: text('name').notNull(),
   issuedAt: date('issued_at'),
   expiresAt: date('expires_at'),
   fileUrl: text('file_url'),
+  /** O arquivo enviado (data URL) e o nome dele. */
+  fileData: text('file_data'),
+  fileName: text('file_name'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
