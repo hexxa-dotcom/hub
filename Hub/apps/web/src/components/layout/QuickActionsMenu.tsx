@@ -34,10 +34,10 @@ export function QuickActionsMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#DFFFAE] hover:bg-[#c9f58c] text-[#1E3328] px-3 text-xs font-bold shadow-(--elev-1) transition-all duration-200 hover:scale-105 cursor-pointer"
+        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green text-hexxa-lime px-3.5 text-xs font-bold shadow-(--elev-1) transition-all duration-200 hover:scale-105 cursor-pointer dark:bg-hexxa-lime dark:text-hexxa-forest dark:hover:bg-[#c9f58c]"
       >
         <Plus className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
-        <span className="hidden sm:inline">Nova Ação</span>
+        <span className="hidden sm:inline">Nova ação</span>
         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 

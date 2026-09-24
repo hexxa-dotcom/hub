@@ -168,41 +168,31 @@ function HeaderSearchBar({ onOpenCommand }: { onOpenCommand: () => void }) {
         }}
         initial={false}
         animate={{
-          width: isExpanded ? 340 : 100,
+          width: isExpanded ? 340 : 32,
         }}
         transition={springTransition}
         title="Buscar por comandos, clientes ou páginas (⌘K)"
         aria-label="Buscar por comandos, clientes ou páginas (⌘K)"
-        className="group tap-target pressable focusable relative flex h-8 items-center justify-between rounded-full bg-surface border border-black/8 dark:border-white/10 px-3 shadow-(--elev-inset) hover:border-black/15 dark:hover:border-white/20 transition-colors cursor-pointer overflow-hidden"
+        className="group tap-target pressable focusable relative flex h-8 items-center justify-start rounded-full bg-surface/80 border border-black/8 dark:border-white/10 px-[8.5px] shadow-(--elev-1) hover:border-black/15 dark:hover:border-white/20 transition-colors cursor-pointer overflow-hidden"
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-          {/* Rótulo 'Buscar' fixo e estável à esquerda */}
-          <span className="text-xs font-semibold text-black dark:text-white shrink-0 select-none">
-            Buscar
-          </span>
-
-          {/* Texto expandido com reveal suave por maxWidth para a esquerda */}
-          <motion.span
-            initial={false}
-            animate={{
-              opacity: isExpanded ? 1 : 0,
-              maxWidth: isExpanded ? 200 : 0,
-            }}
-            transition={
-              reduceMotion
-                ? { duration: 0.1 }
-                : { duration: isExpanded ? 0.28 : 0.18, ease: [0.16, 1, 0.3, 1] }
-            }
-            className="overflow-hidden truncate text-xs font-medium text-ink-soft whitespace-nowrap pl-1 pointer-events-none inline-block select-none"
-          >
-            comandos, páginas...
-          </motion.span>
-        </div>
-
-        {/* Lado direito: Apenas o ícone da Lupa em preto nítido */}
-        <div className="flex items-center shrink-0 ml-2">
-          <Search className="h-3.5 w-3.5 shrink-0 stroke-[2.4] text-black dark:text-white transition-transform group-hover:scale-105" />
-        </div>
+        {/* Fechada, é só a lupa — como os outros controles do topo. Aberta
+            (passando o mouse), o texto desliza para a direita dela. */}
+        <Search className="h-3.5 w-3.5 shrink-0 stroke-[2.4] text-ink-soft transition-colors group-hover:text-ink" />
+        <motion.span
+          initial={false}
+          animate={{
+            opacity: isExpanded ? 1 : 0,
+            maxWidth: isExpanded ? 300 : 0,
+          }}
+          transition={
+            reduceMotion
+              ? { duration: 0.1 }
+              : { duration: isExpanded ? 0.28 : 0.18, ease: [0.16, 1, 0.3, 1] }
+          }
+          className="pointer-events-none inline-block overflow-hidden truncate whitespace-nowrap pl-2 text-xs font-medium text-ink-soft select-none"
+        >
+          Buscar comandos, clientes, páginas… <span className="opacity-60">⌘K</span>
+        </motion.span>
       </motion.button>
     </div>
   );
@@ -692,12 +682,12 @@ function AppShellInner({
             )}
             {breadcrumb.section && (
               <>
-                <span className="text-footnote text-ink-soft">{breadcrumb.section}</span>
+                <span className="text-footnote lowercase text-ink-soft/80">{breadcrumb.section}</span>
                 <span className="text-footnote text-ink-soft opacity-40">/</span>
               </>
             )}
             {breadcrumb.page && (
-              <h2 className="truncate text-callout font-semibold text-ink">
+              <h2 className="truncate text-footnote font-semibold lowercase text-ink">
                 {breadcrumb.page}
               </h2>
             )}
@@ -708,9 +698,10 @@ function AppShellInner({
 
           {/* Direita: Buscar → Nova Ação → Seleção do tema → Notificação (da direita para a esquerda: Notificação é o primeiro) */}
           <div className="flex items-center gap-2 shrink-0">
-            <HeaderSearchBar onOpenCommand={() => setCommandOpen(true)} />
             <QuickActionsMenu />
-            <ThemeHeaderSelector />
+            <span className="mx-1 h-5 w-px bg-line" />
+            <HeaderSearchBar onOpenCommand={() => setCommandOpen(true)} />
+            <ThemeHeaderSelector compact />
 
             <div className="relative group">
               <button
@@ -750,6 +741,7 @@ function AppShellInner({
             {/* Menu do Usuário Logado: Foto, Nome e Dropdown com contexto da Empresa */}
             <div className="ml-1 flex items-center border-l border-line pl-3">
               <UserMenu
+                compact
                 user={user || (userName ? { name: userName, email: userEmail || '' } : null)}
                 companyName={company?.tradeName || company?.legalName}
                 companyCnpj={company?.cnpj}
