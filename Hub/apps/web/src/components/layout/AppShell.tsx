@@ -60,7 +60,8 @@ function itemClass(active: boolean, isDarkOverlay: boolean = false) {
   const base =
     'flex w-full items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2 text-xs transition-all duration-200';
   if (active) {
-    return `${base} font-medium text-(--sidebar-ink) bg-black/5 dark:bg-white/10`;
+    // Um destaque só: o traço ao lado e o texto mais forte — sem fundo cinza.
+    return `${base} font-semibold text-(--sidebar-ink)`;
   }
   if (isDarkOverlay) {
     return `${base} font-medium text-[#F5F6F4]/75 hover:bg-white/10 hover:text-[#F5F6F4]`;
@@ -90,7 +91,7 @@ function NavList({
         const active = pathname === i.href || (i.href !== '/cliente' && pathname.startsWith(`${i.href}/`));
 
         return (
-          <li key={i.href} className="group relative list-none">
+          <li key={i.href} className="group relative list-none pl-[34px]">
             {/* Indicador lateral no item ativo */}
             {active && (
               <span className="absolute left-1 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-hexxa-forest dark:bg-hexxa-lime" />
@@ -98,15 +99,13 @@ function NavList({
             <Link
               href={i.href as never}
               onClick={onNavigate}
-              className={`${itemClass(active, isDark)} ml-[34px] w-auto`}
+              className={itemClass(active, isDark)}
               prefetch={false}
               title={collapsed ? i.label : undefined}
             >
-              {!collapsed && <span className="truncate flex-1 text-left">{i.label}</span>}
+              {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{i.label}</span>}
               {!collapsed && i.badge && (
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                  isDark ? 'bg-white/10 text-[#F5F6F4]' : 'bg-black/5 dark:bg-white/10 text-[#6E6A61] dark:text-[#A8A49C]'
-                }`}>
+                <span className={`shrink-0 whitespace-nowrap text-[10px] font-medium lowercase ${isDark ? 'text-[#F5F6F4]/60' : 'text-(--sidebar-ink-soft)'}`}>
                   {i.badge}
                 </span>
               )}
@@ -438,10 +437,10 @@ function AppShellInner({
         <motion.aside
           initial={false}
           animate={{
-            width: isFocusMode
-              ? (isCollapsed ? 0 : 264)
-              : (isCollapsed ? 72 : 264),
-            opacity: isFocusMode && isCollapsed ? 0 : 1,
+            // O espaço que a barra ocupa na página: só muda ao fixar/desafixar.
+            // Aberta pelo mouse, ela passa POR CIMA do conteúdo (painel abaixo)
+            // — antes empurrava a página e desmontava o layout a cada passada.
+            width: isFocusMode ? (focusPinned ? 264 : 0) : isPinned ? 264 : 72,
           }}
           transition={{
             type: 'spring',
@@ -449,13 +448,26 @@ function AppShellInner({
             damping: 34,
             mass: 0.6,
           }}
-          style={{ overflow: 'hidden' }}
-          className={`z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex ${
-            isFocusMode && isCollapsed ? 'pointer-events-none' : ''
-          }`}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          className="relative z-40 hidden h-full shrink-0 flex-col bg-transparent text-(--sidebar-ink) lg:flex"
         >
+          <motion.div
+            initial={false}
+            animate={{
+              width: isFocusMode ? (isCollapsed ? 0 : 264) : isCollapsed ? 72 : 264,
+              opacity: isFocusMode && isCollapsed ? 0 : 1,
+            }}
+            transition={{ type: 'spring', stiffness: 350, damping: 34, mass: 0.6 }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`absolute inset-y-0 left-0 overflow-hidden transition-[background-color,box-shadow] duration-200 ${
+              isFocusMode && isCollapsed ? 'pointer-events-none' : ''
+            } ${
+              // Aberta sem estar fixada: flutua sobre a página, em vidro.
+              !isCollapsed && !(isFocusMode ? focusPinned : isPinned)
+                ? 'bg-[#F2F4F0] shadow-(--elev-3) dark:bg-[#151916]'
+                : ''
+            }`}
+          >
           {/* Container interno de largura fixa (264px) para eliminar reflow durante o spring */}
           <div className="flex h-full w-[264px] flex-col shrink-0 overflow-hidden">
             {/* Header / Brand & Company */}
@@ -472,17 +484,17 @@ function AppShellInner({
                       : 'H'}
                   </div>
                   <div
-                    className={`flex flex-col items-start overflow-hidden text-left w-[135px] transition-opacity duration-150 ${
+                    className={`flex min-w-0 flex-1 flex-col items-start overflow-hidden text-left transition-opacity duration-150 ${
                       isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                   >
-                    <span className="w-full truncate text-sm font-extrabold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
+                    <span className="w-full truncate text-sm font-bold leading-tight text-(--sidebar-ink) group-hover:text-hexxa-forest dark:group-hover:text-hexxa-lime transition-colors">
                       {company
                         ? (company.useTradeName && company.tradeName ? company.tradeName : company.legalName)
                         : 'Hexxa Hub'}
                     </span>
                     <span className="text-[10px] font-medium text-(--sidebar-ink-soft) group-hover:text-ink truncate flex items-center gap-1 transition-colors">
-                      Painel da Empresa
+                      Painel da empresa
                       <ArrowUpRight className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </span>
                   </div>
@@ -542,7 +554,7 @@ function AppShellInner({
                               : 'w-full rounded-xl px-3'
                           } ${
                             isActiveGroup
-                              ? 'text-(--sidebar-ink) bg-black/5 dark:bg-white/10'
+                              ? 'text-(--sidebar-ink)'
                               : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5'
                           }`}
                         >
@@ -555,13 +567,13 @@ function AppShellInner({
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
                               weight="duotone"
-                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                              className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
                             />
                           </div>
                           <span
-                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                            className={`flex-1 text-left truncate text-sm font-semibold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
                               isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                             }`}
                           >
@@ -581,15 +593,14 @@ function AppShellInner({
                             : 'w-full rounded-xl'
                         } ${
                           isActiveGroup
-                            ? 'text-(--sidebar-ink) bg-black/5 dark:bg-white/10'
+                            ? 'text-(--sidebar-ink)'
                             : 'text-(--sidebar-ink-soft) hover:text-(--sidebar-ink) hover:bg-black/5 dark:hover:bg-white/5'
                         }`}
                       >
-                        {/* Indicador lateral no grupo ativo */}
-                        {isActiveGroup && (
-                          <span className={`absolute top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-hexxa-forest dark:bg-hexxa-lime z-10 ${
-                            isCollapsed ? 'left-1.5' : 'left-1'
-                          }`} />
+                        {/* Indicador do grupo só com a barra fechada; aberta, o traço
+                            fica no item da página, para não haver dois. */}
+                        {isActiveGroup && isCollapsed && (
+                          <span className="absolute left-1.5 top-1/2 z-10 h-5 w-1 -translate-y-1/2 rounded-full bg-hexxa-forest dark:bg-hexxa-lime" />
                         )}
                         <Link
                           href={(firstItem?.href ?? '#') as never}
@@ -605,13 +616,13 @@ function AppShellInner({
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center">
                             <GroupIcon
                               weight="duotone"
-                              className={`h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
+                              className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-out group-hover:scale-[1.22] group-hover:[transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] active:scale-95 ${
                                 isActiveGroup ? 'text-hexxa-forest dark:text-hexxa-lime' : ''
                               }`}
                             />
                           </div>
                           <span
-                            className={`flex-1 text-left truncate text-[15px] font-bold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
+                            className={`flex-1 text-left truncate text-sm font-semibold text-(--sidebar-ink) tracking-tight transition-opacity duration-150 ${
                               isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                             }`}
                           >
@@ -655,6 +666,7 @@ function AppShellInner({
               </div>
             </div>
           </div>
+          </motion.div>
         </motion.aside>
 
         {/* Painel de conteúdo: Header + Main */}
