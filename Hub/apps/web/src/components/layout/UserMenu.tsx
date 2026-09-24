@@ -173,7 +173,9 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
             : 'border border-black/8 dark:border-white/10 bg-surface/80 hover:bg-black/5 dark:hover:bg-white/5 py-1 pl-1.5 pr-2.5 shadow-(--elev-1)'
         }`}
       >
-        {/* Avatar */}
+        {/* Avatar só no celular (compact); no topo do desktop fica só o nome —
+            a foto aparece dentro do menu. */}
+        {compact && (
         <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-black/10 dark:border-white/15 bg-[#1E3328] shadow-sm">
           {user?.avatarUrl ? (
             <img
@@ -189,10 +191,11 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
           {/* Status Dot */}
           <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-black" />
         </div>
+        )}
 
         {!compact && (
           <>
-            <span className="hidden max-w-[140px] truncate text-xs font-semibold text-ink lg:block">
+            <span className="max-w-[160px] truncate pl-1.5 text-xs font-semibold text-ink">
               {displayName}
             </span>
 
