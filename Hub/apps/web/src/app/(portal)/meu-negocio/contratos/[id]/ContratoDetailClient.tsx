@@ -336,6 +336,15 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
                   : 'Sem registro de assinatura.'}
           </p>
         )}
+        {c.verificationCode && (
+          <p className="text-xs text-ink-soft">
+            Código de verificação <span className="font-mono font-semibold text-ink">{c.verificationCode}</span> — impresso em todas as páginas do
+            contrato.{' '}
+            <a href={`/v/${c.verificationCode}`} target="_blank" rel="noreferrer" className="font-semibold text-ink underline-offset-4 hover:underline">
+              Ver a página de conferência
+            </a>
+          </p>
+        )}
         {detail.documentHash && (
           <p className="break-all font-mono text-[10px] text-ink-soft/70">Código do documento (SHA-256): {detail.documentHash}</p>
         )}

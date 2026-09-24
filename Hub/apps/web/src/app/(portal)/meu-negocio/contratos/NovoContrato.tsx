@@ -82,8 +82,9 @@ export function NovoContrato({
   const [paraAssinar, setParaAssinar] = useState<ContratoParaAssinar | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
-  const tipo = modelo === 'PROPRIO' ? tipoProprio : MODELOS[modelo].tipo;
-  const quem = modelo === 'PROPRIO' ? (tipo === 'ENTRADA' ? 'Cliente' : 'Contratado') : MODELOS[modelo].parte;
+  const escolheTipo = modelo === 'PROPRIO' || MODELOS[modelo].tipo === null;
+  const tipo: 'ENTRADA' | 'SAIDA' = escolheTipo ? tipoProprio : MODELOS[modelo as ModeloDeContrato].tipo!;
+  const quem = escolheTipo ? (tipo === 'ENTRADA' ? 'Cliente' : 'Contratado') : MODELOS[modelo as ModeloDeContrato].parte;
   const valorNumero = Number(valor.replace(/\./g, '').replace(',', '.'));
 
   // Consulta a outra parte assim que o CNPJ estiver completo.
@@ -120,6 +121,15 @@ export function NovoContrato({
     r.readAsDataURL(file);
   }
 
+  // Escolher a área já escreve o texto do serviço — mas só por cima de um
+  // texto que também veio pronto (ou vazio): o que a pessoa escreveu fica.
+  function escolherArea(valor: string) {
+    const anterior = AREAS.find((a) => a.value === area)?.texto ?? '';
+    const novo = AREAS.find((a) => a.value === valor)?.texto ?? '';
+    setArea(valor);
+    if (!objeto.trim() || objeto.trim() === anterior.trim()) setObjeto(novo);
+  }
+
   async function melhorarTexto() {
     setMelhorando(true);
     try {
@@ -129,7 +139,7 @@ export function NovoContrato({
         direcao: tipo,
         partyName: nome,
         valor: valorNumero || 0,
-        categoria: AREAS.find((a) => a.value === area)?.label,
+        categoria: AREAS.find((a) => a.value === area)?.label ?? undefined,
         draft: objeto,
       });
       if (r.ok && r.text) setObjeto(r.text);
@@ -236,21 +246,29 @@ export function NovoContrato({
           {/* ── PASSO 1 ─────────────────────────────────────────────── */}
           {passo === 1 && (
             <div className="space-y-3">
-              {(Object.keys(MODELOS) as ModeloDeContrato[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setModelo(m)}
-                  className={`flex w-full items-start justify-between gap-4 rounded-2xl border px-5 py-4 text-left transition-colors ${
-                    modelo === m ? 'border-hexxa-forest bg-hexxa-forest/[0.04] dark:border-hexxa-lime dark:bg-hexxa-lime/[0.06]' : 'border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25'
-                  }`}
-                >
-                  <span>
-                    <span className="block text-sm font-semibold text-ink">{MODELOS[m].rotulo}</span>
-                    <span className="mt-0.5 block text-xs text-ink-soft">{MODELOS[m].resumo}</span>
-                  </span>
-                  <span className="shrink-0 text-[11px] font-semibold text-ink-soft">{MODELOS[m].tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}</span>
-                </button>
+              {([
+                ['Você recebe', ['CLIENTE', 'PROJETO', 'SOFTWARE']],
+                ['Você paga', ['PJ', 'FORNECEDOR']],
+                ['Outros', ['OUTRO']],
+              ] as const).map(([grupo, lista]) => (
+                <div key={grupo} className="space-y-2">
+                  <p className="rotulo pt-2 text-ink-soft">{grupo}</p>
+                  {lista.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setModelo(m)}
+                      className={`flex w-full items-start justify-between gap-4 rounded-2xl border px-5 py-3.5 text-left transition-colors ${
+                        modelo === m ? 'border-hexxa-forest bg-hexxa-forest/[0.04] dark:border-hexxa-lime dark:bg-hexxa-lime/[0.06]' : 'border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25'
+                      }`}
+                    >
+                      <span>
+                        <span className="block text-sm font-semibold text-ink">{MODELOS[m].rotulo}</span>
+                        <span className="mt-0.5 block text-xs text-ink-soft">{MODELOS[m].resumo}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               ))}
 
               <button
@@ -267,16 +285,19 @@ export function NovoContrato({
                 <FileUp className="h-4 w-4 shrink-0 text-ink-soft" />
               </button>
 
+              {escolheTipo && (
+                <div className="flex gap-5 rounded-2xl bg-black/[0.02] px-5 py-4 text-sm dark:bg-white/[0.03]">
+                  {(['ENTRADA', 'SAIDA'] as const).map((t) => (
+                    <label key={t} className="flex cursor-pointer items-center gap-2 text-ink">
+                      <input type="radio" checked={tipoProprio === t} onChange={() => setTipoProprio(t)} />
+                      {t === 'ENTRADA' ? 'Eu recebo (entrada)' : 'Eu pago (saída)'}
+                    </label>
+                  ))}
+                </div>
+              )}
+
               {modelo === 'PROPRIO' && (
                 <div className="space-y-4 rounded-2xl bg-black/[0.02] p-5 dark:bg-white/[0.03]">
-                  <div className="flex gap-5 text-sm">
-                    {(['ENTRADA', 'SAIDA'] as const).map((t) => (
-                      <label key={t} className="flex cursor-pointer items-center gap-2 text-ink">
-                        <input type="radio" checked={tipoProprio === t} onChange={() => setTipoProprio(t)} />
-                        {t === 'ENTRADA' ? 'Eu recebo (entrada)' : 'Eu pago (saída)'}
-                      </label>
-                    ))}
-                  </div>
                   <input ref={arquivoRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => lerPdf(e.target.files?.[0])} />
                   <button
                     type="button"
@@ -337,16 +358,20 @@ export function NovoContrato({
 
               {modelo !== 'PROPRIO' && (
                 <section className="space-y-3">
-                  <div className="flex items-end justify-between gap-3">
-                    <p className="text-sm font-semibold text-ink">O serviço</p>
-                    <select value={area} onChange={(e) => setArea(e.target.value)} className="rounded-lg border border-black/10 bg-transparent px-2 py-1 text-xs text-ink dark:border-white/10">
+                  <p className="text-sm font-semibold text-ink">O serviço</p>
+                  <label className="block max-w-[260px]">
+                    <Rotulo>Área</Rotulo>
+                    <select value={area} onChange={(e) => escolherArea(e.target.value)} className={campo}>
                       {AREAS.map((a) => (
                         <option key={a.value} value={a.value}>
-                          Área: {a.label}
+                          {a.label}
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </label>
+                  <p className="text-[11px] text-ink-soft">
+                    A área já traz um texto pronto e cláusulas próprias no contrato. Ajuste o texto ao seu caso — ou deixe como está.
+                  </p>
                   <textarea
                     value={objeto}
                     onChange={(e) => setObjeto(e.target.value)}

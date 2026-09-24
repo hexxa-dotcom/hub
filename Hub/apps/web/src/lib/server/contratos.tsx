@@ -1,5 +1,7 @@
 import 'server-only';
-import { createHash } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
+import QRCode from 'qrcode';
+import { origemPublica } from '@/lib/server/origem';
 import { renderToBuffer } from '@react-pdf/renderer';
 import type { TenantContext } from '@hexxa/core';
 import { getDb, withTenant, withDbTimeout, eq, and, sql } from '@hexxa/db';
@@ -124,7 +126,7 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
   const [minha] = await db.select().from(company).where(eq(company.id, ctx.companyId));
   if (!minha) return { ok: false, message: 'Empresa não encontrada.' };
 
-  const tipo: TipoDeContrato = input.modelo === 'PROPRIO' ? (input.tipo ?? 'ENTRADA') : MODELOS[input.modelo].tipo;
+  const tipo: TipoDeContrato = input.modelo === 'PROPRIO' ? (input.tipo ?? 'ENTRADA') : (MODELOS[input.modelo].tipo ?? input.tipo ?? 'ENTRADA');
   const parte = { ...input.parte, nome: input.parte.nome.trim(), email: input.parte.email.trim() };
   if (!parte.nome) return { ok: false, message: 'Informe com quem é o contrato.' };
   if (!(input.valor > 0)) return { ok: false, message: 'Informe o valor mensal.' };
@@ -158,6 +160,10 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
     input.titulo?.trim() ||
     (input.modelo === 'PJ' ? `Contratação PJ — ${ela.nome}` : input.objeto.trim() ? resumo(input.objeto) : MODELOS.CLIENTE.titulo);
 
+  // O código de verificação vai impresso no PDF (e por isso entra no hash).
+  const codigo = await novoCodigoDeVerificacao();
+  const urlDeConferencia = `${await origemPublica()}/v/${codigo}`;
+
   // O documento: o do modelo, ou o PDF que a pessoa trouxe.
   let pdfBase64: string;
   if (input.modelo === 'PROPRIO') {
@@ -178,6 +184,11 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
           fim: dataBr(input.fim),
           indice: input.indice,
           cidadeData: `${minha.city ?? ''}${minha.state ? `/${minha.state}` : ''}, ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+        }}
+        verificacao={{
+          codigo,
+          url: urlDeConferencia.replace(/^https?:\/\//, ''),
+          qr: await QRCode.toDataURL(urlDeConferencia, { margin: 0, width: 240, errorCorrectionLevel: 'M' }),
         }}
       />,
     );
@@ -202,6 +213,7 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
     nextAdjustmentDate: input.indice === 'NENHUM' ? null : umAnoDepois(input.inicio),
     signatureMethod: assinatura,
     documentHash: hash,
+    verificationCode: codigo,
   };
 
   const [meu] = await withTenant(ctx.companyId, (tx) =>
@@ -292,6 +304,18 @@ export async function criarContrato(ctx: TenantContext, input: NovoContrato): Pr
           ? `Contrato criado. Falta a sua assinatura e a de ${ela.nome}, que já recebeu o aviso no Hub.`
           : `Contrato criado e enviado para ${parte.email}. Assine agora pela sua empresa.`,
   };
+}
+
+/** Código de 8 letras e números, sem os que se confundem (0/O, 1/I): "K7QX-3MPA". */
+async function novoCodigoDeVerificacao(): Promise<string> {
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    const bruto = Array.from({ length: 8 }, () => letras[randomInt(letras.length)]).join('');
+    const codigo = `${bruto.slice(0, 4)}-${bruto.slice(4)}`;
+    const [existe] = await getDb().select({ id: businessContract.id }).from(businessContract).where(eq(businessContract.verificationCode, codigo)).limit(1);
+    if (!existe) return codigo;
+  }
+  throw new Error('Não consegui gerar o código de verificação.');
 }
 
 /** As assinaturas feitas no Hub para este contrato e o espelho dele. */
@@ -438,4 +462,61 @@ export async function indiceAcumulado12m(indice: IndiceDeReajuste): Promise<{ pe
   } catch {
     return null;
   }
+}
+
+export interface Conferencia {
+  codigo: string;
+  titulo: string;
+  status: string;
+  assinatura: 'HUB' | 'DOCUSEAL' | 'FORA' | null;
+  assinadoEm: string | null;
+  vigencia: { inicio: string; fim: string };
+  partes: { nome: string; documento: string | null; papel: string }[];
+  assinaturas: { empresa: string; nome: string; cpf: string | null; em: string; ip: string | null }[];
+  hash: string | null;
+}
+
+/**
+ * A conferência pública de um contrato, pelo código impresso no PDF. Sem
+ * login — por isso só sai o necessário para conferir a autenticidade: as
+ * partes, quem assinou e quando, e o hash do arquivo. Valor e cláusulas não.
+ */
+export async function getConferencia(codigo: string): Promise<Conferencia | null> {
+  const limpo = codigo.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (limpo.length !== 8) return null;
+  const formatado = `${limpo.slice(0, 4)}-${limpo.slice(4)}`;
+  const db = getDb();
+  const lados = await db.select().from(businessContract).where(eq(businessContract.verificationCode, formatado));
+  const c = lados.find((l) => l.initiatedHere) ?? lados[0];
+  if (!c) return null;
+  const [emp] = await db.select({ nome: company.legalName, cnpj: company.cnpj }).from(company).where(eq(company.id, c.companyId));
+
+  const souContratada = c.type === 'ENTRADA' || c.type === 'MUTUO_ATIVO';
+  const partes = [
+    { nome: emp?.nome ?? '—', documento: emp?.cnpj ?? null, papel: souContratada ? 'Contratada' : 'Contratante' },
+    { nome: c.partyName, documento: c.partyCnpj ? formatDocument(c.partyCnpj) : null, papel: souContratada ? 'Contratante' : 'Contratada' },
+  ].sort((x, y) => (x.papel === 'Contratante' ? 0 : 1) - (y.papel === 'Contratante' ? 0 : 1));
+
+  const assinaturas =
+    c.signatureMethod === 'HUB'
+      ? (await assinaturasNoHub(c.id, c.mirrorContractId)).map((a) => ({
+          empresa: a.companyId === c.companyId ? (emp?.nome ?? '') : c.partyName,
+          nome: a.signerName,
+          cpf: a.signerCpf ? a.signerCpf.replace(/^\d{3}\.(\d{3})\.(\d{3})-\d{2}$/, '***.$1.$2-**') : null,
+          em: a.signedAt.toISOString(),
+          ip: a.ip,
+        }))
+      : [];
+
+  return {
+    codigo: formatado,
+    titulo: c.title,
+    status: c.status,
+    assinatura: (c.signatureMethod as Conferencia['assinatura']) ?? null,
+    assinadoEm: c.signingDate,
+    vigencia: { inicio: c.startDate, fim: c.endDate },
+    partes,
+    assinaturas,
+    hash: c.documentHash,
+  };
 }

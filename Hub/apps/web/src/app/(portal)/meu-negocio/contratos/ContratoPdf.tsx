@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 import { MODELOS, clausulasDoContrato, type DadosDoContrato } from './modelos';
 
 /** O PDF do contrato, a partir de um modelo (ver `modelos.ts`). */
@@ -22,7 +22,20 @@ const areaAcima = (linha: number) => ({ x: 60 / A4.w, y: (linha - 62) / A4.h, w:
 /** Onde o campo de assinatura de cada parte fica no PDF, para o DocuSeal. */
 export const AREAS_DE_ASSINATURA = { CONTRATANTE: areaAcima(LINHA_CONTRATANTE), CONTRATADA: areaAcima(LINHA_CONTRATADA) };
 
-export function ContratoPdf({ dados }: { dados: DadosDoContrato }) {
+/**
+ * O selo de verificação: o código e o endereço onde qualquer pessoa confere
+ * o contrato (/v/<código>). Vai no rodapé de todas as páginas e, com o QR
+ * code, na página de assinaturas — faz parte do documento assinado, então
+ * entra no hash.
+ */
+export interface Verificacao {
+  codigo: string;
+  url: string;
+  /** QR code do endereço, em PNG (data URL). */
+  qr: string;
+}
+
+export function ContratoPdf({ dados, verificacao }: { dados: DadosDoContrato; verificacao?: Verificacao }) {
   const clausulas = clausulasDoContrato(dados);
   const parte = (p: DadosDoContrato['contratante'], papel: string) => (
     <Text style={s.paragrafo}>
@@ -34,6 +47,16 @@ export function ContratoPdf({ dados }: { dados: DadosDoContrato }) {
   return (
     <Document title={MODELOS[dados.modelo].titulo}>
       <Page size="A4" style={s.page}>
+        {/* Rodapé em todas as páginas: o selo de verificação. Texto fixo — o
+            `render` do react-pdf (para numerar páginas) some com o rodapé
+            inteiro nesta versão (4.5). */}
+        {verificacao && (
+          <View style={s.rodape} fixed>
+            <Text>
+              Assinado eletronicamente pelo Hexxa Hub · código {verificacao.codigo} · confira em {verificacao.url}
+            </Text>
+          </View>
+        )}
         <Text style={s.titulo}>{MODELOS[dados.modelo].titulo}</Text>
 
         <Text style={s.secao}>Das partes</Text>
@@ -59,7 +82,6 @@ export function ContratoPdf({ dados }: { dados: DadosDoContrato }) {
 
         <Text style={[s.paragrafo, { marginTop: 18, textAlign: 'center' }]}>{dados.cidadeData}</Text>
 
-        <Text style={s.rodape} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} fixed />
       </Page>
 
       {/* Página só das assinaturas, com posições fixas: é onde o DocuSeal põe
@@ -80,7 +102,24 @@ export function ContratoPdf({ dados }: { dados: DadosDoContrato }) {
             </Text>
           </View>
         ))}
-        <Text style={s.rodape}>Assinado eletronicamente — MP 2.200-2/2001, art. 10, § 2º, e Lei 14.063/2020.</Text>
+        {verificacao && (
+          <View style={{ position: 'absolute', top: 600, left: 60, right: 60, flexDirection: 'row', alignItems: 'center', borderWidth: 0.8, borderColor: '#cfcfcf', borderRadius: 6, padding: 12 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={verificacao.qr} style={{ width: 72, height: 72, marginRight: 14 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.negrito, { fontSize: 10 }]}>Verificação de autenticidade</Text>
+              <Text style={{ fontSize: 9, color: '#444', marginTop: 3 }}>
+                Este contrato foi assinado eletronicamente pelo Hexxa Hub. Quem assinou, quando e de onde fica registrado, junto com o código (hash SHA-256) deste arquivo.
+              </Text>
+              <Text style={{ fontSize: 9, marginTop: 4 }}>
+                Código <Text style={s.negrito}>{verificacao.codigo}</Text> · {verificacao.url}
+              </Text>
+            </View>
+          </View>
+        )}
+        <Text style={s.rodape}>
+          Assinado eletronicamente — MP 2.200-2/2001, art. 10, § 2º{verificacao ? ` · código ${verificacao.codigo}` : ''}.
+        </Text>
       </Page>
     </Document>
   );

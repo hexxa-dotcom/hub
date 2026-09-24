@@ -195,6 +195,8 @@ export const businessContract = pgTable('business_contract', {
   /** false no lado espelho: o contrato veio de outra empresa do Hub. */
   initiatedHere: boolean('initiated_here').notNull().default(true),
   partyEmail: text('party_email'),
+  /** Código impresso no PDF para conferência pública em /v/<código>. Ver 0074. */
+  verificationCode: text('verification_code'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

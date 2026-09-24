@@ -42,6 +42,7 @@ export type ContractRow = {
   /** A outra parte já assinou (só dá para saber quando a assinatura é no Hub). */
   outraAssinou: boolean;
   ownSignUrl: string | null;
+  verificationCode: string | null;
 };
 
 export type ContractPaymentRow = {
@@ -104,6 +105,7 @@ function toRow(r: typeof businessContract.$inferSelect): ContractRow {
     meFaltaAssinar: r.status === 'AGUARDANDO_ASSINATURA' && r.signatureMethod === 'DOCUSEAL' && !!r.ownSignUrl,
     outraAssinou: false,
     ownSignUrl: r.ownSignUrl,
+    verificationCode: r.verificationCode,
   };
 }
 

@@ -43,13 +43,17 @@ export interface Clausula {
   itens: string[];
 }
 
-export function clausulasDoContrato(d: DadosDoContrato): Clausula[] {
+export function clausulasDoContrato(dados: DadosDoContrato): Clausula[] {
+  // O objeto entra no meio de uma frase que já termina com ponto.
+  const d = { ...dados, objeto: dados.objeto.trim().replace(/[.\s]+$/, '') };
   const c: Clausula[] = [];
 
   c.push({
     titulo: 'Do objeto',
     itens: [
-      `O presente contrato tem por objeto a prestação, pela CONTRATADA à CONTRATANTE, dos seguintes serviços: ${d.objeto}.`,
+      d.modelo === 'SOFTWARE'
+        ? `O presente contrato tem por objeto a licença de uso, pela CONTRATANTE, do software ou plataforma da CONTRATADA e a prestação dos serviços associados: ${d.objeto}.`
+        : `O presente contrato tem por objeto a prestação, pela CONTRATADA à CONTRATANTE, dos seguintes serviços: ${d.objeto}.`,
       'Serviços não descritos acima dependem de acordo por escrito entre as partes, inclusive quanto ao preço.',
     ],
   });
@@ -87,6 +91,35 @@ export function clausulasDoContrato(d: DadosDoContrato): Clausula[] {
       'A CONTRATANTE fornecerá as informações, os acessos e os documentos necessários à execução dos serviços e efetuará os pagamentos nos prazos acordados.',
     ],
   });
+
+  if (d.modelo === 'PROJETO') {
+    c.push({
+      titulo: 'Das entregas e do aceite',
+      itens: [
+        'As entregas do projeto são as descritas no objeto. A CONTRATANTE terá 5 (cinco) dias úteis, contados de cada entrega, para aprová-la ou apontar por escrito os ajustes necessários; sem manifestação nesse prazo, a entrega considera-se aceita.',
+        'Mudanças de escopo, novas entregas ou alterações de prazo dependem de aditivo acordado entre as partes, inclusive quanto ao preço.',
+        'Atrasos causados pela falta de informações, acessos ou aprovações da CONTRATANTE prorrogam os prazos da CONTRATADA pelo mesmo período.',
+      ],
+    });
+  }
+
+  if (d.modelo === 'SOFTWARE') {
+    c.push({
+      titulo: 'Da licença de uso',
+      itens: [
+        'A licença é não exclusiva, intransferível e válida durante a vigência deste contrato, para uso pela CONTRATANTE e seus usuários autorizados, sendo vedados a revenda, a sublicença, a cópia e a engenharia reversa.',
+        'O software, suas atualizações e a respectiva propriedade intelectual permanecem da CONTRATADA.',
+      ],
+    });
+    c.push({
+      titulo: 'Da disponibilidade, do suporte e dos dados',
+      itens: [
+        'A CONTRATADA empregará os melhores esforços para manter a plataforma disponível, avisando com antecedência as manutenções programadas, e prestará suporte em horário comercial pelos canais informados.',
+        'Os dados inseridos pela CONTRATANTE pertencem a ela, que poderá exportá-los durante a vigência e em até 30 (trinta) dias após o término do contrato.',
+        'A responsabilidade da CONTRATADA por eventuais danos fica limitada ao valor pago pela CONTRATANTE nos 12 (doze) meses anteriores ao fato, salvo dolo ou culpa grave.',
+      ],
+    });
+  }
 
   if (d.modelo === 'PJ') {
     c.push({

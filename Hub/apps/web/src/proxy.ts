@@ -12,6 +12,8 @@ function isPublicRoute(pathname: string): boolean {
     '/auth',
     // Ficha pública da empresa (cartão de visita) — só abre se a empresa ligou o link.
     '/e',
+    // Conferência pública de contrato assinado (código impresso no PDF).
+    '/v',
     '/api/leads',
     '/api/webhooks',
     '/api/docuseal/token',

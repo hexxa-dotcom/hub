@@ -1,5 +1,6 @@
 import { getDb, withTenant, sql } from '@hexxa/db';
 import type { TenantContext } from '@hexxa/core';
+import { origemPublica } from '@/lib/server/origem';
 
 /**
  * A FICHA PÚBLICA — o cartão de visita da empresa, num link.
@@ -141,11 +142,7 @@ export async function definirFichaPublica(ctx: TenantContext, ativa: boolean): P
 
 /** Endereço completo do link, no domínio por onde a pessoa está usando o Hub. */
 export async function urlDaFicha(slug: string): Promise<string> {
-  const { headers } = await import('next/headers');
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'hexx-hub.vercel.app';
-  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
-  return `${proto}://${host}/e/${slug}`;
+  return `${await origemPublica()}/e/${slug}`;
 }
 
 /** QR code do link, em SVG, para o cartão e para baixar e imprimir. */
