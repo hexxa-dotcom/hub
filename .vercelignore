@@ -9,3 +9,6 @@ Hub/Cliente Teste 02
 Hub/marketing 
 Hub/docs
 **/.env*.local
+**/.turbo
+**/.vercel
+*.zip
