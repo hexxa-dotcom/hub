@@ -24,7 +24,7 @@ const BASE_ERPS = [
     id: 'omie',
     name: 'Omie / OneFlow',
     sub: 'Contabilidade e ERP',
-    desc: 'Sincronização em tempo real de Lançamentos e Baixas diretamente para o seu balanço contábil.',
+    desc: 'Envia os lançamentos contábeis e fiscais para a contabilidade. As notas o OneFlow já puxa sozinho do Emissor Nacional — aqui o Hub só confere se os valores batem.',
     color: '#F48221',
     logo: 'OM',
   },
