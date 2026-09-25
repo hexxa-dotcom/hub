@@ -1,0 +1,11 @@
+# Só o código do Hub vai para a Vercel. Pastas de apoio ficam fora do deploy.
+Arquivos Hexx
+Site
+.claude
+**/node_modules
+**/.next
+Hub/Cliente Teste
+Hub/Cliente Teste 02
+Hub/marketing 
+Hub/docs
+**/.env*.local
