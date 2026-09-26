@@ -31,7 +31,7 @@ export default function RelatoriosPage() {
       {grupos.map((g) => (
         <section key={g} className="space-y-3">
           <p className="rotulo text-ink-soft">{g}</p>
-          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+          <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
             {RELATORIOS.filter((r) => r.grupo === g).map((r) => (
               <li key={r.href}>
                 <Link href={r.href as never} className="flex items-center justify-between gap-6 px-6 py-4 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">

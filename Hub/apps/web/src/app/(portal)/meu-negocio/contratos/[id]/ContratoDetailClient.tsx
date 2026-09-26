@@ -296,7 +296,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       <section className="space-y-4">
         <p className="rotulo text-ink-soft">Assinaturas</p>
         {c.signatureMethod === 'HUB' ? (
-          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+          <ul className="divide-y divide-black/[0.08] rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10">
             {[
               { quem: 'Sua empresa', lista: minhas },
               { quem: c.partyName, lista: delas },
@@ -417,7 +417,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
             {c.status === 'AGUARDANDO_ASSINATURA' ? 'As parcelas entram no financeiro quando as duas partes assinarem.' : 'Nenhuma parcela lançada.'}
           </p>
         ) : (
-          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+          <ul className="divide-y divide-black/[0.08] rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10">
             {detail.payments.map((p) => {
               const st = PAYMENT_STATUS_CFG[p.status] ?? PAYMENT_STATUS_CFG.PENDING!;
               const atrasada = p.status === 'PENDING' && p.dueDate < new Date().toISOString().slice(0, 10);

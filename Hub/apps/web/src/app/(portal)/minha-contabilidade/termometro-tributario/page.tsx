@@ -108,7 +108,7 @@ export default async function BussolaTributariaPage() {
         {temNotas ? <GraficoFaturamento meses={meses} /> : semNotasAviso}
         <section className="space-y-4">
           <p className="rotulo text-ink-soft">Como o imposto de {nomeDoMes} se forma</p>
-          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+          <ul className="divide-y divide-black/[0.08] rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10">
             {[
               ['PIS', '0,65% da receita', e.pis],
               ['COFINS', '3% da receita', e.cofins],

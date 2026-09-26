@@ -785,7 +785,7 @@ export function HubGuias({
                     <p className="text-xs text-ink-soft">Valor total do plano: <strong className="font-serif tabular text-ink">{BRL.format(totalValor)}</strong></p>
                   </div>
 
-                  <div className="divide-y divide-black/5 dark:divide-white/10">
+                  <div className="divide-y divide-black/[0.08] dark:divide-white/[0.12]">
                     {ordered.map((p) => {
                       const st = STATUS_CONFIG[p.status];
                       const StatusIcon = st.icon;
@@ -1045,7 +1045,7 @@ export function HubGuias({
               )}
             </div>
           ) : (
-            <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish divide-y divide-black/5 dark:divide-white/10 overflow-hidden">
+            <div className="entrada-lista divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
               {itens.map((it) =>
                 it.kind === 'guia' ? renderGuia(it.guia) : it.kind === 'documento' ? (
                   <LinhaDocumento key={it.id} doc={it.doc} />

@@ -9,6 +9,7 @@ import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 import { textoDoPreco } from '@/lib/servicos-preco';
 import type { Pedido, ServicoDoCatalogo, SituacaoDoPedido } from '@/lib/server/servicos';
 import { useAnexo } from '@/lib/useAnexo';
+import { ListaEmColunas, Titulo, Situacao, BotaoDiscreto } from '@/components/ui/ListaEmColunas';
 import { cancelarPedidoAction, pedirServicoAction, responderPedidoAction } from './actions';
 
 /**
@@ -28,6 +29,13 @@ const SITUACAO: Record<SituacaoDoPedido, { texto: string; cor: string }> = {
   AGUARDANDO_VOCE: { texto: 'Aguardando você', cor: 'text-rose-600 dark:text-rose-400' },
   CONCLUIDO: { texto: 'Concluído', cor: 'text-emerald-700 dark:text-emerald-400' },
   CANCELADO: { texto: 'Cancelado', cor: 'text-ink-soft/70' },
+};
+const PONTO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
+  RECEBIDO: 'bg-sky-500',
+  EM_ANDAMENTO: 'bg-amber-500',
+  AGUARDANDO_VOCE: 'bg-rose-500',
+  CONCLUIDO: 'bg-emerald-500',
+  CANCELADO: 'bg-black/25 dark:bg-white/25',
 };
 const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -118,29 +126,22 @@ export function HubServicos({ catalogo, pedidos, pedirInicial }: { catalogo: Ser
               return (
                 <section key={cat} className="space-y-3">
                   <p className="rotulo text-ink-soft">{cat}</p>
-                  <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-                    {daCat.map((s) => (
-                      <li key={s.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-ink">{s.nome}</p>
-                          <p className="mt-0.5 text-xs text-ink-soft">{s.descricao}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-6">
-                          <div className="text-right">
-                            <p className={`text-xs font-semibold ${s.precoTipo === 'INCLUSO' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink'}`}>{textoDoPreco(s.precoTipo, s.preco)}</p>
-                            <p className="text-[11px] text-ink-soft">{s.prazo}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setPedindo(s)}
-                            className="rounded-full px-4 py-2 text-xs font-bold text-ink ring-1 ring-black/10 transition-colors hover:ring-black/25 dark:ring-white/15 dark:hover:ring-white/30"
-                          >
-                            Pedir
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <ListaEmColunas
+                    colunas={[
+                      { rotulo: 'Serviço', largura: 'minmax(0,1fr)' },
+                      { rotulo: 'Preço', largura: '9rem', alinhar: 'direita', soDesktop: true },
+                      { rotulo: 'Prazo', largura: '8rem', alinhar: 'direita', soDesktop: true },
+                      { rotulo: '', largura: '5rem', alinhar: 'direita' },
+                    ]}
+                    itens={daCat}
+                    chave={(s) => s.id}
+                    celulas={(s) => [
+                      <Titulo key="t" nome={s.nome} apoio={s.descricao} />,
+                      <span key="p" className={`text-xs font-semibold ${s.precoTipo === 'INCLUSO' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ink'}`}>{textoDoPreco(s.precoTipo, s.preco)}</span>,
+                      <span key="z" className="text-xs text-ink-soft">{s.prazo}</span>,
+                      <BotaoDiscreto key="b" onClick={() => setPedindo(s)}>Pedir</BotaoDiscreto>,
+                    ]}
+                  />
                 </section>
               );
             })
@@ -154,22 +155,24 @@ export function HubServicos({ catalogo, pedidos, pedirInicial }: { catalogo: Ser
           </button>
         </p>
       ) : (
-        <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
-          {pedidos.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => setAbertoId(p.id)} className="flex w-full flex-wrap items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ink">{p.servico}</p>
-                  <p className="text-xs text-ink-soft">
-                    {p.protocolo} · pedido em {quando(p.criadoEm)}
-                    {p.urgente ? ' · urgente' : ''} · {p.mensagens.length} {p.mensagens.length === 1 ? 'mensagem' : 'mensagens'}
-                  </p>
-                </div>
-                <span className={`text-xs font-semibold ${SITUACAO[p.situacao].cor}`}>{SITUACAO[p.situacao].texto}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ListaEmColunas
+          colunas={[
+            { rotulo: 'Pedido', largura: 'minmax(0,1fr)' },
+            { rotulo: 'Situação', largura: '9rem' },
+            { rotulo: 'Pedido em', largura: '7rem', alinhar: 'direita', soDesktop: true },
+            { rotulo: 'Conversa', largura: '6rem', alinhar: 'direita', soDesktop: true },
+          ]}
+          itens={pedidos}
+          chave={(p) => p.id}
+          apagada={(p) => p.situacao === 'CANCELADO'}
+          aoClicar={(p) => setAbertoId(p.id)}
+          celulas={(p) => [
+            <Titulo key="t" nome={p.servico} apoio={`${p.protocolo}${p.urgente ? ' · urgente' : ''}`} />,
+            <Situacao key="s" cor={PONTO_DO_PEDIDO[p.situacao]}>{SITUACAO[p.situacao].texto}</Situacao>,
+            <span key="d" className="text-xs tabular text-ink-soft">{quando(p.criadoEm)}</span>,
+            <span key="m" className="text-xs text-ink-soft">{p.mensagens.length} {p.mensagens.length === 1 ? 'mensagem' : 'mensagens'}</span>,
+          ]}
+        />
       )}
 
       {pedindo && (

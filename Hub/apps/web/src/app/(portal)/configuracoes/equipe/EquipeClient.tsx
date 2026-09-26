@@ -65,7 +65,7 @@ export function EquipeClient({ members }: { members: Member[] }) {
       {members.length === 0 ? (
         <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-10 text-center text-sm text-ink-soft dark:border-white/10">Ninguém com acesso ainda.</p>
       ) : (
-        <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+        <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
           {members.map((m) => (
             <li key={m.membershipId} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
               <div className="min-w-0 flex-1">

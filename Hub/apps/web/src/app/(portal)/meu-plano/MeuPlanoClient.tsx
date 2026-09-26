@@ -77,7 +77,7 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
             Nenhuma fatura ainda. A fatura do mês é gerada no dia 1º.
           </p>
         ) : (
-          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+          <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
             {faturas.map((f) => {
               const s = SITUACAO[f.situacao];
               return (

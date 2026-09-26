@@ -21,7 +21,7 @@ export default function Carregando() {
 
       <div className="space-y-4">
         <div className={`${bloco} h-3 w-32`} />
-        <div className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+        <div className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center justify-between gap-4 px-6 py-4">
               <div className="space-y-2">

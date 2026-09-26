@@ -25,7 +25,7 @@ function Secao({ titulo, acao, children }: { titulo: string; acao?: React.ReactN
     </section>
   );
 }
-const lista = 'divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10';
+const lista = 'divide-y divide-black/[0.08] rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10';
 const vazio = (t: string) => <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-6 text-sm text-ink-soft dark:border-white/10">{t}</p>;
 
 export function FichaClient({ ficha }: { ficha: FichaDoCliente }) {

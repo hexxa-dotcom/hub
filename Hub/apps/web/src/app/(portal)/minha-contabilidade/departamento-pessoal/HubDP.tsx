@@ -620,7 +620,7 @@ function CustoTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
       {pj.length > 0 && (
         <section className="space-y-3">
           <p className="rotulo text-ink-soft">Prestadores PJ</p>
-          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
+          <ul className="divide-y divide-black/[0.08] rounded-[28px] border border-black/5 dark:divide-white/[0.12] dark:border-white/10">
             {pj.map((c) => (
               <li key={c.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <div className="min-w-0">

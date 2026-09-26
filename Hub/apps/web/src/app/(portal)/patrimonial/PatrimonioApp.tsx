@@ -132,7 +132,7 @@ function ListaDeBens({ properties, hoje, onAbrir }: { properties: PropertyRow[];
               : 'Nenhum bem neste filtro.'}
           </p>
         ) : (
-          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+          <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
             {lista.map((b) => {
               const pct = b.acq > 0 ? Math.round((b.depreciado / b.acq) * 100) : 0;
               return (

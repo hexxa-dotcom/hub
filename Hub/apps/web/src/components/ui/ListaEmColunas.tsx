@@ -32,6 +32,8 @@ export interface ListaEmColunasProps<T> {
   /** O que abre no primeiro clique. Sem ele, a linha é um link (`href`) ou fica parada. */
   detalhe?: (item: T) => React.ReactNode;
   href?: (item: T) => string | null;
+  /** Clicar na linha faz algo (abrir uma conversa, um modal) em vez de abrir o detalhe. */
+  aoClicar?: (item: T) => void;
   /** Linha esmaecida (pago, inativo, cancelado). */
   apagada?: (item: T) => boolean;
   /** Linha com alerta (vencido): um fio vermelho discreto à esquerda. */
@@ -44,7 +46,7 @@ export interface ListaEmColunasProps<T> {
 const painel =
   'overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
 
-export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, href, apagada, alerta, vazio, abertoInicial = null }: ListaEmColunasProps<T>) {
+export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, href, aoClicar, apagada, alerta, vazio, abertoInicial = null }: ListaEmColunasProps<T>) {
   const [aberto, setAberto] = useState<string | null>(abertoInicial);
   const comSeta = Boolean(detalhe);
   // Celular: duas colunas (o título e o principal); desktop: as trilhas da lista, via variável.
@@ -99,6 +101,10 @@ export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, hre
             <li key={id}>
               {detalhe ? (
                 <button type="button" onClick={() => setAberto(estaAberto ? null : id)} aria-expanded={estaAberto} className={classeDaLinha} style={estiloGrid}>
+                  {conteudo}
+                </button>
+              ) : aoClicar ? (
+                <button type="button" onClick={() => aoClicar(item)} className={classeDaLinha} style={estiloGrid}>
                   {conteudo}
                 </button>
               ) : linkDaLinha ? (

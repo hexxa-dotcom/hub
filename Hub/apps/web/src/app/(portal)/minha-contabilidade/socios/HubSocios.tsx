@@ -1,6 +1,8 @@
 'use client';
 
-import { inssProLabore, irrfMensal } from '@hexxa/core/folha';
+import { ListaEmColunas, Titulo, Valor, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
+import { inssProLabore, irrfMensal, TETO_INSS_2026 } from '@hexxa/core/folha';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -141,6 +143,7 @@ function ProLaboreTab({
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [confirmarRemocao, setConfirmarRemocao] = useState<string | null>(null);
 
   const totalBruto = socios.reduce((s, x) => s + x.prolabore, 0);
   const totalINSS  = socios.reduce((s, x) => s + calcINSS(x.prolabore), 0);
@@ -165,6 +168,7 @@ function ProLaboreTab({
   }
 
   async function handleDelete(id: string) {
+    setConfirmarRemocao(null);
     setBusyId(id);
     try {
       const result = await deletePartnerAction(id);
@@ -246,90 +250,79 @@ function ProLaboreTab({
         <CardResumo rotulo="IRRF" valor={BRL.format(totalIRRF)} tom={totalIRRF > 0 ? 'negativo' : 'padrao'} nota="Imposto de renda retido" />
       </GradeDeResumo>
 
-      <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
-        <div className="flex items-center justify-between px-6 py-4">
-          <h2 className="rotulo text-ink-soft">Sócios Cadastrados</h2>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="rotulo text-ink-soft">Sócios</p>
           <button
             type="button"
             onClick={() => setModal({ open: true, editId: null })}
-            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest text-hexxa-lime hover:brightness-110 active:scale-95 px-5 py-2 text-xs font-bold shadow-(--elev-1) transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full bg-hexxa-forest px-5 py-2 text-xs font-bold text-hexxa-lime shadow-(--elev-1) dark:bg-hexxa-lime dark:text-hexxa-forest"
           >
-            <Plus className="h-4 w-4" /> Novo Sócio
+            <Plus className="h-4 w-4" /> Novo sócio
           </button>
         </div>
-
-        {socios.length === 0 && (
-          <p className="px-6 py-10 text-center text-sm text-ink-soft">Nenhum sócio cadastrado ainda.</p>
-        )}
-
-        {socios.map(s => {
-          const i = calcINSS(s.prolabore);
-          const r = calcIRRF(s.prolabore);
-          const liq = s.prolabore - i - r;
-          return (
-            <div key={s.id} className="px-6 py-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) text-sm font-bold">
-                    {initials(s.nome)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-ink">{s.nome}</p>
-                    <p className="text-xs text-ink-soft">{s.participacao}% de participação{s.cpf ? ` · CPF ***.${s.cpf.replace(/\D/g, '').slice(3, 6)}.${s.cpf.replace(/\D/g, '').slice(6, 9)}-**` : ''} · líquido entra no financeiro todo dia 1º</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setModal({ open: true, editId: s.id })}
-                    className="rounded-full p-2 text-ink-soft hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(s.id)}
-                    disabled={busyId === s.id}
-                    className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleLancar(s.id)}
-                    disabled={busyId === s.id || s.prolabore <= 0}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors disabled:opacity-50"
-                  >
-                    {busyId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Lançar agora
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4 text-xs">
-                <div>
-                  <p className="text-xs font-bold text-ink-soft">Pró-labore</p>
-                  <p className="font-serif tabular font-bold text-sm text-ink mt-0.5">{BRL.format(s.prolabore)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-ink-soft">INSS (11%)</p>
-                  <p className="font-serif tabular font-bold text-sm text-amber-600 dark:text-amber-400 mt-0.5">− {BRL.format(i)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-ink-soft">IRRF</p>
-                  <p className="font-serif tabular font-bold text-sm text-red-600 dark:text-red-400 mt-0.5">− {BRL.format(r)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-ink-soft">Líquido a Receber</p>
-                  <p className="font-serif tabular font-bold text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">{BRL.format(liq)}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </Card>
+        <ListaEmColunas
+          colunas={[
+            { rotulo: 'Sócio', largura: 'minmax(0,1fr)' },
+            { rotulo: 'Pró-labore', largura: '8rem', alinhar: 'direita', soDesktop: true },
+            { rotulo: 'INSS e IRRF', largura: '8rem', alinhar: 'direita', soDesktop: true },
+            { rotulo: 'Líquido', largura: '8rem', alinhar: 'direita' },
+          ]}
+          itens={socios}
+          chave={(x) => x.id}
+          vazio="Nenhum sócio cadastrado ainda."
+          celulas={(x) => {
+            const nome = nomeDeExibicao(x.nome);
+            const desc = calcINSS(x.prolabore) + calcIRRF(x.prolabore);
+            return [
+              <Titulo key="t" nome={nome} monograma={iniciais(nome)} apoio={`${x.participacao}% de participação${x.cpf ? ` · CPF ***.${x.cpf.replace(/\D/g, '').slice(3, 6)}.${x.cpf.replace(/\D/g, '').slice(6, 9)}-**` : ''}`} />,
+              <Valor key="b" vazio={!x.prolabore}>{BRL.format(x.prolabore)}</Valor>,
+              <Valor key="d" tom="suave" vazio={!desc}>− {BRL.format(desc)}</Valor>,
+              <Valor key="l" tom="entrada" vazio={!x.prolabore}>{BRL.format(x.prolabore - desc)}</Valor>,
+            ];
+          }}
+          detalhe={(x) => {
+            const i = calcINSS(x.prolabore);
+            const r = calcIRRF(x.prolabore);
+            return (
+              <Detalhe
+                acoes={
+                  <>
+                    <BotaoDiscreto onClick={() => setModal({ open: true, editId: x.id })}>Editar</BotaoDiscreto>
+                    {x.prolabore > 0 && (
+                      <BotaoDiscreto onClick={() => handleLancar(x.id)}>
+                        {busyId === x.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Lançar agora
+                      </BotaoDiscreto>
+                    )}
+                    {confirmarRemocao === x.id ? (
+                      <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                        <span className="font-normal text-ink-soft">Remover o sócio?</span>
+                        <button type="button" disabled={busyId === x.id} onClick={() => handleDelete(x.id)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">Sim</button>
+                        <button type="button" onClick={() => setConfirmarRemocao(null)} className="text-ink-soft hover:text-ink">Não</button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmarRemocao(x.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                        Remover
+                      </button>
+                    )}
+                  </>
+                }
+              >
+                <Campo rotulo="Pró-labore bruto"><span className="font-serif tabular">{BRL.format(x.prolabore)}</span></Campo>
+                <Campo rotulo="INSS (11%)"><span className="font-serif tabular">− {BRL.format(i)}</span></Campo>
+                <Campo rotulo="IRRF"><span className="font-serif tabular">− {BRL.format(r)}</span></Campo>
+                <Campo rotulo="Líquido" largo>
+                  <span className="font-serif tabular">{BRL.format(x.prolabore - i - r)}</span>
+                  <span className="text-ink-soft"> · entra no financeiro sozinho todo dia 1º</span>
+                </Campo>
+              </Detalhe>
+            );
+          }}
+        />
+      </section>
 
       <p className="text-xs text-ink-soft px-1">
-        INSS: 11% sobre o pró-labore (teto R$ 856,47). IRRF calculado sobre a base deduzida do INSS conforme tabela progressiva vigente.
+        INSS: 11% sobre o pró-labore, limitado a {BRL.format(TETO_INSS_2026 * 0.11)} (teto de 2026). IRRF pela tabela progressiva vigente, sobre a base já sem o INSS, com a isenção até R$ 5.000.
       </p>
 
       {modal.open && (
@@ -505,37 +498,29 @@ function DistribuicaoTab({
         {distribuicoes.length === 0 ? (
           <p className="mt-4 text-sm text-ink-soft">Nenhuma distribuição lançada ainda.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs font-bold uppercase tracking-wider text-ink-soft border-b border-black/5 dark:border-white/10">
-                  <th className="pb-3">Data</th>
-                  <th className="pb-3">Sócio</th>
-                  <th className="hidden sm:table-cell pb-3">Observação</th>
-                  <th className="text-right pb-3">Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                {distribuicoes.map(d => (
-                  <tr key={d.id}>
-                    <td className="py-3 font-medium whitespace-nowrap text-ink-soft">{fmtDate(d.distributedAt)}</td>
-                    <td className="py-3 font-bold text-ink">{d.partnerName}</td>
-                    <td className="hidden sm:table-cell py-3 text-xs text-ink-soft">{d.notes ?? '—'}</td>
-                    <td className="text-right py-3 font-serif tabular font-bold text-ink">{BRL.format(d.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-black/10 dark:border-white/10 font-bold">
-                  <td className="pt-3 text-ink" colSpan={3}>Total Geral</td>
-                  <td className="text-right pt-3 font-serif tabular font-bold text-base text-ink">{BRL.format(total)}</td>
-                </tr>
-              </tfoot>
-            </table>
+          <div className="mt-4 space-y-3">
+            <ListaEmColunas
+              colunas={[
+                { rotulo: 'Sócio', largura: 'minmax(0,1fr)' },
+                { rotulo: 'Data', largura: '6rem', alinhar: 'direita', soDesktop: true },
+                { rotulo: 'Valor', largura: '8rem', alinhar: 'direita' },
+              ]}
+              itens={distribuicoes}
+              chave={(d) => d.id}
+              celulas={(d) => [
+                <Titulo key="t" nome={nomeDeExibicao(d.partnerName)} apoio={d.notes ?? undefined} />,
+                <span key="d" className="text-xs tabular text-ink-soft">{fmtDate(d.distributedAt)}</span>,
+                <Valor key="v">{BRL.format(d.amount)}</Valor>,
+              ]}
+            />
+            <p className="flex items-center justify-between px-6 text-sm">
+              <span className="rotulo text-ink-soft">Total distribuído</span>
+              <span className="font-serif font-bold tabular text-ink">{BRL.format(total)}</span>
+            </p>
           </div>
         )}
         <p className="mt-4 text-xs text-ink-soft">
-          Lançamentos integrados ao fechamento contábil e à DIME/DEFIS automaticamente.
+          Lucro distribuído é isento de IR para o sócio. A contabilidade leva estas distribuições para a escrituração e para a declaração anual.
         </p>
       </Card>
     </>

@@ -102,7 +102,7 @@ export function SuporteClient({ initialTickets, escritorio }: { initialTickets: 
                 {filtro === 'ABERTAS' ? 'Nenhuma conversa em aberto. Precisa de algo? Comece uma nova conversa.' : 'Nenhuma conversa concluída.'}
               </p>
             ) : (
-              <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+              <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
                 {lista.map((t) => {
                   const s = SITUACAO[t.status];
                   const pendente = !concluida(t) && (t.respondido || t.status === 'WAITING_CLIENT');
