@@ -121,7 +121,7 @@ export function DueDatesTimeline({ items }: { items: TimelineItem[] }) {
             Nenhum vencimento encontrado para o filtro selecionado.
           </div>
         ) : (
-          <ul className="divide-y divide-black/5 dark:divide-white/5 pt-2">
+          <ul className="entrada-lista divide-y divide-black/[0.08] pt-2 dark:divide-white/[0.12]">
             {filtered.slice(0, 5).map((item) => {
               const badge = dateBadge(item.dueDate);
               const isInflow = item.type === 'receivable';

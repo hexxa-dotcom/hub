@@ -13,6 +13,8 @@ import { syncDfeAction } from './dfeActions';
 import { descartarTentativaAction } from './actions';
 import { cancelNfseAction } from '../nfse/actions';
 import { EmitirNota } from './HubNotas';
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 
 /**
  * NOTAS DO MÊS.
@@ -64,6 +66,7 @@ export function NotasClient({
   const [aviso, setAviso] = useState<string | null>(null);
   const [sincronizando, sincronizar] = useTransition();
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState<string | null>(null);
   const atual = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
 
   const validas = notas.emitidas.filter((n) => !n.cancelada);
@@ -90,7 +93,8 @@ export function NotasClient({
   }
 
   async function cancelar(n: NotaDoMes) {
-    if (!n.cancelar || !confirm(`Cancelar a nota ${n.numero ?? ''} no Emissor Nacional? Isso não tem volta.`)) return;
+    if (!n.cancelar) return;
+    setConfirmarCancelamento(null);
     setOcupado(n.id);
     const r = await cancelNfseAction(n.cancelar.id, n.cancelar.protocolo);
     setOcupado(null);
@@ -195,34 +199,70 @@ export function NotasClient({
                 {aba === 'recebidas' ? `Nenhuma nota recebida em ${nomeDoMes(mes)}.` : `Nenhuma nota emitida em ${nomeDoMes(mes)}.`}
               </p>
             ) : (
-              <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-                {lista.map((n) => (
-                  <li key={n.id} className={`flex flex-wrap items-center justify-between gap-4 px-6 py-4 ${n.cancelada ? 'opacity-50' : ''}`}>
-                    <button type="button" onClick={() => n.danfse && setVendo(n)} disabled={!n.danfse} className="min-w-0 flex-1 text-left">
-                      <p className="truncate text-sm font-semibold text-ink">{n.parte ?? 'Sem nome'}</p>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-ink-soft">
-                        {n.numero ? `Nota ${n.numero} · ` : ''}
-                        {dia(n.data)}
-                        {n.origem === 'HEXX' ? ' · emitida pela Hexx, a caminho do Emissor Nacional' : ''}
-                        {n.processando ? ' · processando' : ''}
-                        {n.cancelada ? ' · cancelada' : ''}
-                        {n.descricao ? ` · ${n.descricao}` : ''}
-                      </p>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-5">
-                      {n.cancelar && !n.cancelada && (
-                        <button type="button" onClick={() => cancelar(n)} disabled={ocupado === n.id} className="text-xs font-semibold text-ink-soft hover:text-rose-600 disabled:opacity-50">
-                          Cancelar
-                        </button>
-                      )}
-                      <p className={`w-28 text-right font-serif text-sm font-bold tabular ${n.cancelada ? 'text-ink-soft line-through' : 'text-ink'}`}>
-                        {aba === 'recebidas' ? '−' : ''}
+              <ListaEmColunas
+                colunas={[
+                  { rotulo: aba === 'recebidas' ? 'Prestador' : 'Tomador', largura: 'minmax(0,1fr)' },
+                  { rotulo: 'Nota', largura: '5rem', alinhar: 'direita', soDesktop: true },
+                  { rotulo: 'Emissão', largura: '5rem', alinhar: 'direita', soDesktop: true },
+                  { rotulo: 'Situação', largura: '7.5rem', soDesktop: true },
+                  { rotulo: 'Valor', largura: '8rem', alinhar: 'direita' },
+                ]}
+                itens={lista}
+                chave={(n) => n.id}
+                apagada={(n) => n.cancelada}
+                celulas={(n) => {
+                  const nome = n.parte ? nomeDeExibicao(n.parte) : 'Sem nome';
+                  const [cor, texto] = n.cancelada
+                    ? ['bg-black/25 dark:bg-white/25', 'Cancelada']
+                    : n.processando
+                      ? ['bg-amber-500', 'Processando']
+                      : n.origem === 'HEXX'
+                        ? ['bg-amber-500', 'A caminho']
+                        : ['bg-emerald-500', 'Autorizada'];
+                  return [
+                    <Titulo key="t" nome={nome} monograma={iniciais(nome)} apoio={n.descricao ?? (n.numero ? `Nota ${n.numero}` : dia(n.data))} apagado={n.cancelada} />,
+                    <span key="n" className="text-xs tabular text-ink-soft">{n.numero ?? '—'}</span>,
+                    <span key="d" className="text-xs tabular text-ink-soft">{dia(n.data)}</span>,
+                    <Situacao key="s" cor={cor}>{texto}</Situacao>,
+                    <Valor key="v" tom={n.cancelada ? 'suave' : 'padrao'}>
+                      <span className={n.cancelada ? 'line-through' : ''}>
+                        {aba === 'recebidas' ? '− ' : ''}
                         {BRL.format(n.valor)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      </span>
+                    </Valor>,
+                  ];
+                }}
+                detalhe={(n) => (
+                  <Detalhe
+                    acoes={
+                      <>
+                        {n.danfse && <BotaoDiscreto onClick={() => setVendo(n)}>Ver nota</BotaoDiscreto>}
+                        {n.cancelar && !n.cancelada &&
+                          (confirmarCancelamento === n.id ? (
+                            <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                              <span className="font-normal text-ink-soft">Cancelar no Emissor Nacional? Não tem volta.</span>
+                              <button type="button" disabled={ocupado === n.id} onClick={() => cancelar(n)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">Sim</button>
+                              <button type="button" onClick={() => setConfirmarCancelamento(null)} className="text-ink-soft hover:text-ink">Não</button>
+                            </span>
+                          ) : (
+                            <button type="button" onClick={() => setConfirmarCancelamento(n.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                              Cancelar nota
+                            </button>
+                          ))}
+                      </>
+                    }
+                  >
+                    <Campo rotulo={aba === 'recebidas' ? 'Prestador' : 'Tomador'} largo>{n.parte ?? '—'}</Campo>
+                    <Campo rotulo="Número">{n.numero ?? '—'}</Campo>
+                    <Campo rotulo="Emitida em">{n.data ? new Date(n.data).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—'}</Campo>
+                    <Campo rotulo="Valor">
+                      <span className="font-serif tabular">{BRL.format(n.valor)}</span>
+                    </Campo>
+                    {n.descricao && <Campo rotulo="Serviço" largo>{n.descricao}</Campo>}
+                    {n.origem === 'HEXX' && <Campo rotulo="Origem" largo>Emitida pela Hexx, a caminho do Emissor Nacional</Campo>}
+                  </Detalhe>
+                )}
+              />
             )}
           </section>
 
@@ -260,7 +300,7 @@ export function NotasClient({
         </>
       )}
 
-      {vendo?.danfse && <VisualizadorDeArquivo src={vendo.danfse} titulo={`Nota ${vendo.numero ?? ''} · ${vendo.parte ?? ''}`} onClose={() => setVendo(null)} />}
+      {vendo?.danfse && <VisualizadorDeArquivo src={vendo.danfse} titulo={`Nota ${vendo.numero ?? ''} · ${vendo.parte ? nomeDeExibicao(vendo.parte) : ''}`} onClose={() => setVendo(null)} />}
     </div>
   );
 }
