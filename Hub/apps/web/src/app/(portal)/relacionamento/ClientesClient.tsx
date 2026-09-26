@@ -12,6 +12,8 @@ import type { ClienteDaLista } from '@/lib/server/clientes';
 import { consultarParteAction } from '../meu-negocio/contratos/contratos-actions';
 import { salvarClienteAction, type TarefaRow } from './actions';
 import { TarefasTab } from './TarefasTab';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
+import { ChevronDown, Mail, MessageCircle } from 'lucide-react';
 
 /**
  * CLIENTES.
@@ -51,7 +53,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
           (filtro === 'CONTRATO' && c.contratosAtivos > 0) ||
           (filtro === 'RECEBER' && c.aReceber > 0) ||
           (filtro === 'SEM_NOTA' && !c.ultimaNota)) &&
-        (!q || c.nome.toLowerCase().includes(q) || (soDigitos.length >= 3 && (c.documento ?? '').includes(soDigitos))),
+        (!q || (c.nome.toLowerCase().includes(q) || nomeDeExibicao(c.nome).toLowerCase().includes(q)) || (soDigitos.length >= 3 && (c.documento ?? '').includes(soDigitos))),
     );
   }, [clientes, busca, filtro]);
 
@@ -115,28 +117,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
                 {clientes.length === 0 ? 'Nenhum cliente ainda. Eles aparecem sozinhos quando você emite notas — ou cadastre um agora.' : 'Ninguém neste filtro.'}
               </p>
             ) : (
-              <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-                {lista.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/relacionamento/${c.id}` as Route} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-ink">{c.nome}</p>
-                        <p className="mt-0.5 text-xs text-ink-soft">
-                          {formatarDocumento(c.documento) || 'Sem documento'}
-                          {c.contratosAtivos > 0 ? ` · ${c.contratosAtivos} ${c.contratosAtivos === 1 ? 'contrato' : 'contratos'}` : ''}
-                          {c.ultimaNota ? ` · última nota em ${new Date(c.ultimaNota).toLocaleDateString('pt-BR')}` : ''}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="font-serif text-sm font-bold tabular text-ink">{BRL.format(c.faturado12m)}</p>
-                        <p className={`text-[11px] ${c.aReceber > 0 ? 'font-semibold text-amber-700 dark:text-amber-400' : 'text-ink-soft'}`}>
-                          {c.aReceber > 0 ? `${BRL.format(c.aReceber)} a receber` : 'em 12 meses'}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <ListaDeClientes clientes={lista} />
             )}
           </section>
         </>
@@ -249,6 +230,115 @@ export function FormularioDeCliente({
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />} {inicial ? 'Salvar' : 'Cadastrar cliente'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A lista em colunas alinhadas: o cliente (nome legível e documento), quanto
+ * faturou em 12 meses, quanto tem a receber e a última nota. O primeiro
+ * clique abre os detalhes ali mesmo; "Abrir ficha" leva à ficha completa.
+ */
+const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_8rem_8rem_7rem_1rem]';
+
+function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
+  const [aberto, setAberto] = useState<string | null>(null);
+  return (
+    <div className="overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+      <div className={`${colunas} border-b border-black/[0.08] px-6 py-3 dark:border-white/[0.12]`}>
+        <span className="rotulo text-ink-soft">Cliente</span>
+        <span className="rotulo text-right text-ink-soft sm:block">Faturado 12m</span>
+        <span className="rotulo hidden text-right text-ink-soft sm:block">A receber</span>
+        <span className="rotulo hidden text-right text-ink-soft sm:block">Última nota</span>
+        <span className="hidden sm:block" />
+      </div>
+      <ul className="entrada-lista divide-y divide-black/[0.08] dark:divide-white/[0.12]">
+        {clientes.map((c) => {
+          const nome = nomeDeExibicao(c.nome);
+          const estaAberto = aberto === c.id;
+          const whats = c.telefone?.replace(/\D/g, '');
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => setAberto(estaAberto ? null : c.id)}
+                aria-expanded={estaAberto}
+                className={`${colunas} w-full px-6 py-3.5 text-left transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.035] ${estaAberto ? 'bg-black/[0.025] dark:bg-white/[0.035]' : ''}`}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-hexxa-forest/[0.08] text-[11px] font-semibold tracking-wide text-hexxa-forest dark:bg-hexxa-lime/10 dark:text-hexxa-lime">
+                    {iniciais(nome)}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-ink">{nome}</span>
+                    <span className="block truncate text-xs text-ink-soft">
+                      {formatarDocumento(c.documento) || 'Sem documento'}
+                      {c.contratosAtivos > 0 ? ` · ${c.contratosAtivos} ${c.contratosAtivos === 1 ? 'contrato' : 'contratos'}` : ''}
+                    </span>
+                  </span>
+                </span>
+                <span className={`text-right font-serif text-sm tabular ${c.faturado12m > 0 ? 'font-bold text-ink' : 'text-ink-soft/60'}`}>
+                  {c.faturado12m > 0 ? BRL.format(c.faturado12m) : '—'}
+                </span>
+                <span className={`hidden text-right font-serif text-sm tabular sm:block ${c.aReceber > 0 ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-ink-soft/60'}`}>
+                  {c.aReceber > 0 ? BRL.format(c.aReceber) : '—'}
+                </span>
+                <span className="hidden text-right text-xs tabular text-ink-soft sm:block">
+                  {c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
+                </span>
+                <ChevronDown className={`hidden h-4 w-4 text-ink-soft transition-transform duration-200 sm:block ${estaAberto ? 'rotate-180' : ''}`} />
+              </button>
+
+              {estaAberto && (
+                <div className="grid gap-5 border-t border-black/[0.06] bg-black/[0.015] px-6 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:pl-[4.25rem] dark:border-white/[0.08] dark:bg-white/[0.02]">
+                  <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+                    <div className="col-span-2 sm:col-span-3">
+                      <dt className="rotulo text-ink-soft">Razão social</dt>
+                      <dd className="mt-0.5 text-ink">{c.nome}</dd>
+                    </div>
+                    <div>
+                      <dt className="rotulo text-ink-soft">{c.tipo === 'PF' ? 'CPF' : 'CNPJ'}</dt>
+                      <dd className="mt-0.5 tabular text-ink">{formatarDocumento(c.documento) || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="rotulo text-ink-soft">A receber</dt>
+                      <dd className="mt-0.5 font-serif tabular text-ink">{BRL.format(c.aReceber)}</dd>
+                    </div>
+                    <div>
+                      <dt className="rotulo text-ink-soft">Última nota</dt>
+                      <dd className="mt-0.5 text-ink">{c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR') : 'Nenhuma'}</dd>
+                    </div>
+                    <div className="col-span-2 sm:col-span-3">
+                      <dt className="rotulo text-ink-soft">Contato</dt>
+                      <dd className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-ink">
+                        {c.email ? (
+                          <a href={`mailto:${c.email.toLowerCase()}`} className="inline-flex items-center gap-1.5 hover:underline">
+                            <Mail className="h-3.5 w-3.5 text-ink-soft" /> {c.email.toLowerCase()}
+                          </a>
+                        ) : null}
+                        {whats ? (
+                          <a href={`https://wa.me/${whats.length <= 11 ? `55${whats}` : whats}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
+                            <MessageCircle className="h-3.5 w-3.5 text-ink-soft" /> {c.telefone}
+                          </a>
+                        ) : null}
+                        {!c.email && !whats && <span className="text-ink-soft">Sem e-mail nem telefone — complete na ficha.</span>}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="flex items-start sm:justify-end">
+                    <Link
+                      href={`/relacionamento/${c.id}` as Route}
+                      className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) dark:bg-hexxa-lime dark:text-hexxa-forest"
+                    >
+                      Abrir ficha
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

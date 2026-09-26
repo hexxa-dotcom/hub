@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { nomeDeExibicao } from '@/lib/nome-de-exibicao';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getTenantContext } from '@/lib/server/tenant';
@@ -17,7 +18,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <div className="w-full space-y-12 pb-20">
       <SectionHero
-        title={ficha.cliente.nome}
+        title={nomeDeExibicao(ficha.cliente.nome)}
         subtitulo={ficha.cliente.tipo === 'PF' ? 'Cliente pessoa física' : 'Cliente pessoa jurídica'}
         infoTitle="Sobre a ficha do cliente"
         infoDescription="Tudo o que a empresa tem com este cliente: notas, contratos, o que ele tem a pagar, propostas e tarefas. As notas e os contratos são ligados pelo CPF ou CNPJ."

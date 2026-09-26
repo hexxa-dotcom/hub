@@ -1081,15 +1081,15 @@ h1, h2, h3, h4, h5, h6 {
 /* Cards de resumo e linhas das listas arredondadas: em cascata. Só as
    primeiras entram escalonadas — a 20ª linha não pode esperar 800ms. */
 .entrada-grade > *,
-ul.rounded-\[28px\] > li {
+.entrada-lista > li, ul.rounded-\[28px\] > li {
   animation: entrada-sobe 240ms var(--ease-entrada) both;
 }
-.entrada-grade > :nth-child(1), ul.rounded-\[28px\] > li:nth-child(1) { animation-delay: 80ms; }
-.entrada-grade > :nth-child(2), ul.rounded-\[28px\] > li:nth-child(2) { animation-delay: 120ms; }
-.entrada-grade > :nth-child(3), ul.rounded-\[28px\] > li:nth-child(3) { animation-delay: 160ms; }
-.entrada-grade > :nth-child(4), ul.rounded-\[28px\] > li:nth-child(4) { animation-delay: 200ms; }
-ul.rounded-\[28px\] > li:nth-child(5) { animation-delay: 240ms; }
-ul.rounded-\[28px\] > li:nth-child(n + 6) { animation-delay: 280ms; }
+.entrada-grade > :nth-child(1), .entrada-lista > li:nth-child(1), ul.rounded-\[28px\] > li:nth-child(1) { animation-delay: 80ms; }
+.entrada-grade > :nth-child(2), .entrada-lista > li:nth-child(2), ul.rounded-\[28px\] > li:nth-child(2) { animation-delay: 120ms; }
+.entrada-grade > :nth-child(3), .entrada-lista > li:nth-child(3), ul.rounded-\[28px\] > li:nth-child(3) { animation-delay: 160ms; }
+.entrada-grade > :nth-child(4), .entrada-lista > li:nth-child(4), ul.rounded-\[28px\] > li:nth-child(4) { animation-delay: 200ms; }
+.entrada-lista > li:nth-child(5), ul.rounded-\[28px\] > li:nth-child(5) { animation-delay: 240ms; }
+.entrada-lista > li:nth-child(n + 6), ul.rounded-\[28px\] > li:nth-child(n + 6) { animation-delay: 280ms; }
 
 /* Modais: o fundo esmaece e a janela cresce de 96% (nunca do zero). Vale
    para todo overlay `fixed inset-0 z-50` do sistema. Modal não é ancorado a
@@ -1127,7 +1127,7 @@ a.bg-hexxa-forest:active {
 }
 
 @media print {
-  .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, ul.rounded-\[28px\] > li, .fixed.inset-0.z-50, .fixed.inset-0.z-50 > * { animation: none; }
+  .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, .entrada-lista > li, ul.rounded-\[28px\] > li, .fixed.inset-0.z-50, .fixed.inset-0.z-50 > * { animation: none; }
 }
 
 @utility tabular {
