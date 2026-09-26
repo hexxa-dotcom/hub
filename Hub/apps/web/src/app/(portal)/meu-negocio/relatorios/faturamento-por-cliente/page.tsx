@@ -1,14 +1,12 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { getFaturamentoPorClienteData, SEM_CLIENTE } from '@/lib/server/reports';
-import { Info } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
+import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { ReportToolbar } from '../ReportToolbar';
+import { BRL, pct, th, num, corDoResultado, Painel, Nota } from '../_ui';
 
 export const dynamic = 'force-dynamic';
-
-const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 export default async function FaturamentoPorClientePage({
   searchParams,
@@ -18,101 +16,86 @@ export default async function FaturamentoPorClientePage({
   const ctx = await getTenantContext();
   const params = await searchParams;
   const { ano, anos, receitaTotal, margemLiquidaAno, clientes } = await getFaturamentoPorClienteData(ctx, { ano: params.ano });
+  const comNota = clientes.filter((c) => c.nome !== SEM_CLIENTE);
+  const maior = comNota[0];
+  // Com faturamento quase nulo a margem vira um número sem sentido (−1.000.000%): melhor não mostrar.
+  const margemMedivel = receitaTotal > 0 && Math.abs(margemLiquidaAno) <= 10;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
+    <div className="mx-auto max-w-4xl space-y-16 pb-10">
       <SectionHero
         subtitulo="Quanto cada cliente representa no seu faturamento"
-        title={`Faturamento por Cliente · ${ano}`}
+        title={`Faturamento por cliente ${ano}`}
         infoTitle="Sobre Faturamento por Cliente"
-        infoDescription="Quanto cada cliente representou no faturamento da empresa no ano fiscal selecionado."
+        infoDescription="Quanto cada cliente representou no faturamento da empresa no ano, pelas notas emitidas para ele."
         className="print:hidden"
-        rightSlot={
-          <div className="flex items-center gap-2">
-            <form method="get" className="flex items-center gap-1.5">
-              <select
-                name="ano"
-                defaultValue={ano}
-                className="appearance-none rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-1.5 text-xs font-bold text-ink outline-none cursor-pointer"
-              >
-                {anos.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                className="tap-target pressable focusable rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer"
-              >
-                Ver
-              </button>
-            </form>
-            <ReportToolbar
-              reportType="faturamento-por-cliente"
-              query={{ ano }}
-              documentTitle={`Faturamento por Cliente — ${ano}`}
-            />
-          </div>
-        }
       />
 
-      <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
-        <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div>
-            <p className="rotulo text-hexxa-lime">Receita Total</p>
-            <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{BRL.format(receitaTotal)}</p>
-          </div>
-          <div>
-            <p className="rotulo text-hexxa-lime">Margem Líquida do Ano</p>
-            <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{pct(margemLiquidaAno * 100)}</p>
-          </div>
-          <div className="hidden sm:block">
-            <p className="rotulo text-hexxa-lime">Clientes com Nota</p>
-            <p className="font-serif text-xl font-bold text-hexxa-lime tabular">{clientes.filter((c) => c.nome !== SEM_CLIENTE).length}</p>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        {anos.length > 1 ? (
+          <FiltrosEmTexto
+            filtros={anos.map((a) => ({ id: String(a), label: String(a), href: `/meu-negocio/relatorios/faturamento-por-cliente?ano=${a}` }))}
+            ativo={String(ano)}
+          />
+        ) : (
+          <span />
+        )}
+        <ReportToolbar reportType="faturamento-por-cliente" query={{ ano }} documentTitle={`Faturamento por Cliente — ${ano}`} />
+      </div>
 
-        <div className="p-6 sm:p-8 space-y-4">
-          {clientes.length === 0 ? (
-            <p className="text-center text-sm text-ink-soft py-12">Nenhum faturamento encontrado em {ano}.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wide border-b border-black/5 dark:border-white/10">
-                    <th className="py-2 pr-4">Cliente</th>
-                    <th className="py-2 px-4 text-right">Receita</th>
-                    <th className="py-2 px-4 text-right">Participação</th>
-                    <th className="py-2 pl-4 text-right">Margem Estimada</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                  {clientes.map((c) => (
-                    <tr key={c.nome}>
-                      <td className="py-2.5 pr-4 text-ink font-medium">
-                        {c.nome}
-                        {c.nome === SEM_CLIENTE && <span className="ml-2 text-[10px] text-ink-soft">(contratos, repasses etc.)</span>}
-                      </td>
-                      <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(c.receita)}</td>
-                      <td className="py-2.5 px-4 text-right text-ink-soft tabular">{pct(c.participacao)}</td>
-                      <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${c.margemEstimada >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {BRL.format(c.margemEstimada)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      <GradeDeResumo colunas={3}>
+        <CardResumo destaque rotulo={`Faturado em ${ano}`} valor={BRL.format(receitaTotal)} nota={`${comNota.length} ${comNota.length === 1 ? 'cliente' : 'clientes'} com nota`} />
+        <CardResumo
+          rotulo="Maior cliente"
+          valor={maior ? pct(maior.participacao) : '—'}
+          nota={maior ? maior.nome : 'Nenhuma nota no ano'}
+          tom={maior && maior.participacao >= 50 ? 'alerta' : 'padrao'}
+        />
+        <CardResumo rotulo="Margem do ano" valor={margemMedivel ? pct(margemLiquidaAno * 100) : '—'} nota={margemMedivel ? 'Resultado sobre o faturamento' : 'Faturamento pequeno demais para medir'} />
+      </GradeDeResumo>
 
-          <p className="flex items-start gap-1.5 text-[11px] text-ink-soft pt-2">
-            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <span>
-              <strong>Margem estimada</strong> = participação do cliente na receita × margem líquida da empresa no ano ({pct(margemLiquidaAno * 100)}).
-              O sistema não rastreia custo direto por cliente — isso é um rateio proporcional, não o lucro real daquele cliente específico.
-            </span>
-          </p>
-        </div>
-      </section>
+      <Painel titulo="Por cliente">
+        {clientes.length === 0 ? (
+          <p className="py-10 text-center text-sm text-ink-soft">Nenhuma nota em {ano}.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-black/5 text-left dark:border-white/10">
+                <th className={th}>Cliente</th>
+                <th className={`${th} text-right`}>Faturado</th>
+                <th className={`${th} text-right`}>Do total</th>
+                <th className={`${th} text-right`}>Margem estimada</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5 dark:divide-white/10">
+              {clientes.map((c) => (
+                <tr key={c.nome}>
+                  <td className="py-2.5 pr-4 text-ink">
+                    {c.nome}
+                    {c.nome === SEM_CLIENTE && <span className="ml-2 text-[11px] text-ink-soft">(sem tomador na nota)</span>}
+                  </td>
+                  <td className={`py-2.5 text-right ${num} font-bold text-ink`}>{BRL.format(c.receita)}</td>
+                  <td className="py-2.5 text-right tabular text-ink-soft">
+                    <span className="inline-flex items-center justify-end gap-2">
+                      <span className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-black/5 sm:inline-block dark:bg-white/10">
+                        <span className="block h-full rounded-full bg-hexxa-forest dark:bg-hexxa-lime" style={{ width: `${Math.min(100, c.participacao)}%` }} />
+                      </span>
+                      {pct(c.participacao)}
+                    </span>
+                  </td>
+                  <td className={`py-2.5 text-right ${num} ${margemMedivel ? corDoResultado(c.margemEstimada) : 'text-ink-soft'}`}>{margemMedivel ? BRL.format(c.margemEstimada) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Painel>
+
+      <Nota>
+        Margem estimada = a parte do cliente no faturamento × a margem da empresa no ano{margemMedivel ? ` (${pct(margemLiquidaAno * 100)})` : ''}. O sistema não sabe o custo
+        de atender cada cliente — é um rateio, não o lucro exato daquele cliente. Um cliente com metade ou mais do faturamento aparece em destaque:
+        é dependência demais de um só.
+      </Nota>
     </div>
   );
 }

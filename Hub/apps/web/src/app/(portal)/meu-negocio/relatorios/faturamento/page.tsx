@@ -1,16 +1,12 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { getFaturamentoData } from '@/lib/server/reports';
-import { Info } from 'lucide-react';
-import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
-import { ReportToolbar } from '../ReportToolbar';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import { ReportToolbar } from '../ReportToolbar';
+import { BRL, pct, th, num, corDoResultado, Painel, Nota } from '../_ui';
 
 export const dynamic = 'force-dynamic';
-
-const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 type Visao = 'mensal' | 'anual';
 
@@ -25,137 +21,117 @@ export default async function FaturamentoReportPage({
 
   const { ano, anosDisponiveis, meses, totalAnoMensal, anual } = await getFaturamentoData(ctx, { ano: params.ano });
   const maxMes = Math.max(...meses.map((m) => m.valor), 1);
+  const comNota = meses.filter((m) => m.valor > 0);
+  const melhor = comNota.reduce<(typeof meses)[number] | null>((a, m) => (!a || m.valor > a.valor ? m : a), null);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
+    <div className="mx-auto max-w-4xl space-y-16 pb-10">
       <SectionHero
         subtitulo="Receita bruta das notas fiscais emitidas"
-        title={visao === 'mensal' ? `Faturamento Mensal · ${ano}` : 'Faturamento Anual'}
+        title={visao === 'mensal' ? `Faturamento ${ano}` : 'Faturamento por ano'}
         infoTitle="Sobre o Faturamento"
-        infoDescription="Receita bruta reconhecida via nota fiscal (própria ou sincronizada do Emissor Nacional)."
+        infoDescription="Receita bruta reconhecida pelas notas fiscais emitidas (Emissor Nacional). É a mesma base da Bússola Tributária e das Notas."
         className="print:hidden"
-        rightSlot={
-          <div className="flex flex-wrap items-center gap-2">
-            <FiltrosEmTexto
-              filtros={[
-                { id: 'mensal', label: 'Mensal', href: `/meu-negocio/relatorios/faturamento?visao=mensal&ano=${ano}` },
-                { id: 'anual', label: 'Anual', href: '/meu-negocio/relatorios/faturamento?visao=anual' },
-              ]}
-              ativo={visao}
-            />
-            {visao === 'mensal' && (
-              <form method="get" className="flex items-center gap-1.5">
-                <input type="hidden" name="visao" value="mensal" />
-                <select
-                  name="ano"
-                  defaultValue={ano}
-                  className="appearance-none rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-3.5 py-1.5 text-xs font-bold text-ink outline-none cursor-pointer"
-                >
-                  {anosDisponiveis.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-                <button type="submit" className="tap-target pressable focusable rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer">
-                  Ver
-                </button>
-              </form>
-            )}
-            <ReportToolbar
-              reportType="faturamento"
-              query={{ visao, ...(visao === 'mensal' ? { ano } : {}) }}
-              documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
-            />
-          </div>
-        }
       />
 
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <FiltrosEmTexto
+            filtros={[
+              { id: 'mensal', label: 'Mês a mês', href: `/meu-negocio/relatorios/faturamento?visao=mensal&ano=${ano}` },
+              { id: 'anual', label: 'Ano a ano', href: '/meu-negocio/relatorios/faturamento?visao=anual' },
+            ]}
+            ativo={visao}
+          />
+          {visao === 'mensal' && anosDisponiveis.length > 1 && (
+            <FiltrosEmTexto
+              filtros={anosDisponiveis.map((a) => ({ id: String(a), label: String(a), href: `/meu-negocio/relatorios/faturamento?visao=mensal&ano=${a}` }))}
+              ativo={String(ano)}
+            />
+          )}
+        </div>
+        <ReportToolbar
+          reportType="faturamento"
+          query={{ visao, ...(visao === 'mensal' ? { ano } : {}) }}
+          documentTitle={visao === 'mensal' ? `Faturamento Mensal — ${ano}` : 'Faturamento Anual'}
+        />
+      </div>
+
       {visao === 'mensal' ? (
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
-          <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream">
-            <p className="rotulo text-hexxa-lime">Total do Ano</p>
-            <p className="font-serif text-3xl font-bold text-hexxa-lime tabular">{BRL.format(totalAnoMensal)}</p>
-          </div>
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="flex items-end gap-2 h-48">
+        <>
+          <GradeDeResumo colunas={3}>
+            <CardResumo destaque rotulo={`Faturado em ${ano}`} valor={BRL.format(totalAnoMensal)} nota="Só notas fiscais" />
+            <CardResumo rotulo="Média por mês" valor={BRL.format(comNota.length ? totalAnoMensal / comNota.length : 0)} nota={`${comNota.length} ${comNota.length === 1 ? 'mês' : 'meses'} com nota`} />
+            <CardResumo rotulo="Melhor mês" valor={melhor ? BRL.format(melhor.valor) : '—'} nota={melhor?.label ?? 'Nenhuma nota no ano'} />
+          </GradeDeResumo>
+
+          <Painel titulo="Mês a mês">
+            <div className="flex h-48 items-end gap-2 pt-6">
               {meses.map((m) => (
-                <div key={m.label} className="flex flex-1 flex-col items-center gap-1.5">
-                  <span className="text-[10px] font-bold text-ink-soft tabular">
-                    {m.valor > 0 ? BRL.format(m.valor).replace('R$', '').trim() : ''}
-                  </span>
+                <div key={m.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
                   <div
                     title={`${m.label}: ${BRL.format(m.valor)}`}
-                    className="w-full rounded-t-lg bg-hexxa-forest dark:bg-hexxa-lime transition-all"
-                    style={{ height: `${m.valor ? Math.max((m.valor / maxMes) * 100, 3) : 2}%` }}
+                    className="w-full rounded-t-md bg-hexxa-forest/85 dark:bg-hexxa-lime/80"
+                    style={{ height: `${m.valor ? Math.max((m.valor / maxMes) * 100, 3) : 1}%` }}
                   />
-                  <span className="text-[11px] font-bold text-ink">{m.label}</span>
+                  <span className="text-[10px] text-ink-soft">{m.label}</span>
                 </div>
               ))}
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wide border-b border-black/5 dark:border-white/10">
-                    <th className="py-2 pr-4">Mês</th>
-                    <th className="py-2 pl-4 text-right">Receita</th>
+            <table className="mt-4 w-full text-sm">
+              <thead>
+                <tr className="border-b border-black/5 text-left dark:border-white/10">
+                  <th className={th}>Mês</th>
+                  <th className={`${th} text-right`}>Faturado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                {meses.map((m) => (
+                  <tr key={m.label}>
+                    <td className="py-2.5 text-ink">{m.label}</td>
+                    <td className={`py-2.5 text-right ${num} ${m.valor ? 'font-bold text-ink' : 'text-ink-soft'}`}>{BRL.format(m.valor)}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                  {meses.map((m) => (
-                    <tr key={m.label}>
-                      <td className="py-2.5 pr-4 text-ink font-medium">{m.label}</td>
-                      <td className="py-2.5 pl-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(m.valor)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+                ))}
+              </tbody>
+            </table>
+          </Painel>
+        </>
       ) : (
-        <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden">
-          <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream">
-            <p className="rotulo text-hexxa-lime">Comparativo entre anos</p>
-          </div>
-          <div className="p-6 sm:p-8 space-y-4">
-            {anual.length === 0 ? (
-              <p className="text-center text-sm text-ink-soft py-12">Nenhum lançamento encontrado ainda.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wide border-b border-black/5 dark:border-white/10">
-                      <th className="py-2 pr-4">Ano</th>
-                      <th className="py-2 px-4 text-right">Receita</th>
-                      <th className="py-2 px-4 text-right">Despesas</th>
-                      <th className="py-2 pl-4 text-right">Lucro Estimado</th>
-                      <th className="py-2 pl-4 text-right">Margem</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                    {anual.map((a) => (
-                      <tr key={a.ano}>
-                        <td className="py-2.5 pr-4 font-bold text-ink">{a.ano}</td>
-                        <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(a.receita)}</td>
-                        <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(a.despesas + a.impostoEstimado)}</td>
-                        <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${a.lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {BRL.format(a.lucroLiquido)}
-                        </td>
-                        <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${a.margem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {pct(a.margem)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <p className="flex items-start gap-1.5 text-caption text-ink-soft pt-2">
-              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              Imposto estimado pela alíquota efetiva ATUAL do Simples Nacional aplicada a cada ano — não recalcula a faixa histórica de cada período. Para o valor exato já pago, use as guias (DAS) de cada mês.
-            </p>
-          </div>
-        </section>
+        <Painel titulo="Ano a ano">
+          {anual.length === 0 ? (
+            <p className="py-10 text-center text-sm text-ink-soft">Nenhuma nota encontrada ainda.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-black/5 text-left dark:border-white/10">
+                  <th className={th}>Ano</th>
+                  <th className={`${th} text-right`}>Faturado</th>
+                  <th className={`${th} text-right`}>Despesas e imposto</th>
+                  <th className={`${th} text-right`}>Resultado</th>
+                  <th className={`${th} text-right`}>Margem</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                {anual.map((a) => (
+                  <tr key={a.ano}>
+                    <td className="py-2.5 font-semibold text-ink">{a.ano}</td>
+                    <td className={`py-2.5 text-right ${num} font-bold text-ink`}>{BRL.format(a.receita)}</td>
+                    <td className={`py-2.5 text-right ${num} text-ink-soft`}>{BRL.format(a.despesas + a.impostoEstimado)}</td>
+                    <td className={`py-2.5 text-right ${num} font-bold ${corDoResultado(a.lucroLiquido)}`}>{BRL.format(a.lucroLiquido)}</td>
+                    <td className={`py-2.5 text-right ${num} ${corDoResultado(a.margem)}`}>{pct(a.margem)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Painel>
+      )}
+
+      {visao === 'anual' && (
+        <Nota>
+          O imposto de cada ano é estimado pela alíquota de hoje (a mesma da Bússola) — não refaz a faixa do Simples de cada período. O valor exato
+          pago está nas guias de cada mês.
+        </Nota>
       )}
     </div>
   );

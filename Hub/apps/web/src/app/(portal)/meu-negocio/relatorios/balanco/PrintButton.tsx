@@ -18,9 +18,9 @@ export function PrintButton({ scope, label }: { scope: 'balanco' | 'dre'; label:
     <button
       type="button"
       onClick={handlePrint}
-      className="hidden sm:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-[#DFFFAE] border border-white/20 px-4 py-2 rounded-full backdrop-blur-sm print:hidden text-xs font-bold transition-all"
+      className="hidden items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink sm:inline-flex print:hidden"
     >
-      <Printer className="h-4 w-4" /> {label}
+      <Printer className="h-3.5 w-3.5" /> {label}
     </button>
   );
 }

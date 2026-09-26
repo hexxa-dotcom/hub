@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { getTenantContext } from '@/lib/server/tenant';
 import { getInformeDeRendimentos } from '@/lib/server/informe-rendimentos';
-import { Info, ArrowLeft } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { PrintButton } from './PrintButton';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
@@ -33,38 +31,29 @@ export default async function InformeRendimentosPage({
   const semCpf = informe.socios.filter((s) => s.lancamentos.length > 0 && !s.socio.cpf);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-16 pb-10 animate-fade-up">
+    <div className="mx-auto max-w-3xl space-y-16 pb-10">
       <SectionHero
-        subtitulo="Lucros distribuídos e rendimentos dos sócios no ano"
-        title="Lucros e Rendimentos"
-        infoTitle="Sobre Lucros e Rendimentos"
-        infoDescription={`Lucros distribuídos aos sócios em ${informe.ano}. O documento que o sócio usa na sua declaração de IRPF.`}
+        subtitulo="Lucros distribuídos aos sócios no ano"
+        title={`Informe de rendimentos ${informe.ano}`}
+        infoTitle="Sobre o Informe de Rendimentos"
+        infoDescription={`Os lucros distribuídos aos sócios em ${informe.ano} — o documento que cada sócio usa na declaração de Imposto de Renda.`}
         className="print:hidden"
-        rightSlot={
-          <div className="flex items-center gap-2">
-            <Link 
-              href="/meu-negocio/relatorios" 
-              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card border border-black/5 dark:border-white/5 px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink shadow-(--elev-1) transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Relatórios
-            </Link>
-            {informe.anosDisponiveis.length > 1 && (
-              <FiltrosEmTexto
-                filtros={informe.anosDisponiveis.map((a) => ({
-                  id: String(a),
-                  label: String(a),
-                  href: `/meu-negocio/relatorios/informe-rendimentos?ano=${a}`,
-                }))}
-                ativo={String(informe.ano)}
-              />
-            )}
-            <PrintButton />
-          </div>
-        }
       />
 
-      <div className="rounded-3xl border border-line bg-surface-card shadow-(--elev-1) card-finish p-6 sm:p-8 print:border-0 print:p-0">
-        <header className="border-b border-line pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        {informe.anosDisponiveis.length > 1 ? (
+          <FiltrosEmTexto
+            filtros={informe.anosDisponiveis.map((a) => ({ id: String(a), label: String(a), href: `/meu-negocio/relatorios/informe-rendimentos?ano=${a}` }))}
+            ativo={String(informe.ano)}
+          />
+        ) : (
+          <span />
+        )}
+        <PrintButton />
+      </div>
+
+      <div className="rounded-[28px] border border-white/70 bg-white/75 p-6 ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5 print:border-0 print:bg-transparent print:p-0 print:ring-0">
+        <header className="border-b border-black/5 pb-5 dark:border-white/10">
           <p className="rotulo text-ink-soft">Fonte pagadora</p>
           <p className="text-heading text-ink mt-1">{informe.empresa.razaoSocial}</p>
           <p className="text-footnote text-ink-soft">CNPJ {informe.empresa.cnpj}</p>
@@ -98,7 +87,7 @@ export default async function InformeRendimentosPage({
                         </p>
                       )}
                     </div>
-                    <p className="font-serif text-title2 tabular text-hexxa-green dark:text-hexxa-lime">
+                    <p className="font-serif text-title2 font-bold tabular text-ink">
                       {BRL.format(s.totalDistribuido)}
                     </p>
                   </div>
@@ -149,8 +138,7 @@ export default async function InformeRendimentosPage({
 
         {/* O aviso não é rodapé decorativo: é o que impede o sócio de tratar um
             documento parcial como completo na hora de declarar. */}
-        <div className="mt-8 flex gap-3 rounded-2xl border border-line bg-black/[0.02] p-4 dark:bg-white/[0.03]">
-          <Info className="h-4 w-4 shrink-0 text-ink-soft mt-0.5" />
+        <div className="mt-8 border-t border-black/5 pt-5 dark:border-white/10">
           <div className="text-footnote text-ink-soft space-y-1.5">
             <p>
               <strong className="text-ink">Este documento cobre apenas os lucros distribuídos</strong>,
@@ -163,7 +151,7 @@ export default async function InformeRendimentosPage({
               </p>
             )}
             <p>
-              Os valores vêm dos lançamentos registrados no sistema e conferem com a contabilidade.
+              Os valores vêm das distribuições de lucro registradas no sistema.
             </p>
           </div>
         </div>

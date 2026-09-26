@@ -8,7 +8,7 @@ export function PrintButton() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="tap-target pressable focusable inline-flex items-center gap-2 rounded-full bg-hexxa-green-dark px-4 py-2 text-footnote font-semibold text-hexxa-cream transition-colors hover:bg-hexxa-green"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
     >
       <Printer className="h-3.5 w-3.5" />
       Imprimir

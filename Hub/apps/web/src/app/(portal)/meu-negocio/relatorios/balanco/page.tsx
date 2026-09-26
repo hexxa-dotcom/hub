@@ -1,15 +1,14 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { getBalancoDreData, monthLabel, monthLabelShort } from '@/lib/server/reports';
-import { Info, TrendingDown, Scale, Receipt, Calendar } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { SectionHero } from '@/components/ui/SectionHero';
+import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { PrintButton } from './PrintButton';
 import { ReportToolbar } from '../ReportToolbar';
+import { BRL, pct, th, num, corDoResultado, Painel, Nota, Rodape } from '../_ui';
 
 export const dynamic = 'force-dynamic';
 
-const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const pct = (n: number) => `${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+const seletor = 'cursor-pointer border-b border-black/15 bg-transparent pb-1 text-xs font-semibold capitalize text-ink outline-none dark:border-white/20';
 
 export default async function BalancoInstantaneoPage({
   searchParams,
@@ -23,9 +22,13 @@ export default async function BalancoInstantaneoPage({
     receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido, despesasTotais, margem,
     categorias, monthly, simples, rbt12,
   } = await getBalancoDreData(ctx, params);
+  const maiorCategoria = categorias[0]?.[1] ?? 0;
+  // Com receita quase nula o percentual vira um número sem sentido (−96.000%): melhor não mostrar.
+  const medivel = receita > 0 && Math.abs(margem) <= 1000;
+  const margemTexto = medivel ? pct(margem) : '—';
 
   return (
-    <div className="mx-auto max-w-4xl space-y-16 pb-10 animate-fade-up">
+    <div className="mx-auto max-w-4xl space-y-16 pb-10">
       <style>{`
         @media print {
           .print-scope-balanco #secao-dre { display: none !important; }
@@ -34,252 +37,141 @@ export default async function BalancoInstantaneoPage({
       `}</style>
 
       <SectionHero
-        subtitulo="Resultado e posição patrimonial do período"
-        title={`Balanço e DRE — ${periodoLabel}`}
+        subtitulo="Resultado do período, linha a linha"
+        title={`Balanço e DRE · ${periodoLabel}`}
         infoTitle="Sobre Balanço e DRE"
-        infoDescription="Gerado em tempo real com base nos lançamentos conciliados no sistema."
+        infoDescription="Gerado na hora a partir dos lançamentos do sistema. A receita é só a das notas fiscais; o imposto é estimado pela mesma alíquota da Bússola."
         className="print:hidden"
-        rightSlot={
-          <div className="flex flex-wrap items-center gap-2">
-            <form method="get" className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 py-1">
-                <select name="de" defaultValue={deOrdered} className="bg-transparent px-1 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
-                  {options.map((m) => (
-                    <option key={m} value={m}>{monthLabel(m)}</option>
-                  ))}
-                </select>
-                <span className="text-caption text-ink-soft text-[11px]">até</span>
-                <select name="ate" defaultValue={ateOrdered} className="bg-transparent px-1 py-1 text-xs font-bold text-ink outline-none cursor-pointer">
-                  {options.map((m) => (
-                    <option key={m} value={m}>{monthLabel(m)}</option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="tap-target pressable focusable rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-1) hover:brightness-110 active:scale-95 px-4 py-1.5 text-xs font-bold transition-all cursor-pointer">
-                Filtrar
-              </button>
-            </form>
-            <ReportToolbar
-              reportType="balanco"
-              query={{ de: deOrdered, ate: ateOrdered }}
-              documentTitle={`Balanço e DRE — ${periodoLabel}`}
-            />
-          </div>
-        }
       />
 
-      {/* ===================== Seção: Balanço ===================== */}
-      <section id="secao-balanco" className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden print:shadow-none print:border-none print:bg-transparent">
-        <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
-          <div>
-            <h2 className="flex items-center gap-2 font-serif font-bold text-xl text-hexxa-lime">
-              <Scale className="h-5 w-5" /> Balanço
-            </h2>
-            <p className="text-caption text-hexxa-lime/80 mt-1 print:text-slate-600">Resumo executivo do resultado do período</p>
-          </div>
-          <PrintButton scope="balanco" label="Imprimir Balanço" />
-        </div>
-
-        <div className="p-6 sm:p-8 space-y-8">
-          {!hasData ? (
-            <SemDadosNoHub periodo={periodoLabel} rbt12={rbt12} oficial={simples.fonte === 'APURADO'} />
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
-                <p className="rotulo text-ink-soft">Receita Bruta</p>
-                <p className="font-serif text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(receita)}</p>
-                <p className="text-[11px] text-ink-soft">só notas fiscais{outrasEntradas > 0 ? ` · + ${BRL.format(outrasEntradas)} em outras entradas, sem nota` : ''}</p>
-              </div>
-              <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                <p className="rotulo text-ink-soft">Despesas Totais</p>
-                <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(despesasTotais)}</p>
-              </div>
-              <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                <p className="rotulo text-ink-soft">Resultado ({pct(margem)})</p>
-                <p className={`font-serif text-2xl font-bold tabular ${lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {BRL.format(lucroLiquido)}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="h-px w-full bg-black/5 dark:border-white/10" />
-
-          <section className="space-y-3">
-            <h3 className="font-serif font-bold text-base text-ink">Histórico Mensal</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wide border-b border-black/5 dark:border-white/10">
-                    <th className="py-2 pr-4">Mês</th>
-                    <th className="py-2 px-4 text-right">Receita</th>
-                    <th className="py-2 px-4 text-right">Despesas</th>
-                    <th className="py-2 pl-4 text-right">Resultado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                  {monthly.map((m) => {
-                    const despesasM = m.despesasOperacionais + m.prolabore + m.impostoEstimado;
-                    return (
-                      <tr key={m.month}>
-                        <td className="py-2.5 pr-4 inline-block first-letter:uppercase text-ink font-medium">{monthLabelShort(m.month)}</td>
-                        <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(m.receita)}</td>
-                        <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(despesasM)}</td>
-                        <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${m.lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {BRL.format(m.lucroLiquido)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      {/* ===================== Seção: DRE ===================== */}
-      <section id="secao-dre" className="rounded-3xl border border-black/5 dark:border-white/10 bg-surface-card shadow-(--elev-1) card-finish overflow-hidden print:shadow-none print:border-none print:bg-transparent">
-        <div className="bg-hexxa-forest px-8 py-6 text-hexxa-cream flex items-center justify-between print:bg-slate-100 print:text-black print:border-b">
-          <div>
-            <h2 className="flex items-center gap-2 font-serif font-bold text-xl text-hexxa-lime">
-              <Receipt className="h-5 w-5" /> DRE
-            </h2>
-            <p className="text-caption text-hexxa-lime/80 mt-1 print:text-slate-600">Demonstrativo de Resultado do Exercício, detalhado por linha</p>
-          </div>
-          <PrintButton scope="dre" label="Imprimir DRE" />
-        </div>
-
-        <div className="p-6 sm:p-8 space-y-8">
-          {!hasData ? (
-            <SemDadosNoHub periodo={periodoLabel} rbt12={rbt12} oficial={simples.fonte === 'APURADO'} />
-          ) : (
-            <>
-              <div className="space-y-2">
-                <table className="w-full text-sm">
-                  <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                    <tr>
-                      <td className="py-3.5 font-bold text-ink">Receita Bruta <span className="font-normal text-ink-soft">(notas fiscais)</span></td>
-                      <td className="py-3.5 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(receita)}</td>
-                    </tr>
-                    {outrasEntradas > 0 && (
-                      <tr>
-                        <td className="py-3 text-xs text-ink-soft">Outras entradas, sem nota — não são faturamento nem entram no resultado</td>
-                        <td className="py-3 text-right text-xs font-serif font-semibold text-ink-soft tabular">{BRL.format(outrasEntradas)}</td>
-                      </tr>
-                    )}
-                    <tr>
-                      <td className="py-3 text-xs text-ink-soft">(−) Despesas operacionais</td>
-                      <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(despesasOperacionais)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-3 text-xs text-ink-soft">(−) Pró-labore dos sócios</td>
-                      <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(prolabore)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-3 text-xs text-ink-soft">
-                        (−) Imposto {simples.fonte === 'APURADO' ? 'pela alíquota apurada' : 'estimado'} ({pct(receita > 0 ? (impostoEstimado / receita) * 100 : 0)} sobre a receita · Anexo {simples.anexo})
-                      </td>
-                      <td className="py-3 text-right text-xs font-serif font-semibold text-ink tabular">− {BRL.format(impostoEstimado)}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-4 font-serif font-bold text-base text-ink">= Lucro Líquido do Período</td>
-                      <td className={`py-4 text-right font-serif text-2xl font-bold tabular ${lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {BRL.format(lucroLiquido)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p className="flex items-start gap-1.5 text-caption text-ink-soft pt-2">
-                  <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  Imposto é uma estimativa pela mesma alíquota da Bússola Tributária — o valor exato da guia (DAS) é apurado pelo PGDAS oficial da Receita.
-                </p>
-              </div>
-
-              <div className="h-px w-full bg-black/5 dark:border-white/10" />
-
-              <div className="grid gap-6 sm:grid-cols-3">
-                <div className="space-y-1 border-l-2 border-hexxa-forest dark:border-hexxa-lime pl-4">
-                  <p className="rotulo text-ink-soft">Margem Líquida</p>
-                  <p className={`font-serif text-2xl font-bold tabular ${margem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{pct(margem)}</p>
-                </div>
-                <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                  <p className="rotulo text-ink-soft">Fator R Atual</p>
-                  <p className="font-serif text-2xl font-bold text-ink tabular">{pct(simples.fatorR * 100)}</p>
-                  <p className={`text-[11px] font-bold ${simples.fatorRFavorable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {/* Com apuração, o anexo é o apurado — que pode ser I, II ou IV,
-                        onde o Fator R nem entra. Sem ela, a conta só conhece III e V. */}
-                    {simples.fonte === 'APURADO'
-                      ? `Anexo ${simples.anexo} (apurado)`
-                      : simples.fatorRFavorable ? 'Anexo III (favorável)' : 'Anexo V'}
-                  </p>
-                </div>
-                <div className="space-y-1 border-l-2 border-black/10 dark:border-white/10 pl-4">
-                  <p className="rotulo text-ink-soft">RBT12 (12 meses)</p>
-                  <p className="font-serif text-2xl font-bold text-ink tabular">{BRL.format(rbt12)}</p>
-                </div>
-              </div>
-
-              {categorias.length > 0 && (
-                <>
-                  <div className="h-px w-full bg-black/5 dark:bg-white/10" />
-                  <section className="space-y-3">
-                    <h3 className="flex items-center gap-2 font-serif font-bold text-base text-ink">
-                      <TrendingDown className="h-4 w-4 text-red-600" /> Despesas por Categoria
-                    </h3>
-                    <ul className="space-y-2">
-                      {categorias.map(([label, value]) => (
-                        <li key={label} className="flex items-center justify-between text-sm py-1 border-b border-black/5 dark:border-white/10 last:border-0">
-                          <span className="text-ink-soft">{label}</span>
-                          <span className="font-serif font-bold text-ink tabular">{BRL.format(value)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                </>
-              )}
-            </>
-          )}
-
-          <div className="h-px w-full bg-black/5 dark:bg-white/10" />
-
-          <section className="space-y-3">
-            <h3 className="font-serif font-bold text-base text-ink">Histórico Mensal do DRE</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-caption font-bold text-ink-soft uppercase tracking-wide border-b border-black/5 dark:border-white/10">
-                    <th className="py-2 pr-4">Mês</th>
-                    <th className="py-2 px-4 text-right">Receita</th>
-                    <th className="py-2 px-4 text-right">Despesas Op.</th>
-                    <th className="py-2 px-4 text-right">Pró-labore</th>
-                    <th className="py-2 px-4 text-right">Imposto</th>
-                    <th className="py-2 pl-4 text-right">Lucro Líquido</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                  {monthly.map((m) => (
-                    <tr key={m.month}>
-                      <td className="py-2.5 pr-4 inline-block first-letter:uppercase text-ink font-medium">{monthLabelShort(m.month)}</td>
-                      <td className="py-2.5 px-4 text-right font-serif font-bold text-emerald-600 dark:text-emerald-400 tabular">{BRL.format(m.receita)}</td>
-                      <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(m.despesasOperacionais)}</td>
-                      <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(m.prolabore)}</td>
-                      <td className="py-2.5 px-4 text-right font-serif text-ink-soft tabular">{BRL.format(m.impostoEstimado)}</td>
-                      <td className={`py-2.5 pl-4 text-right font-serif font-bold tabular ${m.lucroLiquido >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {BRL.format(m.lucroLiquido)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <div className="text-center text-xs text-ink-soft print:pt-4">
-        <p>Hexx Digital — relatórios gerados automaticamente em {new Date().toLocaleString('pt-BR')}, a partir dos dados já lançados no sistema.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <form method="get" className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
+          <span className="rotulo">Período</span>
+          <select name="de" defaultValue={deOrdered} className={seletor}>
+            {options.map((m) => (
+              <option key={m} value={m}>{monthLabel(m)}</option>
+            ))}
+          </select>
+          <span>até</span>
+          <select name="ate" defaultValue={ateOrdered} className={seletor}>
+            {options.map((m) => (
+              <option key={m} value={m}>{monthLabel(m)}</option>
+            ))}
+          </select>
+          <button type="submit" className="font-semibold text-ink underline-offset-4 hover:underline">Aplicar</button>
+        </form>
+        <ReportToolbar reportType="balanco" query={{ de: deOrdered, ate: ateOrdered }} documentTitle={`Balanço e DRE — ${periodoLabel}`} />
       </div>
+
+      {!hasData ? (
+        <SemDadosNoHub periodo={periodoLabel} rbt12={rbt12} oficial={simples.fonte === 'APURADO'} />
+      ) : (
+        <GradeDeResumo colunas={3}>
+          <CardResumo destaque rotulo="Receita bruta" valor={BRL.format(receita)} nota={outrasEntradas > 0 ? `Só notas · + ${BRL.format(outrasEntradas)} sem nota, fora do resultado` : 'Só notas fiscais'} />
+          <CardResumo rotulo="Despesas, pró-labore e imposto" valor={BRL.format(despesasTotais)} nota={medivel ? `${pct((despesasTotais / receita) * 100)} da receita` : 'Receita pequena demais para comparar'} />
+          <CardResumo rotulo="Resultado" valor={BRL.format(lucroLiquido)} nota={medivel ? `Margem de ${margemTexto}` : 'Margem: —'} tom={lucroLiquido < 0 ? 'alerta' : 'padrao'} />
+        </GradeDeResumo>
+      )}
+
+      <div id="secao-dre" className="space-y-16">
+        {hasData && (
+          <Painel titulo="DRE — demonstrativo de resultado" acao={<PrintButton scope="dre" label="Imprimir DRE" />}>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                <tr>
+                  <td className="py-3.5 font-semibold text-ink">Receita bruta <span className="font-normal text-ink-soft">(notas fiscais)</span></td>
+                  <td className={`py-3.5 text-right ${num} font-bold text-ink`}>{BRL.format(receita)}</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pl-4 text-ink-soft">(−) Imposto {simples.fonte === 'APURADO' ? 'pela alíquota apurada' : 'estimado'} · {pct(receita > 0 ? (impostoEstimado / receita) * 100 : 0)} · Anexo {simples.anexo}</td>
+                  <td className={`py-3 text-right ${num} text-ink`}>− {BRL.format(impostoEstimado)}</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pl-4 text-ink-soft">(−) Despesas operacionais</td>
+                  <td className={`py-3 text-right ${num} text-ink`}>− {BRL.format(despesasOperacionais)}</td>
+                </tr>
+                <tr>
+                  <td className="py-3 pl-4 text-ink-soft">(−) Pró-labore dos sócios</td>
+                  <td className={`py-3 text-right ${num} text-ink`}>− {BRL.format(prolabore)}</td>
+                </tr>
+                <tr>
+                  <td className="py-4 font-semibold text-ink">= Resultado do período</td>
+                  <td className={`py-4 text-right ${num} text-xl font-bold ${corDoResultado(lucroLiquido)}`}>{BRL.format(lucroLiquido)}</td>
+                </tr>
+                {outrasEntradas > 0 && (
+                  <tr>
+                    <td className="py-3 text-xs text-ink-soft">Outras entradas, sem nota — não são faturamento nem entram no resultado</td>
+                    <td className={`py-3 text-right ${num} text-xs text-ink-soft`}>{BRL.format(outrasEntradas)}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </Painel>
+        )}
+
+        {hasData && (
+          <GradeDeResumo colunas={3}>
+            <CardResumo rotulo="Margem líquida" valor={margemTexto} nota={medivel ? 'Resultado sobre a receita' : 'Receita pequena demais para medir'} />
+            <CardResumo
+              rotulo="Fator R"
+              valor={pct(simples.fatorR * 100)}
+              nota={simples.fonte === 'APURADO' ? `Anexo ${simples.anexo} (apurado)` : simples.fatorRFavorable ? 'Anexo III — favorável' : 'Anexo V'}
+            />
+            <CardResumo rotulo="Faturamento em 12 meses" valor={BRL.format(rbt12)} nota="RBT12, base do Simples" />
+          </GradeDeResumo>
+        )}
+
+        {categorias.length > 0 && (
+          <Painel titulo="Para onde foi o dinheiro">
+            <ul className="divide-y divide-black/5 dark:divide-white/10">
+              {categorias.map(([label, value]) => (
+                <li key={label} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-ink">{label}</span>
+                  <span className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-black/5 sm:inline-block dark:bg-white/10">
+                    <span className="block h-full rounded-full bg-rose-500/70" style={{ width: `${maiorCategoria ? (value / maiorCategoria) * 100 : 0}%` }} />
+                  </span>
+                  <span className={`w-32 text-right ${num} font-bold text-ink`}>{BRL.format(value)}</span>
+                </li>
+              ))}
+            </ul>
+          </Painel>
+        )}
+      </div>
+
+      <div id="secao-balanco">
+        <Painel titulo="Mês a mês" acao={<PrintButton scope="balanco" label="Imprimir resumo" />}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-black/5 text-left dark:border-white/10">
+                <th className={th}>Mês</th>
+                <th className={`${th} text-right`}>Receita</th>
+                <th className={`${th} text-right`}>Imposto</th>
+                <th className={`${th} text-right`}>Despesas</th>
+                <th className={`${th} text-right`}>Pró-labore</th>
+                <th className={`${th} text-right`}>Resultado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/5 dark:divide-white/10">
+              {monthly.map((m) => (
+                <tr key={m.month}>
+                  <td className="py-2.5 capitalize text-ink">{monthLabelShort(m.month)}</td>
+                  <td className={`py-2.5 text-right ${num} font-bold text-ink`}>{BRL.format(m.receita)}</td>
+                  <td className={`py-2.5 text-right ${num} text-ink-soft`}>{BRL.format(m.impostoEstimado)}</td>
+                  <td className={`py-2.5 text-right ${num} text-ink-soft`}>{BRL.format(m.despesasOperacionais)}</td>
+                  <td className={`py-2.5 text-right ${num} text-ink-soft`}>{BRL.format(m.prolabore)}</td>
+                  <td className={`py-2.5 text-right ${num} font-bold ${corDoResultado(m.lucroLiquido)}`}>{BRL.format(m.lucroLiquido)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Painel>
+      </div>
+
+      <Nota>
+        O imposto é uma estimativa pela mesma alíquota da Bússola Tributária; o valor exato da guia (DAS) é o apurado no PGDAS da Receita. Este é
+        um relatório gerencial, feito com os lançamentos do sistema — o balanço oficial é o da contabilidade.
+      </Nota>
+      <Rodape>Hexx Digital · gerado em {new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</Rodape>
     </div>
   );
 }
@@ -295,13 +187,13 @@ export default async function BalancoInstantaneoPage({
 function SemDadosNoHub({ periodo, rbt12, oficial }: { periodo: string; rbt12: number; oficial: boolean }) {
   if (!oficial) {
     return (
-      <p className="text-center text-sm text-ink-soft py-12">
+      <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
         Nenhum lançamento encontrado para {periodo}.
       </p>
     );
   }
   return (
-    <div className="mx-auto max-w-xl py-10 text-center">
+    <div className="rounded-[28px] border border-dashed border-black/10 px-6 py-10 text-center dark:border-white/10">
       <p className="text-sm font-bold text-ink">O faturamento desta empresa está no sistema contábil.</p>
       <p className="mt-2 text-xs leading-relaxed text-ink-soft">
         As notas saem pela prefeitura e vão direto para a contabilidade — por isso não aparecem como
