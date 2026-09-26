@@ -25,19 +25,28 @@ export interface ClienteDaLista {
   aReceber: number;
   contratosAtivos: number;
   ultimaNota: string | null;
+  /** Meses com nota entre os 4 últimos (contando o atual) e entre os 12 últimos. */
+  mesesComNota4: number;
+  mesesComNota12: number;
+  /** Marcado à mão; null = o sistema identifica. */
+  recorrenciaManual: 'RECORRENTE' | 'AVULSO' | null;
 }
 
 export async function listarClientes(ctx: TenantContext): Promise<ClienteDaLista[]> {
   const linhas = (await withTenant(ctx.companyId, (tx) =>
     tx.execute(sql`
       WITH cli AS (
-        SELECT c.id, c.name, c.document, c.type, c.email, c.phone, ${digitos} AS doc
+        SELECT c.id, c.name, c.document, c.type, c.email, c.phone, c.recorrencia, ${digitos} AS doc
           FROM customer c WHERE c.company_id = ${ctx.companyId}
       ),
       notas AS (
         SELECT regexp_replace(tomador_documento, '[^0-9]', '', 'g') AS doc,
                sum(coalesce(valor_servico, valor_liquido)) FILTER (WHERE data_emissao >= now() - interval '12 months') AS total,
-               max(data_emissao) AS ultima
+               max(data_emissao) AS ultima,
+               count(DISTINCT date_trunc('month', data_emissao AT TIME ZONE 'America/Sao_Paulo'))
+                 FILTER (WHERE data_emissao >= date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '3 months') AS meses4,
+               count(DISTINCT date_trunc('month', data_emissao AT TIME ZONE 'America/Sao_Paulo'))
+                 FILTER (WHERE data_emissao >= date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '11 months') AS meses12
           FROM nfse_distribuicao_doc
          WHERE company_id = ${ctx.companyId} AND tipo_documento = 'NFSE' AND direction = 'EMITIDA' AND NOT cancelado
          GROUP BY 1
@@ -63,15 +72,16 @@ export async function listarClientes(ctx: TenantContext): Promise<ClienteDaLista
          WHERE fe.company_id = ${ctx.companyId} AND fe.type = 'RECEIVABLE' AND fe.status IN ('PENDING', 'OVERDUE')
          GROUP BY 1
       )
-      SELECT cli.id, cli.name, cli.document, cli.type, cli.email, cli.phone,
-             coalesce(n.total, 0) AS faturado, coalesce(r.total, 0) AS receber, coalesce(k.n, 0) AS contratos, n.ultima
+      SELECT cli.id, cli.name, cli.document, cli.type, cli.email, cli.phone, cli.recorrencia,
+             coalesce(n.total, 0) AS faturado, coalesce(r.total, 0) AS receber, coalesce(k.n, 0) AS contratos, n.ultima,
+             coalesce(n.meses4, 0) AS meses4, coalesce(n.meses12, 0) AS meses12
         FROM cli
         LEFT JOIN notas n ON n.doc = cli.doc AND cli.doc <> ''
         LEFT JOIN receber r ON r.doc = cli.doc AND cli.doc <> ''
         LEFT JOIN contratos k ON k.doc = cli.doc AND cli.doc <> ''
        ORDER BY coalesce(n.total, 0) DESC, cli.name
     `),
-  )) as unknown as { id: string; name: string; document: string | null; type: string; email: string | null; phone: string | null; faturado: string; receber: string; contratos: string; ultima: string | null }[];
+  )) as unknown as { id: string; name: string; document: string | null; type: string; email: string | null; phone: string | null; faturado: string; receber: string; contratos: string; ultima: string | null; recorrencia: 'RECORRENTE' | 'AVULSO' | null; meses4: string; meses12: string }[];
 
   return linhas.map((l) => ({
     id: l.id,
@@ -84,6 +94,9 @@ export async function listarClientes(ctx: TenantContext): Promise<ClienteDaLista
     aReceber: Number(l.receber),
     contratosAtivos: Number(l.contratos),
     ultimaNota: l.ultima ? new Date(l.ultima).toISOString() : null,
+    mesesComNota4: Number(l.meses4),
+    mesesComNota12: Number(l.meses12),
+    recorrenciaManual: l.recorrencia,
   }));
 }
 

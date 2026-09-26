@@ -10,9 +10,10 @@ import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import type { ClienteDaLista } from '@/lib/server/clientes';
 import { consultarParteAction } from '../meu-negocio/contratos/contratos-actions';
-import { salvarClienteAction, type TarefaRow } from './actions';
+import { salvarClienteAction, marcarRecorrenciaAction, type TarefaRow } from './actions';
 import { TarefasTab } from './TarefasTab';
 import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
+import { relacaoDoCliente, ROTULO_DA_RELACAO, COR_DA_RELACAO, type Relacao } from '@/lib/relacao-cliente';
 import { ArrowUpRight, ChevronDown, Mail, MessageCircle } from 'lucide-react';
 
 /**
@@ -23,17 +24,8 @@ import { ArrowUpRight, ChevronDown, Mail, MessageCircle } from 'lucide-react';
  * nascem sozinhos das notas emitidas; o "Novo cliente" preenche pela Receita.
  */
 
-type Filtro = 'TODOS' | 'ATIVOS' | 'INATIVOS' | 'CONTRATO' | 'RECEBER';
+type Filtro = 'TODOS' | 'RECORRENTE' | 'AVULSO' | 'INATIVO' | 'RECEBER';
 
-/**
- * Cliente ativo: teve nota nos últimos 6 meses, tem contrato ativo ou tem
- * valor a receber. Sem nada disso, está inativo. Regra automática — não há
- * status manual para esquecer de atualizar.
- */
-const SEIS_MESES = 183 * 86400000;
-export function clienteAtivo(c: ClienteDaLista) {
-  return c.contratosAtivos > 0 || c.aReceber > 0 || (!!c.ultimaNota && Date.now() - Date.parse(c.ultimaNota) <= SEIS_MESES);
-}
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const campo =
   'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
@@ -60,9 +52,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
     return clientes.filter(
       (c) =>
         (filtro === 'TODOS' ||
-          (filtro === 'ATIVOS' && clienteAtivo(c)) ||
-          (filtro === 'INATIVOS' && !clienteAtivo(c)) ||
-          (filtro === 'CONTRATO' && c.contratosAtivos > 0) ||
+          (filtro !== 'RECEBER' && relacaoDoCliente(c) === filtro) ||
           (filtro === 'RECEBER' && c.aReceber > 0)) &&
         (!q || (c.nome.toLowerCase().includes(q) || nomeDeExibicao(c.nome).toLowerCase().includes(q)) || (soDigitos.length >= 3 && (c.documento ?? '').includes(soDigitos))),
     );
@@ -71,6 +61,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
   const faturado = clientes.reduce((s, c) => s + c.faturado12m, 0);
   const receber = clientes.reduce((s, c) => s + c.aReceber, 0);
   const comContrato = clientes.filter((c) => c.contratosAtivos > 0).length;
+  const porRelacao = clientes.reduce((m, c) => ({ ...m, [relacaoDoCliente(c)]: m[relacaoDoCliente(c)] + 1 }), { RECORRENTE: 0, AVULSO: 0, INATIVO: 0 } as Record<Relacao, number>);
 
   return (
     <div className="space-y-10">
@@ -100,9 +91,9 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
       ) : (
         <>
           <GradeDeResumo colunas={3}>
-            <CardResumo destaque rotulo="Faturado em 12 meses" valor={BRL.format(faturado)} nota={`${clientes.filter(clienteAtivo).length} ${clientes.filter(clienteAtivo).length === 1 ? 'ativo' : 'ativos'} de ${clientes.length} · só notas fiscais`} />
+            <CardResumo destaque rotulo="Faturado em 12 meses" valor={BRL.format(faturado)} nota={`${porRelacao.RECORRENTE} ${porRelacao.RECORRENTE === 1 ? 'recorrente' : 'recorrentes'} · ${porRelacao.AVULSO} ${porRelacao.AVULSO === 1 ? 'avulso' : 'avulsos'} · só notas fiscais`} />
             <CardResumo rotulo="A receber em aberto" valor={BRL.format(receber)} nota="Parcelas de notas e contratos" onClick={() => setFiltro('RECEBER')} />
-            <CardResumo rotulo="Com contrato ativo" valor={comContrato} nota="Clientes com contrato de entrada" onClick={() => setFiltro('CONTRATO')} />
+            <CardResumo rotulo="Clientes recorrentes" valor={porRelacao.RECORRENTE} nota={comContrato ? `${comContrato} com contrato ativo` : 'Nota em 3 dos últimos 4 meses'} onClick={() => setFiltro('RECORRENTE')} />
           </GradeDeResumo>
 
           <section className="space-y-5">
@@ -112,9 +103,9 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
                 onChange={setFiltro}
                 filtros={[
                   { id: 'TODOS', label: 'Todos', count: clientes.length },
-                  { id: 'ATIVOS', label: 'Ativos', count: clientes.filter(clienteAtivo).length },
-                  { id: 'INATIVOS', label: 'Inativos', count: clientes.filter((c) => !clienteAtivo(c)).length },
-                  { id: 'CONTRATO', label: 'Com contrato', count: comContrato },
+                  { id: 'RECORRENTE', label: 'Recorrentes', count: porRelacao.RECORRENTE },
+                  { id: 'AVULSO', label: 'Avulsos', count: porRelacao.AVULSO },
+                  { id: 'INATIVO', label: 'Inativos', count: porRelacao.INATIVO },
                   { id: 'RECEBER', label: 'Com valor a receber', count: clientes.filter((c) => c.aReceber > 0).length },
                 ]}
               />
@@ -251,7 +242,7 @@ export function FormularioDeCliente({
  * faturou em 12 meses, quanto tem a receber e a última nota. O primeiro
  * clique abre os detalhes ali mesmo; "Abrir ficha" leva à ficha completa.
  */
-const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_6rem_8rem_8rem_7rem_1rem]';
+const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_8rem_7rem_1rem]';
 
 function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
   const [aberto, setAberto] = useState<string | null>(null);
@@ -259,7 +250,7 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
     <div className="overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className={`${colunas} border-b border-black/[0.08] px-6 py-3 dark:border-white/[0.12]`}>
         <span className="rotulo text-ink-soft">Cliente</span>
-        <span className="rotulo hidden text-ink-soft sm:block">Situação</span>
+        <span className="rotulo hidden text-ink-soft sm:block">Relação</span>
         <span className="rotulo text-right text-ink-soft sm:block">Faturado 12m</span>
         <span className="rotulo hidden text-right text-ink-soft sm:block">A receber</span>
         <span className="rotulo hidden text-right text-ink-soft sm:block">Última nota</span>
@@ -269,7 +260,8 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
         {clientes.map((c) => {
           const nome = nomeDeExibicao(c.nome);
           const estaAberto = aberto === c.id;
-          const ativo = clienteAtivo(c);
+          const relacao = relacaoDoCliente(c);
+          const ativo = relacao !== 'INATIVO';
           const whats = c.telefone?.replace(/\D/g, '');
           return (
             <li key={c.id}>
@@ -292,8 +284,8 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
                   </span>
                 </span>
                 <span className={`hidden items-center gap-1.5 text-xs sm:inline-flex ${ativo ? 'text-ink' : 'text-ink-soft'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${ativo ? 'bg-emerald-500' : 'bg-black/20 dark:bg-white/25'}`} />
-                  {ativo ? 'Ativo' : 'Inativo'}
+                  <span className={`h-1.5 w-1.5 rounded-full ${COR_DA_RELACAO[relacao]}`} />
+                  {ROTULO_DA_RELACAO[relacao]}
                 </span>
                 <span className={`text-right font-serif text-sm tabular ${c.faturado12m > 0 ? 'font-bold text-ink' : 'text-ink-soft/60'}`}>
                   {c.faturado12m > 0 ? BRL.format(c.faturado12m) : '—'}
@@ -327,6 +319,12 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
                       <dd className="mt-0.5 text-ink">{c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR') : 'Nenhuma'}</dd>
                     </div>
                     <div className="col-span-2 sm:col-span-3">
+                      <dt className="rotulo text-ink-soft">Relação</dt>
+                      <dd className="mt-1 text-ink">
+                        <MarcaDeRecorrencia cliente={c} />
+                      </dd>
+                    </div>
+                    <div className="col-span-2 sm:col-span-3">
                       <dt className="rotulo text-ink-soft">Contato</dt>
                       <dd className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-ink">
                         {c.email ? (
@@ -358,5 +356,62 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
         })}
       </ul>
     </div>
+  );
+}
+
+/**
+ * A relação do cliente e como ela foi definida: pelo sistema (e o porquê) ou
+ * à mão. Trocar é um clique: automático, recorrente ou avulso.
+ */
+export function MarcaDeRecorrencia({ cliente }: { cliente: ClienteDaLista }) {
+  const router = useRouter();
+  const [salvando, setSalvando] = useState(false);
+  const relacao = relacaoDoCliente(cliente);
+  const porque =
+    relacao === 'INATIVO'
+      ? 'Nenhuma nota nos últimos 6 meses'
+      : cliente.recorrenciaManual
+        ? 'Marcado à mão'
+        : cliente.contratosAtivos > 0
+          ? 'Tem contrato ativo'
+          : `Nota em ${cliente.mesesComNota4} dos últimos 4 meses`;
+
+  async function marcar(m: 'RECORRENTE' | 'AVULSO' | null) {
+    setSalvando(true);
+    try {
+      await marcarRecorrenciaAction(cliente.id, m);
+      router.refresh();
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  const opcao = (m: 'RECORRENTE' | 'AVULSO' | null, rotulo: string) => (
+    <button
+      type="button"
+      disabled={salvando}
+      onClick={() => marcar(m)}
+      className={cliente.recorrenciaManual === m ? 'font-semibold text-ink underline underline-offset-4' : 'text-ink-soft hover:text-ink'}
+    >
+      {rotulo}
+    </button>
+  );
+
+  return (
+    <span className="flex flex-col gap-2">
+      <span className="inline-flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 rounded-full ${COR_DA_RELACAO[relacao]}`} />
+        <span className="font-medium">{ROTULO_DA_RELACAO[relacao]}</span>
+        <span className="text-xs text-ink-soft">
+          · {porque} · nota em {cliente.mesesComNota12} dos últimos 12 meses
+        </span>
+      </span>
+      <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span className="text-ink-soft">Classificar como:</span>
+        {opcao(null, 'Automático')}
+        {opcao('RECORRENTE', 'Recorrente')}
+        {opcao('AVULSO', 'Avulso')}
+      </span>
+    </span>
   );
 }

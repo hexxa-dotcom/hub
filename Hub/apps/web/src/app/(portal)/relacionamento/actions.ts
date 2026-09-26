@@ -193,3 +193,15 @@ export async function salvarClienteAction(input: {
     return { ok: true, message: 'Cliente cadastrado.', id: novo!.id };
   });
 }
+
+/** Marca o cliente como recorrente ou avulso à mão; null devolve à identificação automática. */
+export async function marcarRecorrenciaAction(clienteId: string, marca: 'RECORRENTE' | 'AVULSO' | null) {
+  const ctx = await getTenantContext();
+  if (marca !== null && marca !== 'RECORRENTE' && marca !== 'AVULSO') return { ok: false, message: 'Opção inválida.' };
+  await withTenant(ctx.companyId, (tx) =>
+    tx.execute(sql`UPDATE customer SET recorrencia = ${marca} WHERE id = ${clienteId}::uuid AND company_id = ${ctx.companyId}`),
+  );
+  revalidatePath('/relacionamento');
+  revalidatePath(`/relacionamento/${clienteId}`);
+  return { ok: true, message: marca ? 'Marcado.' : 'Voltou para a identificação automática.' };
+}
