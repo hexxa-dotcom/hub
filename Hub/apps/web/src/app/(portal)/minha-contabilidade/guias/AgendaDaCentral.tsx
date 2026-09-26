@@ -75,7 +75,7 @@ export function AgendaDaCentral({ itens, mes, rotuloDoMes }: { itens: ItemDaAgen
     <Card level={1} className="card-finish space-y-5 p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-serif text-xl font-bold text-ink">Agenda de {rotuloDoMes}</h2>
+          <h2 className="text-lg font-light uppercase tracking-[0.05em] text-ink">Agenda de {rotuloDoMes}</h2>
           <p className="text-xs text-ink-soft sm:text-sm">
             {itens.length === 0
               ? 'Nada com data neste mês.'

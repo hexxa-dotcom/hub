@@ -68,7 +68,7 @@ export function DfeNacionalCard() {
             <Landmark className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
           </div>
           <div>
-            <h3 className="font-serif font-bold text-sm text-ink">Notas no Emissor Nacional</h3>
+            <h3 className="text-sm font-semibold text-ink">Notas no Emissor Nacional</h3>
             <p className="text-xs text-ink-soft">
               Valores reais direto do governo — inclui notas emitidas por qualquer sistema (ex: prefeitura).
             </p>

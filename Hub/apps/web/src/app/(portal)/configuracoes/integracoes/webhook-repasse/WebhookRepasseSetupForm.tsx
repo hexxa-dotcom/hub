@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState } from 'react';
 import { Link2, CheckCircle2, Loader2, Copy, AlertTriangle, RotateCw } from 'lucide-react';
 import { gerarWebhookSecretAction, desativarWebhookAction } from './actions';
@@ -14,6 +15,7 @@ const boxClass =
   'rounded-2xl border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-inset) px-4 py-2.5 text-xs font-mono text-ink break-all';
 
 export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepasseSetupFormProps) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const [loading, setLoading] = useState(false);
   const [freshSecret, setFreshSecret] = useState<string | null>(null);
   const [connected, setConnected] = useState(isConnected);
@@ -26,7 +28,7 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
       setFreshSecret(secret);
       setConnected(true);
     } catch {
-      alert('Erro ao gerar o segredo do webhook.');
+      avisar('Não foi possível gerar o segredo do webhook.', false);
     } finally {
       setLoading(false);
     }
@@ -50,8 +52,9 @@ export function WebhookRepasseSetupForm({ isConnected, webhookUrl }: WebhookRepa
 
   return (
     <Card level={1} className="p-6 sm:p-8 flex flex-col h-full justify-between">
+      {avisoEl}
       <div className="space-y-5">
-        <h2 className="font-serif font-bold text-base text-ink">Conexão do Webhook</h2>
+        <h2 className="rotulo text-ink-soft">Conexão do Webhook</h2>
 
         {connected && (
           <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl shadow-(--elev-1)">

@@ -302,7 +302,7 @@ export function CompanyLogoBadge({
                 <span className="grid h-8 w-8 place-items-center rounded-xl bg-hexxa-forest/10 dark:bg-hexxa-lime/15 text-hexxa-forest dark:text-hexxa-lime">
                   <Camera className="h-4 w-4" />
                 </span>
-                <h3 className="font-serif font-bold text-base text-ink">Logotipo da Empresa</h3>
+                <h3 className="rotulo text-ink-soft">Logotipo da Empresa</h3>
               </div>
               <button
                 type="button"
@@ -532,7 +532,7 @@ export function PartnerAvatarBadge({
                   <User className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-ink">Foto do Perfil</h3>
+                  <h3 className="rotulo text-ink-soft">Foto do Perfil</h3>
                   <p className="text-xs text-ink-soft">{partnerName}</p>
                 </div>
               </div>

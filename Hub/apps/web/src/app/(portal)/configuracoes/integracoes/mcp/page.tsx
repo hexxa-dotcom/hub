@@ -38,7 +38,7 @@ export default async function McpSetupPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           <Card level={1} className="p-6 sm:p-8 space-y-4">
-            <h2 className="font-serif font-bold text-base text-ink">Assistente de IA (MCP) — só leitura</h2>
+            <h2 className="rotulo text-ink-soft">Assistente de IA (MCP) — só leitura</h2>
             <div className="mt-3 space-y-4 text-sm">
               <ol className="relative border-l border-black/10 dark:border-white/10 ml-3 space-y-6">
                 <li className="pl-8">
@@ -76,7 +76,7 @@ export default async function McpSetupPage() {
           </Card>
 
           <Card level={1} className="p-6 sm:p-8 space-y-4">
-            <h2 className="font-serif font-bold text-base text-ink">API REST — integração externa (leitura e escrita)</h2>
+            <h2 className="rotulo text-ink-soft">API REST — integração externa (leitura e escrita)</h2>
             <div className="space-y-3 text-sm">
               <p className="text-xs text-ink-soft">
                 Para outro sistema (financeiro, ERP, planilha automatizada) lançar ou consultar dados, crie um token{' '}

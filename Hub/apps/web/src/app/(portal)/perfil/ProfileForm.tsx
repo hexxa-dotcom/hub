@@ -111,7 +111,7 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 2MB.');
+      setErrorMsg('A imagem deve ter no máximo 2 MB.');
       return;
     }
 

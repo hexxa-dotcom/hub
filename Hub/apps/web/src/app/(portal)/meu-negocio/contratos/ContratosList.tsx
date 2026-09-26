@@ -56,7 +56,7 @@ export function ContratosList({ initial }: Props) {
     node: (
       <section className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
-          <h2 className="font-serif font-bold text-base text-ink">Contratos Enviados</h2>
+          <h2 className="rotulo text-ink-soft">Contratos Enviados</h2>
           <button
             onClick={refresh}
             disabled={loading}

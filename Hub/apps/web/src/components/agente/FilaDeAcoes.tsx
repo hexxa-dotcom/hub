@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
 import { decidir, decidirTodas } from '@/lib/server/fila-agente';
@@ -440,6 +441,7 @@ export function FilaDeAcoes({
     revisao: { titulo: string; descricao: string; vazio: string };
   };
 }) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const [aprovacao, setAprovacao] = useState(inicial.aprovacao);
   const [revisao, setRevisao] = useState(inicial.revisao);
   const [pendenteAprovacao, startAprovacao] = useTransition();
@@ -460,7 +462,7 @@ export function FilaDeAcoes({
       if (r.ok) {
         setAprovacao([]);
       } else {
-        alert(r.message || 'Erro ao processar ações em lote.');
+        avisar(r.message || 'Não foi possível processar as ações.', false);
       }
     });
   }
@@ -475,17 +477,18 @@ export function FilaDeAcoes({
       if (r.ok) {
         setRevisao([]);
       } else {
-        alert(r.message || 'Erro ao processar revisões em lote.');
+        avisar(r.message || 'Não foi possível processar as revisões.', false);
       }
     });
   }
 
   return (
     <div className="space-y-8">
+      {avisoEl}
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-serif font-bold text-lg text-ink">{titulos.aprovacao.titulo}</h2>
+            <h2 className="rotulo text-ink-soft">{titulos.aprovacao.titulo}</h2>
             <p className="text-xs text-ink-soft mt-0.5">{titulos.aprovacao.descricao}</p>
           </div>
           {aprovacao.length > 1 && (
@@ -518,7 +521,7 @@ export function FilaDeAcoes({
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-serif font-bold text-lg text-ink">{titulos.revisao.titulo}</h2>
+            <h2 className="rotulo text-ink-soft">{titulos.revisao.titulo}</h2>
             <p className="text-xs text-ink-soft mt-0.5">{titulos.revisao.descricao}</p>
           </div>
           {revisao.length > 1 && (

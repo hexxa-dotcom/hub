@@ -253,7 +253,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
   return (
     <div className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="font-serif font-bold text-lg text-ink">Novo Contrato — Gerador Automático</h2>
+        <h2 className="rotulo text-ink-soft">Novo Contrato — Gerador Automático</h2>
         <button onClick={onCancel} className="text-xs font-bold text-ink-soft hover:text-ink">
           Cancelar
         </button>
@@ -298,7 +298,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 2: dados */}
       {step === 2 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-ink mb-2">
+          <h3 className="text-sm font-semibold text-ink mb-2">
             {kind === 'ALUGUEL' ? 'Locatário e Imóvel' : 'Contraparte'}
           </h3>
 
@@ -559,7 +559,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 3: origem do documento */}
       {step === 3 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-ink mb-2">Como este contrato será formalizado?</h3>
+          <h3 className="text-sm font-semibold text-ink mb-2">Como este contrato será formalizado?</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -607,7 +607,7 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
       {/* Passo 4: revisão */}
       {step === 4 && kind && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="font-serif font-bold text-sm text-ink mb-2">Revisão</h3>
+          <h3 className="text-sm font-semibold text-ink mb-2">Revisão</h3>
           <div className="bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 rounded-2xl p-5 text-sm text-ink space-y-2">
             <p><strong>Tipo:</strong> {CONTRACT_KIND_LABEL[kind]}</p>
             <p><strong>Contraparte:</strong> {contraparte.name || '(vazio)'} {contraparte.email ? `— ${contraparte.email}` : ''}</p>

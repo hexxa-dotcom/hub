@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState, useTransition, useActionState } from 'react';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
@@ -143,7 +144,7 @@ function Dashboard({
   const clientesSemNota = customers.filter((c) => c.document && !issuedDocs.has(c.document));
 
   return (
-    <div className="space-y-8 animate-fade-up">
+    <div className="space-y-8">
       {/* Status de Ambiente */}
       {!ready && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 p-4 sm:p-5 text-sm text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-900/40">
@@ -212,7 +213,7 @@ function Dashboard({
         {/* Coluna Esquerda: Notas Recentes */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h3 className="font-serif font-bold text-title2 text-ink">
+            <h3 className="text-lg font-light uppercase tracking-[0.05em] text-ink">
               Histórico • {selectedMonth}
             </h3>
             <span className="text-footnote text-ink-soft">{monthNotes.length} registros</span>
@@ -363,7 +364,7 @@ function Dashboard({
         {/* Coluna Direita: Faturamento Pendente */}
         <div className="space-y-4">
           <div className="px-2">
-            <h3 className="font-serif font-bold text-title2 text-ink">
+            <h3 className="text-lg font-light uppercase tracking-[0.05em] text-ink">
               Pendentes • {selectedMonth}
             </h3>
           </div>
@@ -519,7 +520,7 @@ export function EmitirNota({
   const lbl = 'text-caption font-bold text-ink-soft uppercase tracking-wider ml-1 block';
 
   return (
-    <div className="space-y-6 w-full max-w-4xl animate-fade-up">
+    <div className="space-y-6 w-full max-w-4xl">
       {mode === 'gov' ? (
         <div className="flex items-center gap-2.5 rounded-3xl bg-hexxa-forest/10 border border-hexxa-green/20 p-4 text-xs font-bold text-hexxa-green dark:text-hexxa-lime">
           <ShieldCheck className="h-5 w-5 shrink-0" />
@@ -770,6 +771,7 @@ const TABS: { id: TabKey; label: string }[] = [
 ];
 
 export function HubNotas(props: Props) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const [tab, setTab] = useState<TabKey>('dashboard');
   const [prefillName, setPrefillName] = useState<string | undefined>();
   const [prefillDoc, setPrefillDoc] = useState<string | undefined>();
@@ -786,9 +788,9 @@ export function HubNotas(props: Props) {
       startTransition(async () => {
         const res = await cancelNfseAction(id, protocol);
         if (res.ok) {
-          alert('Nota fiscal cancelada com sucesso!');
+          avisar('Nota cancelada.');
         } else {
-          alert('Erro ao cancelar: ' + res.message);
+          avisar('Não foi possível cancelar: ' + res.message, false);
         }
       });
     }
@@ -796,6 +798,7 @@ export function HubNotas(props: Props) {
 
   return (
     <div className="space-y-6">
+      {avisoEl}
       {/* Tab bar */}
       <div className="flex">
         <SegmentedTabs

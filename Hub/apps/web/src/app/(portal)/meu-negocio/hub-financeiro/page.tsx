@@ -44,7 +44,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ a
     .catch(() => 0);
 
   return (
-    <div className="mx-auto w-full space-y-16 animate-fade-up">
+    <div className="mx-auto w-full space-y-16">
       <HubFinanceiro
         initialTab={initialTab}
         extratoPendentes={extratoPendentes}

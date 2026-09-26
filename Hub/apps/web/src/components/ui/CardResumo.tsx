@@ -94,5 +94,5 @@ export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativ
 /** A fila de cards: até quatro lado a lado, empilhados no celular. */
 export function GradeDeResumo({ children, colunas = 4 }: { children: React.ReactNode; colunas?: 2 | 3 | 4 }) {
   const cols = colunas === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : colunas === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
-  return <div className={`grid grid-cols-1 gap-4 ${cols}`}>{children}</div>;
+  return <div className={`entrada-grade grid grid-cols-1 gap-4 ${cols}`}>{children}</div>;
 }

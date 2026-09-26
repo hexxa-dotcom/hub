@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState } from 'react';
 import { Key, CheckCircle2, Loader2 } from 'lucide-react';
 import { saveAsaasToken } from './actions';
@@ -15,6 +16,7 @@ const field =
 const lbl = 'text-xs font-bold text-ink-soft uppercase tracking-wide flex items-center gap-1.5';
 
 export function AsaasSetupForm({ initialToken, isConnected }: AsaasSetupFormProps) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const [token, setToken] = useState(initialToken);
   const [loading, setLoading] = useState(false);
 
@@ -22,9 +24,9 @@ export function AsaasSetupForm({ initialToken, isConnected }: AsaasSetupFormProp
     setLoading(true);
     try {
       await saveAsaasToken(token);
-      alert('Integração salva com sucesso!');
+      avisar('Integração salva.');
     } catch (err) {
-      alert('Erro ao salvar as credenciais.');
+      avisar('Não foi possível salvar as credenciais.', false);
     } finally {
       setLoading(false);
     }
@@ -32,8 +34,9 @@ export function AsaasSetupForm({ initialToken, isConnected }: AsaasSetupFormProp
 
   return (
     <Card level={1} className="p-6 sm:p-8 flex flex-col h-full justify-between">
+      {avisoEl}
       <div>
-        <h2 className="font-serif font-bold text-base text-ink mb-4">Credenciais do Gateway</h2>
+        <h2 className="rotulo text-ink-soft mb-4">Credenciais do Gateway</h2>
         
         {isConnected && (
           <div className="mb-6 flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl shadow-(--elev-1)">

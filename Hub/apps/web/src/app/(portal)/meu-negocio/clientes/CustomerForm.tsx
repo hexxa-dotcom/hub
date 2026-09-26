@@ -90,7 +90,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
   return (
     <form action={action} className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 space-y-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif font-bold text-lg text-[#231F20] dark:text-[#F5F6F4]">Adicionar Novo Cliente</h2>
+        <h2 className="rotulo text-ink-soft">Adicionar Novo Cliente</h2>
         {onClose && (
           <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
             <X className="h-4 w-4" />
@@ -214,7 +214,7 @@ export function CustomerForm({ onClose, onSuccess }: { onClose?: () => void; onS
         </div>
 
         <div className="md:col-span-2 pt-3 border-t border-black/5 dark:border-white/10">
-          <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Cobrança e Contrato (Opcional)</h3>
+          <h3 className="text-sm font-semibold text-ink">Cobrança e Contrato (Opcional)</h3>
           <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Preencha se desejar criar uma assinatura recorrente no Asaas automaticamente.</p>
         </div>
 

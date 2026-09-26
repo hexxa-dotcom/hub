@@ -105,7 +105,7 @@ export default async function Page() {
    * quem administra: faturamento, pró-labore e o certificado.
    */
   return (
-    <div className="w-full space-y-16 animate-fade-up pb-20">
+    <div className="w-full space-y-16 pb-20">
       <SectionHero
         title="Minha empresa"
         subtitulo="O cartão de visita da sua empresa"

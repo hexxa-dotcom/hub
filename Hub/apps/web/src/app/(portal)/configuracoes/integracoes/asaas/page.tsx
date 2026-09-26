@@ -56,7 +56,7 @@ export default async function AsaasSetupPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card level={1} className="p-6 sm:p-8 space-y-6">
-          <h2 className="font-serif font-bold text-base text-ink">Passo a Passo da Configuração</h2>
+          <h2 className="rotulo text-ink-soft">Passo a Passo da Configuração</h2>
           <p className="text-xs text-ink-soft leading-relaxed">
             Para permitir que o sistema emita PIX e boletos direto para a sua conta, cole a sua Chave de API do Asaas aqui.
           </p>
@@ -66,7 +66,7 @@ export default async function AsaasSetupPage() {
               <span className="absolute -left-[15px] flex h-8 w-8 items-center justify-center rounded-full bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime font-bold shadow-sm ring-4 ring-surface text-xs">
                 1
               </span>
-              <h3 className="font-serif font-bold text-sm text-ink mb-1">Crie sua conta no Asaas</h3>
+              <h3 className="text-sm font-semibold text-ink mb-1">Crie sua conta no Asaas</h3>
               <p className="text-xs text-ink-soft mb-2">
                 Ainda não tem conta? Crie sua conta gratuita para emitir cobranças.
               </p>
@@ -78,7 +78,7 @@ export default async function AsaasSetupPage() {
               <span className="absolute -left-[15px] flex h-8 w-8 items-center justify-center rounded-full bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime font-bold shadow-sm ring-4 ring-surface text-xs">
                 2
               </span>
-              <h3 className="font-serif font-bold text-sm text-ink mb-1">Acesse suas Configurações de API</h3>
+              <h3 className="text-sm font-semibold text-ink mb-1">Acesse suas Configurações de API</h3>
               <p className="text-xs text-ink-soft">
                 No Asaas, vá em <strong>Minha Conta &gt; Integração (API)</strong> e clique em <strong>Gerar Chave de API</strong>.
               </p>
@@ -87,7 +87,7 @@ export default async function AsaasSetupPage() {
               <span className="absolute -left-[15px] flex h-8 w-8 items-center justify-center rounded-full bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime font-bold shadow-sm ring-4 ring-surface text-xs">
                 3
               </span>
-              <h3 className="font-serif font-bold text-sm text-ink mb-1">Cole a chave de API</h3>
+              <h3 className="text-sm font-semibold text-ink mb-1">Cole a chave de API</h3>
               <p className="text-xs text-ink-soft">
                 Copie a chave gerada (Geralmente começa com <code>$aact_</code>) e cole no formulário ao lado.
               </p>
@@ -96,7 +96,7 @@ export default async function AsaasSetupPage() {
               <span className="absolute -left-[15px] flex h-8 w-8 items-center justify-center rounded-full bg-hexxa-forest/15 text-hexxa-forest dark:bg-hexxa-lime/15 dark:text-hexxa-lime font-bold shadow-sm ring-4 ring-surface text-xs">
                 4
               </span>
-              <h3 className="font-serif font-bold text-sm text-ink mb-1">Ative a baixa automática (webhook)</h3>
+              <h3 className="text-sm font-semibold text-ink mb-1">Ative a baixa automática (webhook)</h3>
               <p className="text-xs text-ink-soft mb-2">
                 No Asaas, configure o webhook para <code>PAYMENT_CONFIRMED</code> e <code>PAYMENT_RECEIVED</code>:
               </p>

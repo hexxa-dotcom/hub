@@ -63,7 +63,7 @@ export function OmieSetupForm({
             <Plug className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-serif font-bold text-base text-ink">Chaves de API Omie</h2>
+            <h2 className="rotulo text-ink-soft">Chaves de API Omie</h2>
             <p className="text-xs text-ink-soft">Conexão segura com seu painel Omie / OneFlow.</p>
           </div>
         </div>

@@ -13,7 +13,7 @@ export function CadastroEmValidacao({ empresa, nome }: { empresa: string; nome?:
         <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10">
           <ShieldCheck className="h-6 w-6 text-emerald-700 dark:text-emerald-400" />
         </div>
-        <h1 className="font-serif text-xl font-bold text-[#231F20] dark:text-[#F5F6F4]">
+        <h1 className="text-lg font-light uppercase tracking-[0.05em] text-ink">
           {nome ? `${nome.split(' ')[0]}, seu cadastro está em validação` : 'Seu cadastro está em validação'}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-[#6E6A61] dark:text-[#A8A49C]">

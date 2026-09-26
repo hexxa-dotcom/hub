@@ -33,7 +33,7 @@ export async function PrimeirosPassosCard() {
   return (
     <section className="rounded-3xl border border-[#DFFFAE]/60 bg-[#EFFFD6]/60 p-5 dark:border-[#2F4A3C] dark:bg-[#1E3328]/40 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-serif text-lg font-bold text-[#231F20] dark:text-[#F5F6F4]">
+        <h2 className="rotulo text-ink-soft">
           Faltam {dados.total - dados.concluidos} passos para seu Hub funcionar
         </h2>
         <span className="text-xs font-bold text-[#2F4A3C] dark:text-[#DFFFAE]">

@@ -59,7 +59,7 @@ export default async function Page() {
     <div className="mx-auto w-full space-y-16">
       <SectionHero
         subtitulo="Pró-labore e distribuição de lucros dos sócios"
-        title="Gestão de Sócios"
+        title="Sócios"
         infoTitle="Sobre a Gestão de Sócios"
         infoDescription="Pró-labore estratégico para otimização do Fator R e lançamentos de distribuição de lucros isenta."
       />

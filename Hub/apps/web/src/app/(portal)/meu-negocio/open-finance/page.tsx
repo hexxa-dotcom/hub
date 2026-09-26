@@ -46,7 +46,7 @@ const RECURSOS = [
 
 export default function OpenFinancePage() {
   return (
-    <div className="space-y-16 animate-fade-up">
+    <div className="space-y-16">
       <SectionHero
         subtitulo="Suas contas bancárias conectadas à Hexx"
         title="Open Finance"

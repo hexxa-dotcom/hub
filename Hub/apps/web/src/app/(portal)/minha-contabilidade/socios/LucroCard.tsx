@@ -85,7 +85,7 @@ export function LucroCard() {
         <div>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-hexxa-lime" />
-            <h2 className="font-serif font-bold text-xl text-hexxa-sand">Lucro Disponível para Distribuição</h2>
+            <h2 className="text-lg font-light uppercase tracking-[0.05em] text-hexxa-sand">Lucro Disponível para Distribuição</h2>
           </div>
           <p className="mt-1 text-xs text-hexxa-lime/80 inline-block first-letter:uppercase">{mesAtual}</p>
         </div>

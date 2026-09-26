@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -79,6 +80,7 @@ export function ContratosClient({
   hasProperties: boolean;
   initialRepasses: RepasseRow[];
 }) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('entrada');
   const [contracts, setContracts] = useState<ContractRow[]>(initialContracts);
@@ -219,6 +221,7 @@ export function ContratosClient({
 
   return (
     <div className="space-y-8">
+      {avisoEl}
       {actionMessage && (
         <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs font-bold text-emerald-800 dark:text-emerald-300 animate-in fade-in">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
@@ -303,7 +306,7 @@ export function ContratosClient({
 
           {/* Botão de Adicionar Contrato */}
           <div className="flex items-center justify-between">
-            <h2 className="font-serif font-bold text-base text-ink">
+            <h2 className="rotulo text-ink-soft">
               {(activeTab as string) === 'entrada' ? 'Contratos de Serviços Prestados (Clientes)' : (activeTab as string) === 'saida' ? 'Contratos de Serviços Contratados (Fornecedores)' : 'Contratos de Mútuo Financeiro (Societário)'}
             </h2>
             <button
@@ -319,7 +322,7 @@ export function ContratosClient({
           {showNewContractForm && (
             <form onSubmit={handleCreateContract} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish animate-in fade-in">
               <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
-                <h3 className="font-serif font-bold text-base text-ink">
+                <h3 className="rotulo text-ink-soft">
                   Novo Contrato de {(activeTab as string) === 'entrada' ? 'Entrada (Serviço Prestado)' : (activeTab as string) === 'saida' ? 'Saída (Prestador/Fornecedor)' : 'Mútuo (Empréstimo)'}
                 </h3>
                 <button type="button" onClick={() => setShowNewContractForm(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5">
@@ -415,7 +418,7 @@ export function ContratosClient({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="truncate font-serif font-bold text-base text-ink">{c.title}</h3>
+                      <h3 className="text-sm font-semibold text-ink truncate">{c.title}</h3>
                       <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${STATUS_CLASS[c.status]}`}>
                         {STATUS_LABEL[c.status]}
                       </span>
@@ -492,7 +495,7 @@ export function ContratosClient({
             />
           </GradeDeResumo>
 
-          <h2 className="font-serif font-bold text-base text-ink">Valor a Pagar por Prestador</h2>
+          <h2 className="rotulo text-ink-soft">Valor a Pagar por Prestador</h2>
 
           <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 card-finish overflow-hidden">
             {repasses.length === 0 ? (
@@ -571,7 +574,7 @@ export function ContratosClient({
           ) : (
             <form onSubmit={handleUploadSignature} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
               <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                <h2 className="font-serif font-bold text-base text-ink">Enviar Documento Avulso para Assinatura Eletrônica</h2>
+                <h2 className="rotulo text-ink-soft">Enviar Documento Avulso para Assinatura Eletrônica</h2>
                 <button
                   type="button"
                   onClick={() => setWizardMode('generate')}
@@ -663,7 +666,7 @@ export function ContratosClient({
           {/* Lista de assinaturas enviadas (status via DocuSeal) */}
           {docs.length > 0 && (
             <div className="rounded-3xl bg-surface-card shadow-(--elev-1) border border-black/5 dark:border-white/5 p-6 sm:p-8 space-y-4 card-finish">
-              <h3 className="font-serif font-bold text-base text-ink">Documentos Enviados para Assinatura</h3>
+              <h3 className="rotulo text-ink-soft">Documentos Enviados para Assinatura</h3>
               <div className="divide-y divide-black/5 dark:divide-white/5">
                 {docs.map(d => (
                   <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-3.5">
@@ -702,7 +705,7 @@ export function ContratosClient({
         <section className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 p-6 sm:p-8 animate-in fade-in space-y-4 card-finish">
           <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
             <div>
-              <h2 className="font-serif font-bold text-base text-ink">Construtor Interativo DocuSeal</h2>
+              <h2 className="rotulo text-ink-soft">Construtor Interativo DocuSeal</h2>
               <p className="text-footnote text-ink-soft mt-0.5">Monte modelos de contratos customizados com campos arrastáveis</p>
             </div>
           </div>
@@ -711,7 +714,7 @@ export function ContratosClient({
             <DocusealBuilder
               token={docusealToken}
               onSave={(e: any) => {
-                alert('Modelo de contrato salvo com sucesso!');
+                avisar('Modelo de contrato salvo.');
               }}
             />
           ) : (

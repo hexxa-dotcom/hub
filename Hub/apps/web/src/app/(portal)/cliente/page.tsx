@@ -54,7 +54,7 @@ export default async function ClientePage({
   }).format(now);
 
   return (
-    <div className="relative w-full space-y-8 animate-fade-up">
+    <div className="relative w-full space-y-8">
       {/* Iluminação atmosférica verde e limão sutil sob os cards translúcidos do Dashboard */}
       <div className="pointer-events-none absolute -inset-x-6 -top-10 bottom-0 -z-10 overflow-hidden">
         <div className="absolute top-0 right-1/4 h-[520px] w-[520px] rounded-full bg-[#D4FF00]/16 dark:bg-[#D4FF00]/8 blur-[140px]" />

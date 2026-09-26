@@ -65,7 +65,7 @@ export function ContratoForm({ onCreated }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-3xl bg-surface-card shadow-(--elev-2) border border-black/5 dark:border-white/5 space-y-4 p-6 sm:p-8 card-finish">
-      <h2 className="font-serif font-bold text-base text-ink">Novo Contrato para Assinatura</h2>
+      <h2 className="rotulo text-ink-soft">Novo Contrato para Assinatura</h2>
 
       {/* Nome */}
       <div>

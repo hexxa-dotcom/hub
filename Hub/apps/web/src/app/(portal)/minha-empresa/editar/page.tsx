@@ -24,7 +24,7 @@ export default async function EditarEmpresaPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-up pb-20">
+    <div className="w-full max-w-4xl mx-auto space-y-8 pb-20">
       <SectionHero
         subtitulo="Dados cadastrais que aparecem nas notas e nos documentos"
         title="Editar Cadastro da Empresa"
@@ -47,7 +47,7 @@ export default async function EditarEmpresaPage() {
             <Building2 className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-serif font-bold text-base text-ink">Dados Oficiais da Pessoa Jurídica</h2>
+            <h2 className="rotulo text-ink-soft">Dados Oficiais da Pessoa Jurídica</h2>
             <p className="text-xs text-ink-soft">
               Preencha os dados ou digite o CNPJ para preenchimento automático via Receita Federal.
             </p>

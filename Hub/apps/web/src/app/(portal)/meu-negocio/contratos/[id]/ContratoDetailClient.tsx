@@ -469,7 +469,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-lg rounded-3xl bg-surface-card shadow-(--elev-3) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+              <h3 className="rotulo text-ink-soft flex items-center gap-2">
                 Pagamento Extra (Plantão etc.)
               </h3>
               <button onClick={() => setShowExtra(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5"><X className="h-5 w-5" /></button>
@@ -507,7 +507,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-lg rounded-3xl bg-surface-card shadow-(--elev-3) border border-black/5 dark:border-white/5 p-6 sm:p-8 card-finish space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif font-bold text-base text-ink flex items-center gap-2">
+              <h3 className="rotulo text-ink-soft flex items-center gap-2">
                 <FileText className="h-5 w-5 text-hexxa-green dark:text-hexxa-lime" /> Marcar NFSe como Emitida
               </h3>
               <button onClick={() => setShowNfse(false)} className="rounded-full p-1 text-ink-soft hover:bg-black/5 dark:hover:bg-white/5"><X className="h-5 w-5" /></button>

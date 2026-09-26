@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import React, { useActionState, useState, useTransition, useRef } from 'react';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { Save, Upload, Trash2, CheckCircle2, AlertTriangle, Info, Key, Building2, MapPin, Phone, Wrench, X, ArrowRight, Lightbulb, FileText } from 'lucide-react';
@@ -1331,6 +1332,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
   const [pending, startTransition] = useTransition();
   const [techState, techAction, techPending] = useActionState(saveTecnicaAction, { ok: false, message: '' });
   const [editingProfile, setEditingProfile] = React.useState<any>(null);
+  const { avisar, elemento: avisoEl } = useAviso();
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1341,12 +1343,12 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
     startTransition(async () => {
       const res = await createProfileAction({ ok: false, message: '' }, fd);
       if (res.ok) {
-        alert(editingProfile ? 'Perfil atualizado!' : 'Perfil criado!');
+        avisar(editingProfile ? 'Perfil atualizado.' : 'Perfil criado.');
         setEditingProfile(null);
         // Reseta o form visualmente se for novo
         if (!editingProfile) (e.target as HTMLFormElement).reset();
       } else {
-        alert(res.message);
+        avisar(res.message, false);
       }
     });
   }
@@ -1355,8 +1357,8 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
     if (!confirm('Remover perfil?')) return;
     startTransition(async () => {
       const res = await deleteProfileAction(id);
-      if (res.ok) alert('Perfil removido!');
-      else alert(res.message);
+      if (res.ok) avisar('Perfil removido.');
+      else avisar(res.message, false);
     });
   }
 
@@ -1372,9 +1374,10 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 
   return (
     <div className="space-y-6">
+      {avisoEl}
       <div className="flex items-center gap-2 text-[#2F4A3C] dark:text-[#DFFFAE]">
         <Building2 className="h-5 w-5" />
-        <h3 className="font-serif font-bold text-base">Perfis Fiscais de Serviço</h3>
+        <h3 className="rotulo text-ink-soft">Perfis Fiscais de Serviço</h3>
       </div>
       <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">
         Cadastre diferentes tipos de serviço para escolher rapidamente na hora de emitir a nota.
@@ -1384,7 +1387,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
         <div className="grid gap-3 sm:grid-cols-2">
           {profiles.map(p => (
             <div key={p.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#121614] p-4 relative shadow-sm">
-              <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">{p.nome}</h4>
+              <h4 className="text-sm font-semibold text-ink">{p.nome}</h4>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">Item: {p.itemListaServico}</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">CNAE: {p.cnae || '-'}</p>
               <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">Tributação: {p.codigoTributacaoMunicipio || '-'}</p>
@@ -1413,7 +1416,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
 
       {/* ── Configuração técnica global ── */}
       <form action={techAction} className="mt-8 space-y-4">
-        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Emissão e Numeração</h4>
+        <h4 className="text-sm font-semibold text-ink">Emissão e Numeração</h4>
         <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#F5F6F4] dark:bg-[#121614]">
           <div>
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Série da NF</label>
@@ -1435,7 +1438,7 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
       </form>
 
       <form id="perfil-form" onSubmit={handleSave} className="mt-8 rounded-2xl border border-black/5 dark:border-white/10 p-5 bg-[#F5F6F4] dark:bg-[#121614] space-y-4">
-        <h4 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
+        <h4 className="text-sm font-semibold text-ink">
           {editingProfile ? 'Editar Perfil' : 'Novo Perfil'}
         </h4>
         <div className="grid gap-4 sm:grid-cols-2">

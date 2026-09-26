@@ -122,7 +122,7 @@ export function CompanyForm({ company }: { company: any }) {
             <ImageIcon className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="font-serif font-bold text-sm text-ink">Logotipo da Empresa</h3>
+            <h3 className="text-sm font-semibold text-ink">Logotipo da Empresa</h3>
             <p className="text-xs text-ink-soft">Exibido no painel da empresa, relatórios e documentos oficiais.</p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export function CompanyForm({ company }: { company: any }) {
 
       {/* ── Bloco 2: Dados Oficiais da Empresa ── */}
       <div className="space-y-4">
-        <h3 className="font-serif font-bold text-sm text-ink flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
           <span>Dados Cadastrais Oficiais</span>
         </h3>
 
@@ -270,7 +270,7 @@ export function CompanyForm({ company }: { company: any }) {
             <Globe className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="font-serif font-bold text-sm text-ink">Presença Digital & Canais Oficiais</h3>
+            <h3 className="text-sm font-semibold text-ink">Presença Digital & Canais Oficiais</h3>
             <p className="text-xs text-ink-soft">Redes sociais, website e canais de contato visíveis no painel da empresa.</p>
           </div>
         </div>
@@ -353,7 +353,7 @@ export function CompanyForm({ company }: { company: any }) {
 
       {/* ── Bloco 4: Endereço da Sede ── */}
       <div className="space-y-4 pt-2">
-        <h3 className="font-serif font-bold text-sm text-ink">Endereço da Sede Oficial</h3>
+        <h3 className="text-sm font-semibold text-ink">Endereço da Sede Oficial</h3>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <div>
             <label className={lbl}>CEP</label>

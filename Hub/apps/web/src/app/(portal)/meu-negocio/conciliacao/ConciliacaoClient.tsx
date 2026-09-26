@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState, useTransition, useMemo } from 'react';
 import {
   matchTransaction,
@@ -84,6 +85,7 @@ export function ConciliacaoClient({
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedTx, setSelectedTx] = useState<string | null>(null);
+  const { avisar, elemento: avisoEl } = useAviso();
   const [suggestions, setSuggestions] = useState<Record<string, AiSuggestion>>({});
   const [editingCategoryTx, setEditingCategoryTx] = useState<Record<string, boolean>>({});
   const [selectedCategoryByTx, setSelectedCategoryByTx] = useState<Record<string, string>>({});
@@ -100,13 +102,13 @@ export function ConciliacaoClient({
       try {
         const res = await matchTransaction(txId, entryId);
         if (!res.ok) {
-          alert(res.message || 'Não foi possível conciliar — tipo ou valor divergente.');
+          avisar(res.message || 'Não foi possível conciliar — tipo ou valor divergente.', false);
           return;
         }
-        alert('Conciliado com sucesso!');
+        avisar('Conciliado.');
         setSelectedTx(null);
       } catch {
-        alert('Erro ao conciliar.');
+        avisar('Não foi possível conciliar. Tente de novo.', false);
       }
     });
   }
@@ -115,10 +117,10 @@ export function ConciliacaoClient({
     startTransition(async () => {
       try {
         await ignoreTransaction(txId);
-        alert('Transação ignorada.');
+        avisar('Transação ignorada.');
         setSelectedTx(null);
       } catch {
-        alert('Erro ao ignorar.');
+        avisar('Não foi possível ignorar. Tente de novo.', false);
       }
     });
   }
@@ -148,7 +150,7 @@ export function ConciliacaoClient({
     startTransition(async () => {
       const res = await applyAiMatchAction(suggestion.transactionId, suggestion.matchedEntryId!, catId);
       if (!res.ok) {
-        alert(res.message || 'Não foi possível aplicar a sugestão.');
+        avisar(res.message || 'Não foi possível aplicar a sugestão.', false);
         return;
       }
       setSuggestions((prev) => {
@@ -165,7 +167,7 @@ export function ConciliacaoClient({
     startTransition(async () => {
       const res = await applyAiNewEntryAction(suggestion.transactionId, catId);
       if (!res.ok) {
-        alert(res.message || 'Não foi possível criar o lançamento.');
+        avisar(res.message || 'Não foi possível criar o lançamento.', false);
         return;
       }
       setSuggestions((prev) => {
@@ -189,12 +191,12 @@ export function ConciliacaoClient({
     startTransition(async () => {
       const res = await applyBatchAiSuggestionsAction(list);
       if (!res.ok) {
-        alert(res.message || 'Não foi possível aceitar todas as sugestões.');
+        avisar(res.message || 'Não foi possível aceitar todas as sugestões.', false);
         return;
       }
       setSuggestions({});
       setSelectedTx(null);
-      alert(`${res.count} transação(ões) categorizada(s) e conciliada(s) com sucesso!`);
+      avisar(`${res.count} transação(ões) categorizada(s) e conciliada(s) `);
     });
   }
 
@@ -216,7 +218,7 @@ export function ConciliacaoClient({
     startTransition(async () => {
       const res = await applyBatchAiSuggestionsAction(list);
       if (!res.ok) {
-        alert(res.message || 'Não foi possível aceitar as sugestões do grupo.');
+        avisar(res.message || 'Não foi possível aceitar as sugestões do grupo.', false);
         return;
       }
       setSuggestions((prev) => {
@@ -227,7 +229,7 @@ export function ConciliacaoClient({
         return next;
       });
       setSelectedTx(null);
-      alert(`${res.count} transações do grupo "${group.categoryName}" conciliadas com sucesso!`);
+      avisar(`${res.count} transações do grupo "${group.categoryName}" conciliadas `);
     });
   }
 
@@ -459,10 +461,11 @@ export function ConciliacaoClient({
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      {avisoEl}
       {/* Barra de Ações Superior */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif font-bold text-xl text-ink">Transações do Extrato</h2>
+          <h2 className="text-lg font-light uppercase tracking-[0.05em] text-ink">Transações do Extrato</h2>
           <p className="text-xs text-ink-soft mt-0.5">
             {transactions.length} transação(ões) aguardando correspondência ou categorização.
           </p>
@@ -701,7 +704,7 @@ export function ConciliacaoClient({
           {!selectedTx ? (
             <div className="h-full min-h-[260px] flex flex-col items-center justify-center border border-dashed border-black/10 dark:border-white/10 rounded-3xl bg-surface-card/40 p-8 text-center">
               <Layers className="h-10 w-10 text-ink-soft opacity-30 mb-3" />
-              <h4 className="font-serif font-bold text-base text-ink mb-1">
+              <h4 className="rotulo text-ink-soft mb-1">
                 Nenhuma transação selecionada
               </h4>
               <p className="text-xs text-ink-soft max-w-xs">

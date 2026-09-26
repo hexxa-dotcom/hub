@@ -74,7 +74,7 @@ export function EmailSetupForm({ connected, emailAddress }: { connected: boolean
     <Card level={1} className="p-6 space-y-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-          <h3 className="font-serif font-bold text-sm text-ink">Conectar E-mail (IMAP / SMTP)</h3>
+          <h3 className="text-sm font-semibold text-ink">Conectar E-mail (IMAP / SMTP)</h3>
           {connected && (
             <button type="button" onClick={() => setEditing(false)} className="rounded-full p-1 text-ink-soft hover:text-ink hover:bg-black/5">
               <X className="h-4 w-4" />

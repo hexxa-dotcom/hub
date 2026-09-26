@@ -108,7 +108,7 @@ export function DistributionRequestForm({
   if (indisponivel) {
     return (
       <Card level={1} className="p-6 sm:p-8 space-y-2 card-finish">
-        <h3 className="font-serif font-bold text-base text-ink">Pedir distribuição de lucro</h3>
+        <h3 className="rotulo text-ink-soft">Pedir distribuição de lucro</h3>
         <p className="text-xs leading-relaxed text-ink-soft">{indisponivel}</p>
       </Card>
     );
@@ -117,7 +117,7 @@ export function DistributionRequestForm({
   return (
     <Card level={1} className="p-6 sm:p-8 space-y-5 card-finish">
       <div>
-        <h3 className="font-serif font-bold text-base text-ink">Pedir distribuição de lucro</h3>
+        <h3 className="rotulo text-ink-soft">Pedir distribuição de lucro</h3>
         <p className="mt-1 text-xs text-ink-soft">
           Disponível pra distribuir agora: <strong className="font-serif tabular text-ink">{availableToDistribute.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>.
           A validação abaixo checa as 6 travas legais (débito fiscal, capital social, prejuízo acumulado, limite por sócio, mútuo, proporcionalidade) antes de liberar.

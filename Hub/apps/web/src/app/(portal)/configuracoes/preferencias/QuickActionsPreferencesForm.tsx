@@ -41,7 +41,7 @@ export function QuickActionsPreferencesForm() {
       )}
 
       <div>
-        <h3 className="font-serif font-bold text-sm text-ink">Ações Rápidas em Destaque</h3>
+        <h3 className="text-sm font-semibold text-ink">Ações Rápidas em Destaque</h3>
         <p className="text-xs text-ink-soft">
           Escolha o que aparece no menu de atalhos rápidos. Selecione ao menos uma ação.
         </p>

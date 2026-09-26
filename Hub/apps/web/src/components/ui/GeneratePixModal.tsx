@@ -1,5 +1,6 @@
 'use client';
 
+import { useAviso } from '@/components/ui/useAviso';
 import { useState } from 'react';
 import { X, QrCode, CheckCircle2, Copy, Sparkles, Loader2, ExternalLink } from 'lucide-react';
 import { generatePixCharge } from '@/app/(portal)/configuracoes/integracoes/asaas/billing';
@@ -24,6 +25,7 @@ export function GeneratePixModal({
   initialDescription = 'Cobrança de Serviços',
   financialEntryId,
 }: GeneratePixModalProps) {
+  const { avisar, elemento: avisoEl } = useAviso();
   const [customerName, setCustomerName] = useState(initialCustomerName);
   const [customerCpfCnpj, setCustomerCpfCnpj] = useState(initialCpfCnpj);
   const [value, setValue] = useState(initialValue);
@@ -63,7 +65,7 @@ export function GeneratePixModal({
   function handleCopy() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopyPaste);
-      alert('Código Pix Copia e Cola copiado para a área de transferência!');
+      avisar('Código Pix copiado.');
     }
   }
 
@@ -72,7 +74,8 @@ export function GeneratePixModal({
   const lbl = 'block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider mb-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      {avisoEl}
       <div className="bg-[#E7EAE5] dark:bg-[#1A201C] w-full max-w-md rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20">
@@ -80,7 +83,7 @@ export function GeneratePixModal({
             <div className="bg-[#1E3328] text-[#DFFFAE] p-2 rounded-2xl shadow-sm">
               <QrCode className="h-5 w-5" />
             </div>
-            <h2 className="text-base sm:text-lg font-serif font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            <h2 className="rotulo text-ink-soft">
               Gerar Cobrança Pix
             </h2>
           </div>
@@ -106,7 +109,7 @@ export function GeneratePixModal({
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-[#231F20] dark:text-[#F5F6F4]">Pix Gerado com Sucesso!</h3>
+                <h3 className="text-lg font-light uppercase tracking-[0.05em] text-ink">Pix Gerado com Sucesso!</h3>
                 <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] mt-1">
                   Apresente o QR Code ou compartilhe o código copia e cola com o cliente.
                 </p>

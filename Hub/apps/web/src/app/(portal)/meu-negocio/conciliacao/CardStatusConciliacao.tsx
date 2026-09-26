@@ -44,7 +44,7 @@ export function CardStatusConciliacao({
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-ink">
+                <h3 className="text-lg font-light uppercase tracking-[0.05em] text-ink">
                   Tudo em dia!
                 </h3>
                 <p className="text-xs text-ink-soft">
@@ -97,7 +97,7 @@ export function CardStatusConciliacao({
               <ArrowRightLeft className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-xl text-ink">
+              <h3 className="text-lg font-light uppercase tracking-[0.05em] text-ink">
                 {transactions.length} {transactions.length === 1 ? 'transação no extrato' : 'transações no extrato'}
               </h3>
               <p className="text-xs text-ink-soft">

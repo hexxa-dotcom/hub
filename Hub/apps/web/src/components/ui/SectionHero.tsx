@@ -152,15 +152,15 @@ export function SectionHero({
         {/* Canto Esquerdo: Título e Ícone (i) informativo - some no Modo Foco */}
         <div className="hero-title-block w-fit min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-light uppercase tracking-[0.08em] text-ink sm:text-[28px]">
+            <h1 className="entrada-titulo text-2xl font-light uppercase tracking-[0.08em] text-ink sm:text-[28px]">
               {title}
             </h1>
           </div>
           {subtitulo && (
             <>
               {/* Um traço fino entre título e linha de apoio, da largura do bloco. */}
-              <div className="mt-2 h-px w-full bg-black/25 dark:bg-white/25" />
-              <div className="mt-2">{subtitulo}</div>
+              <div className="entrada-traco mt-2 h-px w-full bg-black/25 dark:bg-white/25" />
+              <div className="entrada-subtitulo mt-2">{subtitulo}</div>
             </>
           )}
         </div>

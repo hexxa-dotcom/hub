@@ -53,7 +53,7 @@ export function SubirExtrato({ contas, desde }: { contas: { id: string; nome: st
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-hexxa-forest text-hexxa-lime text-xs shadow-xs">
               <Upload className="h-4 w-4" />
             </span>
-            <h3 className="font-serif font-bold text-base sm:text-lg text-ink">Importar Extrato</h3>
+            <h3 className="rotulo text-ink-soft">Importar Extrato</h3>
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2.5 py-0.5 bg-surface border border-black/5 dark:border-white/5 text-ink-soft shadow-(--elev-inset)">
             OFX · CSV

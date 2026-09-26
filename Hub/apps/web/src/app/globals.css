@@ -1056,6 +1056,45 @@ h1, h2, h3, h4, h5, h6 {
   animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ── Entrada das telas ───────────────────────────────────────────────────
+   Tela aberta dezenas de vezes por dia: entrada curta e discreta, só para o
+   conteúdo não "pular". CSS puro (roda fora da thread principal, não engasga
+   enquanto a página carrega), só opacity/transform/clip-path, curva de saída
+   forte, nada acima de 280ms. Cascata de 40ms nos cards e nas linhas. */
+:root {
+  --ease-entrada: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes entrada-sobe {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes entrada-traco {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.entrada-titulo { animation: entrada-sobe 260ms var(--ease-entrada) both; }
+.entrada-traco { animation: entrada-traco 280ms var(--ease-entrada) 60ms both; }
+.entrada-subtitulo { animation: entrada-sobe 240ms var(--ease-entrada) 100ms both; }
+
+/* Cards de resumo e linhas das listas arredondadas: em cascata. Só as
+   primeiras entram escalonadas — a 20ª linha não pode esperar 800ms. */
+.entrada-grade > *,
+ul.rounded-\[28px\] > li {
+  animation: entrada-sobe 240ms var(--ease-entrada) both;
+}
+.entrada-grade > :nth-child(1), ul.rounded-\[28px\] > li:nth-child(1) { animation-delay: 80ms; }
+.entrada-grade > :nth-child(2), ul.rounded-\[28px\] > li:nth-child(2) { animation-delay: 120ms; }
+.entrada-grade > :nth-child(3), ul.rounded-\[28px\] > li:nth-child(3) { animation-delay: 160ms; }
+.entrada-grade > :nth-child(4), ul.rounded-\[28px\] > li:nth-child(4) { animation-delay: 200ms; }
+ul.rounded-\[28px\] > li:nth-child(5) { animation-delay: 240ms; }
+ul.rounded-\[28px\] > li:nth-child(n + 6) { animation-delay: 280ms; }
+
+@media print {
+  .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, ul.rounded-\[28px\] > li { animation: none; }
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }

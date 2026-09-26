@@ -21,9 +21,9 @@ function NewTokenModal({ token, onClose }: { token: string; onClose: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <Card level={2} tone="deep" className="card-finish w-full max-w-lg shadow-(--elev-3) overflow-hidden p-0">
+      <Card level={2} className="w-full max-w-lg overflow-hidden rounded-3xl border border-black/5 bg-surface p-0 shadow-(--elev-3) dark:border-white/10">
         <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10">
-          <h2 className="text-base font-serif font-bold text-ink flex items-center gap-2">
+          <h2 className="rotulo text-ink-soft flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-hexxa-forest dark:text-hexxa-lime" /> Token criado
           </h2>
           <button onClick={onClose} className="p-2 text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors">
@@ -116,7 +116,7 @@ export function McpTokensClient({ isAdmin = false }: { isAdmin?: boolean }) {
     <Card level={1} className="p-6 sm:p-8 space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-serif font-bold text-ink">Tokens Ativos</h2>
+          <h2 className="rotulo text-ink-soft">Tokens Ativos</h2>
           <p className="text-xs text-ink-soft">
             Chaves de autenticação do MCP e da API REST.
           </p>

@@ -322,7 +322,7 @@ function LancamentoForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4 animate-fade-up">
+    <form onSubmit={handleSubmit} className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-ink flex items-center gap-1.5 font-serif">
           <Sparkles className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
@@ -650,7 +650,7 @@ function DespesasFixasPanel({
   }
 
   return (
-    <div className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4 animate-fade-up">
+    <div className="rounded-3xl bg-surface-card shadow-(--elev-2) p-5 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-ink flex items-center gap-1.5 font-serif">
           <Repeat className="h-4 w-4 text-hexxa-green dark:text-hexxa-lime" />
@@ -1430,7 +1430,7 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
         {/* Composição por Origem */}
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="font-serif font-bold text-base text-ink">Composição · {mesLabel(selectedMonth)}</h3>
+            <h3 className="rotulo text-ink-soft">Composição · {mesLabel(selectedMonth)}</h3>
             <button
               type="button"
               onClick={() => onNavigate('pagar')}
@@ -1537,14 +1537,14 @@ function DreModal({ data, selectedMonth, onClose }: { data: Lancamento[]; select
   const val = "text-sm font-bold tabular text-ink";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
       <div className="bg-surface-card w-full max-w-lg rounded-3xl shadow-(--elev-3) card-finish overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/5 bg-surface-card/60">
           <div className="flex items-center gap-2.5">
             <div className="bg-hexxa-forest text-hexxa-lime p-2 rounded-2xl shadow-(--elev-1)">
               <FileText className="h-5 w-5" />
             </div>
-            <h2 className="text-base sm:text-lg font-serif font-bold text-ink">
+            <h2 className="rotulo text-ink-soft">
               DRE Gerencial · {mesLabel(selectedMonth)}
             </h2>
           </div>

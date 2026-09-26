@@ -99,7 +99,7 @@ export default async function IntegracoesPage() {
               <Sparkles className="h-6 w-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-serif font-bold text-base text-ink">Assistente de IA & API Externa (MCP)</h3>
+              <h3 className="rotulo text-ink-soft">Assistente de IA & API Externa (MCP)</h3>
               <p className="text-xs text-ink-soft mt-0.5">
                 Conecte o Claude, ChatGPT ou sistemas externos para consultar relatórios e realizar lançamentos financeiros com tokens seguros.
               </p>
@@ -126,7 +126,7 @@ export default async function IntegracoesPage() {
                     {erp.logo}
                   </div>
                   <div>
-                    <h3 className="font-serif font-bold text-base text-ink leading-tight">{erp.name}</h3>
+                    <h3 className="text-sm font-semibold text-ink">{erp.name}</h3>
                     <p className="text-[11px] text-ink-soft">{erp.sub}</p>
                     {erp.connected ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
@@ -172,7 +172,7 @@ export default async function IntegracoesPage() {
                   <Mail className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-base text-ink leading-tight">E-mail (NFS-e)</h3>
+                  <h3 className="rotulo text-ink-soft">E-mail (NFS-e)</h3>
                   <p className="text-[11px] text-ink-soft">Envio automático por e-mail</p>
                   {emailConnected ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">

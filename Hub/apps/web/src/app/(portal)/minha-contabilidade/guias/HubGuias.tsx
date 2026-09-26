@@ -767,7 +767,7 @@ export function HubGuias({
                   <div className="p-6 sm:p-8 border-b border-black/5 dark:border-white/10 space-y-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <h2 className="font-serif font-bold text-lg text-ink">{desc}</h2>
+                        <h2 className="text-sm font-semibold text-ink">{desc}</h2>
                         <p className="text-xs sm:text-sm text-ink-soft mt-0.5">
                           {pagas} de {total} parcelas pagas · restam <span className="font-serif tabular font-semibold text-ink">{BRL.format(restante)}</span>
                         </p>
