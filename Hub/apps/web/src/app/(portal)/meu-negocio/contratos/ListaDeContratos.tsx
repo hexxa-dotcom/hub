@@ -8,6 +8,8 @@ import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import type { ContractRow } from './actions';
 import { INDICES } from './modelos-info';
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 
 /**
  * OS CONTRATOS DE ENTRADA OU DE SAÍDA.
@@ -43,6 +45,24 @@ export function situacao(c: ContractRow): { texto: string; tom: 'normal' | 'aten
   }
   return { texto: `Ativo até ${br(c.endDate)}`, tom: 'normal' };
 }
+
+/** A situação na coluna: curta. A frase inteira fica no detalhe. */
+function rotuloCurto(c: ContractRow, tom: 'normal' | 'atencao' | 'alerta' | 'apagado') {
+  if (c.status === 'AGUARDANDO_ASSINATURA') return c.meFaltaAssinar ? 'Falta assinar' : 'Aguardando';
+  if (c.status === 'RECUSADO') return 'Recusado';
+  if (c.status === 'CANCELADO') return 'Cancelado';
+  if (c.status === 'EXPIRADO') return 'Expirado';
+  if (tom === 'apagado') return 'Encerrado';
+  if (tom === 'atencao') return diasAte(c.endDate) <= 30 ? 'Termina logo' : 'Reajuste';
+  return 'Ativo';
+}
+
+const COR_DO_PONTO = {
+  normal: 'bg-emerald-500',
+  atencao: 'bg-amber-500',
+  alerta: 'bg-rose-500',
+  apagado: 'bg-black/25 dark:bg-white/25',
+};
 
 const COR = {
   normal: 'text-ink-soft',
@@ -90,7 +110,7 @@ export function ListaDeContratos({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-ink">{c.title}</p>
                   <p className="text-xs text-ink-soft">
-                    {c.partyName} · {BRL.format(c.value)}/mês{c.outraAssinou ? ' · a outra parte já assinou' : ''}
+                    {nomeDeExibicao(c.partyName)} · {BRL.format(c.value)}/mês{c.outraAssinou ? ' · a outra parte já assinou' : ''}
                   </p>
                 </div>
                 <button
@@ -167,35 +187,59 @@ export function ListaDeContratos({
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-            {lista.map((c) => {
+          <ListaEmColunas
+            colunas={[
+              { rotulo: 'Contrato', largura: 'minmax(0,1fr)' },
+              { rotulo: 'Situação', largura: '9rem', soDesktop: true },
+              { rotulo: 'Vigência', largura: '6rem', alinhar: 'direita', soDesktop: true },
+              { rotulo: 'Por mês', largura: '8rem', alinhar: 'direita' },
+            ]}
+            itens={lista}
+            chave={(c) => c.id}
+            apagada={(c) => situacao(c).tom === 'apagado'}
+            celulas={(c) => {
+              const s = situacao(c);
+              const parte = nomeDeExibicao(c.partyName);
+              return [
+                <Titulo key="t" nome={c.title} monograma={iniciais(parte)} apoio={`${parte}${c.linkedOnPlatform ? ' · na Hexx' : ''}`} />,
+                <Situacao key="s" cor={COR_DO_PONTO[s.tom]}>{rotuloCurto(c, s.tom)}</Situacao>,
+                <span key="v" className="text-xs tabular text-ink-soft">até {br(c.endDate).slice(0, 6)}{c.endDate.slice(2, 4)}</span>,
+                <Valor key="$">{BRL.format(c.value)}</Valor>,
+              ];
+            }}
+            detalhe={(c) => {
               const s = situacao(c);
               return (
-                <li key={c.id}>
-                  <Link
-                    href={`/meu-negocio/contratos/${c.id}` as Route}
-                    className="flex items-center justify-between gap-6 px-6 py-4 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-ink">{c.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-ink-soft">
-                        {c.partyName}
-                        {c.linkedOnPlatform ? ' · na Hexx' : ''}
-                      </p>
-                      <p className={`mt-1 text-xs font-medium ${COR[s.tom]}`}>{s.texto}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-serif text-lg font-bold tabular text-ink">{BRL.format(c.value)}</p>
-                      <p className="text-[11px] text-ink-soft">
-                        por mês · dia {c.dueDay}
-                        {c.adjustmentIndex !== 'NENHUM' && c.status === 'ATIVO' ? ` · ${INDICES[c.adjustmentIndex].split(' ')[0]}` : ''}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
+                <Detalhe
+                  acoes={
+                    <>
+                      {c.meFaltaAssinar && (
+                        <BotaoDiscreto onClick={() => onAssinar(c)}>
+                          <PenLine className="h-3.5 w-3.5" /> Ler e assinar
+                        </BotaoDiscreto>
+                      )}
+                      <BotaoDiscreto href={`/meu-negocio/contratos/${c.id}`}>Abrir contrato</BotaoDiscreto>
+                    </>
+                  }
+                >
+                  <Campo rotulo="Situação" largo>
+                    <span className={COR[s.tom]}>{s.texto}</span>
+                  </Campo>
+                  <Campo rotulo={tipo === 'ENTRADA' ? 'Cliente' : 'Prestador'} largo>
+                    {c.partyName}
+                    {c.partyCnpj ? <span className="text-ink-soft"> · {c.partyCnpj}</span> : null}
+                  </Campo>
+                  <Campo rotulo="Vigência">
+                    {br(c.startDate)} a {br(c.endDate)}
+                  </Campo>
+                  <Campo rotulo="Vencimento">Todo dia {c.dueDay}</Campo>
+                  <Campo rotulo="Reajuste">
+                    {c.adjustmentIndex === 'NENHUM' ? 'Sem reajuste' : `${INDICES[c.adjustmentIndex].split(' ')[0]}${c.nextAdjustmentDate ? ` · em ${br(c.nextAdjustmentDate)}` : ''}`}
+                  </Campo>
+                </Detalhe>
               );
-            })}
-          </ul>
+            }}
+          />
         )}
       </section>
     </div>
