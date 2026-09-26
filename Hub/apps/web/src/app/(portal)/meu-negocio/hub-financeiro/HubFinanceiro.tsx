@@ -1,5 +1,7 @@
 'use client';
 
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao } from '@/lib/nome-de-exibicao';
 import { VerComprovante } from '@/components/ui/VerComprovante';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
@@ -862,6 +864,8 @@ function LancamentosTab({
   const servicosMes = categoriaBreakdown.filter((g) => g.label === 'Serviços' || g.label === 'Notas Fiscais' || g.label === 'Faturamento Avulso').reduce((s, g) => s + g.total, 0);
   const outrosRecMes = categoriaBreakdown.filter((g) => !['Contratos', 'Mensalidade', 'Serviços', 'Notas Fiscais', 'Faturamento Avulso'].includes(g.label)).reduce((s, g) => s + g.total, 0);
 
+  const [confirmarExclusao, setConfirmarExclusao] = useState<string | null>(null);
+
   async function togglePago(l: Lancamento) {
     setMarking(l.id);
     const newStatus = l.statusDb === 'PAID' ? 'PENDING' : 'PAID';
@@ -874,6 +878,7 @@ function LancamentosTab({
   }
 
   async function handleDelete(id: string) {
+    setConfirmarExclusao(null);
     setDeleting(id);
     try {
       await deleteLancamento(id);
@@ -1008,168 +1013,98 @@ function LancamentosTab({
         />
       )}
 
-      {/* Tabela de Lançamentos */}
-      {list.length === 0 ? (
-        <div className="rounded-3xl bg-surface-card shadow-(--elev-1) p-12 text-center text-ink-soft">
-          <DollarSign className="h-8 w-8 mx-auto opacity-30 mb-2" />
-          <p className="text-sm font-semibold">Nenhum lançamento encontrado neste filtro.</p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-3xl bg-surface-card shadow-(--elev-1)">
-          <div className="hidden grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 border-b border-black/5 dark:border-white/5 bg-surface-card/60 px-5 py-3 text-caption font-bold uppercase tracking-wider text-ink-soft sm:grid">
-            <span>Descrição</span>
-            <span className="w-28 text-right">Vencimento</span>
-            <span className="w-32 text-right">Valor</span>
-            <span className="w-28 text-center">Status</span>
-            <span className="w-24 text-center">Ações</span>
-          </div>
-
-          <div className="divide-y divide-black/5 dark:divide-white/5">
-            {list.map((l) => {
-              const s = getStatus(l);
-              const isExp = expanded === l.id;
-              return (
-                <div key={l.id}>
-                  <div
-                    className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-3 p-4 sm:px-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:grid-cols-[1fr_auto_auto_auto_auto] ${
-                      s === 'vencido' ? 'border-l-4 border-l-red-500' : s === 'pago' ? 'opacity-65' : ''
-                    }`}
-                    onClick={() => setExpanded(isExp ? null : l.id)}
-                  >
-                    <div className="min-w-0 flex items-center gap-2">
-                      {l.tipo === 'PAGAR' ? (
-                        <ArrowDownRight className="h-4 w-4 shrink-0 text-red-600" />
-                      ) : (
-                        <ArrowUpRight className="h-4 w-4 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-ink">{l.descricao}</p>
-                      {(l.categoria || l.temComprovante || l.isFixa) && (
-                        <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-soft">
-                          {l.isFixa && (
-                            <span className="inline-flex items-center gap-1 font-bold text-hexxa-green dark:text-hexxa-lime">
-                              <Repeat className="h-3 w-3" />
-                              Fixa
-                            </span>
-                          )}
-                          {l.categoria && (
-                            <span className="inline-flex items-center gap-1">
-                              <Tag className="h-3 w-3" />
-                              {l.categoria}
-                            </span>
-                          )}
-                          {l.temComprovante && (
-                            <span className="inline-flex items-center gap-1">
-                              <Paperclip className="h-3 w-3" />
-                              Comprovante
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      <p className="mt-0.5 text-xs text-ink-soft sm:hidden">
-                        {fmtDate(l.vencimento)} · <strong>{fmt(l.valor)}</strong>
-                      </p>
-                    </div>
-                  </div>
-
-                    <span className="hidden w-28 text-right text-xs sm:text-sm text-ink-soft sm:block">
-                      {fmtDate(l.vencimento)}
-                    </span>
-                      <span
-                      className={`hidden w-32 text-right font-serif text-sm sm:text-base font-bold tabular sm:block ${
-                        l.tipo === 'PAGAR' ? 'text-expense' : 'text-hexxa-green dark:text-hexxa-lime'
-                      }`}
-                    >
-                      {fmt(l.valor)}
-                    </span>
-                    <span className="hidden w-28 text-center sm:block">
-                      <StatusBadge l={l} />
-                    </span>
-
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {l.tipo !== 'PAGAR' && !l.pago_em && (
-                        <button
-                          type="button"
-                          title="Gerar Cobrança Pix"
-                          onClick={() => setSelectedPixLancamento(l)}
-                          className="inline-flex items-center gap-1 rounded-full bg-surface-card shadow-(--elev-inset) px-2.5 py-1 text-xs font-bold text-hexxa-green dark:text-hexxa-lime border border-(--color-line)"
-                        >
-                          <QrCode className="h-3 w-3" /> Pix
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        title={l.pago_em ? 'Desfazer' : l.tipo === 'PAGAR' ? 'Marcar como pago' : 'Marcar como recebido'}
-                        onClick={() => togglePago(l)}
-                        disabled={marking === l.id}
-                        className={`rounded-full p-2 transition-colors ${
-                          l.pago_em
-                            ? 'bg-hexxa-green/10 text-hexxa-green dark:text-hexxa-lime'
-                            : 'text-ink-soft hover:bg-black/5 hover:text-ink'
-                        } disabled:opacity-40`}
-                      >
-                        {marking === l.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        title="Excluir"
-                        onClick={() => handleDelete(l.id)}
-                        disabled={deleting === l.id}
-                        className="rounded-full p-2 text-[#6E6A61] hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-40"
-                      >
-                        {deleting === l.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
-                      {isExp ? <ChevronUp className="h-4 w-4 text-[#6E6A61]" /> : <ChevronDown className="h-4 w-4 text-[#6E6A61]" />}
-                    </div>
-                  </div>
-
-                  {isExp && (
-                    <div className="border-t border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 p-4 text-xs space-y-2">
-                      <div className="flex flex-wrap gap-4">
-                        <div><span className="text-[#6E6A61]">Categoria:</span> <strong>{l.categoria ?? '—'}</strong></div>
-                        {l.partnerName && <div><span className="text-[#6E6A61]">{l.tipo === 'PAGAR' ? 'Fornecedor:' : 'Cliente:'}</span> <strong>{l.partnerName}</strong></div>}
-                        {l.costCenterName && <div><span className="text-[#6E6A61]">Centro de Custo:</span> <strong>{l.costCenterName}</strong></div>}
-                        {l.interest && l.interest > 0 ? <div><span className="text-[#6E6A61]">Multa/Juros:</span> <strong>{fmt(l.interest)}</strong></div> : null}
-                        {l.discount && l.discount > 0 ? <div><span className="text-[#6E6A61]">Desconto:</span> <strong>{fmt(l.discount)}</strong></div> : null}
-                        <div><span className="text-[#6E6A61]">Criado em:</span> <strong>{fmtDate(l.created_at.split('T')[0]!)}</strong></div>
-                        {l.pago_em && <div><span className="text-[#6E6A61]">{l.tipo === 'PAGAR' ? 'Pago em:' : 'Recebido em:'}</span> <strong>{fmtDate(l.pago_em)}</strong></div>}
-                        {l.observacao && <div className="w-full"><span className="text-[#6E6A61]">Observações:</span> {l.observacao}</div>}
-                        {l.temComprovante && (
-                          <VerComprovante
-                            id={l.id}
-                            nome={l.comprovanteNome}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFFD6] dark:bg-[#1E3328] px-3 py-1 text-[11px] font-bold text-[#2F4A3C] dark:text-[#DFFFAE] border border-[#DFFFAE]"
-                          >
-                            <Paperclip className="h-3 w-3" /> Ver comprovante{l.comprovanteNome ? `: ${l.comprovanteNome}` : ''}
-                          </VerComprovante>
-                        )}
-                        {contratoLinkFor(l) && (
-                          <Link
-                            href={contratoLinkFor(l) as Route}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-3 py-1 text-[11px] font-bold text-[#DFFFAE]"
-                          >
-                            Ver Contrato
-                          </Link>
-                        )}
-                        <div className="sm:hidden"><StatusBadge l={l} /></div>
-                      </div>
-                    </div>
+      {/* Lançamentos, no padrão das listas: o primeiro clique abre o detalhe e as ações. */}
+      <ListaEmColunas
+        colunas={[
+          { rotulo: 'Descrição', largura: 'minmax(0,1fr)' },
+          { rotulo: 'Vencimento', largura: '6.5rem', alinhar: 'direita', soDesktop: true },
+          { rotulo: 'Situação', largura: '7rem', soDesktop: true },
+          { rotulo: 'Valor', largura: '8rem', alinhar: 'direita' },
+        ]}
+        itens={list}
+        chave={(l) => l.id}
+        apagada={(l) => getStatus(l) === 'pago'}
+        alerta={(l) => getStatus(l) === 'vencido'}
+        vazio="Nenhum lançamento neste filtro."
+        celulas={(l) => {
+          const st = getStatus(l);
+          const pagar = l.tipo === 'PAGAR';
+          return [
+            <Titulo
+              key="d"
+              nome={l.descricao}
+              apoio={
+                <>
+                  {l.isFixa && 'Fixa · '}
+                  {l.categoria ?? (pagar ? 'A pagar' : 'A receber')}
+                  {l.partnerName ? ` · ${nomeDeExibicao(l.partnerName)}` : ''}
+                  <span className="sm:hidden"> · {fmtDate(l.vencimento)}</span>
+                </>
+              }
+            />,
+            <span key="v" className="text-xs tabular text-ink-soft">{fmtDate(l.vencimento)}</span>,
+            <Situacao key="s" cor={st === 'pago' ? 'bg-emerald-500' : st === 'vencido' ? 'bg-rose-500' : 'bg-amber-500'}>
+              {st === 'pago' ? (pagar ? 'Pago' : 'Recebido') : st === 'vencido' ? 'Vencido' : 'Em aberto'}
+            </Situacao>,
+            <Valor key="$" tom={pagar ? 'saida' : 'entrada'}>
+              {pagar ? '− ' : '+ '}
+              {fmt(l.valor)}
+            </Valor>,
+          ];
+        }}
+        detalhe={(l) => {
+          const pagar = l.tipo === 'PAGAR';
+          const contrato = contratoLinkFor(l);
+          return (
+            <Detalhe
+              acoes={
+                <>
+                  <BotaoDiscreto onClick={() => togglePago(l)}>
+                    {marking === l.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    {l.pago_em ? 'Desfazer baixa' : pagar ? 'Marcar como pago' : 'Marcar como recebido'}
+                  </BotaoDiscreto>
+                  {!pagar && !l.pago_em && (
+                    <BotaoDiscreto onClick={() => setSelectedPixLancamento(l)}>
+                      <QrCode className="h-3.5 w-3.5" /> Cobrar por Pix
+                    </BotaoDiscreto>
                   )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                  {contrato && <BotaoDiscreto href={contrato}>Ver contrato</BotaoDiscreto>}
+                  {confirmarExclusao === l.id ? (
+                    <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                      <span className="font-normal text-ink-soft">Excluir?</span>
+                      <button type="button" disabled={deleting === l.id} onClick={() => handleDelete(l.id)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">
+                        Sim
+                      </button>
+                      <button type="button" onClick={() => setConfirmarExclusao(null)} className="text-ink-soft hover:text-ink">Não</button>
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmarExclusao(l.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                      Excluir
+                    </button>
+                  )}
+                </>
+              }
+            >
+              <Campo rotulo="Categoria">{l.categoria ?? '—'}</Campo>
+              {l.partnerName && <Campo rotulo={pagar ? 'Fornecedor' : 'Cliente'}>{nomeDeExibicao(l.partnerName)}</Campo>}
+              {l.costCenterName && <Campo rotulo="Centro de custo">{l.costCenterName}</Campo>}
+              <Campo rotulo="Vencimento">{fmtDate(l.vencimento)}</Campo>
+              {l.pago_em && <Campo rotulo={pagar ? 'Pago em' : 'Recebido em'}>{fmtDate(l.pago_em)}</Campo>}
+              {l.interest && l.interest > 0 ? <Campo rotulo="Multa e juros">{fmt(l.interest)}</Campo> : null}
+              {l.discount && l.discount > 0 ? <Campo rotulo="Desconto">{fmt(l.discount)}</Campo> : null}
+              <Campo rotulo="Lançado em">{fmtDate(l.created_at.split('T')[0]!)}</Campo>
+              {l.observacao && <Campo rotulo="Observações" largo>{l.observacao}</Campo>}
+              {l.temComprovante && (
+                <Campo rotulo="Comprovante" largo>
+                  <VerComprovante id={l.id} nome={l.comprovanteNome} className="inline-flex items-center gap-1.5 font-semibold text-ink hover:underline">
+                    <Paperclip className="h-3.5 w-3.5 text-ink-soft" /> {l.comprovanteNome || 'Ver comprovante'}
+                  </VerComprovante>
+                </Campo>
+              )}
+            </Detalhe>
+          );
+        }}
+      />
 
       {selectedPixLancamento && (
         <GeneratePixModal

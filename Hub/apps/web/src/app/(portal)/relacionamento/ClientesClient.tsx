@@ -14,7 +14,8 @@ import { salvarClienteAction, marcarRecorrenciaAction, type TarefaRow } from './
 import { TarefasTab } from './TarefasTab';
 import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 import { relacaoDoCliente, ROTULO_DA_RELACAO, COR_DA_RELACAO, type Relacao } from '@/lib/relacao-cliente';
-import { ArrowUpRight, ChevronDown, Mail, MessageCircle } from 'lucide-react';
+import { Mail, MessageCircle } from 'lucide-react';
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
 
 /**
  * CLIENTES.
@@ -238,124 +239,75 @@ export function FormularioDeCliente({
 }
 
 /**
- * A lista em colunas alinhadas: o cliente (nome legível e documento), quanto
- * faturou em 12 meses, quanto tem a receber e a última nota. O primeiro
- * clique abre os detalhes ali mesmo; "Abrir ficha" leva à ficha completa.
+ * A lista de clientes no padrão das listas (ListaEmColunas): o cliente com o
+ * nome legível, a relação, quanto faturou, quanto tem a receber e a última
+ * nota. O primeiro clique abre os detalhes; "Abrir ficha" leva à ficha.
  */
-const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_8rem_7rem_1rem]';
-
 function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
-  const [aberto, setAberto] = useState<string | null>(null);
   return (
-    <div className="overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-      <div className={`${colunas} border-b border-black/[0.08] px-6 py-3 dark:border-white/[0.12]`}>
-        <span className="rotulo text-ink-soft">Cliente</span>
-        <span className="rotulo hidden text-ink-soft sm:block">Relação</span>
-        <span className="rotulo text-right text-ink-soft sm:block">Faturado 12m</span>
-        <span className="rotulo hidden text-right text-ink-soft sm:block">A receber</span>
-        <span className="rotulo hidden text-right text-ink-soft sm:block">Última nota</span>
-        <span className="hidden sm:block" />
-      </div>
-      <ul className="entrada-lista divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-        {clientes.map((c) => {
-          const nome = nomeDeExibicao(c.nome);
-          const estaAberto = aberto === c.id;
-          const relacao = relacaoDoCliente(c);
-          const ativo = relacao !== 'INATIVO';
-          const whats = c.telefone?.replace(/\D/g, '');
-          return (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => setAberto(estaAberto ? null : c.id)}
-                aria-expanded={estaAberto}
-                className={`${colunas} w-full px-6 py-3.5 text-left transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.035] ${estaAberto ? 'bg-black/[0.025] dark:bg-white/[0.035]' : ''}`}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-hexxa-forest/[0.08] text-[11px] font-semibold tracking-wide text-hexxa-forest dark:bg-hexxa-lime/10 dark:text-hexxa-lime">
-                    {iniciais(nome)}
-                  </span>
-                  <span className="min-w-0">
-                    <span className={`block truncate text-sm font-medium ${ativo ? 'text-ink' : 'text-ink-soft'}`}>{nome}</span>
-                    <span className="block truncate text-xs text-ink-soft">
-                      {formatarDocumento(c.documento) || 'Sem documento'}
-                      {c.contratosAtivos > 0 ? ` · ${c.contratosAtivos} ${c.contratosAtivos === 1 ? 'contrato' : 'contratos'}` : ''}
-                    </span>
-                  </span>
-                </span>
-                <span className={`hidden items-center gap-1.5 text-xs sm:inline-flex ${ativo ? 'text-ink' : 'text-ink-soft'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${COR_DA_RELACAO[relacao]}`} />
-                  {ROTULO_DA_RELACAO[relacao]}
-                </span>
-                <span className={`text-right font-serif text-sm tabular ${c.faturado12m > 0 ? 'font-bold text-ink' : 'text-ink-soft/60'}`}>
-                  {c.faturado12m > 0 ? BRL.format(c.faturado12m) : '—'}
-                </span>
-                <span className={`hidden text-right font-serif text-sm tabular sm:block ${c.aReceber > 0 ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-ink-soft/60'}`}>
-                  {c.aReceber > 0 ? BRL.format(c.aReceber) : '—'}
-                </span>
-                <span className="hidden text-right text-xs tabular text-ink-soft sm:block">
-                  {c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
-                </span>
-                <ChevronDown className={`hidden h-4 w-4 text-ink-soft transition-transform duration-200 sm:block ${estaAberto ? 'rotate-180' : ''}`} />
-              </button>
-
-              {estaAberto && (
-                <div className="grid gap-5 border-t border-black/[0.06] bg-black/[0.015] px-6 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:pl-[4.25rem] dark:border-white/[0.08] dark:bg-white/[0.02]">
-                  <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
-                    <div className="col-span-2 sm:col-span-3">
-                      <dt className="rotulo text-ink-soft">Razão social</dt>
-                      <dd className="mt-0.5 text-ink">{c.nome}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo text-ink-soft">{c.tipo === 'PF' ? 'CPF' : 'CNPJ'}</dt>
-                      <dd className="mt-0.5 tabular text-ink">{formatarDocumento(c.documento) || '—'}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo text-ink-soft">A receber</dt>
-                      <dd className="mt-0.5 font-serif tabular text-ink">{BRL.format(c.aReceber)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo text-ink-soft">Última nota</dt>
-                      <dd className="mt-0.5 text-ink">{c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR') : 'Nenhuma'}</dd>
-                    </div>
-                    <div className="col-span-2 sm:col-span-3">
-                      <dt className="rotulo text-ink-soft">Relação</dt>
-                      <dd className="mt-1 text-ink">
-                        <MarcaDeRecorrencia cliente={c} />
-                      </dd>
-                    </div>
-                    <div className="col-span-2 sm:col-span-3">
-                      <dt className="rotulo text-ink-soft">Contato</dt>
-                      <dd className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-ink">
-                        {c.email ? (
-                          <a href={`mailto:${c.email.toLowerCase()}`} className="inline-flex items-center gap-1.5 hover:underline">
-                            <Mail className="h-3.5 w-3.5 text-ink-soft" /> {c.email.toLowerCase()}
-                          </a>
-                        ) : null}
-                        {whats ? (
-                          <a href={`https://wa.me/${whats.length <= 11 ? `55${whats}` : whats}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
-                            <MessageCircle className="h-3.5 w-3.5 text-ink-soft" /> {c.telefone}
-                          </a>
-                        ) : null}
-                        {!c.email && !whats && <span className="text-ink-soft">Sem e-mail nem telefone — complete na ficha.</span>}
-                      </dd>
-                    </div>
-                  </dl>
-                  <div className="flex items-start sm:justify-end">
-                    <Link
-                      href={`/relacionamento/${c.id}` as Route}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-4 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-black/[0.04] dark:border-white/20 dark:hover:bg-white/[0.06]"
-                    >
-                      Abrir ficha <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <ListaEmColunas
+      colunas={[
+        { rotulo: 'Cliente', largura: 'minmax(0,1fr)' },
+        { rotulo: 'Relação', largura: '7rem', soDesktop: true },
+        { rotulo: 'Faturado 12m', largura: '8rem', alinhar: 'direita' },
+        { rotulo: 'A receber', largura: '8rem', alinhar: 'direita', soDesktop: true },
+        { rotulo: 'Última nota', largura: '7rem', alinhar: 'direita', soDesktop: true },
+      ]}
+      itens={clientes}
+      chave={(c) => c.id}
+      celulas={(c) => {
+        const nome = nomeDeExibicao(c.nome);
+        const relacao = relacaoDoCliente(c);
+        return [
+          <Titulo
+            key="t"
+            nome={nome}
+            monograma={iniciais(nome)}
+            apagado={relacao === 'INATIVO'}
+            apoio={`${formatarDocumento(c.documento) || 'Sem documento'}${c.contratosAtivos > 0 ? ` · ${c.contratosAtivos} ${c.contratosAtivos === 1 ? 'contrato' : 'contratos'}` : ''}`}
+          />,
+          <Situacao key="r" cor={COR_DA_RELACAO[relacao]}>{ROTULO_DA_RELACAO[relacao]}</Situacao>,
+          <Valor key="f" vazio={!c.faturado12m}>{BRL.format(c.faturado12m)}</Valor>,
+          <Valor key="a" vazio={!c.aReceber} tom="alerta">{BRL.format(c.aReceber)}</Valor>,
+          <span key="u" className="text-xs tabular text-ink-soft">
+            {c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
+          </span>,
+        ];
+      }}
+      detalhe={(c) => {
+        const whats = c.telefone?.replace(/\D/g, '');
+        return (
+          <Detalhe acoes={<BotaoDiscreto href={`/relacionamento/${c.id}`}>Abrir ficha</BotaoDiscreto>}>
+            <Campo rotulo="Razão social" largo>{c.nome}</Campo>
+            <Campo rotulo={c.tipo === 'PF' ? 'CPF' : 'CNPJ'}>
+              <span className="tabular">{formatarDocumento(c.documento) || '—'}</span>
+            </Campo>
+            <Campo rotulo="A receber">
+              <span className="font-serif tabular">{BRL.format(c.aReceber)}</span>
+            </Campo>
+            <Campo rotulo="Última nota">{c.ultimaNota ? new Date(c.ultimaNota).toLocaleDateString('pt-BR') : 'Nenhuma'}</Campo>
+            <Campo rotulo="Relação" largo>
+              <MarcaDeRecorrencia cliente={c} />
+            </Campo>
+            <Campo rotulo="Contato" largo>
+              <span className="flex flex-wrap gap-x-5 gap-y-1">
+                {c.email ? (
+                  <a href={`mailto:${c.email.toLowerCase()}`} className="inline-flex items-center gap-1.5 hover:underline">
+                    <Mail className="h-3.5 w-3.5 text-ink-soft" /> {c.email.toLowerCase()}
+                  </a>
+                ) : null}
+                {whats ? (
+                  <a href={`https://wa.me/${whats.length <= 11 ? `55${whats}` : whats}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
+                    <MessageCircle className="h-3.5 w-3.5 text-ink-soft" /> {c.telefone}
+                  </a>
+                ) : null}
+                {!c.email && !whats && <span className="text-ink-soft">Sem e-mail nem telefone — complete na ficha.</span>}
+              </span>
+            </Campo>
+          </Detalhe>
+        );
+      }}
+    />
   );
 }
 
