@@ -13,7 +13,7 @@ import { consultarParteAction } from '../meu-negocio/contratos/contratos-actions
 import { salvarClienteAction, type TarefaRow } from './actions';
 import { TarefasTab } from './TarefasTab';
 import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
-import { ChevronDown, Mail, MessageCircle } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Mail, MessageCircle } from 'lucide-react';
 
 /**
  * CLIENTES.
@@ -23,7 +23,17 @@ import { ChevronDown, Mail, MessageCircle } from 'lucide-react';
  * nascem sozinhos das notas emitidas; o "Novo cliente" preenche pela Receita.
  */
 
-type Filtro = 'TODOS' | 'CONTRATO' | 'RECEBER' | 'SEM_NOTA';
+type Filtro = 'TODOS' | 'ATIVOS' | 'INATIVOS' | 'CONTRATO' | 'RECEBER';
+
+/**
+ * Cliente ativo: teve nota nos últimos 6 meses, tem contrato ativo ou tem
+ * valor a receber. Sem nada disso, está inativo. Regra automática — não há
+ * status manual para esquecer de atualizar.
+ */
+const SEIS_MESES = 183 * 86400000;
+export function clienteAtivo(c: ClienteDaLista) {
+  return c.contratosAtivos > 0 || c.aReceber > 0 || (!!c.ultimaNota && Date.now() - Date.parse(c.ultimaNota) <= SEIS_MESES);
+}
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const campo =
   'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
@@ -50,9 +60,10 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
     return clientes.filter(
       (c) =>
         (filtro === 'TODOS' ||
+          (filtro === 'ATIVOS' && clienteAtivo(c)) ||
+          (filtro === 'INATIVOS' && !clienteAtivo(c)) ||
           (filtro === 'CONTRATO' && c.contratosAtivos > 0) ||
-          (filtro === 'RECEBER' && c.aReceber > 0) ||
-          (filtro === 'SEM_NOTA' && !c.ultimaNota)) &&
+          (filtro === 'RECEBER' && c.aReceber > 0)) &&
         (!q || (c.nome.toLowerCase().includes(q) || nomeDeExibicao(c.nome).toLowerCase().includes(q)) || (soDigitos.length >= 3 && (c.documento ?? '').includes(soDigitos))),
     );
   }, [clientes, busca, filtro]);
@@ -89,7 +100,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
       ) : (
         <>
           <GradeDeResumo colunas={3}>
-            <CardResumo destaque rotulo="Faturado em 12 meses" valor={BRL.format(faturado)} nota={`${clientes.length} ${clientes.length === 1 ? 'cliente' : 'clientes'} · só notas fiscais`} />
+            <CardResumo destaque rotulo="Faturado em 12 meses" valor={BRL.format(faturado)} nota={`${clientes.filter(clienteAtivo).length} ${clientes.filter(clienteAtivo).length === 1 ? 'ativo' : 'ativos'} de ${clientes.length} · só notas fiscais`} />
             <CardResumo rotulo="A receber em aberto" valor={BRL.format(receber)} nota="Parcelas de notas e contratos" onClick={() => setFiltro('RECEBER')} />
             <CardResumo rotulo="Com contrato ativo" valor={comContrato} nota="Clientes com contrato de entrada" onClick={() => setFiltro('CONTRATO')} />
           </GradeDeResumo>
@@ -101,9 +112,10 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
                 onChange={setFiltro}
                 filtros={[
                   { id: 'TODOS', label: 'Todos', count: clientes.length },
+                  { id: 'ATIVOS', label: 'Ativos', count: clientes.filter(clienteAtivo).length },
+                  { id: 'INATIVOS', label: 'Inativos', count: clientes.filter((c) => !clienteAtivo(c)).length },
                   { id: 'CONTRATO', label: 'Com contrato', count: comContrato },
                   { id: 'RECEBER', label: 'Com valor a receber', count: clientes.filter((c) => c.aReceber > 0).length },
-                  { id: 'SEM_NOTA', label: 'Sem nota', count: clientes.filter((c) => !c.ultimaNota).length },
                 ]}
               />
               <label className="flex w-full items-center gap-2 border-b border-black/10 pb-1.5 sm:w-64 dark:border-white/15">
@@ -239,7 +251,7 @@ export function FormularioDeCliente({
  * faturou em 12 meses, quanto tem a receber e a última nota. O primeiro
  * clique abre os detalhes ali mesmo; "Abrir ficha" leva à ficha completa.
  */
-const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_8rem_8rem_7rem_1rem]';
+const colunas = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 sm:grid-cols-[minmax(0,1fr)_6rem_8rem_8rem_7rem_1rem]';
 
 function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
   const [aberto, setAberto] = useState<string | null>(null);
@@ -247,6 +259,7 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
     <div className="overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className={`${colunas} border-b border-black/[0.08] px-6 py-3 dark:border-white/[0.12]`}>
         <span className="rotulo text-ink-soft">Cliente</span>
+        <span className="rotulo hidden text-ink-soft sm:block">Situação</span>
         <span className="rotulo text-right text-ink-soft sm:block">Faturado 12m</span>
         <span className="rotulo hidden text-right text-ink-soft sm:block">A receber</span>
         <span className="rotulo hidden text-right text-ink-soft sm:block">Última nota</span>
@@ -256,6 +269,7 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
         {clientes.map((c) => {
           const nome = nomeDeExibicao(c.nome);
           const estaAberto = aberto === c.id;
+          const ativo = clienteAtivo(c);
           const whats = c.telefone?.replace(/\D/g, '');
           return (
             <li key={c.id}>
@@ -270,12 +284,16 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
                     {iniciais(nome)}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-ink">{nome}</span>
+                    <span className={`block truncate text-sm font-medium ${ativo ? 'text-ink' : 'text-ink-soft'}`}>{nome}</span>
                     <span className="block truncate text-xs text-ink-soft">
                       {formatarDocumento(c.documento) || 'Sem documento'}
                       {c.contratosAtivos > 0 ? ` · ${c.contratosAtivos} ${c.contratosAtivos === 1 ? 'contrato' : 'contratos'}` : ''}
                     </span>
                   </span>
+                </span>
+                <span className={`hidden items-center gap-1.5 text-xs sm:inline-flex ${ativo ? 'text-ink' : 'text-ink-soft'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${ativo ? 'bg-emerald-500' : 'bg-black/20 dark:bg-white/25'}`} />
+                  {ativo ? 'Ativo' : 'Inativo'}
                 </span>
                 <span className={`text-right font-serif text-sm tabular ${c.faturado12m > 0 ? 'font-bold text-ink' : 'text-ink-soft/60'}`}>
                   {c.faturado12m > 0 ? BRL.format(c.faturado12m) : '—'}
@@ -328,9 +346,9 @@ function ListaDeClientes({ clientes }: { clientes: ClienteDaLista[] }) {
                   <div className="flex items-start sm:justify-end">
                     <Link
                       href={`/relacionamento/${c.id}` as Route}
-                      className="inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2.5 text-xs font-bold text-hexxa-lime shadow-(--elev-1) dark:bg-hexxa-lime dark:text-hexxa-forest"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-4 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-black/[0.04] dark:border-white/20 dark:hover:bg-white/[0.06]"
                     >
-                      Abrir ficha
+                      Abrir ficha <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 </div>
