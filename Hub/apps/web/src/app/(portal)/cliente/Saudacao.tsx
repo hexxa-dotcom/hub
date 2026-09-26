@@ -44,7 +44,7 @@ export async function Saudacao() {
   const nome = primeiroNome || 'Filipe';
 
   return (
-    <h1 className="entrada-titulo text-2xl font-light uppercase tracking-[0.08em] text-ink sm:text-[28px]">
+    <h1 className="entrada-titulo text-2xl font-bold tracking-tight text-ink sm:text-3xl">
       {periodoDoDia()}, {nome}
     </h1>
   );

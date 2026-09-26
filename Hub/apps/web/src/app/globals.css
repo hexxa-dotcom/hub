@@ -1126,6 +1126,16 @@ a.bg-hexxa-forest:active {
   animation-timing-function: ease-out;
 }
 
+/* Gráficos da Início: a linha se desenha, o resto aparece. Só opacity e
+   stroke-dashoffset — nada de transform, que brigaria com o rotate do SVG. */
+@keyframes grafico-desenha { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes grafico-surge { from { opacity: 0; } to { opacity: 1; } }
+.grafico-desenha { stroke-dasharray: 1; animation: grafico-desenha 700ms var(--ease-entrada) 120ms both; }
+.grafico-surge, .grafico-gira { animation: grafico-surge 420ms var(--ease-entrada) 120ms both; }
+@media (prefers-reduced-motion: reduce) {
+  .grafico-desenha { animation: none; stroke-dasharray: none; }
+}
+
 @media print {
   .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, .entrada-lista > *, ul.rounded-\[28px\] > li, .fixed.inset-0.z-50, .fixed.inset-0.z-50 > * { animation: none; }
 }

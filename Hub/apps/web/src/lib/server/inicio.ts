@@ -10,6 +10,7 @@ import { listarPedidos } from '@/lib/server/servicos';
 import { listarPropostas } from '@/lib/server/propostas';
 import { listarFilas } from '@/lib/server/fila-agente';
 import { relacaoDoCliente } from '@/lib/relacao-cliente';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 import { listContractsAction } from '@/app/(portal)/meu-negocio/contratos/actions';
 import { listSupportTicketsAction } from '@/app/(portal)/suporte/actions';
 
@@ -220,82 +221,41 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
   return p.sort((a, b) => (a.tom === b.tom ? 0 : a.tom === 'alerta' ? -1 : 1));
 }
 
-// ── O mês em números ────────────────────────────────────────────────────────
-
-export interface MesEmNumeros {
-  mes: string; // YYYY-MM
-  faturado: number;
-  faturadoAnterior: number;
-  notas: number;
-  imposto: number;
-  aliquota: number;
-  resultado: number;
-  despesas: number;
-  caixa14: { entra: number; sai: number };
-}
-
-export async function mesEmNumeros(ctx: TenantContext, mes: string): Promise<MesEmNumeros> {
-  const hoje = hojeSP();
-  const em14 = somaDias(hoje, 14);
-  const [serie, taxa, dre, notas, caixa] = await Promise.all([
-    seguro(faturamentoMensal(ctx), []),
-    seguro(aliquotaDoFaturamento(ctx), { aliquota: 0, apurada: false }),
-    seguro(getBalancoDreData(ctx, { de: `${mes}-01`, ate: `${mes}-01` }), null),
-    seguro(notasDoMes(ctx, mes), null),
-    seguro(
-      withTenant(ctx.companyId, (tx) =>
-        tx.execute(sql`
-          SELECT coalesce(sum(amount) FILTER (WHERE type = 'RECEIVABLE'), 0) AS entra,
-                 coalesce(sum(amount) FILTER (WHERE type = 'PAYABLE'), 0) AS sai
-            FROM financial_entry
-           WHERE company_id = ${ctx.companyId} AND status IN ('PENDING', 'OVERDUE') AND due_date >= ${hoje} AND due_date <= ${em14}
-        `),
-      ) as unknown as Promise<{ entra: string; sai: string }[]>,
-      [],
-    ),
-  ]);
-  const [y, m] = mes.split('-').map(Number) as [number, number];
-  const ant = new Date(y, m - 2, 1);
-  const mesAnterior = `${ant.getFullYear()}-${String(ant.getMonth() + 1).padStart(2, '0')}`;
-  const faturado = serie.find((s) => s.mes === mes)?.valor ?? dre?.receita ?? 0;
-  return {
-    mes,
-    faturado,
-    faturadoAnterior: serie.find((s) => s.mes === mesAnterior)?.valor ?? 0,
-    notas: notas?.emitidas.filter((n) => !n.cancelada).length ?? 0,
-    imposto: (faturado * taxa.aliquota) / 100,
-    aliquota: taxa.aliquota,
-    resultado: dre?.lucroLiquido ?? 0,
-    despesas: dre ? dre.despesasOperacionais + dre.prolabore : 0,
-    caixa14: { entra: Number(caixa[0]?.entra ?? 0), sai: Number(caixa[0]?.sai ?? 0) },
-  };
-}
-
 // ── Cada área num relance ───────────────────────────────────────────────────
 
-export interface QuadroDaArea {
-  area: string;
-  href: string;
-  numero: string;
-  linha: string;
-  /** Uma segunda informação, menor. */
-  extra?: string;
+export interface AreasDaEmpresa {
+  financeiro: { receber: number; pagar: number; recebido: number; pago: number };
+  notas: { quantidade: number; valor: number; ultima: string | null };
+  impostos: { aliquota: number; apurada: boolean; proximaGuia: { nome: string; valor: number; vencimento: string } | null };
+  clientes: { recorrentes: number; avulsos: number; inativos: number };
+  contratos: { ativos: number; porMes: number; terminando: number };
+  propostas: { enviadas: number; vistas: number; aceitas: number; emNegociacao: number };
+  pessoas: { socios: number; equipe: number; custoMensal: number };
+  documentos: { nome: string; situacao: 'EM_DIA' | 'VENCE_EM_BREVE' | 'VENCIDO' | 'FALTA' }[];
+  /** Cada nota do mês: o dia e o valor (as bolhas). */
+  notasPontos: { dia: number; valor: number }[];
+  /** Contratos ativos que terminam nos próximos 12 meses: quando (0 a 1) e o nome. */
+  contratosFim: { fracao: number; titulo: string; logo: boolean }[];
+  iniciais: string[];
 }
 
-export async function areasNumRelance(ctx: TenantContext): Promise<QuadroDaArea[]> {
+export async function areasDaEmpresa(ctx: TenantContext): Promise<AreasDaEmpresa> {
   const hoje = hojeSP();
   const mes = hoje.slice(0, 7);
-  const [fin, notas, clientes, contratos, propostas, pessoas, docs, taxa] = await Promise.all([
+  const em60 = somaDias(hoje, 60);
+  const [fin, notas, clientes, contratos, propostas, pessoas, docs, taxa, guia] = await Promise.all([
     seguro(
       withTenant(ctx.companyId, (tx) =>
         tx.execute(sql`
-          SELECT coalesce(sum(amount) FILTER (WHERE type = 'RECEIVABLE'), 0) AS receber,
-                 coalesce(sum(amount) FILTER (WHERE type = 'PAYABLE' AND description NOT ILIKE 'Provisão de Imposto%'), 0) AS pagar
+          SELECT coalesce(sum(amount) FILTER (WHERE type = 'RECEIVABLE' AND status IN ('PENDING', 'OVERDUE')), 0) AS receber,
+                 coalesce(sum(amount) FILTER (WHERE type = 'PAYABLE' AND status IN ('PENDING', 'OVERDUE')), 0) AS pagar,
+                 coalesce(sum(amount) FILTER (WHERE type = 'RECEIVABLE' AND status = 'PAID'), 0) AS recebido,
+                 coalesce(sum(amount) FILTER (WHERE type = 'PAYABLE' AND status = 'PAID'), 0) AS pago
             FROM financial_entry
-           WHERE company_id = ${ctx.companyId} AND status IN ('PENDING', 'OVERDUE')
-             AND to_char(due_date, 'YYYY-MM') = ${mes}
+           WHERE company_id = ${ctx.companyId} AND status <> 'CANCELED' AND to_char(due_date, 'YYYY-MM') = ${mes}
+             AND NOT (type = 'PAYABLE' AND description ILIKE 'Provisão de Imposto%')
         `),
-      ) as unknown as Promise<{ receber: string; pagar: string }[]>,
+      ) as unknown as Promise<{ receber: string; pagar: string; recebido: string; pago: string }[]>,
       [],
     ),
     seguro(notasDoMes(ctx, mes), null),
@@ -315,32 +275,186 @@ export async function areasNumRelance(ctx: TenantContext): Promise<QuadroDaArea[
     ),
     seguro(listarDocumentos(ctx), []),
     seguro(aliquotaDoFaturamento(ctx), { aliquota: 0, apurada: false }),
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT tax_name, amount, to_char(due_date, 'YYYY-MM-DD') AS venc FROM tax_guide
+           WHERE company_id = ${ctx.companyId} AND status <> 'PAID' AND NOT provisional
+           ORDER BY due_date LIMIT 1
+        `),
+      ) as unknown as Promise<{ tax_name: string; amount: string; venc: string }[]>,
+      [],
+    ),
   ]);
 
   const emitidas = notas?.emitidas.filter((n) => !n.cancelada) ?? [];
-  const recorrentes = clientes.filter((c) => relacaoDoCliente(c) === 'RECORRENTE').length;
-  const ativosC = clientes.filter((c) => relacaoDoCliente(c) !== 'INATIVO').length;
-  const contratosAtivos = contratos.filter((c) => c.status === 'ATIVO' && c.type === 'ENTRADA' && c.endDate >= hoje);
-  const negociando = propostas.filter((x) => x.status === 'enviada' || x.status === 'vista');
-  const essencial = checklist(docs);
-  const emDia = essencial.filter((i) => i.situacao === 'EM_DIA').length;
-  const pe = pessoas[0];
+  const nomes = (await seguro(
+    withTenant(ctx.companyId, (tx) =>
+      tx.execute(sql`
+        SELECT name FROM partner WHERE company_id = ${ctx.companyId}
+        UNION ALL SELECT name FROM employee WHERE company_id = ${ctx.companyId} AND status <> 'TERMINATED'
+      `),
+    ) as unknown as Promise<{ name: string }[]>,
+    [],
+  )).map((r) => r.name);
+  const iniciaisDasPessoas = nomes.map((n) => iniciais(nomeDeExibicao(n)));
+  const rel = clientes.map((c) => relacaoDoCliente(c));
+  const ativos = contratos.filter((c) => c.status === 'ATIVO' && c.type === 'ENTRADA' && c.endDate >= hoje);
   const f = fin[0];
+  const pe = pessoas[0];
+  const g = guia[0];
 
-  return [
-    { area: 'Financeiro', href: '/meu-negocio/hub-financeiro', numero: BRL.format(Number(f?.receber ?? 0)), linha: 'a receber este mês', extra: `${BRL.format(Number(f?.pagar ?? 0))} a pagar` },
-    { area: 'Notas', href: '/meu-negocio/notas', numero: String(emitidas.length), linha: emitidas.length === 1 ? 'nota emitida no mês' : 'notas emitidas no mês', extra: BRL.format(emitidas.reduce((s, n) => s + n.valor, 0)) },
-    { area: 'Impostos', href: '/minha-contabilidade/termometro-tributario', numero: `${taxa.aliquota.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`, linha: taxa.apurada ? 'alíquota apurada' : 'alíquota estimada', extra: 'Ver a Bússola' },
-    { area: 'Clientes', href: '/relacionamento', numero: String(ativosC), linha: ativosC === 1 ? 'cliente ativo' : 'clientes ativos', extra: `${recorrentes} ${recorrentes === 1 ? 'recorrente' : 'recorrentes'}` },
-    { area: 'Contratos', href: '/meu-negocio/contratos', numero: String(contratosAtivos.length), linha: contratosAtivos.length === 1 ? 'contrato ativo' : 'contratos ativos', extra: `${BRL.format(contratosAtivos.reduce((s, c) => s + c.value, 0))}/mês` },
-    { area: 'Propostas', href: '/meu-negocio/propostas', numero: BRL.format(negociando.reduce((s, x) => s + x.total, 0)), linha: 'em negociação', extra: plural(negociando.length, 'proposta aberta', 'propostas abertas') },
-    { area: 'Pessoas', href: '/minha-contabilidade/socios', numero: String(Number(pe?.socios ?? 0) + Number(pe?.equipe ?? 0)), linha: `${plural(Number(pe?.socios ?? 0), 'sócio', 'sócios')} e ${plural(Number(pe?.equipe ?? 0), 'colaborador', 'colaboradores')}`, extra: `${BRL.format(Number(pe?.prolabore ?? 0) + Number(pe?.folha ?? 0))}/mês` },
-    { area: 'Documentos', href: '/minha-contabilidade/arquivos', numero: `${emDia} de ${essencial.length}`, linha: 'essenciais em dia', extra: emDia < essencial.length ? `${essencial.length - emDia} para resolver` : 'Tudo em dia' },
-  ];
+  return {
+    financeiro: { receber: Number(f?.receber ?? 0), pagar: Number(f?.pagar ?? 0), recebido: Number(f?.recebido ?? 0), pago: Number(f?.pago ?? 0) },
+    notas: {
+      quantidade: emitidas.length,
+      valor: emitidas.reduce((s, n) => s + n.valor, 0),
+      ultima: emitidas.map((n) => n.data).filter(Boolean).sort().at(-1) ?? null,
+    },
+    impostos: { aliquota: taxa.aliquota, apurada: taxa.apurada, proximaGuia: g ? { nome: g.tax_name, valor: Number(g.amount), vencimento: g.venc } : null },
+    clientes: {
+      recorrentes: rel.filter((r) => r === 'RECORRENTE').length,
+      avulsos: rel.filter((r) => r === 'AVULSO').length,
+      inativos: rel.filter((r) => r === 'INATIVO').length,
+    },
+    contratos: {
+      ativos: ativos.length,
+      porMes: ativos.reduce((s, c) => s + c.value, 0),
+      terminando: ativos.filter((c) => c.endDate <= em60).length,
+    },
+    propostas: {
+      enviadas: propostas.filter((x) => x.status === 'enviada').length,
+      vistas: propostas.filter((x) => x.status === 'vista').length,
+      aceitas: propostas.filter((x) => x.status === 'aprovada').length,
+      emNegociacao: propostas.filter((x) => x.status === 'enviada' || x.status === 'vista').reduce((s, x) => s + x.total, 0),
+    },
+    pessoas: {
+      socios: Number(pe?.socios ?? 0),
+      equipe: Number(pe?.equipe ?? 0),
+      custoMensal: Number(pe?.prolabore ?? 0) + Number(pe?.folha ?? 0),
+    },
+    documentos: checklist(docs).map((i) => ({ nome: i.nome, situacao: i.situacao })),
+    notasPontos: emitidas
+      .filter((n) => n.data)
+      .map((n) => ({ dia: Number(new Date(n.data!).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(8, 10)), valor: n.valor })),
+    contratosFim: ativos
+      .filter((c) => c.endDate <= somaDias(hoje, 365))
+      .map((c) => ({ fracao: diasAte(c.endDate) / 365, titulo: `${c.title} · termina em ${br(c.endDate)}`, logo: c.endDate <= em60 })),
+    iniciais: iniciaisDasPessoas,
+  };
 }
 
-/** Faturamento dos últimos 12 meses — só nota fiscal, a mesma série da Bússola. */
-export async function faturamento12Meses(ctx: TenantContext) {
-  const serie = await seguro(faturamentoMensal(ctx), []);
-  return serie.slice(-12);
+// ── Os números do topo ──────────────────────────────────────────────────────
+
+export interface NumerosDoTopo {
+  mes: string; // YYYY-MM
+  faturado: number;
+  faturadoAnterior: number;
+  notas: number;
+  /** Faturamento dos 12 meses até o mês escolhido (só nota). */
+  serie: { mes: string; valor: number }[];
+  /** Ticket médio dos últimos 7 meses (faturado / notas). */
+  ticketSerie: number[];
+  resultado: number;
+  temResultado: boolean;
+  despesas: { pagas: number; abertas: number };
+  atraso: { ate15: number; ate60: number; mais60: number; quantidade: number };
+  proximos14: { entradas: number[]; saidas: number[] };
+  paraDistribuir: number;
+}
+
+export async function numerosDoTopo(ctx: TenantContext, mes: string, paraDistribuir = 0): Promise<NumerosDoTopo> {
+  const hoje = hojeSP();
+  const em13 = somaDias(hoje, 13);
+  const [y, m] = mes.split('-').map(Number) as [number, number];
+  const mesDe = (d: number) => {
+    const x = new Date(y, m - 1 + d, 1);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const inicio12 = `${mesDe(-11)}-01`;
+
+  const [porMes, dre, despesas, atraso, dias] = await Promise.all([
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT to_char(data_emissao AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM') AS mes,
+                 sum(coalesce(valor_servico, valor_liquido)) AS valor, count(*) AS n
+            FROM nfse_distribuicao_doc
+           WHERE company_id = ${ctx.companyId} AND tipo_documento = 'NFSE' AND direction = 'EMITIDA' AND NOT cancelado
+             AND data_emissao >= ${inicio12}::date
+           GROUP BY 1
+        `),
+      ) as unknown as Promise<{ mes: string; valor: string; n: string }[]>,
+      [],
+    ),
+    seguro(getBalancoDreData(ctx, { de: `${mes}-01`, ate: `${mes}-01` }), null),
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT coalesce(sum(amount) FILTER (WHERE status = 'PAID'), 0) AS pagas,
+                 coalesce(sum(amount) FILTER (WHERE status IN ('PENDING', 'OVERDUE')), 0) AS abertas
+            FROM financial_entry
+           WHERE company_id = ${ctx.companyId} AND type = 'PAYABLE' AND status <> 'CANCELED'
+             AND to_char(reference_month, 'YYYY-MM') = ${mes}
+             AND description NOT ILIKE 'Provisão de Imposto%'
+        `),
+      ) as unknown as Promise<{ pagas: string; abertas: string }[]>,
+      [],
+    ),
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT coalesce(sum(amount) FILTER (WHERE ${hoje}::date - due_date <= 15), 0) AS ate15,
+                 coalesce(sum(amount) FILTER (WHERE ${hoje}::date - due_date BETWEEN 16 AND 60), 0) AS ate60,
+                 coalesce(sum(amount) FILTER (WHERE ${hoje}::date - due_date > 60), 0) AS mais60,
+                 count(*) AS n
+            FROM financial_entry
+           WHERE company_id = ${ctx.companyId} AND type = 'RECEIVABLE' AND status IN ('PENDING', 'OVERDUE') AND due_date < ${hoje}
+        `),
+      ) as unknown as Promise<{ ate15: string; ate60: string; mais60: string; n: string }[]>,
+      [],
+    ),
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT to_char(due_date, 'YYYY-MM-DD') AS dia,
+                 coalesce(sum(amount) FILTER (WHERE type = 'RECEIVABLE'), 0) AS entra,
+                 coalesce(sum(amount) FILTER (WHERE type = 'PAYABLE'), 0) AS sai
+            FROM financial_entry
+           WHERE company_id = ${ctx.companyId} AND status IN ('PENDING', 'OVERDUE') AND due_date BETWEEN ${hoje} AND ${em13}
+           GROUP BY 1
+        `),
+      ) as unknown as Promise<{ dia: string; entra: string; sai: string }[]>,
+      [],
+    ),
+  ]);
+
+  const mapa = new Map(porMes.map((r) => [r.mes, { valor: Number(r.valor), n: Number(r.n) }]));
+  const serie = Array.from({ length: 12 }, (_, i) => {
+    const k = mesDe(i - 11);
+    return { mes: k, valor: mapa.get(k)?.valor ?? 0 };
+  });
+  const ticketSerie = Array.from({ length: 7 }, (_, i) => {
+    const x = mapa.get(mesDe(i - 6));
+    return x && x.n ? x.valor / x.n : 0;
+  });
+  const porDia = new Map(dias.map((d) => [d.dia, d]));
+  const proximos = Array.from({ length: 14 }, (_, i) => porDia.get(somaDias(hoje, i)));
+  const at = atraso[0];
+  const dp = despesas[0];
+
+  return {
+    mes,
+    faturado: mapa.get(mes)?.valor ?? 0,
+    faturadoAnterior: mapa.get(mesDe(-1))?.valor ?? 0,
+    notas: mapa.get(mes)?.n ?? 0,
+    serie,
+    ticketSerie,
+    resultado: dre?.lucroLiquido ?? 0,
+    temResultado: !!dre,
+    despesas: { pagas: Number(dp?.pagas ?? 0), abertas: Number(dp?.abertas ?? 0) },
+    atraso: { ate15: Number(at?.ate15 ?? 0), ate60: Number(at?.ate60 ?? 0), mais60: Number(at?.mais60 ?? 0), quantidade: Number(at?.n ?? 0) },
+    proximos14: { entradas: proximos.map((d) => Number(d?.entra ?? 0)), saidas: proximos.map((d) => Number(d?.sai ?? 0)) },
+    paraDistribuir,
+  };
 }
