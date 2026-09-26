@@ -104,17 +104,23 @@ export async function listTarefasAction(): Promise<TarefaRow[]> {
 export async function createTarefaAction(input: {
   titulo: string;
   descricao: string | null;
-  clienteNome: string | null;
+  customerId: string | null;
   prioridade: TarefaPrioridade;
   prazo: string | null;
 }): Promise<SaveRelContractState> {
   const ctx = await getTenantContext();
+  if (!input.titulo.trim()) return { ok: false, message: 'Dê um título à tarefa.' };
   await withTenant(ctx.companyId, async (tx) => {
+    // O cliente vai pelo id (é o que a ficha do cliente procura) e o nome junto, para a lista.
+    const [cli] = input.customerId
+      ? await tx.select({ id: customer.id, nome: customer.name }).from(customer).where(and(eq(customer.id, input.customerId), eq(customer.companyId, ctx.companyId)))
+      : [];
     await tx.insert(crmTask).values({
       companyId: ctx.companyId,
-      titulo: input.titulo,
+      titulo: input.titulo.trim(),
       descricao: input.descricao,
-      clienteNome: input.clienteNome,
+      customerId: cli?.id ?? null,
+      clienteNome: cli?.nome ?? null,
       prioridade: input.prioridade,
       prazo: input.prazo,
     });

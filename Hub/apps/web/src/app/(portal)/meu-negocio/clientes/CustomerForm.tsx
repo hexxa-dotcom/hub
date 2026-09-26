@@ -17,7 +17,7 @@ type LookupStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'error';
  * `onClose`/`onSuccess` são opcionais — usados quando embutido num modal (ex:
  * CRM em /relacionamento). Sem eles, funciona como página standalone.
  * Componente único reaproveitado em vez de duplicado — a versão antiga
- * hand-rolled em HubRelacionamento.tsx (`AddClienteForm`) não tinha a seção
+ * hand-rolled no antigo HubRelacionamento (`AddClienteForm`) não tinha a seção
  * de cobrança/emissão automática de NFSe, então cadastrar cliente pelo CRM
  * (o único caminho alcançável — `meu-negocio/clientes/page.tsx` só redireciona
  * pra cá) nunca oferecia essa opção.

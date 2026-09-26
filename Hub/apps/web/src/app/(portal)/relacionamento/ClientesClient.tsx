@@ -11,7 +11,7 @@ import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import type { ClienteDaLista } from '@/lib/server/clientes';
 import { consultarParteAction } from '../meu-negocio/contratos/contratos-actions';
 import { salvarClienteAction, type TarefaRow } from './actions';
-import { TarefasTab, type Customer } from './HubRelacionamento';
+import { TarefasTab } from './TarefasTab';
 
 /**
  * CLIENTES.
@@ -58,7 +58,6 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
   const faturado = clientes.reduce((s, c) => s + c.faturado12m, 0);
   const receber = clientes.reduce((s, c) => s + c.aReceber, 0);
   const comContrato = clientes.filter((c) => c.contratosAtivos > 0).length;
-  const clientesDasTarefas: Customer[] = clientes.map((c) => ({ id: c.id, name: c.nome, document: c.documento, email: c.email, phone: c.telefone, type: c.tipo, address: null }) as Customer);
 
   return (
     <div className="space-y-10">
@@ -84,7 +83,7 @@ export function ClientesClient({ clientes, tarefas }: { clientes: ClienteDaLista
       </div>
 
       {aba === 'tarefas' ? (
-        <TarefasTab customers={clientesDasTarefas} tarefas={tarefas} onChanged={() => router.refresh()} />
+        <TarefasTab clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))} tarefas={tarefas} onChanged={() => router.refresh()} />
       ) : (
         <>
           <GradeDeResumo colunas={3}>
