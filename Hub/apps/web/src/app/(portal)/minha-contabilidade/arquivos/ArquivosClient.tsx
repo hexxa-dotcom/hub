@@ -9,6 +9,7 @@ import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 import { CATEGORIAS, type Categoria } from '@/lib/documentos-categorias';
 import type { Documento, ItemDoEssencial } from '@/lib/server/documentos-da-empresa';
 import { createDocumentAction, deleteDocumentAction } from './actions';
+import { ListaEmColunas, Titulo, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
 
 /**
  * DOCUMENTOS DA EMPRESA.
@@ -33,6 +34,13 @@ const SITUACAO: Record<ItemDoEssencial['situacao'], { cor: string; texto: (i: It
   FALTA: { cor: 'text-ink-soft', texto: () => 'Falta' },
 };
 
+const PONTO: Record<ItemDoEssencial['situacao'], string> = {
+  EM_DIA: 'bg-emerald-500',
+  VENCE_EM_BREVE: 'bg-amber-500',
+  VENCIDO: 'bg-rose-500',
+  FALTA: 'bg-black/25 dark:bg-white/25',
+};
+
 export function ArquivosClient({
   docs,
   essencial,
@@ -47,6 +55,7 @@ export function ArquivosClient({
   const [novo, setNovo] = useState<Categoria | null>(null);
   const [vendo, setVendo] = useState<Documento | null>(null);
   const [removendo, setRemovendo] = useState<string | null>(null);
+  const [confirmarRemocao, setConfirmarRemocao] = useState<string | null>(null);
 
   const lista = useMemo(
     () =>
@@ -57,7 +66,7 @@ export function ArquivosClient({
   );
 
   async function remover(d: Documento) {
-    if (!confirm(`Remover "${d.nome}"? O arquivo é apagado.`)) return;
+    setConfirmarRemocao(null);
     setRemovendo(d.id);
     try {
       await deleteDocumentAction(d.id);
@@ -70,67 +79,74 @@ export function ArquivosClient({
   const certOk = extras.certificado.nivel === 'OK';
   const certRuim = ['AUSENTE', 'VENCIDO', 'INVALIDO'].includes(extras.certificado.nivel);
 
+  const link = 'text-ink-soft hover:text-ink';
+  const linhasDoEssencial: { id: string; nome: string; apoio?: string; situacao: string; cor: string; acoes: React.ReactNode }[] = [
+    ...essencial.map((i) => ({
+      id: i.categoria,
+      nome: i.nome,
+      apoio: i.situacao === 'FALTA' ? i.comoObter : i.documento?.origem === 'CONTADOR' ? 'Enviado pela contabilidade' : undefined,
+      situacao: SITUACAO[i.situacao].texto(i),
+      cor: PONTO[i.situacao],
+      acoes: (
+        <>
+          {i.documento?.href && (
+            <button type="button" onClick={() => setVendo(i.documento)} className="text-ink hover:underline underline-offset-4">Ver</button>
+          )}
+          {i.situacao !== 'EM_DIA' && i.link && (
+            <a href={i.link} target="_blank" rel="noreferrer" className={link}>Emitir na Receita</a>
+          )}
+          {i.situacao !== 'EM_DIA' && i.servico && (
+            <Link href={`/mais/servicos?pedir=${encodeURIComponent(i.servico)}` as never} className={link}>Pedir à contabilidade</Link>
+          )}
+          <button type="button" onClick={() => setNovo(i.categoria)} className={link}>{i.documento ? 'Enviar nova' : 'Enviar'}</button>
+        </>
+      ),
+    })),
+    {
+      id: 'certificado',
+      nome: 'Certificado digital',
+      situacao: extras.certificado.validoAte ? `Válido até ${br(extras.certificado.validoAte)}` : certRuim ? 'Falta' : extras.certificado.mensagem,
+      apoio: certRuim && !extras.certificado.validoAte ? extras.certificado.mensagem : undefined,
+      cor: certOk ? PONTO.EM_DIA : certRuim ? PONTO.VENCIDO : PONTO.VENCE_EM_BREVE,
+      acoes: <Link href="/configuracoes/fiscal" className={link}>{certRuim ? 'Enviar certificado' : 'Ver'}</Link>,
+    },
+    {
+      id: 'contratos',
+      nome: 'Contratos assinados',
+      situacao: `${extras.contratosAtivos} ${extras.contratosAtivos === 1 ? 'ativo' : 'ativos'}`,
+      cor: extras.contratosAtivos ? PONTO.EM_DIA : PONTO.FALTA,
+      acoes: <Link href="/meu-negocio/contratos" className={link}>Ver contratos</Link>,
+    },
+  ];
+
   return (
     <div className="space-y-16">
       {/* O essencial */}
       <section className="space-y-4">
         <p className="rotulo text-ink-soft">O essencial</p>
-        <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-          {essencial.map((i) => (
-            <li key={i.categoria} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink">{i.nome}</p>
-                <p className={`mt-0.5 text-xs font-medium ${SITUACAO[i.situacao].cor}`}>
-                  {SITUACAO[i.situacao].texto(i)}
-                  {i.situacao === 'FALTA' && <span className="font-normal text-ink-soft"> · {i.comoObter}</span>}
-                  {i.documento?.origem === 'CONTADOR' && <span className="font-normal text-ink-soft"> · enviado pela contabilidade</span>}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-4 text-xs font-semibold">
-                {i.documento?.href && (
-                  <button type="button" onClick={() => setVendo(i.documento)} className="text-ink hover:underline underline-offset-4">
-                    Ver
-                  </button>
-                )}
-                {i.situacao !== 'EM_DIA' && i.link && (
-                  <a href={i.link} target="_blank" rel="noreferrer" className="text-ink-soft hover:text-ink">
-                    Emitir na Receita
-                  </a>
-                )}
-                {i.situacao !== 'EM_DIA' && i.servico && (
-                  <Link href={`/mais/servicos?pedir=${encodeURIComponent(i.servico)}` as never} className="text-ink-soft hover:text-ink">
-                    Pedir à contabilidade
-                  </Link>
-                )}
-                <button type="button" onClick={() => setNovo(i.categoria)} className="text-ink-soft hover:text-ink">
-                  {i.documento ? 'Enviar nova' : 'Enviar'}
-                </button>
-              </div>
-            </li>
-          ))}
-          <li className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-            <div>
-              <p className="text-sm font-semibold text-ink">Certificado digital</p>
-              <p className={`mt-0.5 text-xs font-medium ${certOk ? 'text-emerald-700 dark:text-emerald-400' : certRuim ? 'text-rose-600 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                {extras.certificado.validoAte ? `Válido até ${br(extras.certificado.validoAte)}` : extras.certificado.mensagem}
-              </p>
-            </div>
-            <Link href="/configuracoes/fiscal" className="text-xs font-semibold text-ink-soft hover:text-ink">
-              {certRuim ? 'Enviar certificado' : 'Ver'}
-            </Link>
-          </li>
-          <li className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-            <div>
-              <p className="text-sm font-semibold text-ink">Contratos assinados</p>
-              <p className="mt-0.5 text-xs text-ink-soft">
-                {extras.contratosAtivos} {extras.contratosAtivos === 1 ? 'contrato ativo' : 'contratos ativos'}
-              </p>
-            </div>
-            <Link href="/meu-negocio/contratos" className="text-xs font-semibold text-ink-soft hover:text-ink">
-              Ver contratos
-            </Link>
-          </li>
-        </ul>
+        <ListaEmColunas
+          colunas={[
+            { rotulo: 'Documento', largura: 'minmax(0,1fr)' },
+            { rotulo: 'Situação', largura: '10rem', soDesktop: true },
+            { rotulo: '', largura: '15rem', alinhar: 'direita' },
+          ]}
+          itens={linhasDoEssencial}
+          chave={(l) => l.id}
+          celulas={(l) => [
+            <Titulo
+              key="t"
+              nome={l.nome}
+              apoio={
+                <>
+                  <span className="sm:hidden">{l.situacao}{l.apoio ? ' · ' : ''}</span>
+                  {l.apoio}
+                </>
+              }
+            />,
+            <Situacao key="s" cor={l.cor}>{l.situacao}</Situacao>,
+            <span key="a" className="flex items-center justify-end gap-4 text-xs font-semibold">{l.acoes}</span>,
+          ]}
+        />
       </section>
 
       {/* Todos */}
@@ -160,33 +176,52 @@ export function ArquivosClient({
             {docs.length === 0 ? 'Nenhum documento guardado ainda. Comece pelo essencial, acima.' : 'Nada neste filtro.'}
           </p>
         ) : (
-          <ul className="divide-y divide-black/5 rounded-[28px] border border-black/5 dark:divide-white/10 dark:border-white/10">
-            {lista.map((d) => (
-              <li key={`${d.origem}-${d.id}`} className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ink">{d.nome}</p>
-                  <p className="text-xs text-ink-soft">
-                    {CATEGORIAS[d.categoria]}
-                    {d.emitidoEm ? ` · ${d.origem === 'CONTADOR' ? 'enviado em' : 'emitido em'} ${br(d.emitidoEm)}` : ''}
-                    {d.validoAte ? ` · válido até ${br(d.validoAte)}` : ''}
-                    {d.protocolo ? ` · ${d.protocolo}` : ''}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-4 text-xs font-semibold">
-                  {d.href && (
-                    <button type="button" onClick={() => setVendo(d)} className="text-ink hover:underline underline-offset-4">
-                      Ver
-                    </button>
-                  )}
-                  {d.origem === 'EMPRESA' && (
-                    <button type="button" onClick={() => remover(d)} disabled={removendo === d.id} className="text-ink-soft hover:text-rose-600 disabled:opacity-50">
-                      {removendo === d.id ? 'Removendo…' : 'Remover'}
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <ListaEmColunas
+            colunas={[
+              { rotulo: 'Documento', largura: 'minmax(0,1fr)' },
+              { rotulo: 'De quem', largura: '7rem', soDesktop: true },
+              { rotulo: 'Data', largura: '6rem', alinhar: 'direita', soDesktop: true },
+              { rotulo: 'Validade', largura: '6rem', alinhar: 'direita' },
+            ]}
+            itens={lista}
+            chave={(d) => `${d.origem}-${d.id}`}
+            celulas={(d) => {
+              const vencido = !!d.validoAte && d.validoAte < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+              return [
+                <Titulo key="t" nome={d.nome} apoio={`${CATEGORIAS[d.categoria]}${d.protocolo ? ` · ${d.protocolo}` : ''}`} />,
+                <span key="o" className="text-xs text-ink-soft">{d.origem === 'CONTADOR' ? 'Contabilidade' : 'Você'}</span>,
+                <span key="d" className="text-xs tabular text-ink-soft">{br(d.emitidoEm) || '—'}</span>,
+                <span key="v" className={`text-xs tabular ${vencido ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-ink-soft'}`}>{br(d.validoAte) || '—'}</span>,
+              ];
+            }}
+            detalhe={(d) => (
+              <Detalhe
+                acoes={
+                  <>
+                    {d.href && <BotaoDiscreto onClick={() => setVendo(d)}>Ver documento</BotaoDiscreto>}
+                    {d.origem === 'EMPRESA' &&
+                      (confirmarRemocao === d.id ? (
+                        <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                          <span className="font-normal text-ink-soft">Remover? O arquivo é apagado.</span>
+                          <button type="button" disabled={removendo === d.id} onClick={() => remover(d)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">Sim</button>
+                          <button type="button" onClick={() => setConfirmarRemocao(null)} className="text-ink-soft hover:text-ink">Não</button>
+                        </span>
+                      ) : (
+                        <button type="button" onClick={() => setConfirmarRemocao(d.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                          Remover
+                        </button>
+                      ))}
+                  </>
+                }
+              >
+                <Campo rotulo="Tipo">{CATEGORIAS[d.categoria]}</Campo>
+                <Campo rotulo={d.origem === 'CONTADOR' ? 'Enviado em' : 'Emitido em'}>{br(d.emitidoEm) || '—'}</Campo>
+                <Campo rotulo="Válido até">{br(d.validoAte) || 'Sem validade'}</Campo>
+                <Campo rotulo="De quem">{d.origem === 'CONTADOR' ? 'Enviado pela contabilidade' : 'Enviado por você'}</Campo>
+                {d.protocolo && <Campo rotulo="Protocolo">{d.protocolo}</Campo>}
+              </Detalhe>
+            )}
+          />
         )}
       </section>
 

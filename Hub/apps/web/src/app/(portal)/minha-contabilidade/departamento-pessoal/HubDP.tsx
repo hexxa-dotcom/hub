@@ -1,5 +1,7 @@
 'use client';
 
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 import { useState } from 'react';
 import Link from 'next/link';
 import { custoDoColaborador } from '@hexxa/core/folha';
@@ -316,6 +318,7 @@ function ColaboradoresTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [modal, setModal] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmarRemocao, setConfirmarRemocao] = useState<string | null>(null);
 
   const filtered = colaboradores.filter(c => {
     const q = search.toLowerCase();
@@ -340,6 +343,7 @@ function ColaboradoresTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
   }
 
   async function handleDelete(id: string) {
+    setConfirmarRemocao(null);
     setBusyId(id);
     try {
       await deleteEmployeeAction(id);
@@ -376,105 +380,73 @@ function ColaboradoresTab({ colaboradores }: { colaboradores: EmployeeRow[] }) {
           <p className="text-sm">Nenhum colaborador encontrado com este filtro.</p>
         </div>
       ) : (
-        <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
-          {filtered.map(c => {
-            const st = STATUS_CONFIG[c.status];
-            const StatusIcon = st.icon;
-            const isExp = expanded === c.id;
-            return (
-              <div key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isExp ? null : c.id)}
-                  className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-xs font-bold text-hexxa-lime shadow-(--elev-inset) ${avatarColor(c.nome)}`}>
-                    {initials(c.nome)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink">{c.nome}</p>
-                    <p className="truncate text-xs text-ink-soft">{c.cargo ?? '—'}{c.departamento ? ` · ${c.departamento}` : ''}</p>
-                  </div>
-                  <div className="hidden shrink-0 text-right sm:block">
-                    <p className="text-sm font-serif tabular font-bold text-ink">{BRL.format(c.salario)}</p>
-                    <span className={`text-[10px] font-bold ${VINCULO_CLS[c.vinculo]} rounded-full px-2 py-0.5`}>{c.vinculo}</span>
-                  </div>
-                  <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    {st.label}
-                  </span>
-                  {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
-                </button>
-                {isExp && (
-                  <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
-                    <div className="grid gap-3 sm:grid-cols-3 text-sm">
-                      <div><p className={lbl}>{c.vinculo === 'PJ' ? 'Início da Vigência' : 'Admissão'}</p><p className="font-bold text-ink">{fmtDate(c.admissao)}</p></div>
-                      <div><p className={lbl}>{c.vinculo === 'PJ' ? 'Valor Mensal' : 'Remuneração'}</p><p className="font-serif tabular font-bold text-ink">{BRL.format(c.salario)}</p></div>
-                      {c.email && <div><p className={lbl}>E-mail</p><p className="truncate text-xs text-ink-soft">{c.email}</p></div>}
-                      {c.vinculo === 'PJ' && c.cnpj && <div><p className={lbl}>CNPJ</p><p className="text-xs text-ink-soft">{c.cnpj}</p></div>}
-                      {c.vinculo === 'PJ' && c.vigenciaFim && <div><p className={lbl}>Fim da Vigência</p><p className="font-medium text-ink">{fmtDate(c.vigenciaFim)}</p></div>}
-                      {c.vinculo === 'PJ' && c.vencimentoDia && <div><p className={lbl}>Vencimento</p><p className="font-medium text-ink">Todo dia {c.vencimentoDia}</p></div>}
-                      {c.vinculo === 'PJ' && c.businessContractId && (
-                        <div className="sm:col-span-3">
-                          <a href={`/meu-negocio/contratos/${c.businessContractId}`} className="text-xs font-bold text-hexxa-forest dark:text-hexxa-lime hover:underline">
-                            Ver vínculo de pagamento →
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-black/5 dark:border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => setModal({ open: true, editId: c.id })}
-                        className="rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-4 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-                      >
-                        Editar
-                      </button>
-                      {c.status !== 'ON_VACATION' && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatus(c.id, 'ON_VACATION')}
-                          disabled={busyId === c.id}
-                          className="rounded-full bg-hexxa-forest text-hexxa-lime shadow-(--elev-inset) px-4 py-1.5 text-xs font-bold disabled:opacity-50"
-                        >
-                          Marcar Férias
-                        </button>
-                      )}
-                      {c.status !== 'ACTIVE' && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatus(c.id, 'ACTIVE')}
-                          disabled={busyId === c.id}
-                          className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-4 py-1.5 text-xs font-bold hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
-                        >
-                          Reativar
-                        </button>
-                      )}
-                      {c.status !== 'TERMINATED' && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatus(c.id, 'TERMINATED')}
-                          disabled={busyId === c.id}
-                          className="rounded-full bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 px-4 py-1.5 text-xs font-bold hover:bg-red-500/20 disabled:opacity-50 transition-colors"
-                        >
-                          Desligar
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(c.id)}
-                        disabled={busyId === c.id}
-                        className="ml-auto inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
-                      >
-                        {busyId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Remover
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </Card>
+        <ListaEmColunas
+          colunas={[
+            { rotulo: 'Colaborador', largura: 'minmax(0,1fr)' },
+            { rotulo: 'Vínculo', largura: '5rem', soDesktop: true },
+            { rotulo: 'Situação', largura: '7rem', soDesktop: true },
+            { rotulo: 'Remuneração', largura: '8rem', alinhar: 'direita' },
+          ]}
+          itens={filtered}
+          chave={(c) => c.id}
+          apagada={(c) => c.status === 'TERMINATED'}
+          celulas={(c) => {
+            const nome = nomeDeExibicao(c.nome);
+            return [
+              <Titulo key="t" nome={nome} monograma={iniciais(nome)} apagado={c.status === 'TERMINATED'} apoio={`${c.cargo ?? '—'}${c.departamento ? ` · ${c.departamento}` : ''}`} />,
+              <span key="v" className="text-xs text-ink-soft">{c.vinculo === 'Estagiario' ? 'Estágio' : c.vinculo}</span>,
+              <Situacao key="s" cor={c.status === 'ACTIVE' ? 'bg-emerald-500' : c.status === 'ON_VACATION' ? 'bg-sky-500' : 'bg-black/25 dark:bg-white/25'}>
+                {STATUS_CONFIG[c.status].label}
+              </Situacao>,
+              <Valor key="$">{BRL.format(c.salario)}</Valor>,
+            ];
+          }}
+          detalhe={(c) => (
+            <Detalhe
+              acoes={
+                <>
+                  <BotaoDiscreto onClick={() => setModal({ open: true, editId: c.id })}>Editar</BotaoDiscreto>
+                  {c.vinculo === 'PJ' && c.businessContractId && <BotaoDiscreto href={`/meu-negocio/contratos/${c.businessContractId}`}>Ver contrato</BotaoDiscreto>}
+                  {c.status !== 'ON_VACATION' && c.status !== 'TERMINATED' && (
+                    <button type="button" onClick={() => handleStatus(c.id, 'ON_VACATION')} disabled={busyId === c.id} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-ink disabled:opacity-50">
+                      Marcar férias
+                    </button>
+                  )}
+                  {c.status !== 'ACTIVE' && (
+                    <button type="button" onClick={() => handleStatus(c.id, 'ACTIVE')} disabled={busyId === c.id} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-ink disabled:opacity-50">
+                      Reativar
+                    </button>
+                  )}
+                  {c.status !== 'TERMINATED' && (
+                    <button type="button" onClick={() => handleStatus(c.id, 'TERMINATED')} disabled={busyId === c.id} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600 disabled:opacity-50">
+                      Desligar
+                    </button>
+                  )}
+                  {confirmarRemocao === c.id ? (
+                    <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                      <span className="font-normal text-ink-soft">Remover do cadastro?</span>
+                      <button type="button" disabled={busyId === c.id} onClick={() => handleDelete(c.id)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">Sim</button>
+                      <button type="button" onClick={() => setConfirmarRemocao(null)} className="text-ink-soft hover:text-ink">Não</button>
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmarRemocao(c.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                      Remover
+                    </button>
+                  )}
+                </>
+              }
+            >
+              <Campo rotulo={c.vinculo === 'PJ' ? 'Início do contrato' : 'Admissão'}>{fmtDate(c.admissao)}</Campo>
+              <Campo rotulo={c.vinculo === 'PJ' ? 'Valor mensal' : 'Salário'}>
+                <span className="font-serif tabular">{BRL.format(c.salario)}</span>
+              </Campo>
+              {c.email && <Campo rotulo="E-mail">{c.email.toLowerCase()}</Campo>}
+              {c.vinculo === 'PJ' && c.cnpj && <Campo rotulo="CNPJ">{c.cnpj}</Campo>}
+              {c.vinculo === 'PJ' && c.vigenciaFim && <Campo rotulo="Fim do contrato">{fmtDate(c.vigenciaFim)}</Campo>}
+              {c.vinculo === 'PJ' && c.vencimentoDia && <Campo rotulo="Vencimento">Todo dia {c.vencimentoDia}</Campo>}
+            </Detalhe>
+          )}
+        />
       )}
 
       {modal.open && <ModalColaborador colaborador={editingColaborador} onClose={() => setModal({ open: false, editId: null })} onSaved={handleSaved} />}
@@ -554,34 +526,26 @@ function FeriasTab({ colaboradores, ferias }: { colaboradores: EmployeeRow[]; fe
         </form>
       </Card>
 
-      <Card level={1} className="divide-y divide-black/5 dark:divide-white/10 overflow-hidden card-finish">
-        {ferias.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-center text-ink-soft">
-            <Calendar className="h-8 w-8 opacity-30" />
-            <p className="text-sm">Nenhum período de férias agendado no momento.</p>
-          </div>
-        ) : (
-          ferias.map(f => (
-            <div key={f.id} className="flex items-center gap-3 px-5 py-4">
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-xs font-bold text-hexxa-lime shadow-(--elev-inset) ${avatarColor(f.employeeName)}`}>
-                {initials(f.employeeName)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-ink">{f.employeeName}</p>
-                <p className="text-xs text-ink-soft">{fmtDate(f.startDate)} até {fmtDate(f.endDate)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => remove(f.id)}
-                disabled={busyId === f.id}
-                className="rounded-full p-2 text-ink-soft hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50 transition-colors"
-              >
-                {busyId === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              </button>
-            </div>
-          ))
-        )}
-      </Card>
+      <ListaEmColunas
+        colunas={[
+          { rotulo: 'Colaborador', largura: 'minmax(0,1fr)' },
+          { rotulo: 'Período', largura: '12rem', alinhar: 'direita' },
+          { rotulo: '', largura: '4rem', alinhar: 'direita', soDesktop: true },
+        ]}
+        itens={ferias}
+        chave={(f) => f.id}
+        vazio="Nenhum período de férias agendado."
+        celulas={(f) => {
+          const nome = nomeDeExibicao(f.employeeName);
+          return [
+            <Titulo key="t" nome={nome} monograma={iniciais(nome)} />,
+            <span key="p" className="text-xs tabular text-ink-soft">{fmtDate(f.startDate)} a {fmtDate(f.endDate)}</span>,
+            <button key="x" type="button" onClick={() => remove(f.id)} disabled={busyId === f.id} className="text-xs font-semibold text-ink-soft hover:text-rose-600 disabled:opacity-50">
+              {busyId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Tirar'}
+            </button>,
+          ];
+        }}
+      />
     </div>
   );
 }

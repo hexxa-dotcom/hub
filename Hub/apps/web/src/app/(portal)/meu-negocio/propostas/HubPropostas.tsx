@@ -10,6 +10,8 @@ import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
 import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 import type { Proposta, StatusDaProposta } from '@/lib/server/propostas';
 import { NovoContrato } from '../contratos/NovoContrato';
+import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
+import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 import { enviarPropostaAction, excluirPropostaAction, ligarContratoAction, salvarPropostaAction } from './actions';
 
 /**
@@ -26,6 +28,16 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 const br = (iso: string) => new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleDateString('pt-BR');
 const campo =
   'mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-hexxa-forest dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime';
+
+const CURTO: Record<StatusDaProposta, string> = { rascunho: 'Rascunho', enviada: 'Enviada', vista: 'Vista', aprovada: 'Aceita', rejeitada: 'Recusada', expirada: 'Expirada' };
+const PONTO: Record<StatusDaProposta, string> = {
+  rascunho: 'bg-black/25 dark:bg-white/25',
+  enviada: 'bg-sky-500',
+  vista: 'bg-amber-500',
+  aprovada: 'bg-emerald-500',
+  rejeitada: 'bg-rose-500',
+  expirada: 'bg-black/25 dark:bg-white/25',
+};
 
 const SITUACAO: Record<StatusDaProposta, { texto: (p: Proposta) => string; cor: string }> = {
   rascunho: { texto: () => 'Rascunho — ainda não enviada', cor: 'text-ink-soft' },
@@ -68,6 +80,8 @@ export function HubPropostas({ propostas, clientes, clienteInicial }: { proposta
     setTimeout(() => setAviso(null), 7000);
   };
 
+  const [confirmarExclusao, setConfirmarExclusao] = useState<string | null>(null);
+
   async function enviar(p: Proposta) {
     setOcupado(p.id);
     const r = await enviarPropostaAction(p.id);
@@ -84,7 +98,7 @@ export function HubPropostas({ propostas, clientes, clienteInicial }: { proposta
   }
 
   async function excluir(p: Proposta) {
-    if (!confirm(`Excluir a proposta ${p.numero}?`)) return;
+    setConfirmarExclusao(null);
     await excluirPropostaAction(p.id);
     router.refresh();
   }
@@ -133,66 +147,84 @@ export function HubPropostas({ propostas, clientes, clienteInicial }: { proposta
             )}
           </p>
         ) : (
-          <ul className="divide-y divide-black/5 overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/10 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-            {lista.map((p) => {
+          <ListaEmColunas
+            colunas={[
+              { rotulo: 'Proposta', largura: 'minmax(0,1fr)' },
+              { rotulo: 'Situação', largura: '8rem', soDesktop: true },
+              { rotulo: 'Validade', largura: '6rem', alinhar: 'direita', soDesktop: true },
+              { rotulo: 'Valor', largura: '8rem', alinhar: 'direita' },
+            ]}
+            itens={lista}
+            chave={(p) => p.id}
+            apagada={(p) => p.status === 'expirada' || p.status === 'rejeitada'}
+            celulas={(p) => {
+              const cliente = nomeDeExibicao(p.cliente.nome);
+              return [
+                <Titulo key="t" nome={p.titulo} monograma={iniciais(cliente)} apoio={`${p.numero} · ${cliente}`} />,
+                <Situacao key="s" cor={PONTO[p.status]}>{CURTO[p.status]}</Situacao>,
+                <span key="v" className="text-xs tabular text-ink-soft">{br(p.validade)}</span>,
+                <Valor key="$">
+                  {BRL.format(p.total)}
+                  <span className="font-sans text-[11px] font-normal text-ink-soft">{p.recorrencia === 'MENSAL' ? '/mês' : ''}</span>
+                </Valor>,
+              ];
+            }}
+            detalhe={(p) => {
               const s = SITUACAO[p.status];
               const aberta = ['rascunho', 'enviada', 'vista', 'expirada'].includes(p.status);
               return (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-ink">{p.titulo}</p>
-                    <p className="mt-0.5 text-xs text-ink-soft">
-                      {p.numero} · {p.cliente.nome} · válida até {br(p.validade)}
-                    </p>
-                    <p className={`mt-1 text-xs font-medium ${s.cor}`}>{s.texto(p)}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-4 text-xs font-semibold">
-                    <p className="font-serif text-sm font-bold tabular text-ink">
-                      {BRL.format(p.total)}
-                      <span className="font-sans text-[11px] font-normal text-ink-soft">{p.recorrencia === 'MENSAL' ? '/mês' : ''}</span>
-                    </p>
-                    <button type="button" onClick={() => setVendo(p)} className="text-ink-soft hover:text-ink">
-                      PDF
-                    </button>
-                    {aberta && (
-                      <button type="button" onClick={() => setEditando(p)} className="text-ink-soft hover:text-ink">
-                        Editar
-                      </button>
-                    )}
-                    {aberta && (
-                      <button type="button" onClick={() => enviar(p)} disabled={ocupado === p.id} className="text-ink hover:underline underline-offset-4 disabled:opacity-50">
-                        {ocupado === p.id ? <Loader2 className="inline h-3 w-3 animate-spin" /> : p.link ? 'Copiar link' : 'Enviar'}
-                      </button>
-                    )}
-                    {aberta && p.link && (
-                      <a href={whatsapp(p)!} target="_blank" rel="noreferrer" className="text-ink-soft hover:text-ink">
-                        WhatsApp
-                      </a>
-                    )}
-                    {p.status === 'aprovada' &&
-                      (p.contratoId ? (
-                        <Link href={`/meu-negocio/contratos/${p.contratoId}` as Route} className="text-emerald-700 hover:underline dark:text-emerald-400">
-                          Ver contrato
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setVirandoContrato(p)}
-                          className="rounded-full bg-hexxa-forest px-4 py-1.5 text-hexxa-lime dark:bg-hexxa-lime dark:text-hexxa-forest"
-                        >
-                          Transformar em contrato
+                <Detalhe
+                  acoes={
+                    <>
+                      {p.status === 'aprovada' &&
+                        (p.contratoId ? (
+                          <BotaoDiscreto href={`/meu-negocio/contratos/${p.contratoId}`}>Ver contrato</BotaoDiscreto>
+                        ) : (
+                          <BotaoDiscreto onClick={() => setVirandoContrato(p)}>Transformar em contrato</BotaoDiscreto>
+                        ))}
+                      {aberta && (
+                        <BotaoDiscreto onClick={() => enviar(p)}>
+                          {ocupado === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                          {p.link ? 'Copiar link' : 'Enviar ao cliente'}
+                        </BotaoDiscreto>
+                      )}
+                      <BotaoDiscreto onClick={() => setVendo(p)}>Ver PDF</BotaoDiscreto>
+                      {aberta && p.link && (
+                        <a href={whatsapp(p)!} target="_blank" rel="noreferrer" className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+                          WhatsApp
+                        </a>
+                      )}
+                      {aberta && (
+                        <button type="button" onClick={() => setEditando(p)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+                          Editar
                         </button>
-                      ))}
-                    {(p.status === 'rascunho' || p.status === 'rejeitada' || p.status === 'expirada') && (
-                      <button type="button" onClick={() => excluir(p)} aria-label="Excluir" className="text-ink-soft hover:text-rose-600">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </li>
+                      )}
+                      {(p.status === 'rascunho' || p.status === 'rejeitada' || p.status === 'expirada') &&
+                        (confirmarExclusao === p.id ? (
+                          <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
+                            <span className="font-normal text-ink-soft">Excluir?</span>
+                            <button type="button" onClick={() => excluir(p)} className="text-rose-600 dark:text-rose-400">Sim</button>
+                            <button type="button" onClick={() => setConfirmarExclusao(null)} className="text-ink-soft hover:text-ink">Não</button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmarExclusao(p.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
+                            Excluir
+                          </button>
+                        ))}
+                    </>
+                  }
+                >
+                  <Campo rotulo="Situação" largo>
+                    <span className={s.cor}>{s.texto(p)}</span>
+                  </Campo>
+                  <Campo rotulo="Cliente" largo>{p.cliente.nome}</Campo>
+                  <Campo rotulo="Número">{p.numero}</Campo>
+                  <Campo rotulo="Válida até">{br(p.validade)}</Campo>
+                  <Campo rotulo="Cobrança">{p.recorrencia === 'MENSAL' ? `Mensal${p.prazoMeses ? ` · ${p.prazoMeses} meses` : ''}` : 'Valor único'}</Campo>
+                </Detalhe>
               );
-            })}
-          </ul>
+            }}
+          />
         )}
       </section>
 
