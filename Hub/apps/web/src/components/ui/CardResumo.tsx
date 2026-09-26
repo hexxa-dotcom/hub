@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
+import { NumeroQueConta } from '@/components/ui/NumeroQueConta';
 
 /**
  * CARD DE RESUMO — o padrão dos números no topo das telas.
@@ -42,6 +44,9 @@ export interface CardResumoProps {
 }
 
 export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativo, href, onClick, lateral, className = '' }: CardResumoProps) {
+  const caminho = usePathname();
+  const valorDoDestaque =
+    destaque && typeof valor === 'string' ? <NumeroQueConta texto={valor} chave={`${caminho}:${typeof rotulo === 'string' ? rotulo : ''}`} /> : valor;
   const miolo = destaque ? (
     <div
       className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-[28px] border border-emerald-500/20 bg-[#0A0D0B]/85 p-5 text-left text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-xl sm:p-6 dark:bg-[#0A0D0B]/75 ${className}`}
@@ -50,7 +55,7 @@ export function CardResumo({ rotulo, valor, nota, destaque, tom = 'padrao', ativ
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="rotulo text-white/70">{rotulo}</p>
-          <p className="mt-3 break-words font-serif text-[28px] font-extrabold leading-none tracking-tight text-[#D4FF00] tabular xl:text-[32px]">{valor}</p>
+          <p className="mt-3 break-words font-serif text-[28px] font-extrabold leading-none tracking-tight text-[#D4FF00] tabular xl:text-[32px]">{valorDoDestaque}</p>
         </div>
         {lateral}
       </div>

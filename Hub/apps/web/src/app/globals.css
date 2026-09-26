@@ -1091,8 +1091,43 @@ ul.rounded-\[28px\] > li {
 ul.rounded-\[28px\] > li:nth-child(5) { animation-delay: 240ms; }
 ul.rounded-\[28px\] > li:nth-child(n + 6) { animation-delay: 280ms; }
 
+/* Modais: o fundo esmaece e a janela cresce de 96% (nunca do zero). Vale
+   para todo overlay `fixed inset-0 z-50` do sistema. Modal não é ancorado a
+   um botão, então cresce do centro. */
+@keyframes modal-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-janela {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.fixed.inset-0.z-50 { animation: modal-fundo 200ms var(--ease-entrada) both; }
+.fixed.inset-0.z-50 > * { animation: modal-janela 220ms var(--ease-entrada) both; }
+
+/* Botão principal afunda de leve ao pressionar — no apertar, não no soltar. */
+button.bg-hexxa-forest,
+a.bg-hexxa-forest {
+  transition-property: transform, filter, background-color, box-shadow;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}
+button.bg-hexxa-forest:active:not(:disabled),
+a.bg-hexxa-forest:active {
+  transform: scale(0.97);
+}
+
+/* Esqueleto do carregamento: pulsa só a opacidade, sem brilho correndo. */
+@keyframes esqueleto { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.esqueleto { animation: esqueleto 1.4s ease-in-out infinite; }
+
+/* Troca de aba: o conteúdo novo entra com um esmaecer curto, sem deslizar
+   (View Transitions do navegador; onde não há suporte, a troca é direta). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
 @media print {
-  .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, ul.rounded-\[28px\] > li { animation: none; }
+  .entrada-titulo, .entrada-traco, .entrada-subtitulo, .entrada-grade > *, ul.rounded-\[28px\] > li, .fixed.inset-0.z-50, .fixed.inset-0.z-50 > * { animation: none; }
 }
 
 @utility tabular {

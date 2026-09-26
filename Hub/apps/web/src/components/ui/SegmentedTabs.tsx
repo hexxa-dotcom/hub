@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { flushSync } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { spring, crossFade } from '@/lib/motion';
 
@@ -32,6 +33,14 @@ export function SegmentedTabs<T extends string = string>({
   const paddingCls = isSm ? 'px-3.5 py-1.5 text-xs font-bold' : 'px-4 sm:px-5 py-2 text-xs font-bold';
   const reduceMotion = useReducedMotion();
 
+  // A troca de aba esmaece o conteúdo (View Transitions). Sem suporte no
+  // navegador, ou com movimento reduzido, troca direto.
+  function trocar(id: T) {
+    const doc = typeof document !== 'undefined' ? (document as Document & { startViewTransition?: (cb: () => void) => unknown }) : null;
+    if (id === activeTab || reduceMotion || !doc?.startViewTransition) return onChange(id);
+    doc.startViewTransition(() => flushSync(() => onChange(id)));
+  }
+
   return (
     <div
       className={`segmented-track relative inline-flex max-w-full gap-1 overflow-x-auto rounded-full p-1 no-scrollbar ${className}`}
@@ -43,7 +52,7 @@ export function SegmentedTabs<T extends string = string>({
           <button
             key={tab.id}
             type="button"
-            onClick={() => onChange(tab.id)}
+            onClick={() => trocar(tab.id)}
             className={`relative z-10 inline-flex items-center justify-center gap-2 rounded-full ${paddingCls} transition-colors duration-200 shrink-0 select-none ${
               isActive
                 ? 'segmented-active'
