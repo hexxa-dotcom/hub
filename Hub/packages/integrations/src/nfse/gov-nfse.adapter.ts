@@ -163,7 +163,7 @@ export class GovNfseAdapter implements NfsePort {
     }
   }
 
-  async cancel(providerProtocol: string, reason: string): Promise<void> {
+  async cancel(providerProtocol: string, reason: string, motivo?: '1' | '2' | '9'): Promise<void> {
     // Cancelamento = Pedido de Registro de Evento e101101, um DF-e assinado
     // (XMLDSig) próprio, GZip+Base64, postado em POST /nfse/{chave}/eventos
     // com o corpo { pedidoRegistroEventoXmlGZipB64 }. Conforme Manual de
@@ -175,7 +175,7 @@ export class GovNfseAdapter implements NfsePort {
       ambiente: this.config.emitente.ambiente,
       chaveAcesso: providerProtocol,
       cnpjAutor: this.config.emitente.cnpj,
-      motivo: inferCancelamentoMotivo(reason),
+      motivo: motivo ?? inferCancelamentoMotivo(reason),
       justificativa: reason,
     });
     const signed = signXmlElement(xml, refId, this.config.cert.keyPem, this.config.cert.certPem, 'infPedReg');

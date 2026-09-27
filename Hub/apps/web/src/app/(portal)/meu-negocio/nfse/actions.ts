@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { makeServiceInvoiceService, makeServiceInvoiceServiceReadOnly, serviceInvoiceRepository, resolveNfsePort } from '@/lib/server/container';
+import { makeServiceInvoiceService, makeServiceInvoiceServiceReadOnly, serviceInvoiceRepository, resolveNfsePort, nfseMode } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
 import { emitirNota } from '@/lib/server/emissao';
 import { agendar } from '@/lib/server/emissao-agendada';
@@ -33,7 +33,8 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
     const cMun = txt('cMun').replace(/\D/g, '');
     // Um caminho só para toda emissão — ver `emitirNota` (travas, CNPJ, e-mail).
     const valor = parseFloat(txt('amount').replace(',', '.')) || 0;
-    const descricao = info ? `${desc}\n\nInformações Adicionais:\n${info}` : desc;
+    // As informações adicionais vão no campo próprio da nota (xInfComp), não coladas na descrição.
+    const descricao = desc;
     const r = await emitirNota(ctx, {
       customerId: txt('customerId') || undefined,
       cliente: {
@@ -60,6 +61,7 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       reterIss: formData.get('retainIss') === 'on',
       confirmarDuplicada: formData.get('confirmarDuplicada') === '1',
       parcelaId: txt('parcelaId') || undefined,
+      informacoes: info || undefined,
       emails: txt('emails').split(/[,;\s]+/).filter((e) => e.includes('@')),
       whatsapp: txt('whatsapp') || undefined,
     });
@@ -96,13 +98,61 @@ export async function consultarCnpjAction(cnpj: string) {
   return consultarCnpj(cnpj);
 }
 
-export async function cancelNfseAction(id: string, protocol: string): Promise<{ ok: boolean; message: string }> {
+type Motivo = '1' | '2' | '9';
+
+/** A justificativa vai ao governo: curta demais, o Emissor Nacional recusa. */
+function conferirJustificativa(justificativa: string): string | null {
+  return justificativa.trim().length < 15 ? 'Escreva o motivo do cancelamento com pelo menos 15 letras.' : null;
+}
+
+/** Cancela uma nota emitida pela Hexx (ainda não sincronizada). */
+export async function cancelNfseAction(id: string, protocol: string, motivo: Motivo = '9', justificativa = ''): Promise<{ ok: boolean; message: string }> {
+  const erro = conferirJustificativa(justificativa);
+  if (erro) return { ok: false, message: erro };
   try {
     const ctx = await getTenantContext();
     const service = await makeServiceInvoiceServiceReadOnly(ctx);
-    await service.cancel(ctx, id, protocol);
+    await service.cancel(ctx, id, protocol, motivo, justificativa);
     revalidatePath('/meu-negocio/notas');
-    return { ok: true, message: 'Nota cancelada.' };
+    return { ok: true, message: 'Nota cancelada no Emissor Nacional.' };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Falha ao cancelar.' };
+  }
+}
+
+/**
+ * Cancela pela chave de acesso — vale para qualquer nota emitida pelo CNPJ
+ * da empresa, inclusive as feitas no site do Emissor Nacional e as da Hexx que
+ * já voltaram pela sincronização. Precisa do certificado da empresa.
+ */
+export async function cancelarPorChaveAction(chave: string, motivo: Motivo = '9', justificativa = ''): Promise<{ ok: boolean; message: string }> {
+  const erro = conferirJustificativa(justificativa);
+  if (erro) return { ok: false, message: erro };
+  try {
+    const ctx = await getTenantContext();
+    // Sem certificado o emissor é o de teste, que "cancela" sem falar com o
+    // governo — a nota ficaria cancelada aqui e válida lá.
+    if ((await nfseMode(ctx)) !== 'gov') {
+      return { ok: false, message: 'Para cancelar pela Hexx é preciso o certificado digital da empresa. Sem ele, cancele no site do Emissor Nacional.' };
+    }
+    const port = await resolveNfsePort(ctx);
+    await port.cancel(chave, justificativa.trim(), motivo);
+    // O mesmo que a sincronização faria ao receber o evento: a nota fica
+    // cancelada e o valor a receber dela também.
+    await getDb().execute(sql`
+      UPDATE nfse_distribuicao_doc SET cancelado = true WHERE company_id = ${ctx.companyId} AND chave_acesso = ${chave}
+    `);
+    await getDb().execute(sql`
+      UPDATE financial_entry SET status = 'CANCELED'
+       WHERE company_id = ${ctx.companyId} AND status <> 'CANCELED'
+         AND ((source = 'DFE_SYNC' AND external_id = ${chave})
+           OR (source = 'NFSE' AND source_id IN (SELECT id FROM service_invoice WHERE company_id = ${ctx.companyId} AND provider_protocol = ${chave})))
+    `);
+    await getDb().execute(sql`
+      UPDATE service_invoice SET status = 'CANCELED' WHERE company_id = ${ctx.companyId} AND provider_protocol = ${chave}
+    `);
+    revalidatePath('/meu-negocio/notas');
+    return { ok: true, message: 'Nota cancelada no Emissor Nacional.' };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Falha ao cancelar.' };
   }

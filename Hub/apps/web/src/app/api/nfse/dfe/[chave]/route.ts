@@ -18,8 +18,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ chav
   if (!/^[0-9A-Za-z]{20,60}$/.test(chave)) return NextResponse.json({ error: 'Chave inválida.' }, { status: 400 });
   const ctx = await getTenantContext();
   const [doc] = (await withTenant(ctx.companyId, (tx) =>
-    tx.execute(sql`SELECT nsu FROM nfse_distribuicao_doc WHERE company_id = ${ctx.companyId} AND chave_acesso = ${chave} LIMIT 1`),
-  )) as unknown as { nsu: string }[];
+    // A mesma chave aparece na nota e nos eventos dela (cancelamento…): a
+    // DANFSe é da NOTA — pegar o evento dava um documento todo em branco.
+    tx.execute(sql`
+      SELECT nsu, bool_or(cancelado) OVER () AS cancelada FROM nfse_distribuicao_doc
+       WHERE company_id = ${ctx.companyId} AND chave_acesso = ${chave}
+       ORDER BY (tipo_documento = 'NFSE') DESC, nsu ASC
+       LIMIT 1`),
+  )) as unknown as { nsu: string; cancelada: boolean }[];
   if (!doc) return NextResponse.json({ error: 'Nota não encontrada.' }, { status: 404 });
 
   const [cert, cfg] = await Promise.all([getCertForTenant(ctx), getNfseConfig(ctx)]);
@@ -32,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ chav
   if (url.searchParams.get('formato') === 'xml') {
     return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml', 'Content-Disposition': `attachment; filename="nfse_${chave}.xml"` } });
   }
-  const pdf = await renderDanfsePdf(parseNfseXml(xml, chave));
+  const pdf = await renderDanfsePdf({ ...parseNfseXml(xml, chave), cancelada: Boolean(doc.cancelada) });
   const baixar = url.searchParams.get('modo') === 'baixar';
   return new NextResponse(pdf as unknown as BodyInit, {
     headers: {

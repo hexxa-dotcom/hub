@@ -28,8 +28,13 @@ export interface NotaDoMes {
   /** Onde abrir a DANFSe dentro do Hub. */
   danfse: string | null;
   processando?: boolean;
-  /** Nota emitida pela Hexx: dá para cancelar por aqui. */
-  cancelar?: { id: string; protocolo: string } | null;
+  /**
+   * Dá para cancelar por aqui: a nota da Hexx ainda não sincronizada (pelo id)
+   * ou qualquer nota emitida pelo CNPJ (pela chave de acesso).
+   */
+  cancelar?: { id: string; protocolo: string; porChave?: boolean } | null;
+  /** A nota de exemplo — só para ver o layout; não existe de verdade. */
+  exemplo?: boolean;
 }
 
 export interface TentativaComErro {
@@ -93,6 +98,8 @@ export async function notasDoMes(ctx: TenantContext, mes: string): Promise<Notas
       valor: Number(d.valor_servico ?? d.valor_liquido ?? 0),
       cancelada: d.cancelado,
       danfse: `/api/nfse/dfe/${d.chave_acesso}`,
+      // Emitida pelo CNPJ e ainda válida: cancela-se pela chave, venha de onde vier.
+      cancelar: d.direction !== 'RECEBIDA' && !d.cancelado ? { id: d.chave_acesso, protocolo: d.chave_acesso, porChave: true } : null,
     });
 
     const numerosDoGoverno = new Set(doGoverno.filter((d) => d.direction !== 'RECEBIDA').map((d) => d.numero_nfse).filter(Boolean));

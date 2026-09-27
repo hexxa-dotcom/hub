@@ -39,6 +39,8 @@ export interface PedidoDeEmissao {
   enviarEmail?: boolean;
   /** Para quem mandar a nota por e-mail (sem lista: o e-mail do cliente). */
   emails?: string[];
+  /** Informações complementares (pedido, dados de pagamento…) — campo próprio da nota. */
+  informacoes?: string;
   /** WhatsApp para onde a pessoa vai mandar a nota — volta um link pronto. */
   whatsapp?: string;
   /**
@@ -168,6 +170,7 @@ export async function emitirNota(ctx: TenantContext, p: PedidoDeEmissao): Promis
       cnae: perfil.cnae ?? undefined,
     },
     nfseServiceProfileId: perfil.id,
+    informacoesComplementares: p.informacoes?.trim() || undefined,
     // Reforma: NBS, operação e classificação pela tabela oficial (Anexo VIII),
     // com o que o perfil sobrepuser. Só vai ao XML se o leiaute estiver ligado.
     ibsCbs: ibsCbsDaNota({ itemLc116: perfil.itemListaServico, nbs: perfil.cNbs, cClassTrib: perfil.cClassTrib, cst: perfil.cstIbsCbs }) ?? undefined,

@@ -217,6 +217,10 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
     `<xDescServ>${escapeXml(input.serviceDescription)}</xDescServ>` +
     (v101 && ibs?.nbs ? `<cNBS>${onlyDigits(ibs.nbs)}</cNBS>` : '') +
     `</cServ>` +
+    // Informações complementares no campo próprio — antes eram coladas na descrição.
+    (input.informacoesComplementares?.trim()
+      ? `<infoCompl><xInfComp>${escapeXml(input.informacoesComplementares.trim().slice(0, 2000))}</xInfComp></infoCompl>`
+      : '') +
     `</serv>` +
     `<valores>` +
     `<vServPrest><vServ>${input.amount.toFixed(2)}</vServ></vServPrest>` +

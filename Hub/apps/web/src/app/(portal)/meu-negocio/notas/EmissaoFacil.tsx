@@ -106,6 +106,7 @@ export function EmissaoFacil({
   const [perfilId, setPerfilId] = useState(profiles[0]?.id ?? '');
   const [competencia, setCompetencia] = useState(hoje);
   const [reterIss, setReterIss] = useState(false);
+  const [informacoes, setInformacoes] = useState('');
 
   const [emails, setEmails] = useState(doCadastro?.email ?? inicial?.email ?? '');
   const [whatsapp, setWhatsapp] = useState(doCadastro?.phone ?? '');
@@ -275,6 +276,18 @@ export function EmissaoFacil({
               className={`${campo} resize-none`}
               aria-label="Serviço"
             />
+            <p className="mt-4 text-xs font-semibold text-ink">
+              Informações adicionais <span className="font-normal text-ink-soft">(opcional — pedido, dados de pagamento, observações)</span>
+            </p>
+            <textarea
+              value={informacoes}
+              onChange={(e) => setInformacoes(e.target.value)}
+              rows={2}
+              maxLength={2000}
+              placeholder="Ex.: Pedido 1234 · Pagamento por PIX chave 00.000.000/0001-00"
+              className={`${campo} resize-none`}
+              aria-label="Informações adicionais"
+            />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft">
               {profiles.length > 1 ? (
                 <select value={perfilId} onChange={(e) => setPerfilId(e.target.value)} className="rounded-full border border-black/10 bg-transparent px-3 py-1.5 dark:border-white/15" aria-label="Perfil fiscal">
@@ -353,6 +366,7 @@ export function EmissaoFacil({
         <input type="hidden" name="customerEmail" value={emails.split(/[,;\s]+/)[0] ?? ''} />
         <input type="hidden" name="amount" value={numero || ''} />
         <input type="hidden" name="serviceDescription" value={descricao} />
+        <input type="hidden" name="additionalInfo" value={informacoes} />
         <input type="hidden" name="profileId" value={perfilId} />
         <input type="hidden" name="competenciaDate" value={competencia} />
         <input type="hidden" name="emails" value={porEmail ? emails : ''} />
@@ -387,7 +401,7 @@ export function EmissaoFacil({
             <Previa
               prestador={prestador}
               cliente={{ nome, documento: doc, endereco, emails: porEmail ? emails : '', whatsapp: porWhats ? whatsapp : '' }}
-              servico={{ descricao, perfil }}
+              servico={{ descricao, perfil, informacoes }}
               valor={numero}
               imposto={imposto}
               taxa={taxRatePercent}
@@ -464,7 +478,7 @@ function Previa({
 }: {
   prestador: Prestador | null;
   cliente: { nome: string; documento: string; endereco: Endereco | null; emails: string; whatsapp: string };
-  servico: { descricao: string; perfil?: Perfil };
+  servico: { descricao: string; perfil?: Perfil; informacoes?: string };
   valor: number;
   imposto: number;
   taxa: number;
@@ -511,6 +525,7 @@ function Previa({
           <span className="text-sm text-ink">
             {servico.perfil ? <span className="block text-xs text-ink-soft">{servico.perfil.nome} · item {servico.perfil.itemListaServico} da LC 116</span> : null}
             {servico.descricao}
+            {servico.informacoes?.trim() && <span className="mt-1 block text-xs text-ink-soft">Informações adicionais: {servico.informacoes}</span>}
           </span>
         </div>
         <div className={linha}>

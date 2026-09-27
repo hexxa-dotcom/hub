@@ -48,7 +48,7 @@ export async function GET(
     if (type === 'pdf') {
       const xmlBuffer = await port.download(nota.providerProtocol, 'xml');
       const data = parseNfseXml(xmlBuffer.toString('utf-8'), nota.providerProtocol);
-      const pdfBuffer = await renderDanfsePdf(data);
+      const pdfBuffer = await renderDanfsePdf({ ...data, cancelada: nota.status === 'CANCELED' });
       return new NextResponse(pdfBuffer as unknown as BodyInit, {
         status: 200,
         headers: {

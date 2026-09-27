@@ -2,15 +2,12 @@
 
 import React from 'react';
 import type { DanfseData } from '@/lib/server/danfse';
-import { regimeLabel, type DanfseEndereco } from '@/lib/danfse-shared';
+import { regimeLabel, brl, formatarDocumento, enderecoLinha } from '@/lib/danfse-shared';
 import { NFSE_LOGO_BASE64 } from '@/lib/nfse-logo';
 
-const brl = (v: number) => v.toFixed(2);
 const dash = (v: string) => (v ? v : '-');
 const dashN = (v: number) => (v ? brl(v) : '-');
 const dashPct = (v: number) => (v ? `${brl(v)}%` : '-');
-const enderecoLinha = (e: DanfseEndereco) =>
-  [e.logradouro, e.numero, e.complemento, e.bairro, e.cep].filter(Boolean).join(', ') || '-';
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -96,7 +93,7 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
         <div className="mt-3">
           <SectionTitle>Prestador de Serviços</SectionTitle>
           <Grid>
-            <Field label="CNPJ / CPF" value={dash(data.prestador.documento)} />
+            <Field label="CNPJ / CPF" value={dash(formatarDocumento(data.prestador.documento))} />
             <Field label="Regime Tributário" value={regimeLabel(data.prestador.regime)} />
           </Grid>
           <FullField label="Nome / Nome Empresarial" value={dash(data.prestador.nome)} />
@@ -111,7 +108,7 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
         <div className="mt-3">
           <SectionTitle>Tomador de Serviços</SectionTitle>
           <Grid>
-            <Field label="CNPJ / CPF" value={dash(data.tomador.documento)} />
+            <Field label="CNPJ / CPF" value={dash(formatarDocumento(data.tomador.documento))} />
             <Field label="E-mail" value={dash(data.tomador.email)} />
           </Grid>
           <FullField label="Nome / Nome Empresarial" value={dash(data.tomador.nome)} />
@@ -160,6 +157,12 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
         {/* IBS/CBS */}
         <div className="mt-3">
           <SectionTitle>Tributação IBS / CBS (Reforma Tributária — LC 214/2025)</SectionTitle>
+          {!data.ibsCbs.cst && !data.ibsCbs.classTrib ? (
+            <p className="p-2 border border-t-0 border-slate-400 text-[10px] text-slate-600">
+              IBS e CBS não destacados nesta nota (Simples Nacional: destaque obrigatório a partir de 2027).
+            </p>
+          ) : (
+            <>
           <Grid>
             <Field label="CST / Classificação Tributária" value={`${dash(data.ibsCbs.cst)} / ${dash(data.ibsCbs.classTrib)}`} />
             <Field label="Local de Incidência" value={dash(data.ibsCbs.localIncidencia)} />
@@ -188,6 +191,8 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
               value={dashN(data.ibsCbs.valorIbsTotal + data.ibsCbs.valorCbs)}
             />
           </Grid>
+            </>
+          )}
         </div>
 
         {/* VALOR TOTAL */}
@@ -203,12 +208,13 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
           </div>
         </div>
 
-        {data.valores.tributosAproximados > 0 && (
+        {(data.valores.tributosAproximados > 0 || !!data.informacoesComplementares) && (
           <div className="mt-3">
             <SectionTitle>Informações Complementares</SectionTitle>
-            <p className="p-2 border border-t-0 border-slate-400 text-[10px] text-slate-600">
-              Totais aproximados dos tributos cfe. Lei nº 12.741/2012: R$ {brl(data.valores.tributosAproximados)}.
-            </p>
+            <div className="p-2 border border-t-0 border-slate-400 text-[10px] text-slate-600">
+              {data.informacoesComplementares && <p className="whitespace-pre-wrap text-slate-800">{data.informacoesComplementares}</p>}
+              {data.valores.tributosAproximados > 0 && <p>Totais aproximados dos tributos cfe. Lei nº 12.741/2012: R$ {brl(data.valores.tributosAproximados)}.</p>}
+            </div>
           </div>
         )}
 
@@ -216,7 +222,7 @@ export default function DanfseLayout({ data, qrDataUrl }: { data: DanfseData; qr
         <div className="mt-6 text-center text-[9px] text-slate-500">
           <p>Documento auxiliar sem validade fiscal por si só — a NFS-e válida é o XML assinado digitalmente.</p>
           <p>Consulte a autenticidade no Portal Nacional da NFS-e (nfse.gov.br) utilizando a chave de acesso ou o QR Code acima.</p>
-          <p className="mt-1 text-slate-400 font-semibold">Emitido através do sistema Hexx Gestão Digital</p>
+          <p className="mt-1 text-slate-400 font-semibold">Documento gerado pelo sistema Hexx Gestão Digital</p>
         </div>
       </div>
     </div>

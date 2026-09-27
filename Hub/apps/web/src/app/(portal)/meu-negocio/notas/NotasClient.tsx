@@ -11,7 +11,7 @@ import { FinanceiroMonthSelector } from '../hub-financeiro/FinanceiroMonthSelect
 import type { NotasDoMes, NotaDoMes } from '@/lib/server/notas';
 import { syncDfeAction } from './dfeActions';
 import { descartarTentativaAction } from './actions';
-import { cancelNfseAction } from '../nfse/actions';
+import { cancelNfseAction, cancelarPorChaveAction } from '../nfse/actions';
 import { EmissaoFacil, Agendadas, type Prestador, type InicialDaEmissao } from './EmissaoFacil';
 import type { EmissaoAgendada, NotaPendente } from '@/lib/server/emissao-agendada';
 import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
@@ -106,17 +106,21 @@ export function NotasClient({
     router.refresh();
   }
 
-  async function cancelar(n: NotaDoMes) {
+  async function cancelar(n: NotaDoMes, motivo: '1' | '2' | '9', justificativa: string) {
     if (!n.cancelar) return;
-    setConfirmarCancelamento(null);
     setOcupado(n.id);
-    const r = await cancelNfseAction(n.cancelar.id, n.cancelar.protocolo);
+    const r = n.cancelar.porChave
+      ? await cancelarPorChaveAction(n.cancelar.protocolo, motivo, justificativa)
+      : await cancelNfseAction(n.cancelar.id, n.cancelar.protocolo, motivo, justificativa);
     setOcupado(null);
-    setAviso(r.ok ? 'Nota cancelada.' : `Não consegui cancelar: ${r.message}`);
+    setAviso(r.ok ? r.message : `Não consegui cancelar: ${r.message}`);
+    if (r.ok) setConfirmarCancelamento(null);
     router.refresh();
   }
 
-  const lista = aba === 'recebidas' ? notas.recebidas : notas.emitidas;
+  // A nota de exemplo vai no fim das emitidas: mostra o layout e deixa testar
+  // o detalhe e o "Ver nota" sem precisar emitir uma de verdade.
+  const lista = aba === 'recebidas' ? notas.recebidas : [...notas.emitidas, NOTA_DE_EXEMPLO];
 
   return (
     <div className="space-y-10">
@@ -277,7 +281,9 @@ export function NotasClient({
                   const nome = n.parte ? nomeDeExibicao(n.parte) : 'Sem nome';
                   const [cor, texto] = n.cancelada
                     ? ['bg-black/25 dark:bg-white/25', 'Cancelada']
-                    : n.processando
+                    : n.exemplo
+                      ? ['bg-sky-500', 'Exemplo']
+                      : n.processando
                       ? ['bg-amber-500', 'Processando']
                       : n.origem === 'HEXX'
                         ? ['bg-amber-500', 'A caminho']
@@ -302,11 +308,7 @@ export function NotasClient({
                         {n.danfse && <BotaoDiscreto onClick={() => setVendo(n)}>Ver nota</BotaoDiscreto>}
                         {n.cancelar && !n.cancelada &&
                           (confirmarCancelamento === n.id ? (
-                            <span className="flex items-center gap-3 px-2 py-1.5 text-xs font-semibold">
-                              <span className="font-normal text-ink-soft">Cancelar no Emissor Nacional? Não tem volta.</span>
-                              <button type="button" disabled={ocupado === n.id} onClick={() => cancelar(n)} className="text-rose-600 disabled:opacity-50 dark:text-rose-400">Sim</button>
-                              <button type="button" onClick={() => setConfirmarCancelamento(null)} className="text-ink-soft hover:text-ink">Não</button>
-                            </span>
+                            <CancelarNota ocupado={ocupado === n.id} onConfirmar={(m, j) => cancelar(n, m, j)} onVoltar={() => setConfirmarCancelamento(null)} />
                           ) : (
                             <button type="button" onClick={() => setConfirmarCancelamento(n.id)} className="px-2 py-1.5 text-xs font-semibold text-ink-soft hover:text-rose-600">
                               Cancelar nota
@@ -322,7 +324,11 @@ export function NotasClient({
                       <span className="font-serif tabular">{BRL.format(n.valor)}</span>
                     </Campo>
                     {n.descricao && <Campo rotulo="Serviço" largo>{n.descricao}</Campo>}
-                    {n.origem === 'HEXX' && <Campo rotulo="Origem" largo>Emitida pela Hexx, a caminho do Emissor Nacional</Campo>}
+                    {n.exemplo ? (
+                      <Campo rotulo="Origem" largo>Nota de exemplo — não existe de verdade; serve para ver o layout</Campo>
+                    ) : (
+                      n.origem === 'HEXX' && <Campo rotulo="Origem" largo>Emitida pela Hexx, a caminho do Emissor Nacional</Campo>
+                    )}
                   </Detalhe>
                 )}
               />
@@ -366,6 +372,60 @@ export function NotasClient({
       )}
 
       {vendo?.danfse && <VisualizadorDeArquivo src={vendo.danfse} titulo={`Nota ${vendo.numero ?? ''} · ${vendo.parte ? nomeDeExibicao(vendo.parte) : ''}`} onClose={() => setVendo(null)} />}
+    </div>
+  );
+}
+
+/** Uma nota que não existe — só para ver o layout da DANFSe e testar a lista. */
+const NOTA_DE_EXEMPLO: NotaDoMes = {
+  id: 'exemplo',
+  origem: 'HEXX',
+  numero: 'EXEMPLO',
+  data: new Date().toISOString(),
+  parte: 'Cliente Exemplo Ltda',
+  descricao: 'Consultoria em gestão financeira referente ao mês — nota de exemplo',
+  valor: 2500,
+  cancelada: false,
+  danfse: '/api/nfse/exemplo',
+  exemplo: true,
+};
+
+/** O cancelamento com o motivo que o Emissor Nacional pede. */
+function CancelarNota({ ocupado, onConfirmar, onVoltar }: { ocupado: boolean; onConfirmar: (motivo: '1' | '2' | '9', justificativa: string) => void; onVoltar: () => void }) {
+  const [motivo, setMotivo] = useState<'1' | '2' | '9'>('1');
+  const [justificativa, setJustificativa] = useState('');
+  const curta = justificativa.trim().length < 15;
+  return (
+    <div className="w-full space-y-2 rounded-2xl border border-rose-500/20 bg-rose-500/[0.04] p-3 text-xs">
+      <p className="font-semibold text-rose-700 dark:text-rose-400">Cancelar no Emissor Nacional — não tem volta.</p>
+      <div className="flex flex-wrap gap-3 text-ink">
+        {(
+          [
+            ['1', 'Erro na emissão'],
+            ['2', 'Serviço não prestado'],
+            ['9', 'Outro motivo'],
+          ] as const
+        ).map(([v, t]) => (
+          <label key={v} className="flex items-center gap-1.5">
+            <input type="radio" checked={motivo === v} onChange={() => setMotivo(v)} /> {t}
+          </label>
+        ))}
+      </div>
+      <textarea
+        value={justificativa}
+        onChange={(e) => setJustificativa(e.target.value)}
+        rows={2}
+        placeholder="Explique o motivo (mínimo 15 letras) — vai para o governo."
+        className="w-full resize-none rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-ink outline-none dark:border-white/10 dark:bg-white/5"
+      />
+      <div className="flex gap-3">
+        <button type="button" disabled={ocupado || curta} onClick={() => onConfirmar(motivo, justificativa)} className="rounded-full bg-rose-600 px-4 py-1.5 font-semibold text-white disabled:opacity-40">
+          {ocupado ? 'Cancelando…' : 'Confirmar cancelamento'}
+        </button>
+        <button type="button" onClick={onVoltar} className="text-ink-soft hover:text-ink">
+          Voltar
+        </button>
+      </div>
     </div>
   );
 }

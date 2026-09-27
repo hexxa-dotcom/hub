@@ -56,6 +56,12 @@ export interface DanfseData {
     endereco: DanfseEndereco | null;
   };
   descricaoServico: string;
+  /** Nota de exemplo (layout) — a DANFSe mostra a faixa "EXEMPLO". */
+  exemplo?: boolean;
+  /** A nota foi cancelada — a DANFSe mostra a faixa de cancelada. */
+  cancelada?: boolean;
+  /** Informações complementares (serv/infoCompl/xInfComp). */
+  informacoesComplementares: string;
   /** true = ISS retido pelo tomador (tpRetISSQN=2), não recolhido pelo prestador. */
   issRetido: boolean;
   valores: {
@@ -279,6 +285,7 @@ export function parseNfseXml(xmlString: string, chaveAcesso: string): DanfseData
         : null,
     },
     descricaoServico: str(serv?.cServ?.xDescServ) || 'Nenhum serviço discriminado.',
+    informacoesComplementares: str(serv?.infoCompl?.xInfComp),
     issRetido: str(tribMun?.tpRetISSQN) === '2',
     valores: {
       valorServico,

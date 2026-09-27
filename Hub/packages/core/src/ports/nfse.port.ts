@@ -29,6 +29,8 @@ export interface NfseIssueInput {
    * tributos federais para qualquer empresa.
    */
   aliquotaTributosTotal?: number;
+  /** Informações complementares (serv/infoCompl/xInfComp): pedido, dados de pagamento… */
+  informacoesComplementares?: string;
   /**
    * IBS e CBS da nota (reforma tributária) — ver `ibsCbsDaNota`. Só entra no
    * XML quando o emitente liga o leiaute da reforma (`leiauteIbsCbs`).
@@ -56,7 +58,11 @@ export interface NfseIssueResult {
 
 export interface NfsePort {
   issue(input: NfseIssueInput): Promise<NfseIssueResult>;
-  cancel(providerProtocol: string, reason: string): Promise<void>;
+  /**
+   * Cancela a nota. `motivo` é o código do evento: 1 = erro na emissão,
+   * 2 = serviço não prestado, 9 = outros. Sem ele, deduz da justificativa.
+   */
+  cancel(providerProtocol: string, reason: string, motivo?: '1' | '2' | '9'): Promise<void>;
   /** Consulta status (usado por webhook/polling). */
   getStatus(providerProtocol: string): Promise<NfseIssueResult>;
   /** Retorna o buffer do XML (gz/base64 decodificado) ou do PDF. */

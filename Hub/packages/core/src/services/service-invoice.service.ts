@@ -44,6 +44,8 @@ export interface EmitNfseInput {
    * sobrevive e permite remontar a nota para envio.
    */
   nfseServiceProfileId?: string;
+  /** Informações complementares da nota (campo xInfComp). */
+  informacoesComplementares?: string;
   /** IBS/CBS da nota (reforma) — vai ao XML só se o emitente ligar o leiaute. */
   ibsCbs?: { cst: string; cClassTrib: string; cIndOp: string; nbs?: string | null; consumoFinal?: boolean };
 }
@@ -109,6 +111,7 @@ export class ServiceInvoiceService {
       retainIss: input.retainIss,
       aliquotaTributosTotal: input.estimatedTaxRate,
       ibsCbs: input.ibsCbs,
+      informacoesComplementares: input.informacoesComplementares,
       serviceOverride: input.serviceOverride,
     });
 
@@ -161,8 +164,8 @@ export class ServiceInvoiceService {
     };
   }
 
-  async cancel(ctx: TenantContext, id: string, protocol: string): Promise<void> {
-    await this.deps.nfse.cancel(protocol, 'Cancelamento solicitado pelo emitente');
+  async cancel(ctx: TenantContext, id: string, protocol: string, motivo?: '1' | '2' | '9', justificativa?: string): Promise<void> {
+    await this.deps.nfse.cancel(protocol, justificativa?.trim() || 'Cancelamento solicitado pelo emitente', motivo);
     await this.deps.invoices.updateStatus(ctx, id, { status: 'CANCELED' });
     await this.deps.entries.cancelBySource(ctx, 'NFSE', id);
   }

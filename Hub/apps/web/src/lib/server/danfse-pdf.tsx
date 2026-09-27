@@ -1,8 +1,8 @@
 import 'server-only';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from '@react-pdf/renderer';
-import type { DanfseData, DanfseEndereco } from './danfse';
-import { regimeLabel } from '../danfse-shared';
+import type { DanfseData } from './danfse';
+import { regimeLabel, brl, formatarDocumento, enderecoLinha } from '../danfse-shared';
 import { NFSE_LOGO_BASE64 } from '../nfse-logo';
 import { generateNfseQrCode } from './qrcode';
 
@@ -17,7 +17,7 @@ import { generateNfseQrCode } from './qrcode';
 const BORDER = '0.75pt solid #94a3b8';
 
 const styles = StyleSheet.create({
-  page: { padding: 24, fontSize: 7.5, color: '#0f172a', fontFamily: 'Helvetica' },
+  page: { padding: 20, fontSize: 7.5, color: '#0f172a', fontFamily: 'Helvetica' },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   logo: { width: 130, height: 26 },
   headerTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' },
@@ -75,16 +75,13 @@ const styles = StyleSheet.create({
   issRetidoNote: { color: '#b45309', backgroundColor: '#fffbeb', padding: 4, fontSize: 6.5 },
   footer: { marginTop: 10, textAlign: 'center', fontSize: 6.5, color: '#64748b' },
   footerBrand: { marginTop: 2, fontSize: 6.5, color: '#94a3b8', fontFamily: 'Helvetica-Bold' },
-  sectionSpacer: { marginBottom: 8 },
+  sectionSpacer: { marginBottom: 5 },
 });
 
-const brl = (v: number) => v.toFixed(2);
 /** Convenção do documento oficial: "-" quando o campo não tem valor. */
 const dash = (v: string) => (v ? v : '-');
 const dashN = (v: number) => (v ? `${brl(v)}` : '-');
 const dashPct = (v: number) => (v ? `${brl(v)}%` : '-');
-const enderecoLinha = (e: DanfseEndereco) =>
-  [e.logradouro, e.numero, e.complemento, e.bairro, e.cep].filter(Boolean).join(', ') || '-';
 
 function Field({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
@@ -119,6 +116,18 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
           </View>
         </View>
 
+        {data.exemplo && (
+          <View style={{ backgroundColor: '#e0f2fe', border: '1pt solid #0284c7', padding: 4, marginBottom: 5 }}>
+            <Text style={{ color: '#0369a1', fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>NOTA DE EXEMPLO — SEM VALOR FISCAL</Text>
+            <Text style={{ color: '#0369a1', fontSize: 6.5, textAlign: 'center' }}>Dados fictícios, só para mostrar como a nota fica.</Text>
+          </View>
+        )}
+        {data.cancelada && (
+          <View style={{ backgroundColor: '#fee2e2', border: '1pt solid #dc2626', padding: 4, marginBottom: 5 }}>
+            <Text style={{ color: '#b91c1c', fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>NFS-e CANCELADA</Text>
+            <Text style={{ color: '#b91c1c', fontSize: 6.5, textAlign: 'center' }}>Este documento não tem mais valor fiscal.</Text>
+          </View>
+        )}
         <View style={styles.chaveBar}>
           <Text style={styles.chaveLabel}>Chave de Acesso da NFS-e</Text>
           <Text style={styles.chaveValue}>{data.chaveAcesso}</Text>
@@ -137,7 +146,7 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
 
         <SectionTitle>Prestador de Serviços</SectionTitle>
         <View style={styles.grid}>
-          <Field label="CNPJ / CPF" value={dash(data.prestador.documento)} />
+          <Field label="CNPJ / CPF" value={dash(formatarDocumento(data.prestador.documento))} />
           <Field label="Regime Tributário" value={regimeLabel(data.prestador.regime)} last />
         </View>
         <View style={styles.fullCell}>
@@ -154,7 +163,7 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
 
         <SectionTitle>Tomador de Serviços</SectionTitle>
         <View style={styles.grid}>
-          <Field label="CNPJ / CPF" value={dash(data.tomador.documento)} />
+          <Field label="CNPJ / CPF" value={dash(formatarDocumento(data.tomador.documento))} />
           <Field label="E-mail" value={dash(data.tomador.email)} last />
         </View>
         <View style={styles.fullCell}>
@@ -198,6 +207,13 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
         <View style={styles.sectionSpacer} />
 
         <SectionTitle>Tributação IBS / CBS (Reforma Tributária — LC 214/2025)</SectionTitle>
+        {!data.ibsCbs.cst && !data.ibsCbs.classTrib ? (
+          <>
+            <Text style={styles.infoComp}>IBS e CBS não destacados nesta nota (Simples Nacional: destaque obrigatório a partir de 2027).</Text>
+            <View style={styles.sectionSpacer} />
+          </>
+        ) : (
+          <>
         <View style={styles.grid}>
           <Field label="CST / Classificação Tributária" value={`${dash(data.ibsCbs.cst)} / ${dash(data.ibsCbs.classTrib)}`} />
           <Field label="Local de Incidência" value={dash(data.ibsCbs.localIncidencia)} last />
@@ -216,6 +232,9 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
         </View>
         <View style={styles.sectionSpacer} />
 
+          </>
+        )}
+
         <SectionTitle>Valor Total da NFS-e</SectionTitle>
         <View style={styles.gridLast}>
           <Field label="Valor da Operação / Serviço (R$)" value={brl(data.valores.valorServico)} />
@@ -227,11 +246,12 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
         </View>
         <View style={styles.sectionSpacer} />
 
-        {data.valores.tributosAproximados > 0 && (
+        {(data.valores.tributosAproximados > 0 || !!data.informacoesComplementares) && (
           <>
             <SectionTitle>Informações Complementares</SectionTitle>
             <Text style={styles.infoComp}>
-              Totais aproximados dos tributos cfe. Lei nº 12.741/2012: R$ {brl(data.valores.tributosAproximados)}.
+              {data.informacoesComplementares ? `${data.informacoesComplementares}\n` : ''}
+              {data.valores.tributosAproximados > 0 ? `Totais aproximados dos tributos cfe. Lei nº 12.741/2012: R$ ${brl(data.valores.tributosAproximados)}.` : ''}
             </Text>
           </>
         )}
@@ -239,7 +259,7 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
         <View style={styles.footer}>
           <Text>Documento auxiliar sem validade fiscal por si só — a NFS-e válida é o XML assinado digitalmente.</Text>
           <Text>Consulte a autenticidade no Portal Nacional da NFS-e (nfse.gov.br) utilizando a chave de acesso ou o QR Code acima.</Text>
-          <Text style={styles.footerBrand}>Emitido através do sistema Hexx Gestão Digital</Text>
+          <Text style={styles.footerBrand}>Documento gerado pelo sistema Hexx Gestão Digital</Text>
         </View>
       </Page>
     </Document>
