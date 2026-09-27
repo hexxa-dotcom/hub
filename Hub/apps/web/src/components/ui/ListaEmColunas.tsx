@@ -41,12 +41,49 @@ export interface ListaEmColunasProps<T> {
   vazio?: React.ReactNode;
   /** Id aberto controlado de fora (opcional). */
   abertoInicial?: string | null;
+  /** Caixinhas de seleção à esquerda, com "selecionar todas" no cabeçalho. */
+  selecao?: Selecao<T>;
+}
+
+export interface Selecao<T> {
+  marcados: Set<string>;
+  aoMudar: (marcados: Set<string>) => void;
+  /** A linha que não se pode marcar fica sem caixinha. */
+  podeMarcar?: (item: T) => boolean;
+}
+
+function Caixinha({ marcada, parcial, aoMudar, rotulo }: { marcada: boolean; parcial?: boolean; aoMudar: () => void; rotulo: string }) {
+  return (
+    <input
+      type="checkbox"
+      aria-label={rotulo}
+      checked={marcada}
+      ref={(el) => {
+        if (el) el.indeterminate = Boolean(parcial);
+      }}
+      onChange={aoMudar}
+      className="h-4 w-4 cursor-pointer rounded border-black/25 accent-hexxa-forest dark:border-white/30 dark:accent-hexxa-lime"
+    />
+  );
 }
 
 const painel =
   'overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
 
-export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, href, aoClicar, apagada, alerta, vazio, abertoInicial = null }: ListaEmColunasProps<T>) {
+export function ListaEmColunas<T>({
+  colunas,
+  itens,
+  chave,
+  celulas,
+  detalhe,
+  href,
+  aoClicar,
+  apagada,
+  alerta,
+  vazio,
+  abertoInicial = null,
+  selecao,
+}: ListaEmColunasProps<T>) {
   const [aberto, setAberto] = useState<string | null>(abertoInicial);
   const comSeta = Boolean(detalhe);
   // Celular: duas colunas (o título e o principal); desktop: as trilhas da lista, via variável.
@@ -69,16 +106,47 @@ export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, hre
     ].join(' ');
   const primeiraVisivelNoCelular = colunas.findIndex((c, i) => i > 0 && !c.soDesktop);
 
+  const marcaveis = selecao ? itens.filter((i) => selecao.podeMarcar?.(i) ?? true).map(chave) : [];
+  const nMarcados = selecao ? marcaveis.filter((id) => selecao.marcados.has(id)).length : 0;
+  const alternar = (id: string) => {
+    if (!selecao) return;
+    const novo = new Set(selecao.marcados);
+    if (novo.has(id)) novo.delete(id);
+    else novo.add(id);
+    selecao.aoMudar(novo);
+  };
+  // Com seleção, a caixinha fica numa faixa à esquerda, fora do botão da linha.
+  const comCaixa = (conteudo: React.ReactNode, caixa: React.ReactNode) =>
+    selecao ? (
+      <div className="flex items-stretch">
+        <span className="flex w-12 shrink-0 items-center justify-end">{caixa}</span>
+        <div className="min-w-0 flex-1">{conteudo}</div>
+      </div>
+    ) : (
+      conteudo
+    );
+
   return (
     <div className={painel}>
-      <div className={`lista-colunas ${grid} border-b border-black/[0.08] px-6 py-3 dark:border-white/[0.12]`} style={estiloGrid}>
-        {colunas.map((c, i) => (
-          <span key={c.rotulo || i} className={`rotulo text-ink-soft ${classeDaCelula(c, i)}`}>
-            {c.rotulo}
-          </span>
-        ))}
-        {comSeta && <span className="hidden sm:block" />}
-      </div>
+      {comCaixa(
+        <div className={`lista-colunas ${grid} ${selecao ? 'pl-4 pr-6' : 'px-6'} py-3`} style={estiloGrid}>
+          {colunas.map((c, i) => (
+            <span key={c.rotulo || i} className={`rotulo text-ink-soft ${classeDaCelula(c, i)}`}>
+              {c.rotulo}
+            </span>
+          ))}
+          {comSeta && <span className="hidden sm:block" />}
+        </div>,
+        marcaveis.length > 0 && (
+          <Caixinha
+            rotulo="Selecionar todas"
+            marcada={nMarcados === marcaveis.length}
+            parcial={nMarcados > 0 && nMarcados < marcaveis.length}
+            aoMudar={() => selecao!.aoMudar(nMarcados === marcaveis.length ? new Set() : new Set(marcaveis))}
+          />
+        ),
+      )}
+      <div className="border-b border-black/[0.08] dark:border-white/[0.12]" />
       <ul className="entrada-lista divide-y divide-black/[0.08] dark:divide-white/[0.12]">
         {itens.map((item) => {
           const id = chave(item);
@@ -91,30 +159,43 @@ export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, hre
                   {cel}
                 </span>
               ))}
-              {comSeta && <ChevronDown className={`hidden h-4 w-4 text-ink-soft transition-transform duration-200 sm:block ${estaAberto ? 'rotate-180' : ''}`} />}
+              {comSeta && (
+                <ChevronDown className={`hidden h-4 w-4 text-ink-soft transition-transform duration-200 sm:block ${estaAberto ? 'rotate-180' : ''}`} />
+              )}
             </>
           );
-          const classeDaLinha = `lista-colunas ${grid} w-full px-6 py-3.5 text-left transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.035] ${
+          const classeDaLinha = `lista-colunas ${grid} w-full ${selecao ? 'pl-4 pr-6' : 'px-6'} py-3.5 text-left transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.035] ${
             estaAberto ? 'bg-black/[0.025] dark:bg-white/[0.035]' : ''
           } ${apagada?.(item) ? 'opacity-60' : ''} ${alerta?.(item) ? 'shadow-[inset_2px_0_0_0_rgb(225_29_72/0.7)]' : ''}`;
           return (
-            <li key={id}>
-              {detalhe ? (
-                <button type="button" onClick={() => setAberto(estaAberto ? null : id)} aria-expanded={estaAberto} className={classeDaLinha} style={estiloGrid}>
-                  {conteudo}
-                </button>
-              ) : aoClicar ? (
-                <button type="button" onClick={() => aoClicar(item)} className={classeDaLinha} style={estiloGrid}>
-                  {conteudo}
-                </button>
-              ) : linkDaLinha ? (
-                <Link href={linkDaLinha as never} className={classeDaLinha} style={estiloGrid}>
-                  {conteudo}
-                </Link>
-              ) : (
-                <div className={classeDaLinha} style={estiloGrid}>
-                  {conteudo}
-                </div>
+            <li key={id} className={selecao?.marcados.has(id) ? 'bg-hexxa-forest/[0.04] dark:bg-hexxa-lime/[0.05]' : ''}>
+              {comCaixa(
+                detalhe ? (
+                  <button
+                    type="button"
+                    onClick={() => setAberto(estaAberto ? null : id)}
+                    aria-expanded={estaAberto}
+                    className={classeDaLinha}
+                    style={estiloGrid}
+                  >
+                    {conteudo}
+                  </button>
+                ) : aoClicar ? (
+                  <button type="button" onClick={() => aoClicar(item)} className={classeDaLinha} style={estiloGrid}>
+                    {conteudo}
+                  </button>
+                ) : linkDaLinha ? (
+                  <Link href={linkDaLinha as never} className={classeDaLinha} style={estiloGrid}>
+                    {conteudo}
+                  </Link>
+                ) : (
+                  <div className={classeDaLinha} style={estiloGrid}>
+                    {conteudo}
+                  </div>
+                ),
+                selecao && (selecao.podeMarcar?.(item) ?? true) && (
+                  <Caixinha rotulo="Selecionar nota" marcada={selecao.marcados.has(id)} aoMudar={() => alternar(id)} />
+                ),
               )}
               {detalhe && estaAberto && (
                 <div className="border-t border-black/[0.06] bg-black/[0.015] px-6 py-5 dark:border-white/[0.08] dark:bg-white/[0.02]">{detalhe(item)}</div>
@@ -145,7 +226,15 @@ export function Titulo({ nome, apoio, monograma, apagado }: { nome: React.ReactN
 }
 
 /** Valor em serifada, alinhado; "—" discreto quando não há. */
-export function Valor({ children, tom = 'padrao', vazio }: { children: React.ReactNode; tom?: 'padrao' | 'entrada' | 'saida' | 'alerta' | 'suave'; vazio?: boolean }) {
+export function Valor({
+  children,
+  tom = 'padrao',
+  vazio,
+}: {
+  children: React.ReactNode;
+  tom?: 'padrao' | 'entrada' | 'saida' | 'alerta' | 'suave';
+  vazio?: boolean;
+}) {
   if (vazio) return <span className="font-serif text-sm text-ink-soft/60">—</span>;
   const cor = {
     padrao: 'font-bold text-ink',

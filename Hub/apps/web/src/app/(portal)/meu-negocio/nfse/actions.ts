@@ -64,6 +64,7 @@ export async function emitNfseAction(_prev: EmitState, formData: FormData): Prom
       informacoes: info || undefined,
       emails: txt('emails').split(/[,;\s]+/).filter((e) => e.includes('@')),
       whatsapp: txt('whatsapp') || undefined,
+      origem: txt('parcelaId') ? 'CONTRATO' : 'MANUAL',
     });
 
     // "Depois desta": deixar a próxima já agendada, para o mesmo cliente.

@@ -35,6 +35,12 @@ export interface NotaDoMes {
   cancelar?: { id: string; protocolo: string; porChave?: boolean } | null;
   /** A nota de exemplo — só para ver o layout; não existe de verdade. */
   exemplo?: boolean;
+  /**
+   * Como a nota foi emitida: pela Hexx (manual, um clique, agendada, contrato)
+   * ou fora dela ('EMISSOR' — no site do Emissor Nacional ou outro sistema).
+   * null = emitida pela Hexx antes de guardarmos a origem.
+   */
+  emissao?: 'MANUAL' | 'UM_CLIQUE' | 'AGENDADA' | 'CONTRATO' | 'EMISSOR' | null;
 }
 
 export interface TentativaComErro {
@@ -53,13 +59,29 @@ export interface NotasDoMes {
 }
 
 export async function notasDoMes(ctx: TenantContext, mes: string): Promise<NotasDoMes> {
+  return notasDoPeriodo(ctx, { mes });
+}
+
+/**
+ * As notas de um mês inteiro ou de um período qualquer (de/até, datas
+ * 'AAAA-MM-DD', inclusive) — "os últimos 15 dias" atravessam o mês.
+ */
+export async function notasDoPeriodo(ctx: TenantContext, p: { mes: string } | { de: string; ate: string }): Promise<NotasDoMes> {
+  const noGoverno =
+    'mes' in p
+      ? sql`to_char(data_emissao, 'YYYY-MM') = ${p.mes}`
+      : sql`(data_emissao AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN ${p.de}::date AND ${p.ate}::date`;
+  const naHexx =
+    'mes' in p
+      ? sql`to_char(coalesce(s.reference_month, s.created_at::date), 'YYYY-MM') = ${p.mes}`
+      : sql`(s.created_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN ${p.de}::date AND ${p.ate}::date`;
   return withTenant(ctx.companyId, async (tx) => {
     const doGoverno = (await tx.execute(sql`
       SELECT chave_acesso, direction, numero_nfse, data_emissao, valor_servico, valor_liquido,
              prestador_nome, tomador_nome, descricao_servico, cancelado
         FROM nfse_distribuicao_doc
        WHERE company_id = ${ctx.companyId} AND tipo_documento = 'NFSE'
-         AND to_char(data_emissao, 'YYYY-MM') = ${mes}
+         AND ${noGoverno}
        ORDER BY data_emissao DESC
     `)) as unknown as {
       chave_acesso: string;
@@ -75,17 +97,26 @@ export async function notasDoMes(ctx: TenantContext, mes: string): Promise<Notas
     }[];
 
     const daHexx = (await tx.execute(sql`
-      SELECT s.id, s.nfse_number, s.provider_protocol, s.amount, s.service_description, s.status::text AS status, s.created_at, c.name AS cliente
+      SELECT s.id, s.nfse_number, s.provider_protocol, s.origem, s.amount, s.service_description, s.status::text AS status, s.created_at, c.name AS cliente
         FROM service_invoice s
         LEFT JOIN customer c ON c.id = s.customer_id
        WHERE s.company_id = ${ctx.companyId}
-         AND to_char(coalesce(s.reference_month, s.created_at::date), 'YYYY-MM') = ${mes}
+         AND ${naHexx}
        ORDER BY s.created_at DESC
-    `)) as unknown as { id: string; nfse_number: string | null; provider_protocol: string | null; amount: string; service_description: string | null; status: string; created_at: Date; cliente: string | null }[];
+    `)) as unknown as { id: string; nfse_number: string | null; provider_protocol: string | null; origem: NotaDoMes['emissao']; amount: string; service_description: string | null; status: string; created_at: Date; cliente: string | null }[];
 
     const [sync] = (await tx.execute(sql`
       SELECT max(created_at) AS em FROM nfse_distribuicao_doc WHERE company_id = ${ctx.companyId}
     `)) as unknown as { em: Date | null }[];
+
+    // A nota que chega pelo Emissor Nacional casa com o registro da Hexx pela
+    // chave (protocolo) ou pelo número; sem par, foi emitida fora da Hexx.
+    const daHexxPorChave = new Map(daHexx.filter((s) => s.provider_protocol).map((s) => [s.provider_protocol!, s]));
+    const daHexxPorNumero = new Map(daHexx.filter((s) => s.nfse_number && s.status !== 'ERROR').map((s) => [s.nfse_number!, s]));
+    const emissaoDe = (d: (typeof doGoverno)[number]): NotaDoMes['emissao'] => {
+      const par = daHexxPorChave.get(d.chave_acesso) ?? (d.numero_nfse ? daHexxPorNumero.get(d.numero_nfse) : undefined);
+      return par ? (par.origem ?? null) : 'EMISSOR';
+    };
 
     const doc = (d: (typeof doGoverno)[number]): NotaDoMes => ({
       id: d.chave_acesso,
@@ -100,6 +131,7 @@ export async function notasDoMes(ctx: TenantContext, mes: string): Promise<Notas
       danfse: `/api/nfse/dfe/${d.chave_acesso}`,
       // Emitida pelo CNPJ e ainda válida: cancela-se pela chave, venha de onde vier.
       cancelar: d.direction !== 'RECEBIDA' && !d.cancelado ? { id: d.chave_acesso, protocolo: d.chave_acesso, porChave: true } : null,
+      emissao: d.direction === 'RECEBIDA' ? undefined : emissaoDe(d),
     });
 
     const numerosDoGoverno = new Set(doGoverno.filter((d) => d.direction !== 'RECEBIDA').map((d) => d.numero_nfse).filter(Boolean));
@@ -117,6 +149,7 @@ export async function notasDoMes(ctx: TenantContext, mes: string): Promise<Notas
         danfse: s.status === 'ISSUED' ? `/api/nfse/${s.id}/pdf` : null,
         processando: s.status === 'PROCESSING',
         cancelar: s.status === 'ISSUED' && s.provider_protocol ? { id: s.id, protocolo: s.provider_protocol } : null,
+        emissao: s.origem ?? null,
       }));
 
     return {

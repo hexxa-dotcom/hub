@@ -121,6 +121,7 @@ export async function rodarAgendadas(): Promise<{ emitidas: number; erros: strin
         perfilId: a.perfilId ?? undefined,
         competencia: hoje,
         enviarEmail: a.enviarEmail,
+        origem: 'AGENDADA',
       });
       if (r.ok) {
         out.emitidas++;

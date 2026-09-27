@@ -58,6 +58,8 @@ export interface DanfseData {
   descricaoServico: string;
   /** Nota de exemplo (layout) — a DANFSe mostra a faixa "EXEMPLO". */
   exemplo?: boolean;
+  /** Prévia de uma nota ainda não emitida (antes de emitir, ou agendada). */
+  previa?: { agendadaPara?: string };
   /** A nota foi cancelada — a DANFSe mostra a faixa de cancelada. */
   cancelada?: boolean;
   /** Informações complementares (serv/infoCompl/xInfComp). */

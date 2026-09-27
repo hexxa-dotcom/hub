@@ -1338,3 +1338,27 @@ a.bg-hexxa-forest:active {
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
+
+/* ── Botão de emitir: o destaque ao passar o mouse ──────────────────────────
+   Sobe 2px, a sombra cresce e a seta anda — feedback de hover, rápido e
+   discreto. Só em aparelho com mouse; com movimento reduzido fica só a cor. */
+.botao-emitir {
+  transition:
+    transform 200ms var(--ease-entrada),
+    box-shadow 200ms var(--ease-entrada),
+    background-color 200ms ease;
+}
+.botao-emitir-seta { transition: transform 200ms var(--ease-entrada); }
+@media (hover: hover) and (pointer: fine) {
+  .botao-emitir:enabled:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px -8px rgba(30, 51, 40, 0.45), 0 0 0 4px rgba(200, 230, 60, 0.18);
+  }
+  .dark .botao-emitir:enabled:hover { box-shadow: 0 12px 32px -8px rgba(200, 230, 60, 0.35), 0 0 0 4px rgba(200, 230, 60, 0.15); }
+  .botao-emitir:enabled:hover .botao-emitir-seta { transform: translateX(3px); }
+}
+.botao-emitir:enabled:active { transform: scale(0.98); transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .botao-emitir, .botao-emitir-seta { transition: background-color 200ms ease; }
+  .botao-emitir:enabled:hover, .botao-emitir:enabled:active, .botao-emitir:enabled:hover .botao-emitir-seta { transform: none; }
+}

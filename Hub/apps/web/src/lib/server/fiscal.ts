@@ -235,15 +235,17 @@ export interface NfseServiceProfile {
   cstIbsCbs?: string | null;
   /** NBS do serviço (quando o item da LC 116 tem mais de uma na tabela oficial). */
   cNbs?: string | null;
+  /** O serviço que já vem escolhido na emissão. */
+  padrao?: boolean;
 }
 
 export async function listServiceProfiles(ctx: TenantContext): Promise<NfseServiceProfile[]> {
   return withTenant(ctx.companyId, async (tx) => {
     const res = await tx.execute(sql`
       SELECT id, company_id, nome, item_lista_servico, codigo_tributacao_municipio, cnae, aliquota_iss, default_description,
-             c_class_trib, cst_ibs_cbs, c_nbs
+             c_class_trib, cst_ibs_cbs, c_nbs, padrao
       FROM nfse_service_profile
-      ORDER BY nome
+      ORDER BY padrao DESC, nome
     `);
     return res.map(r => ({
       id: r.id as string,
@@ -257,6 +259,7 @@ export async function listServiceProfiles(ctx: TenantContext): Promise<NfseServi
       cClassTrib: r.c_class_trib as string | null,
       cstIbsCbs: r.cst_ibs_cbs as string | null,
       cNbs: r.c_nbs as string | null,
+      padrao: Boolean(r.padrao),
     }));
   });
 }

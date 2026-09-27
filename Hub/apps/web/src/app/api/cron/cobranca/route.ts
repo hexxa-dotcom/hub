@@ -115,6 +115,7 @@ export async function GET(request: Request) {
               vencimento: c.nextBillingDate,
               // A idempotência do contrato já é conferida acima.
               confirmarDuplicada: true,
+              origem: 'CONTRATO',
             });
             const result = { status: r.ok ? 'ISSUED' : 'ERROR', message: r.message };
             if (!r.ok) console.error(`[cobranca] contrato ${c.id}:`, r.message);

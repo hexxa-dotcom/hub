@@ -25,12 +25,7 @@ export async function ultimaNotaAction(customerId: string): Promise<{ descricao:
 }
 
 /** Emite de novo para o cliente, com a descrição e o perfil da última nota (o valor pode mudar). */
-export async function emitirUmCliqueAction(
-  customerId: string,
-  valor: number,
-  descricao: string,
-  confirmarDuplicada = false,
-): Promise<ResultadoDaEmissao> {
+export async function emitirUmCliqueAction(customerId: string, valor: number, descricao: string, confirmarDuplicada = false): Promise<ResultadoDaEmissao> {
   const ctx = await getTenantContext();
   const ultima = await ultimaNotaAction(customerId);
   return emitirNota(ctx, {
@@ -39,6 +34,7 @@ export async function emitirUmCliqueAction(
     descricao,
     perfilId: ultima?.perfilId ?? undefined,
     confirmarDuplicada,
+    origem: 'UM_CLIQUE',
   });
 }
 
@@ -76,7 +72,15 @@ export async function agendarEmissaoAction(p: {
   const ctx = await getTenantContext();
   const customerId = p.customerId || (p.documento ? await clientePeloDocumento(ctx.companyId, p.nome ?? '', p.documento, p.email) : null);
   if (!customerId) return { ok: false, mensagem: 'Escolha o cliente ou informe um CPF/CNPJ válido.' };
-  const r = await agendar(ctx.companyId, { customerId, perfilId: p.perfilId, descricao: p.descricao, valor: p.valor, data: p.data, repetir: p.repetir, ate: p.ate });
+  const r = await agendar(ctx.companyId, {
+    customerId,
+    perfilId: p.perfilId,
+    descricao: p.descricao,
+    valor: p.valor,
+    data: p.data,
+    repetir: p.repetir,
+    ate: p.ate,
+  });
   revalidatePath('/meu-negocio/notas');
   return r;
 }
@@ -85,4 +89,41 @@ export async function alterarAgendadaAction(id: string, acao: 'pausar' | 'retoma
   const ctx = await getTenantContext();
   await alterarAgendada(ctx.companyId, id, acao);
   revalidatePath('/meu-negocio/notas');
+}
+
+/** Marca o serviço (perfil fiscal) que já vem escolhido nas próximas emissões. */
+export async function definirPerfilPadraoAction(perfilId: string): Promise<void> {
+  const ctx = await getTenantContext();
+  const db = getDb();
+  await db.execute(sql`UPDATE nfse_service_profile SET padrao = false WHERE company_id = ${ctx.companyId} AND padrao AND id <> ${perfilId}::uuid`);
+  await db.execute(sql`UPDATE nfse_service_profile SET padrao = true WHERE company_id = ${ctx.companyId} AND id = ${perfilId}::uuid`);
+  revalidatePath('/meu-negocio/notas');
+}
+
+export interface ContratoDoCliente {
+  codigo: string | null;
+  titulo: string;
+  descricao: string;
+  valor: number;
+  inicio: string; // AAAA-MM-DD
+}
+
+/**
+ * O contrato ATIVO de venda com este CPF/CNPJ — a nota dele já sai com o
+ * serviço, o valor e a referência ao contrato nas informações adicionais.
+ */
+export async function contratoAtivoAction(documento: string): Promise<ContratoDoCliente | null> {
+  const doc = documento.replace(/\D/g, '');
+  if (doc.length !== 11 && doc.length !== 14) return null;
+  const ctx = await getTenantContext();
+  const [c] = (await getDb().execute(sql`
+    SELECT verification_code AS codigo, title AS titulo, coalesce(nullif(description, ''), title) AS descricao,
+           value::float AS valor, to_char(coalesce(signing_date, start_date), 'YYYY-MM-DD') AS inicio
+      FROM business_contract
+     WHERE company_id = ${ctx.companyId} AND type = 'ENTRADA' AND status = 'ATIVO'
+       AND regexp_replace(coalesce(party_cnpj, ''), '[^0-9]', '', 'g') = ${doc}
+       AND end_date >= current_date
+     ORDER BY start_date DESC LIMIT 1
+  `)) as unknown as ContratoDoCliente[];
+  return c ?? null;
 }

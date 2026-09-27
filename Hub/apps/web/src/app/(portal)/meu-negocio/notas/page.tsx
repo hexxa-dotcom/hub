@@ -3,8 +3,7 @@ import { withTenant } from '@hexxa/db';
 import { nfseMode } from '@/lib/server/container';
 import { getNfseConfig, estimateInvoiceTaxRate, isCertConfiguredForTenant, isFiscalComplete, listServiceProfiles } from '@/lib/server/fiscal';
 import { regimeDaEmpresa, aliquotaDoFaturamento } from '@/lib/server/bussola';
-import { notasDoMes, mesesComNotas } from '@/lib/server/notas';
-import { SectionHero } from '@/components/ui/SectionHero';
+import { notasDoPeriodo, mesesComNotas } from '@/lib/server/notas';
 import { NotasClient } from './NotasClient';
 import { LIBERA_SIMPLES } from '@/lib/server/emissao';
 import { listarAgendadas, notasPendentes } from '@/lib/server/emissao-agendada';
@@ -26,15 +25,17 @@ import { getDb, sql } from '@hexxa/db';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Notas · Hexx Digital' };
 
-
-export default async function Page({ searchParams }: { searchParams: Promise<{ mes?: string; aba?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ mes?: string; aba?: string; de?: string; ate?: string }> }) {
   const ctx = await getTenantContext();
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-  const { mes: mesPedido, aba } = await searchParams;
-  const mes = /^\d{4}-\d{2}$/.test(mesPedido ?? '') ? mesPedido! : hoje.slice(0, 7);
+  const { mes: mesPedido, aba, de, ate } = await searchParams;
+  const data = /^\d{4}-\d{2}-\d{2}$/;
+  // Período de/até (o filtro): manda sobre o mês. Sem ele, o mês do seletor.
+  const periodo = de && ate && data.test(de) && data.test(ate) && de <= ate ? { de, ate } : null;
+  const mes = /^\d{4}-\d{2}$/.test(mesPedido ?? '') ? mesPedido! : (periodo?.ate ?? hoje).slice(0, 7);
 
   const [notas, meses, regime, config, certOk, profiles, taxa, mode, clientes, agendadas, pendentes, prestador] = await Promise.all([
-    notasDoMes(ctx, mes),
+    notasDoPeriodo(ctx, periodo ?? { mes }),
     mesesComNotas(ctx),
     regimeDaEmpresa(ctx),
     getNfseConfig(ctx).catch(() => null),
@@ -45,14 +46,20 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
     // Com telefone e endereço: a prévia da nota mostra, e o envio usa.
     withTenant(ctx.companyId, (tx) =>
       tx.execute(sql`SELECT id::text, name, document, email, phone, endereco FROM customer WHERE company_id = ${ctx.companyId}`),
-    ) as unknown as Promise<{ id: string; name: string; document: string | null; email: string | null; phone: string | null; endereco: Record<string, string> | null }[]>,
+    ) as unknown as Promise<
+      { id: string; name: string; document: string | null; email: string | null; phone: string | null; endereco: Record<string, string> | null }[]
+    >,
     listarAgendadas(ctx.companyId).catch(() => []),
     notasPendentes(ctx.companyId).catch(() => []),
     getDb()
-      .execute(sql`
+      .execute(
+        sql`
         SELECT legal_name AS nome, cnpj, city AS cidade, state AS uf, address_line1 AS logradouro, address_number AS numero
-          FROM company WHERE id = ${ctx.companyId}`)
-      .then((r) => r[0] as { nome: string; cnpj: string; cidade: string | null; uf: string | null; logradouro: string | null; numero: string | null } | undefined),
+          FROM company WHERE id = ${ctx.companyId}`,
+      )
+      .then(
+        (r) => r[0] as { nome: string; cnpj: string; cidade: string | null; uf: string | null; logradouro: string | null; numero: string | null } | undefined,
+      ),
   ]);
 
   const aliquota = taxa.aliquota;
@@ -63,14 +70,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
 
   return (
     <div className="w-full space-y-12 pb-20">
-      <SectionHero
-        title="Notas"
-        subtitulo="O faturamento nota por nota, direto do Emissor Nacional"
-        infoTitle="Sobre as Notas"
-        infoDescription="Toda nota emitida ou recebida pelo CNPJ da empresa, venha do sistema que vier, chega pelo Emissor Nacional do governo — é ela que vale como faturamento. A sincronização roda todo dia de madrugada; você também pode sincronizar na hora."
-      />
       <NotasClient
         mes={mes}
+        periodo={periodo}
         meses={meses}
         notas={notas}
         aliquota={aliquota}

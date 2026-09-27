@@ -111,8 +111,9 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
             <Text style={styles.headerSubtitle}>Padrão Nacional de Emissão de NFS-e</Text>
           </View>
           <View style={styles.headerRight}>
-            <Image src={qrDataUrl} style={styles.qr} />
-            <Text style={{ fontSize: 6, color: '#64748b' }}>Verificar autenticidade</Text>
+            {/* A prévia não existe no governo: sem QR de autenticidade. */}
+            {!data.previa && <Image src={qrDataUrl} style={styles.qr} />}
+            {!data.previa && <Text style={{ fontSize: 6, color: '#64748b' }}>Verificar autenticidade</Text>}
           </View>
         </View>
 
@@ -120,6 +121,14 @@ function DanfseDocument({ data, qrDataUrl }: { data: DanfseData; qrDataUrl: stri
           <View style={{ backgroundColor: '#e0f2fe', border: '1pt solid #0284c7', padding: 4, marginBottom: 5 }}>
             <Text style={{ color: '#0369a1', fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>NOTA DE EXEMPLO — SEM VALOR FISCAL</Text>
             <Text style={{ color: '#0369a1', fontSize: 6.5, textAlign: 'center' }}>Dados fictícios, só para mostrar como a nota fica.</Text>
+          </View>
+        )}
+        {data.previa && (
+          <View style={{ backgroundColor: '#fef3c7', border: '1pt solid #d97706', padding: 4, marginBottom: 5 }}>
+            <Text style={{ color: '#b45309', fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>
+              PRÉVIA — NOTA AINDA NÃO EMITIDA{data.previa.agendadaPara ? ` · AGENDADA PARA ${data.previa.agendadaPara}` : ''}
+            </Text>
+            <Text style={{ color: '#b45309', fontSize: 6.5, textAlign: 'center' }}>Sem valor fiscal. Número, chave de acesso e data saem na emissão.</Text>
           </View>
         )}
         {data.cancelada && (

@@ -2,11 +2,19 @@
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, AlertTriangle, Loader2, MapPin, Mail, MessageCircle, Pencil } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Loader2, MapPin, Mail, MessageCircle, Pencil, Eye, CalendarClock, X, ArrowRight, Star, FileText } from 'lucide-react';
 import { emitNfseAction, consultarCnpjAction, type EmitState } from '../nfse/actions';
-import { ultimaNotaAction, agendarEmissaoAction, alterarAgendadaAction } from './emissao-actions';
+import {
+  ultimaNotaAction,
+  agendarEmissaoAction,
+  alterarAgendadaAction,
+  definirPerfilPadraoAction,
+  contratoAtivoAction,
+  type ContratoDoCliente,
+} from './emissao-actions';
 import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto } from '@/components/ui/ListaEmColunas';
 import type { EmissaoAgendada } from '@/lib/server/emissao-agendada';
+import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 
 /**
  * EMITIR NOTA — perguntas simples, ao contrário do Emissor Nacional.
@@ -35,12 +43,14 @@ const painel =
 const campo =
   'mt-1.5 w-full rounded-2xl border border-black/10 bg-white/60 px-4 py-3 text-sm text-ink outline-none transition-colors focus:border-hexxa-forest/50 dark:border-white/10 dark:bg-white/5 dark:focus:border-hexxa-lime/40';
 const pergunta = 'text-sm font-semibold text-ink';
+const secundario =
+  'inline-flex items-center justify-center gap-2 rounded-full border border-black/15 px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-black/[0.04] disabled:opacity-40 dark:border-white/20 dark:hover:bg-white/[0.06]';
 const principal =
   'inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-7 py-3 text-sm font-semibold text-hexxa-lime transition-opacity disabled:opacity-40 dark:bg-hexxa-lime dark:text-hexxa-forest';
 
 type Endereco = { cep: string; cMun: string; logradouro: string; numero: string; complemento?: string; bairro: string; municipio: string; uf: string };
 type Cliente = { id: string; name: string; document: string | null; email: string | null; phone: string | null; endereco: Record<string, string> | null };
-type Perfil = { id: string; nome: string; itemListaServico: string; aliquotaIss: number | null; defaultDescription?: string | null };
+type Perfil = { id: string; nome: string; itemListaServico: string; aliquotaIss: number | null; defaultDescription?: string | null; padrao?: boolean };
 type Depois = 'so' | 'mensal' | 'data';
 
 export interface Prestador {
@@ -92,6 +102,9 @@ export function EmissaoFacil({
   const [msgAgenda, setMsgAgenda] = useState<{ ok: boolean; texto: string } | null>(null);
   // A prévia abre para emitir ou para agendar — o botão que a pessoa apertou.
   const [previa, setPrevia] = useState<false | 'emitir' | 'agendar'>(false);
+  // "Visualizar": a DANFSe da nota como vai sair, antes de emitir (PDF em memória).
+  const [pdfDaPrevia, setPdfDaPrevia] = useState<string | null>(null);
+  const [gerandoPrevia, setGerandoPrevia] = useState(false);
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
   const doCadastro = inicial?.customerId ? customers.find((c) => c.id === inicial.customerId) : undefined;
@@ -102,8 +115,12 @@ export function EmissaoFacil({
   const [buscando, setBuscando] = useState(false);
 
   const [valor, setValor] = useState(inicial?.valor ? inicial.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '');
-  const [descricao, setDescricao] = useState(inicial?.descricao ?? (profiles.length === 1 ? profiles[0]!.defaultDescription ?? '' : ''));
-  const [perfilId, setPerfilId] = useState(profiles[0]?.id ?? '');
+  // O serviço padrão (ou o primeiro) já vem escolhido, com a descrição dele.
+  const perfilInicial = profiles.find((p) => p.padrao) ?? profiles[0];
+  const [descricao, setDescricao] = useState(inicial?.descricao ?? perfilInicial?.defaultDescription ?? '');
+  const [perfilId, setPerfilId] = useState(perfilInicial?.id ?? '');
+  const [padraoId, setPadraoId] = useState(profiles.find((p) => p.padrao)?.id ?? null);
+  const [contrato, setContrato] = useState<ContratoDoCliente | null>(null);
   const [competencia, setCompetencia] = useState(hoje);
   const [reterIss, setReterIss] = useState(false);
   const [informacoes, setInformacoes] = useState('');
@@ -122,7 +139,50 @@ export function EmissaoFacil({
   /** Simples antes de novembro: emitir pela Hexx ainda não é possível — ver `LIBERA_SIMPLES`. */
   const bloqueada = Boolean(liberaEm);
 
-  // Cliente da lista: contatos e endereço do cadastro, e a última nota dele repetida.
+  // Trocar o serviço traz a descrição dele — se a pessoa não tinha escrito outra.
+  function trocarPerfil(id: string) {
+    if (id === '__novo') {
+      window.location.href = '/configuracoes/fiscal';
+      return;
+    }
+    const antigo = profiles.find((p) => p.id === perfilId);
+    const novo = profiles.find((p) => p.id === id);
+    setPerfilId(id);
+    if (!descricao.trim() || descricao === (antigo?.defaultDescription ?? '')) setDescricao(novo?.defaultDescription ?? '');
+  }
+
+  async function tornarPadrao() {
+    setPadraoId(perfilId);
+    await definirPerfilPadraoAction(perfilId);
+  }
+
+  /**
+   * Cliente com contrato ativo: a nota sai com o serviço e o valor do contrato
+   * e a referência a ele nas informações adicionais. Devolve se achou.
+   */
+  async function aplicarContrato(documento: string): Promise<boolean> {
+    if (inicial?.parcelaId) return false;
+    const c = await contratoAtivoAction(documento).catch(() => null);
+    setContrato(c);
+    if (!c) return false;
+    setDescricao(c.descricao);
+    if (c.valor > 0) setValor(c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+    const referencia = c.codigo
+      ? `NFS-e emitida com base no contrato de prestação de serviços nº ${c.codigo}, vigente desde ${br(c.inicio)}.`
+      : `NFS-e emitida com base no contrato de prestação de serviços "${c.titulo}", vigente desde ${br(c.inicio)}.`;
+    setInformacoes((i) => (i.includes('com base no contrato') ? i : [i.trim(), referencia].filter(Boolean).join('\n')));
+    return true;
+  }
+
+  // CPF/CNPJ digitado (cliente fora da lista): procura o contrato ativo também.
+  useEffect(() => {
+    const d = doc.replace(/\D/g, '');
+    if (clienteId || (d.length !== 11 && d.length !== 14)) return;
+    aplicarContrato(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, clienteId]);
+
+  // Cliente da lista: contatos e endereço do cadastro; o contrato ativo ou, sem ele, a última nota repetida.
   async function escolherCliente(id: string) {
     setClienteId(id);
     const c = customers.find((x) => x.id === id);
@@ -133,7 +193,9 @@ export function EmissaoFacil({
     setPorWhats(Boolean(c?.phone));
     setEndereco((c?.endereco as Endereco | null) ?? null);
     setPrevia(false);
+    setContrato(null);
     if (!id || inicial?.parcelaId) return;
+    if (c?.document && (await aplicarContrato(c.document))) return;
     const u = await ultimaNotaAction(id);
     if (u) {
       setDescricao(u.descricao);
@@ -167,6 +229,41 @@ export function EmissaoFacil({
     if (state.ok) setPrevia(false);
   }, [state]);
 
+  useEffect(() => {
+    if (!previa) return;
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setPrevia(false);
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [previa]);
+
+  async function visualizar() {
+    setGerandoPrevia(true);
+    try {
+      const r = await fetch('/api/nfse/previa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tomador: { nome, documento: doc, email: porEmail ? emails.split(/[,;\s]+/)[0] : '', telefone: porWhats ? whatsapp : '', endereco },
+          descricao,
+          valor: numero,
+          informacoes,
+          competencia: depois !== 'so' && bloqueada ? depoisData : competencia,
+          perfilId,
+          taxa: taxRatePercent,
+          reterIss,
+        }),
+      });
+      if (!r.ok) return;
+      setPdfDaPrevia(URL.createObjectURL(await r.blob()));
+    } finally {
+      setGerandoPrevia(false);
+    }
+  }
+  const fecharPdf = () => {
+    if (pdfDaPrevia) URL.revokeObjectURL(pdfDaPrevia);
+    setPdfDaPrevia(null);
+  };
+
   function agendarSo(dataFixa?: string) {
     iniciar(async () => {
       const r = await agendarEmissaoAction({
@@ -190,9 +287,34 @@ export function EmissaoFacil({
   const pronto = Boolean(numero > 0 && descricao.trim() && docOk && nome.trim() && (!reterIss || endereco));
   const ok = msgAgenda ? msgAgenda.ok : state.ok;
   const mensagem = msgAgenda?.texto ?? state.message;
+  const aviso = (
+    <>
+      {mensagem && (
+        <div
+          className={`mt-4 flex flex-wrap items-start gap-3 text-sm ${ok ? 'text-emerald-700 dark:text-emerald-400' : state.precisaConfirmar && !msgAgenda ? 'text-amber-700 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}
+        >
+          <p className="flex items-start gap-2">
+            {ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
+            {mensagem}
+          </p>
+          {state.ok && state.whatsappLink && !msgAgenda && (
+            <a
+              href={state.whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-4 py-1.5 text-xs font-semibold text-ink dark:border-white/20"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> Enviar pelo WhatsApp
+            </a>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="space-y-6">
+      {pdfDaPrevia && <VisualizadorDeArquivo src={pdfDaPrevia} titulo="Prévia da nota — ainda não emitida" onClose={fecharPdf} />}
       {bloqueada ? (
         <p className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-3 text-xs text-amber-800 dark:text-amber-300">
           Para o Simples Nacional, a emissão pela Hexx começa em {br(liberaEm!)}. Até lá, emita no{' '}
@@ -232,8 +354,24 @@ export function EmissaoFacil({
             </select>
             {!clienteId && (
               <div className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)]">
-                <input value={doc} onChange={(e) => { setDoc(e.target.value); setEndereco(null); }} placeholder="CNPJ ou CPF" inputMode="numeric" className={campo} aria-label="CPF ou CNPJ" />
-                <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={buscando ? 'Buscando na Receita…' : 'Nome ou razão social'} className={campo} aria-label="Nome" />
+                <input
+                  value={doc}
+                  onChange={(e) => {
+                    setDoc(e.target.value);
+                    setEndereco(null);
+                  }}
+                  placeholder="CNPJ ou CPF"
+                  inputMode="numeric"
+                  className={campo}
+                  aria-label="CPF ou CNPJ"
+                />
+                <input
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder={buscando ? 'Buscando na Receita…' : 'Nome ou razão social'}
+                  className={campo}
+                  aria-label="Nome"
+                />
               </div>
             )}
             <EnderecoDoTomador endereco={endereco} onChange={setEndereco} />
@@ -241,6 +379,12 @@ export function EmissaoFacil({
               <input type="checkbox" checked={reterIss} onChange={(e) => setReterIss(e.target.checked)} /> O cliente retém o ISS
               {reterIss && !endereco && <span className="font-semibold text-amber-700 dark:text-amber-400">— informe o endereço dele</span>}
             </label>
+            {contrato && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-hexxa-forest/25 px-3 py-1 text-[11px] text-ink dark:border-hexxa-lime/25">
+                <FileText className="h-3.5 w-3.5 text-ink-soft" />
+                Contrato ativo{contrato.codigo ? ` nº ${contrato.codigo}` : ''} — serviço, valor e referência já preenchidos
+              </p>
+            )}
           </div>
 
           <div>
@@ -267,7 +411,40 @@ export function EmissaoFacil({
           </div>
 
           <div>
-            <p className={pergunta}>Qual serviço?</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className={pergunta}>Qual serviço?</p>
+              {/* O perfil fiscal do serviço: discreto, já no padrão; troca aqui quando a nota é de outro serviço. */}
+              <div className="flex items-center gap-2 text-xs">
+                {profiles.length ? (
+                  <select
+                    value={perfilId}
+                    onChange={(e) => trocarPerfil(e.target.value)}
+                    className="max-w-[16rem] truncate rounded-full border border-black/10 bg-transparent px-3 py-1.5 text-ink dark:border-white/15"
+                    aria-label="Serviço (perfil fiscal)"
+                  >
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome} · {p.itemListaServico}
+                      </option>
+                    ))}
+                    <option value="__novo">+ Cadastrar outro serviço</option>
+                  </select>
+                ) : (
+                  <Link href="/configuracoes/fiscal" className="font-semibold text-rose-600 underline">
+                    Cadastre um serviço
+                  </Link>
+                )}
+                {perfilId && padraoId === perfilId ? (
+                  <span className="inline-flex items-center gap-1 text-ink-soft">
+                    <Star className="h-3.5 w-3.5 fill-current" /> padrão
+                  </span>
+                ) : perfilId ? (
+                  <button type="button" onClick={tornarPadrao} className="inline-flex items-center gap-1 font-semibold text-ink-soft hover:text-ink">
+                    <Star className="h-3.5 w-3.5" /> tornar padrão
+                  </button>
+                ) : null}
+              </div>
+            </div>
             <textarea
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
@@ -288,49 +465,53 @@ export function EmissaoFacil({
               className={`${campo} resize-none`}
               aria-label="Informações adicionais"
             />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-ink-soft">
-              {profiles.length > 1 ? (
-                <select value={perfilId} onChange={(e) => setPerfilId(e.target.value)} className="rounded-full border border-black/10 bg-transparent px-3 py-1.5 dark:border-white/15" aria-label="Perfil fiscal">
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome} — item {p.itemListaServico}
-                    </option>
-                  ))}
-                </select>
-              ) : perfil ? (
-                <span>
-                  {perfil.nome} · item {perfil.itemListaServico}
-                </span>
-              ) : (
-                <Link href="/configuracoes/fiscal" className="font-semibold text-rose-600 underline">
-                  Cadastre um perfil fiscal
-                </Link>
-              )}
-              {(
+            <div className="mt-2 flex flex-wrap items-center justify-end gap-3 text-xs text-ink-soft">
+              {
                 <label className="flex items-center gap-2">
                   competência
-                  <input type="date" value={competencia} max={hoje} onChange={(e) => setCompetencia(e.target.value)} className="rounded-full border border-black/10 bg-transparent px-3 py-1 text-ink dark:border-white/15" />
+                  <input
+                    type="date"
+                    value={competencia}
+                    max={hoje}
+                    onChange={(e) => setCompetencia(e.target.value)}
+                    className="rounded-full border border-black/10 bg-transparent px-3 py-1 text-ink dark:border-white/15"
+                  />
                 </label>
-              )}
+              }
             </div>
           </div>
         </div>
 
-        {/* ── Envio e próximas ── */}
-        <div className={`${painel} space-y-6 lg:col-span-5`}>
+        {/* ── Envio, próximas e os botões ── */}
+        <div className={`${painel} flex flex-col gap-6 lg:col-span-5`}>
           <div>
             <p className={pergunta}>Enviar a nota para</p>
             <label className="mt-3 flex items-center gap-2 text-xs text-ink-soft">
               <input type="checkbox" checked={porEmail} onChange={(e) => setPorEmail(e.target.checked)} /> <Mail className="h-3.5 w-3.5" /> E-mail
             </label>
-            {porEmail && <input value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="financeiro@cliente.com, outro@…" className={campo} aria-label="E-mails" />}
+            {porEmail && (
+              <input
+                value={emails}
+                onChange={(e) => setEmails(e.target.value)}
+                placeholder="financeiro@cliente.com, outro@…"
+                className={campo}
+                aria-label="E-mails"
+              />
+            )}
             <label className="mt-3 flex items-center gap-2 text-xs text-ink-soft">
               <input type="checkbox" checked={porWhats} onChange={(e) => setPorWhats(e.target.checked)} /> <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
             </label>
-            {porWhats && <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(47) 99999-0000" inputMode="tel" className={campo} aria-label="WhatsApp" />}
-            <p className="mt-2 text-[11px] text-ink-soft">
-              O e-mail sai sozinho com o PDF. O WhatsApp abre a conversa com a mensagem pronta — é só enviar.
-            </p>
+            {porWhats && (
+              <input
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="(47) 99999-0000"
+                inputMode="tel"
+                className={campo}
+                aria-label="WhatsApp"
+              />
+            )}
+            <p className="mt-2 text-[11px] text-ink-soft">O e-mail sai sozinho com o PDF. O WhatsApp abre a conversa com a mensagem pronta — é só enviar.</p>
           </div>
 
           <div>
@@ -357,6 +538,33 @@ export function EmissaoFacil({
               )}
             </div>
           </div>
+
+          {/* Os botões moram aqui, no fim do bloco: a emissão cabe numa tela só. */}
+          <div className="mt-auto space-y-3 border-t border-black/[0.08] pt-6 dark:border-white/[0.12]">
+            {/* Ao passar o mouse: sobe um pouco, ganha brilho e a seta anda — o convite para emitir. */}
+            <button
+              type="button"
+              disabled={!pronto}
+              onClick={() => setPrevia('emitir')}
+              className={`${principal} botao-emitir group w-full justify-center py-4 text-base`}
+            >
+              Emitir nota{numero > 0 ? ` de ${BRL.format(numero)}` : ''}
+              <ArrowRight className="botao-emitir-seta h-4 w-4" />
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" disabled={!pronto || gerandoPrevia} onClick={visualizar} className={secundario}>
+                {gerandoPrevia ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />} Visualizar
+              </button>
+              <button type="button" disabled={!pronto} onClick={() => setPrevia('agendar')} className={secundario}>
+                <CalendarClock className="h-4 w-4" /> Agendar
+              </button>
+            </div>
+            {!pronto && <p className="text-center text-[11px] text-ink-soft">Preencha para quem, o valor e o serviço.</p>}
+            {inicial?.parcelaId && (
+              <p className="text-center text-[11px] text-ink-soft">A nota fatura a parcela do contrato — não cria outro valor a receber.</p>
+            )}
+            {!previa && aviso}
+          </div>
         </div>
 
         {/* Os campos que vão ao servidor */}
@@ -376,87 +584,87 @@ export function EmissaoFacil({
         <input type="hidden" name="depoisData" value={depois === 'so' ? '' : depoisData} />
         {inicial?.parcelaId && <input type="hidden" name="parcelaId" value={inicial.parcelaId} />}
         {endereco &&
-          (['cep', 'cMun', 'logradouro', 'numero', 'bairro', 'municipio', 'uf'] as const).map((k) => <input key={k} type="hidden" name={k} value={endereco[k] ?? ''} />)}
+          (['cep', 'cMun', 'logradouro', 'numero', 'bairro', 'municipio', 'uf'] as const).map((k) => (
+            <input key={k} type="hidden" name={k} value={endereco[k] ?? ''} />
+          ))}
         {endereco?.complemento && <input type="hidden" name="complemento" value={endereco.complemento} />}
         {state.precisaConfirmar && <input type="hidden" name="confirmarDuplicada" value="1" />}
 
-        {/* ── Prévia e confirmação ── */}
-        <div className={`${painel} lg:col-span-12`}>
-          {!previa ? (
-            <div className="flex flex-wrap items-center gap-4">
-              <button type="button" disabled={!pronto} onClick={() => setPrevia('emitir')} className={principal}>
-                Emitir nota{numero > 0 ? ` de ${BRL.format(numero)}` : ''}
-              </button>
-              <button
-                type="button"
-                disabled={!pronto}
-                onClick={() => setPrevia('agendar')}
-                className="rounded-full border border-black/15 px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-black/[0.04] disabled:opacity-40 dark:border-white/20"
-              >
-                Agendar em vez de emitir
-              </button>
-              {inicial?.parcelaId && <span className="text-xs text-ink-soft">A nota fatura a parcela do contrato — não cria outro valor a receber.</span>}
-            </div>
-          ) : (
-            <Previa
-              prestador={prestador}
-              cliente={{ nome, documento: doc, endereco, emails: porEmail ? emails : '', whatsapp: porWhats ? whatsapp : '' }}
-              servico={{ descricao, perfil, informacoes }}
-              valor={numero}
-              imposto={imposto}
-              taxa={taxRatePercent}
-              competencia={previa === 'agendar' ? depoisData : competencia}
-              depois={depois}
-              depoisData={depoisData}
-              soAgendar={previa === 'agendar'}
-              acao={
-                <div className="flex flex-wrap items-center gap-4">
-                  {previa === 'agendar' ? (
-                    <button type="button" onClick={() => agendarSo()} disabled={agendando} className={principal}>
-                      {agendando && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {depois === 'mensal' ? 'Confirmar e agendar todo mês' : 'Confirmar e agendar'}
-                    </button>
-                  ) : bloqueada ? (
-                    <>
-                      <p className="w-full text-xs text-amber-700 dark:text-amber-400">
-                        Para o Simples Nacional, a emissão pela Hexx libera em {br(liberaEm!)}. Até lá, emita no Emissor Nacional — a nota volta sozinha para
-                        cá — ou deixe esta agendada.
-                      </p>
-                      <a href="https://www.nfse.gov.br/EmissorNacional" target="_blank" rel="noreferrer" className={principal}>
-                        Emitir no Emissor Nacional
-                      </a>
-                      <button type="button" onClick={() => agendarSo(liberaEm!)} disabled={agendando} className="rounded-full border border-black/15 px-5 py-3 text-sm font-semibold text-ink dark:border-white/20">
-                        Agendar para {br(liberaEm!)}
+        {/* ── Confirmação: a prévia numa janela, por cima da tela ── */}
+        {previa && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-sm sm:p-6" onClick={() => setPrevia(false)}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-(--elev-3) ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/95 dark:ring-white/5"
+            >
+              <div className="-mb-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPrevia(false)}
+                  aria-label="Fechar"
+                  className="rounded-full p-1.5 text-ink-soft hover:bg-black/5 hover:text-ink dark:hover:bg-white/10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <Previa
+                prestador={prestador}
+                cliente={{ nome, documento: doc, endereco, emails: porEmail ? emails : '', whatsapp: porWhats ? whatsapp : '' }}
+                servico={{ descricao, perfil, informacoes }}
+                valor={numero}
+                imposto={imposto}
+                taxa={taxRatePercent}
+                competencia={previa === 'agendar' ? depoisData : competencia}
+                depois={depois}
+                depoisData={depoisData}
+                soAgendar={previa === 'agendar'}
+                acao={
+                  <div className="flex flex-wrap items-center gap-4">
+                    {previa === 'agendar' ? (
+                      <button type="button" onClick={() => agendarSo()} disabled={agendando} className={principal}>
+                        {agendando && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {depois === 'mensal' ? 'Confirmar e agendar todo mês' : 'Confirmar e agendar'}
                       </button>
-                    </>
-                  ) : (
-                    <button type="submit" disabled={pending} className={principal}>
-                      {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {pending ? 'Emitindo…' : state.precisaConfirmar ? 'Emitir mesmo assim' : `Confirmar e emitir ${BRL.format(numero)}`}
+                    ) : bloqueada ? (
+                      <>
+                        <p className="w-full text-xs text-amber-700 dark:text-amber-400">
+                          Para o Simples Nacional, a emissão pela Hexx libera em {br(liberaEm!)}. Até lá, emita no Emissor Nacional — a nota volta sozinha para
+                          cá — ou deixe esta agendada.
+                        </p>
+                        <a href="https://www.nfse.gov.br/EmissorNacional" target="_blank" rel="noreferrer" className={principal}>
+                          Emitir no Emissor Nacional
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => agendarSo(liberaEm!)}
+                          disabled={agendando}
+                          className="rounded-full border border-black/15 px-5 py-3 text-sm font-semibold text-ink dark:border-white/20"
+                        >
+                          Agendar para {br(liberaEm!)}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="submit" disabled={pending} className={principal}>
+                        {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {pending ? 'Emitindo…' : state.precisaConfirmar ? 'Emitir mesmo assim' : `Confirmar e emitir ${BRL.format(numero)}`}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPrevia(false)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
                     </button>
-                  )}
-                  <button type="button" onClick={() => setPrevia(false)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
-                    <Pencil className="h-3.5 w-3.5" /> Editar
-                  </button>
-                </div>
-              }
-            />
-          )}
-
-          {mensagem && (
-            <div className={`mt-4 flex flex-wrap items-start gap-3 text-sm ${ok ? 'text-emerald-700 dark:text-emerald-400' : state.precisaConfirmar && !msgAgenda ? 'text-amber-700 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              <p className="flex items-start gap-2">
-                {ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
-                {mensagem}
-              </p>
-              {state.ok && state.whatsappLink && !msgAgenda && (
-                <a href={state.whatsappLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-4 py-1.5 text-xs font-semibold text-ink dark:border-white/20">
-                  <MessageCircle className="h-3.5 w-3.5" /> Enviar pelo WhatsApp
-                </a>
-              )}
+                  </div>
+                }
+              />
+              {aviso}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -503,7 +711,13 @@ function Previa({
           <span className={r}>Prestador</span>
           <span className="text-sm text-ink">
             {prestador?.nome ?? '—'} · CNPJ {prestador ? docFmt(prestador.cnpj) : '—'}
-            {prestador?.cidade ? <span className="block text-xs text-ink-soft">{[prestador.logradouro, prestador.numero].filter(Boolean).join(', ')}{prestador.logradouro ? ' — ' : ''}{prestador.cidade}/{prestador.uf}</span> : null}
+            {prestador?.cidade ? (
+              <span className="block text-xs text-ink-soft">
+                {[prestador.logradouro, prestador.numero].filter(Boolean).join(', ')}
+                {prestador.logradouro ? ' — ' : ''}
+                {prestador.cidade}/{prestador.uf}
+              </span>
+            ) : null}
           </span>
         </div>
         <div className={linha}>
@@ -512,18 +726,26 @@ function Previa({
             {cliente.nome || '—'} · {cliente.documento.replace(/\D/g, '').length === 14 ? 'CNPJ' : 'CPF'} {docFmt(cliente.documento)}
             {cliente.endereco && (
               <span className="block text-xs text-ink-soft">
-                {cliente.endereco.logradouro}, {cliente.endereco.numero}{cliente.endereco.complemento ? ` ${cliente.endereco.complemento}` : ''} — {cliente.endereco.bairro}, {cliente.endereco.municipio}/{cliente.endereco.uf} · CEP {cliente.endereco.cep}
+                {cliente.endereco.logradouro}, {cliente.endereco.numero}
+                {cliente.endereco.complemento ? ` ${cliente.endereco.complemento}` : ''} — {cliente.endereco.bairro}, {cliente.endereco.municipio}/
+                {cliente.endereco.uf} · CEP {cliente.endereco.cep}
               </span>
             )}
             {(cliente.emails || cliente.whatsapp) && (
-              <span className="block text-xs text-ink-soft">{[cliente.emails, cliente.whatsapp && `WhatsApp ${cliente.whatsapp}`].filter(Boolean).join(' · ')}</span>
+              <span className="block text-xs text-ink-soft">
+                {[cliente.emails, cliente.whatsapp && `WhatsApp ${cliente.whatsapp}`].filter(Boolean).join(' · ')}
+              </span>
             )}
           </span>
         </div>
         <div className={linha}>
           <span className={r}>Serviço</span>
           <span className="text-sm text-ink">
-            {servico.perfil ? <span className="block text-xs text-ink-soft">{servico.perfil.nome} · item {servico.perfil.itemListaServico} da LC 116</span> : null}
+            {servico.perfil ? (
+              <span className="block text-xs text-ink-soft">
+                {servico.perfil.nome} · item {servico.perfil.itemListaServico} da LC 116
+              </span>
+            ) : null}
             {servico.descricao}
             {servico.informacoes?.trim() && <span className="mt-1 block text-xs text-ink-soft">Informações adicionais: {servico.informacoes}</span>}
           </span>
@@ -559,8 +781,16 @@ function Previa({
 export function Agendadas({ itens }: { itens: EmissaoAgendada[] }) {
   const [pendente, iniciar] = useTransition();
   const fazer = (id: string, acao: 'pausar' | 'retomar' | 'pular' | 'excluir') => iniciar(() => alterarAgendadaAction(id, acao));
+  const [vendo, setVendo] = useState<EmissaoAgendada | null>(null);
   return (
     <section className="space-y-4">
+      {vendo && (
+        <VisualizadorDeArquivo
+          src={`/api/nfse/previa?agendada=${vendo.id}`}
+          titulo={`Prévia · ${vendo.cliente} · ${br(vendo.proximaData)}`}
+          onClose={() => setVendo(null)}
+        />
+      )}
       <p className="rotulo text-ink-soft">Próximas emissões</p>
       <ListaEmColunas
         colunas={[
@@ -588,7 +818,12 @@ export function Agendadas({ itens }: { itens: EmissaoAgendada[] }) {
           <div className="space-y-3">
             {a.ultimoErro && <p className="text-xs text-rose-600 dark:text-rose-400">Última tentativa: {a.ultimoErro}</p>}
             <div className="flex flex-wrap gap-2">
-              {a.ativa ? <BotaoDiscreto onClick={() => fazer(a.id, 'pausar')}>Pausar</BotaoDiscreto> : <BotaoDiscreto onClick={() => fazer(a.id, 'retomar')}>Retomar</BotaoDiscreto>}
+              <BotaoDiscreto onClick={() => setVendo(a)}>Ver a nota</BotaoDiscreto>
+              {a.ativa ? (
+                <BotaoDiscreto onClick={() => fazer(a.id, 'pausar')}>Pausar</BotaoDiscreto>
+              ) : (
+                <BotaoDiscreto onClick={() => fazer(a.id, 'retomar')}>Retomar</BotaoDiscreto>
+              )}
               {a.diaDoMes && a.ativa && <BotaoDiscreto onClick={() => fazer(a.id, 'pular')}>Pular a próxima</BotaoDiscreto>}
               <BotaoDiscreto onClick={() => fazer(a.id, 'excluir')}>{pendente ? '…' : 'Excluir'}</BotaoDiscreto>
             </div>
@@ -619,7 +854,15 @@ function EnderecoDoTomador({ endereco, onChange }: { endereco: Endereco | null; 
       const r = await fetch(`/api/cep/${d}`);
       if (!r.ok) throw new Error();
       const j = (await r.json()) as { logradouro: string; bairro: string; cidade: string; uf: string; codigoMunicipio: string };
-      setE((x) => ({ ...x, cep: d, logradouro: j.logradouro || x.logradouro, bairro: j.bairro || x.bairro, municipio: j.cidade, uf: j.uf, cMun: j.codigoMunicipio }));
+      setE((x) => ({
+        ...x,
+        cep: d,
+        logradouro: j.logradouro || x.logradouro,
+        bairro: j.bairro || x.bairro,
+        municipio: j.cidade,
+        uf: j.uf,
+        cMun: j.codigoMunicipio,
+      }));
       setStatus('');
     } catch {
       setStatus('erro');
@@ -630,9 +873,16 @@ function EnderecoDoTomador({ endereco, onChange }: { endereco: Endereco | null; 
     return endereco ? (
       <p className="mt-2 flex flex-wrap items-start gap-1.5 text-xs text-ink-soft">
         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-        <span className="font-semibold text-ink">Endereço</span> <span>(opcional)</span> ·
-        {endereco.logradouro}, {endereco.numero} — {endereco.bairro}, {endereco.municipio}/{endereco.uf}
-        <button type="button" onClick={() => { setE(endereco); setAberto(true); }} className="font-semibold text-ink-soft underline-offset-4 hover:text-ink hover:underline">
+        <span className="font-semibold text-ink">Endereço</span> <span>(opcional)</span> ·{endereco.logradouro}, {endereco.numero} — {endereco.bairro},{' '}
+        {endereco.municipio}/{endereco.uf}
+        <button
+          type="button"
+          onClick={() => {
+            setE(endereco);
+            setAberto(true);
+          }}
+          className="font-semibold text-ink-soft underline-offset-4 hover:text-ink hover:underline"
+        >
           editar
         </button>
       </p>
@@ -645,23 +895,78 @@ function EnderecoDoTomador({ endereco, onChange }: { endereco: Endereco | null; 
   const completo = e.cMun.length === 7 && e.logradouro && e.numero && e.bairro;
   return (
     <div className="mt-3 grid gap-2 rounded-2xl border border-black/10 p-3 sm:grid-cols-6 dark:border-white/10">
-      <input className={`${mini} sm:col-span-2`} placeholder="CEP" inputMode="numeric" value={e.cep} onChange={(x) => { setE({ ...e, cep: x.target.value }); buscarCep(x.target.value); }} aria-label="CEP" />
-      <input className={`${mini} sm:col-span-4`} placeholder="Rua / avenida" value={e.logradouro} onChange={(x) => setE({ ...e, logradouro: x.target.value })} aria-label="Logradouro" />
-      <input className={`${mini} sm:col-span-1`} placeholder="Nº" value={e.numero} onChange={(x) => setE({ ...e, numero: x.target.value })} aria-label="Número" />
-      <input className={`${mini} sm:col-span-2`} placeholder="Complemento" value={e.complemento ?? ''} onChange={(x) => setE({ ...e, complemento: x.target.value })} aria-label="Complemento" />
-      <input className={`${mini} sm:col-span-3`} placeholder="Bairro" value={e.bairro} onChange={(x) => setE({ ...e, bairro: x.target.value })} aria-label="Bairro" />
+      <input
+        className={`${mini} sm:col-span-2`}
+        placeholder="CEP"
+        inputMode="numeric"
+        value={e.cep}
+        onChange={(x) => {
+          setE({ ...e, cep: x.target.value });
+          buscarCep(x.target.value);
+        }}
+        aria-label="CEP"
+      />
+      <input
+        className={`${mini} sm:col-span-4`}
+        placeholder="Rua / avenida"
+        value={e.logradouro}
+        onChange={(x) => setE({ ...e, logradouro: x.target.value })}
+        aria-label="Logradouro"
+      />
+      <input
+        className={`${mini} sm:col-span-1`}
+        placeholder="Nº"
+        value={e.numero}
+        onChange={(x) => setE({ ...e, numero: x.target.value })}
+        aria-label="Número"
+      />
+      <input
+        className={`${mini} sm:col-span-2`}
+        placeholder="Complemento"
+        value={e.complemento ?? ''}
+        onChange={(x) => setE({ ...e, complemento: x.target.value })}
+        aria-label="Complemento"
+      />
+      <input
+        className={`${mini} sm:col-span-3`}
+        placeholder="Bairro"
+        value={e.bairro}
+        onChange={(x) => setE({ ...e, bairro: x.target.value })}
+        aria-label="Bairro"
+      />
       <p className="text-[11px] text-ink-soft sm:col-span-6">
-        {status === 'buscando' ? 'Buscando o CEP…' : status === 'erro' ? 'CEP não encontrado — confira os números.' : e.municipio ? `${e.municipio}/${e.uf} · IBGE ${e.cMun}` : 'Digite o CEP: cidade e código IBGE vêm sozinhos.'}
+        {status === 'buscando'
+          ? 'Buscando o CEP…'
+          : status === 'erro'
+            ? 'CEP não encontrado — confira os números.'
+            : e.municipio
+              ? `${e.municipio}/${e.uf} · IBGE ${e.cMun}`
+              : 'Digite o CEP: cidade e código IBGE vêm sozinhos.'}
       </p>
       <div className="flex gap-3 sm:col-span-6">
-        <button type="button" disabled={!completo} onClick={() => { onChange({ ...e, complemento: e.complemento || undefined }); setAberto(false); }} className="rounded-full bg-hexxa-forest px-4 py-1.5 text-xs font-semibold text-hexxa-lime disabled:opacity-40 dark:bg-hexxa-lime dark:text-hexxa-forest">
+        <button
+          type="button"
+          disabled={!completo}
+          onClick={() => {
+            onChange({ ...e, complemento: e.complemento || undefined });
+            setAberto(false);
+          }}
+          className="rounded-full bg-hexxa-forest px-4 py-1.5 text-xs font-semibold text-hexxa-lime disabled:opacity-40 dark:bg-hexxa-lime dark:text-hexxa-forest"
+        >
           Usar este endereço
         </button>
         <button type="button" onClick={() => setAberto(false)} className="text-xs text-ink-soft hover:text-ink">
           Cancelar
         </button>
         {endereco && (
-          <button type="button" onClick={() => { onChange(null); setAberto(false); }} className="text-xs text-ink-soft hover:text-rose-600">
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              setAberto(false);
+            }}
+            className="text-xs text-ink-soft hover:text-rose-600"
+          >
             Tirar o endereço
           </button>
         )}

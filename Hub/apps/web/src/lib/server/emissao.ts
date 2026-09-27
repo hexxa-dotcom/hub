@@ -49,7 +49,11 @@ export interface PedidoDeEmissao {
    * duas vezes no Financeiro.
    */
   parcelaId?: string;
+  /** De onde a nota saiu — aparece na visualização rápida em Notas. */
+  origem?: OrigemDaEmissao;
 }
+
+export type OrigemDaEmissao = 'MANUAL' | 'UM_CLIQUE' | 'AGENDADA' | 'CONTRATO';
 
 export interface ResultadoDaEmissao {
   ok: boolean;
@@ -175,6 +179,12 @@ export async function emitirNota(ctx: TenantContext, p: PedidoDeEmissao): Promis
     // com o que o perfil sobrepuser. Só vai ao XML se o leiaute estiver ligado.
     ibsCbs: ibsCbsDaNota({ itemLc116: perfil.itemListaServico, nbs: perfil.cNbs, cClassTrib: perfil.cClassTrib, cst: perfil.cstIbsCbs }) ?? undefined,
   });
+
+  if (result.invoiceId) {
+    await db
+      .execute(sql`UPDATE service_invoice SET origem = ${p.origem ?? 'MANUAL'} WHERE id = ${result.invoiceId}::uuid AND company_id = ${ctx.companyId}`)
+      .catch(() => {});
+  }
 
   // O cadastro do cliente guarda o endereço completo para as próximas notas.
   if (endereco) {
