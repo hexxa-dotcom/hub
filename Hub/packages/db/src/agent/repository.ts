@@ -104,6 +104,12 @@ export interface ProporInput {
   /** Resultado de `measureConfidence` — score E decomposição. */
   confianca: Confianca;
   amount?: number | null;
+  /**
+   * Manda para aprovação, seja qual for a régua — com o motivo. É o caso da
+   * classificação que a conferência independente não confirmou: sem certeza,
+   * nada é aplicado; a sugestão espera alguém decidir.
+   */
+  forcarAprovacao?: string;
 }
 
 export interface AcaoProposta {
@@ -122,7 +128,9 @@ export interface AcaoProposta {
  * seria pedir ao candidato que corrija a própria prova.
  */
 export async function propor(tx: DbHandle, i: ProporInput): Promise<AcaoProposta> {
-  const decisao = decidirAutonomia(i.kind, i.amount ?? null, i.confianca.score);
+  const decisao = i.forcarAprovacao
+    ? { autonomy: 'APPROVAL' as Autonomy, motivo: i.forcarAprovacao }
+    : decidirAutonomia(i.kind, i.amount ?? null, i.confianca.score);
 
   const status = decisao.autonomy === 'APPROVAL' ? 'AWAITING_APPROVAL' : 'PROPOSED';
 

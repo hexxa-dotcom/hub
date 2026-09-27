@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, eq, and, sql } from '@hexxa/db';
+import { getDb, eq, and, sql, aprender } from '@hexxa/db';
 import { financialEntry, category, bankTransaction, reconciliationMatch, agentAction } from '@hexxa/db/schema';
 import {
   iniciarRun,
@@ -16,8 +16,10 @@ import {
 import {
   confiancaClassificacao,
   confiancaConciliacao,
+  combinarSinais,
   type ActionKind,
   type Confianca,
+  type Sinal,
 } from '@hexxa/core';
 import { escriturar } from './ledger';
 
@@ -130,6 +132,13 @@ export interface ClassificarInput {
   justificativa: string;
   /** Opinião do próprio modelo — sinal de peso baixo, opcional. */
   opiniaoModelo?: { autoavaliacao: number; justificativa: string };
+  /**
+   * Sinais que quem chama verificou (a conferência independente concordou, a
+   * base de conhecimento já sabia). Somam-se ao histórico medido aqui.
+   */
+  sinaisExtras?: Sinal[];
+  /** Sem certeza: a sugestão vai para aprovação, com este motivo. */
+  exigirAprovacao?: string;
   userId?: string | null;
   trigger?: 'CRON' | 'USER' | 'API';
 }
@@ -169,13 +178,14 @@ export async function classificarLancamento(i: ClassificarInput): Promise<Result
     return { ok: false, situacao: 'erro', mensagem: 'Categoria não encontrada nesta empresa.' };
   }
 
-  const confianca = await medirConfiancaClassificacao(
+  const medida = await medirConfiancaClassificacao(
     i.companyId,
     alvo.description,
     alvo.partnerId,
     i.categoriaId,
     i.opiniaoModelo,
   );
+  const confianca = i.sinaisExtras?.length ? combinarSinais([...medida.sinais, ...i.sinaisExtras]) : medida;
 
   return comRun(
     i.companyId,
@@ -199,6 +209,7 @@ export async function classificarLancamento(i: ClassificarInput): Promise<Result
         rationale: i.justificativa,
         confianca,
         amount: Number(alvo.amount),
+        forcarAprovacao: i.exigirAprovacao,
       });
 
       if (!acao.podeAplicar) {
@@ -430,8 +441,21 @@ export async function decidirAcao(
   nota?: string,
   /** Categoria correta, quando a rejeição é de uma classificação. */
   categoriaCorretaId?: string,
+  /** Quem decidiu — pesa na base de conhecimento (o contador corrige o empresário). */
+  quem: 'EMPRESARIO' | 'CONTADOR' = 'EMPRESARIO',
 ): Promise<ResultadoFerramenta> {
   const db = getDb();
+  /** A decisão humana ensina a base: da próxima vez, esta descrição se classifica sozinha. */
+  const ensinar = async (categoriaId: string) => {
+    const [l] = (await db.execute(sql`
+      SELECT e.description AS descricao, e.amount::float AS valor, e.type AS tipo, c.accounting_code AS conta, c.name AS nome
+        FROM financial_entry e JOIN category c ON c.id = ${categoriaId}
+       WHERE e.id = ${acao!.targetId} AND c.accounting_code IS NOT NULL
+    `)) as unknown as { descricao: string | null; valor: number; tipo: string; conta: string; nome: string }[];
+    if (l?.descricao) {
+      await aprender(db, companyId, { descricao: l.descricao, valor: l.tipo === 'PAYABLE' ? -l.valor : l.valor, conta: l.conta, categoriaNome: l.nome, origem: quem }).catch(() => {});
+    }
+  };
   const [acao] = await db
     .select({
       kind: agentAction.kind,
@@ -480,6 +504,7 @@ export async function decidirAcao(
     // lê da próxima vez — "a IA disse X, o certo era Y".
     await decidir(db, companyId, acaoId, 'REJECTED', userId,
       `[correta: ${cat.name}] ${nota ?? ''}`.trim());
+    await ensinar(cat.id);
 
     return {
       ok: true,
@@ -522,6 +547,7 @@ export async function decidirAcao(
         { createdByUserId: userId },
       );
       await marcarAplicada(db, acaoId);
+      await ensinar(cat.id);
       return {
         ok: true,
         situacao: 'aplicado',
@@ -537,6 +563,8 @@ export async function decidirAcao(
 
   /* ── O resto: registrar, e dizer que é só isso ───────────────────────── */
   await decidir(db, companyId, acaoId, decision, userId, nota);
+  // "Está certo" numa classificação já aplicada também ensina.
+  if (decision === 'APPROVED' && ehClassificacao && proposta.categoriaId) await ensinar(proposta.categoriaId);
   return {
     ok: true,
     situacao: decision === 'APPROVED' ? 'aplicado' : 'recusado',

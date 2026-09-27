@@ -54,8 +54,25 @@ export interface Credencial {
  * modelo novo sem deploy. Quando a configuração por empresa entrar, ela passa
  * na frente dos dois.
  */
-export async function resolverMotor(cred: Credencial): Promise<LlmConfig> {
-  const model = process.env.LLM_MODEL || MODELO_PADRAO[cred.provider];
+/**
+ * Modelo das tarefas em que errar sai caro — a conciliação do extrato vai
+ * direto para o balanço. Um nível acima do padrão; o custo por extrato
+ * continua em centavos. No Gemini, o apelido "latest" acompanha a versão
+ * estável mais nova sem precisar mudar código.
+ */
+export const MODELO_FORTE: Record<LlmProvider, string> = {
+  gemini: 'gemini-flash-latest',
+  anthropic: 'claude-sonnet-5',
+  'openai-compat': 'deepseek-chat',
+};
+
+export type Tarefa = 'padrao' | 'conciliacao';
+
+export async function resolverMotor(cred: Credencial, tarefa: Tarefa = 'padrao'): Promise<LlmConfig> {
+  const model =
+    tarefa === 'conciliacao'
+      ? process.env.LLM_MODEL_CONCILIACAO || MODELO_FORTE[cred.provider]
+      : process.env.LLM_MODEL || MODELO_PADRAO[cred.provider];
 
   return {
     provider: cred.provider,

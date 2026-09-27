@@ -1,13 +1,15 @@
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { carregarFila } from './actions';
 import { RevisaoClient } from './RevisaoClient';
+import { PerguntasDoEscritorio } from './PerguntasDoEscritorio';
+import { perguntasDoEscritorio } from '@/lib/server/agente-extrato';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Revisão da IA | Hexx Digital' };
 
 export default async function Page() {
   await requireAdmin();
-  const { itens, categorias } = await carregarFila();
+  const [{ itens, categorias }, extrato] = await Promise.all([carregarFila(), perguntasDoEscritorio().catch(() => ({ perguntas: [], contas: {} }))]);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -21,6 +23,7 @@ export default async function Page() {
           vai para o razão, por estorno, e ensina o agente da próxima vez.
         </p>
       </div>
+      <PerguntasDoEscritorio perguntas={extrato.perguntas} contas={extrato.contas} />
       <RevisaoClient itens={itens} categorias={categorias} />
     </div>
   );

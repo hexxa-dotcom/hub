@@ -3,6 +3,7 @@ import type { DbHandle } from '../client';
 import { accrueBankTransaction, ACCOUNTS } from '@hexxa/core';
 import { postJournal, reverseJournal } from './repository';
 import { escriturarLancamento } from './escrituracao';
+import { consultarConhecimento, aprender, normalizarDescricao } from './conhecimento';
 
 /**
  * CONCILIAÇÃO E ESCRITURAÇÃO DO EXTRATO.
@@ -61,16 +62,7 @@ export async function conciliarExtrato(
       if (casou === 'CASOU') { out.casadas++; continue; }
       if (casou === 'AMBIGUO') { out.ambiguas++; continue; }
 
-      const conta = await contaPelaHistoria(tx, companyId, t.descricao, t.valor);
-      await postJournal(tx, companyId, accrueBankTransaction({
-        id: t.id, data: t.data, valor: t.valor,
-        descricao: t.descricao, resultAccountCode: conta,
-      }));
-
-      await tx.execute(sql`
-        UPDATE bank_transaction SET reconciliation_status = 'MATCHED' WHERE id = ${t.id}
-      `);
-
+      const conta = await escriturarSemPar(tx, companyId, t);
       if (conta) out.classificadas++;
       else out.naTransitoria++;
     } catch (err) {
@@ -97,7 +89,7 @@ export async function conciliarExtrato(
 async function tentarCasar(
   tx: DbHandle,
   companyId: string,
-  t: { id: string; data: string; valor: number },
+  t: { id: string; data: string; valor: number; descricao: string },
 ): Promise<'CASOU' | 'AMBIGUO' | 'SEM_PAR'> {
   const tipo = t.valor > 0 ? 'RECEIVABLE' : 'PAYABLE';
 
@@ -118,8 +110,42 @@ async function tentarCasar(
   if (candidatos.length === 0) return 'SEM_PAR';
   if (candidatos.length > 1) return 'AMBIGUO';
 
-  const entryId = candidatos[0]!.id;
+  await casarComLancamento(tx, companyId, t, candidatos[0]!.id);
+  return 'CASOU';
+}
 
+/**
+ * Movimento sem lançamento correspondente: escritura pela base de
+ * conhecimento ou, sem ela, na transitória. Devolve a conta usada (null =
+ * transitória, esperando identificação).
+ */
+export async function escriturarSemPar(
+  tx: DbHandle,
+  companyId: string,
+  t: { id: string; data: string; valor: number; descricao: string },
+): Promise<string | null> {
+  const conta = await contaPelaHistoria(tx, companyId, t.descricao, t.valor);
+  await postJournal(tx, companyId, accrueBankTransaction({
+    id: t.id, data: t.data, valor: t.valor,
+    descricao: t.descricao, resultAccountCode: conta,
+  }));
+  await tx.execute(sql`
+    UPDATE bank_transaction SET reconciliation_status = 'MATCHED' WHERE id = ${t.id}
+  `);
+  return conta;
+}
+
+/**
+ * Casa o movimento com o lançamento: baixa na data do extrato, escritura e
+ * ensina a base. Usado pela varredura (candidato único) e pela resposta do
+ * empresário quando havia mais de um candidato.
+ */
+export async function casarComLancamento(
+  tx: DbHandle,
+  companyId: string,
+  t: { id: string; data: string; valor: number; descricao: string },
+  entryId: string,
+): Promise<void> {
   /**
    * A data da baixa é a do EXTRATO, não a de hoje.
    *
@@ -144,7 +170,17 @@ async function tentarCasar(
 
   // A baixa vira partida de SETTLEMENT pelo caminho normal do lançamento.
   await escriturarLancamento(tx, companyId, entryId);
-  return 'CASOU';
+
+  // Casou com um lançamento que já tem conta: a base aprende que esta
+  // descrição de extrato é aquela conta — é fato, não palpite.
+  const [cat] = (await tx.execute(sql`
+    SELECT c.accounting_code AS conta, c.name AS nome
+      FROM financial_entry e JOIN category c ON c.id = e.category_id
+     WHERE e.id = ${entryId} AND c.accounting_code IS NOT NULL
+  `)) as unknown as { conta: string; nome: string }[];
+  if (cat) {
+    await aprender(tx, companyId, { descricao: t.descricao, valor: t.valor, conta: cat.conta, categoriaNome: cat.nome, origem: 'LANCAMENTO' });
+  }
 }
 
 /**
@@ -167,7 +203,12 @@ async function contaPelaHistoria(
   descricao: string,
   valor: number,
 ): Promise<string | null> {
-  const chave = normalizar(descricao);
+  // Primeiro o que alguém ENSINOU (contador, empresário, IA verificada) — ver
+  // `conhecimento.ts`. Só depois a dedução pelos lançamentos antigos.
+  const conhecido = await consultarConhecimento(tx, companyId, descricao, valor);
+  if (conhecido) return conhecido.conta;
+
+  const chave = normalizarDescricao(descricao);
   if (chave.length < 4) return null;
 
   const [achado] = (await tx.execute(sql`
@@ -184,21 +225,6 @@ async function contaPelaHistoria(
   `)) as unknown as { conta: string; vezes: number }[];
 
   return achado?.conta ?? null;
-}
-
-/** Reduz a descrição ao miolo que se repete entre meses. */
-function normalizar(d: string): string {
-  return d
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9 ]/g, ' ')
-    // Números de documento, parcela e data mudam a cada mês e atrapalham.
-    .replace(/\b\d+\b/g, ' ')
-    .replace(/\b(pix|ted|doc|pagamento|transferencia|debito|credito|enviado|recebido)\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 40);
 }
 
 export interface MovimentoNaTransitoria {

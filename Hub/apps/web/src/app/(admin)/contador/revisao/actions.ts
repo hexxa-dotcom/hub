@@ -60,6 +60,7 @@ export async function decidirNaFila(
     userId,
     nota,
     categoriaCorretaId,
+    'CONTADOR',
   );
   revalidatePath('/contador/revisao');
   return { ok: r.ok, mensagem: r.mensagem };
@@ -81,10 +82,24 @@ export async function confirmarGrupo(
   let confirmados = 0;
   let falhas = 0;
   for (const i of itens) {
-    const r = await decidirAcao(i.companyId, i.acaoId, 'APPROVED', userId);
+    const r = await decidirAcao(i.companyId, i.acaoId, 'APPROVED', userId, undefined, undefined, 'CONTADOR');
     if (r.ok) confirmados++;
     else falhas++;
   }
   revalidatePath('/contador/revisao');
   return { ok: falhas === 0, confirmados, falhas };
+}
+
+/** O contador responde (ou confere) uma pergunta do extrato de um cliente. */
+export async function responderPerguntaComoContador(
+  companyId: string,
+  perguntaId: string,
+  conta: string,
+): Promise<{ ok: boolean; mensagem: string }> {
+  await requireAdmin();
+  const { responderPergunta } = await import('@/lib/server/agente-extrato');
+  const r = await responderPergunta(companyId, perguntaId, conta, 'CONTADOR');
+  revalidatePath('/contador/revisao');
+  if (!r.ok) return { ok: false, mensagem: r.erro ?? 'Não foi possível registrar.' };
+  return { ok: true, mensagem: r.resolvidasJuntas ? `Registrado — e ${r.resolvidasJuntas} iguais resolvidas junto.` : 'Registrado e ensinado.' };
 }

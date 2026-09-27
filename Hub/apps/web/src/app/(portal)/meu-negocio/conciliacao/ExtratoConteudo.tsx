@@ -1,10 +1,12 @@
-import { ConciliacaoClient } from './ConciliacaoClient';
+import { PerguntasDoExtrato } from './PerguntasDoExtrato';
 import { getReconciliationData } from './actions';
 import { contasDaEmpresa, janelaDeHistorico } from './extrato-actions';
 import { SubirExtrato } from './SubirExtrato';
 import { CardStatusConciliacao } from './CardStatusConciliacao';
 import { FilaDeAcoes } from '@/components/agente/FilaDeAcoes';
 import { listarFilas } from '@/lib/server/fila-agente';
+import { getTenantContext } from '@/lib/server/tenant';
+import { perguntasAbertas, movimentosAmbiguos, contasParaResponder } from '@/lib/server/agente-extrato';
 
 /**
  * O EXTRATO DENTRO DO FINANCEIRO.
@@ -14,13 +16,17 @@ import { listarFilas } from '@/lib/server/fila-agente';
  * (Conciliação) que o cliente quase não encontrava; agora é a aba Extrato.
  */
 export async function ExtratoConteudo() {
-  const [data, contas, desde, filas] = await Promise.all([
+  const ctx = await getTenantContext();
+  const [data, contas, desde, filas, perguntas, ambiguos, contasDoPlano] = await Promise.all([
     getReconciliationData(),
     contasDaEmpresa(),
     janelaDeHistorico(),
     // Só a classificação de lançamento: o fechamento de mês é decidido na
     // tela de Fechamento, não aqui no meio do extrato.
     listarFilas(['CLASSIFICAR_LANCAMENTO']).catch(() => null),
+    perguntasAbertas(ctx.companyId).catch(() => []),
+    movimentosAmbiguos(ctx.companyId).catch(() => []),
+    contasParaResponder(ctx.companyId).catch(() => []),
   ]);
 
   return (
@@ -42,12 +48,9 @@ export async function ExtratoConteudo() {
         (OFX ou CSV) no cartão acima.
       </p>
 
-      {/* 3. Área de Conciliação e Categorização (com agrupamento por categoria em acordeom) */}
-      <ConciliacaoClient
-        transactions={data.transactions}
-        entries={data.entries}
-        categories={data.categories}
-      />
+      {/* 3. O que o sistema não identificou com certeza vira pergunta — sem
+          porcentagem de confiança: ou é certo, ou pergunta. */}
+      <PerguntasDoExtrato perguntas={perguntas} ambiguos={ambiguos} contas={contasDoPlano} />
 
       {/* 4. Fila de Ações do Agente */}
       {filas && (filas.aprovacao.length > 0 || filas.revisao.length > 0) && (

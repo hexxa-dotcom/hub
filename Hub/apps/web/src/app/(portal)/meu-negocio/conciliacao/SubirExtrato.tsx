@@ -145,19 +145,18 @@ export function SubirExtrato({ contas, desde }: { contas: { id: string; nome: st
 
           <ul className="space-y-1.5 text-xs">
             <Linha n={d.casadas} rotulo="já estavam lançadas na Hexx — foram baixadas" />
-            <Linha n={d.identificadasPorHistorico} rotulo="reconhecidas pelo histórico da empresa" />
-            <Linha n={d.identificadasPorIA} rotulo="identificadas pela IA" />
-            <Linha n={d.paraRevisao} rotulo="esperando sua conferência" tom="atencao" />
+            <Linha n={d.identificadasPorHistorico} rotulo="reconhecidas pelo que o sistema já aprendeu" />
+            <Linha n={d.identificadasPorIA} rotulo="identificadas pela IA e conferidas" />
+            <Linha n={d.paraRevisao} rotulo="viraram pergunta para você, logo abaixo" tom="atencao" />
             <Linha n={d.repetidas} rotulo="já tinham sido importadas antes" />
             <Linha n={d.foraDaJanela} rotulo={`anteriores a ${desde.split('-').reverse().join('/')} (fora do ano corrente) — não importadas`} />
           </ul>
 
           {d.semIdentificacao > 0 && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300">
-              <strong>{d.semIdentificacao} movimento(s)</strong> ainda sem identificação,
-              somando {BRL.format(Math.abs(d.transitoria))}. O mês não fecha enquanto
-              eles não forem resolvidos — o dinheiro passou pela conta e o balanço
-              precisa dizer do que se trata.
+              <strong>{d.semIdentificacao} movimento(s)</strong> esperando a sua resposta,
+              somando {BRL.format(Math.abs(d.transitoria))}. É um clique cada, logo abaixo — e o mês
+              só fecha depois, porque o balanço precisa dizer do que se trata.
             </div>
           )}
         </div>

@@ -37,19 +37,14 @@ const NOME_ACAO: Record<string, string> = {
   ENVIAR_COBRANCA: 'Enviar cobrança',
 };
 
-function Confianca({ valor }: { valor: number }) {
-  const pct = Math.round(valor * 100);
-  const faixa = valor >= 0.85 ? 'alta' : valor >= 0.6 ? 'média' : 'baixa';
-  const cls =
-    faixa === 'alta'
-      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-      : faixa === 'média'
-        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
-        : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20';
-
+/**
+ * Sem porcentagem: número de confiança na tela transfere a dúvida para quem
+ * lê. A sugestão aparece como sugestão, e o "no que se baseou" diz por quê.
+ */
+function Confianca(_: { valor: number }) {
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cls}`}>
-      Confiança {faixa} · {pct}%
+    <span className="rounded-full border border-black/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink-soft dark:border-white/15">
+      Sugestão da IA
     </span>
   );
 }
@@ -67,7 +62,6 @@ function Evidencia({ evidence }: { evidence: unknown }) {
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-hexxa-forest dark:bg-hexxa-lime" />
             <span>
               {s.observado}
-              <span className="ml-1.5 opacity-60">(peso {s.peso})</span>
             </span>
           </li>
         ))}

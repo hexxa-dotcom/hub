@@ -1,164 +1,488 @@
 import 'server-only';
-import { getDb, eq, movimentosNaTransitoria, reclassificarMovimento } from '@hexxa/db';
-import { category } from '@hexxa/db/schema';
+import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento } from '@hexxa/db';
+import { ACCOUNTS } from '@hexxa/core';
 import { resolveCredentials } from './ai-insight';
 import { resolverMotor } from './llm-config';
-import { callLlmJson } from '@hexxa/integrations';
+import { callLlmJson, type LlmConfig } from '@hexxa/integrations';
 
 /**
  * AGENTE DO EXTRATO — identifica o que caiu na transitória.
  *
- * É o segundo turno da conciliação. O primeiro já resolveu o que dava para
- * resolver por fato: o que casou com um lançamento aberto virou baixa, o que
- * repetiu uma descrição já classificada herdou a conta. O que sobra aqui é o
- * que nunca se viu antes — e é justamente onde um modelo ajuda.
+ * É o terceiro turno da conciliação. O primeiro casou o que bateu com um
+ * lançamento; o segundo usou a base de conhecimento (o que alguém já ensinou).
+ * O que sobra aqui é o que o sistema nunca viu — e a regra é uma só:
+ *
+ *   NADA ENTRA NO BALANÇO SEM CERTEZA.
+ *
+ * Por isso não existe "60% de confiança" nesta tela. Cada movimento termina
+ * de um de dois jeitos:
+ *
+ * 1. IDENTIFICADO E VERIFICADO — o modelo classificou com o contexto inteiro
+ *    da empresa (atividade, sócios, clientes, fornecedores das notas, contas
+ *    em aberto, o que já foi ensinado) e um SEGUNDO passe, independente e
+ *    instruído a desconfiar, concordou. Só então vale, e a base aprende.
+ * 2. UMA PERGUNTA — qualquer dúvida (o modelo se absteve, o revisor
+ *    discordou, o valor é alto) vira uma pergunta direta ao empresário, com
+ *    as opções prováveis. A resposta ensina a base; na próxima vez aquele
+ *    movimento se resolve sozinho.
+ *
+ * Tudo que o modelo recebe e devolve fica em `registro_da_ia`.
  *
  * ── O que ele NÃO faz ───────────────────────────────────────────────────
  *
- * - Não inventa conta. Escolhe entre as categorias que existem, e resposta com
- *   id inválido é descartada, não "corrigida".
- * - Não mexe em partida publicada. A correção é por estorno, pelo caminho do
- *   razão, com a partida antiga preservada e marcada.
- * - Não decide sozinho o que é caro. Movimento acima do limite vai para a fila
- *   do contador mesmo quando o modelo está certo, porque a régua de autonomia
- *   é por VALOR e reversibilidade, nunca por confiança do modelo.
+ * - Não inventa conta. Escolhe entre as categorias que existem (e duas contas
+ *   especiais: transferência entre contas próprias e lucros a sócios).
+ * - Não aceita a própria opinião: sem a concordância do revisor, pergunta.
+ * - Não decide sozinho o que é caro: acima do limite vira pergunta mesmo com
+ *   as duas passadas de acordo, com a sugestão já marcada.
  */
 
-const SYSTEM = `Você é um contador brasileiro identificando movimentações bancárias no plano de contas da ITG 1000 (Anexo 7).
+/** Acima disto, sempre pergunta — e o contador confere a resposta. */
+const LIMITE_AUTOMATICO = 2_000;
 
-Receberá o plano de categorias da empresa e uma lista de movimentos do extrato que ninguém conseguiu identificar — nem pelo histórico da empresa, nem por um lançamento em aberto correspondente.
+/** Contas que não são categoria de receita/despesa, mas são respostas certas comuns. */
+const ESPECIAIS = [
+  { id: 'ESPECIAL:TRANSFERENCIA', codigo: ACCOUNTS.BANCOS, nome: 'Transferência entre contas da própria empresa', tipo: 'AMBOS' as const },
+  { id: 'ESPECIAL:LUCROS', codigo: ACCOUNTS.LUCROS_A_PAGAR, nome: 'Distribuição de lucros aos sócios', tipo: 'EXPENSE' as const },
+];
 
-Valor NEGATIVO é dinheiro que SAIU da conta (despesa ou pagamento). Valor POSITIVO é dinheiro que ENTROU (receita ou recebimento).
+const REGRAS = `Valor NEGATIVO é dinheiro que SAIU da conta; POSITIVO é dinheiro que ENTROU.
+- Use APENAS ids da lista de contas. Nunca invente um id.
+- Saída só recebe conta de despesa (EXPENSE) ou especial de saída; entrada só recebe receita (INCOME) ou transferência.
+- Transferência entre contas da própria empresa (mesmo titular, conta da lista de contas próprias) NÃO é receita nem despesa: use ESPECIAL:TRANSFERENCIA.
+- Dinheiro que sai para um SÓCIO da lista, sem ser pró-labore, é distribuição de lucros: ESPECIAL:LUCROS.
+- Use o contexto: um nome ou CNPJ que aparece na lista de clientes, fornecedores das notas, sócios ou funcionários diz quem é a outra parte.
+- O que já foi ensinado (exemplos) vale como verdade para descrições iguais ou do mesmo fornecedor.`;
 
-Regras invioláveis:
-- Use APENAS ids que estejam na lista de categorias. Nunca invente um id.
-- Movimento de saída só recebe categoria de despesa (EXPENSE); de entrada, só receita (INCOME).
-- Descrição de extrato é curta e cheia de ruído. Se ela não permitir decidir com segurança, OMITA o movimento da resposta. Deixar sem identificar é melhor que identificar errado: errado entra no balanço e alguém decide com base nele.
-- Transferência entre contas da mesma empresa NÃO é receita nem despesa. Se a descrição sugerir isso, omita.
-- A justificativa é lida por um contador: diga o que na descrição levou à escolha, em uma frase.
+export const SYSTEM_CLASSIFICAR = `Você é um contador brasileiro identificando movimentações bancárias no plano de contas da ITG 1000 (Anexo 7).
 
-Responda SOMENTE um array JSON:
-[{"id":"<bankTransactionId>","categoria_id":"<id da categoria>","justificativa":"<uma frase>","confianca":<0 a 1>}]`;
+Você receberá o contexto da empresa e movimentos do extrato que ainda não foram identificados.
 
-interface Sugestao {
+${REGRAS}
+- Se não houver base para decidir, responda categoria_id null. Errado entra no balanço; em branco vira uma pergunta ao empresário — é sempre melhor perguntar.
+- Em "alternativas", até 2 outras contas plausíveis (para montar a pergunta, se preciso).
+- "motivo" é lido pelo empresário: diga, em uma frase curta e simples, o que na descrição ou no contexto levou à escolha.
+
+Responda SOMENTE um array JSON com TODOS os movimentos:
+[{"id":"<id do movimento>","categoria_id":"<id>"|null,"alternativas":["<id>"],"motivo":"<frase>"}]`;
+
+export const SYSTEM_REVISAR = `Você é um contador brasileiro REVISANDO a identificação de movimentações bancárias feita por outra pessoa. Seu trabalho é achar erros.
+
+Você receberá o contexto da empresa e, para cada movimento, a conta proposta e o motivo.
+
+${REGRAS}
+- Concorde SOMENTE se a descrição e o contexto sustentam a conta proposta sem dúvida razoável. Palpite plausível não basta.
+- Se discordar e souber a conta certa, informe-a em categoria_id; se não souber, null.
+
+Responda SOMENTE um array JSON com TODOS os movimentos:
+[{"id":"<id do movimento>","concorda":true|false,"categoria_id":"<id>"|null,"motivo":"<frase>"}]`;
+
+export interface Classificacao {
   id: string;
-  categoria_id: string;
-  justificativa: string;
-  confianca: number;
+  categoria_id: string | null;
+  alternativas?: string[];
+  motivo?: string;
+}
+export interface Revisao {
+  id: string;
+  concorda: boolean;
+  categoria_id?: string | null;
+  motivo?: string;
 }
 
 export interface ResultadoExtrato {
   analisados: number;
   identificados: number;
+  /** Viraram pergunta ao empresário. */
   paraRevisao: number;
   descartados: { id: string; motivo: string }[];
   erros: string[];
   disponivel: boolean;
 }
 
-/**
- * Acima disto, a identificação vai para a fila do contador em vez de valer.
- *
- * Por VALOR, não por confiança: um movimento de R$ 40 mil classificado errado
- * distorce o balanço mesmo que o modelo estivesse convicto, e um de R$ 30 mal
- * classificado se corrige no mês seguinte sem consequência. É a mesma régua
- * que governa as outras ações do sistema.
- */
-const LIMITE_AUTOMATICO = 2_000;
+export interface Conta {
+  id: string;
+  codigo: string;
+  nome: string;
+  tipo: 'INCOME' | 'EXPENSE' | 'AMBOS';
+}
 
-export async function identificarMovimentos(
-  companyId: string,
-  opts: { limite?: number } = {},
-): Promise<ResultadoExtrato> {
-  const vazio: ResultadoExtrato = {
-    analisados: 0, identificados: 0, paraRevisao: 0,
-    descartados: [], erros: [], disponivel: true,
+export async function identificarMovimentos(companyId: string, opts: { limite?: number } = {}): Promise<ResultadoExtrato> {
+  const vazio: ResultadoExtrato = { analisados: 0, identificados: 0, paraRevisao: 0, descartados: [], erros: [], disponivel: true };
+  const db = getDb();
+
+  // Só o que ainda não virou pergunta — não se pergunta à IA de novo o que já está com o empresário.
+  const naFila = await movimentosNaTransitoria(db, companyId, opts.limite ?? 60);
+  const jaPerguntados = new Set(
+    (
+      (await db.execute(sql`
+        SELECT bank_transaction_id::text AS id FROM pergunta_de_classificacao WHERE company_id = ${companyId}
+      `)) as unknown as { id: string }[]
+    ).map((r) => r.id),
+  );
+  const movimentos = naFila.filter((m) => !jaPerguntados.has(m.bankTransactionId));
+  if (!movimentos.length) return vazio;
+
+  const categorias = (await db.execute(sql`
+    SELECT id::text, name AS nome, kind AS tipo, accounting_code AS codigo
+      FROM category WHERE company_id = ${companyId} AND accounting_code IS NOT NULL
+  `)) as unknown as Conta[];
+  const contas: Conta[] = [...categorias, ...ESPECIAIS.map((e) => ({ id: e.id, codigo: e.codigo, nome: e.nome, tipo: e.tipo }))];
+  const porId = new Map(contas.map((c) => [c.id, c]));
+  const out: ResultadoExtrato = { ...vazio, analisados: movimentos.length };
+
+  if (!categorias.length) {
+    return { ...out, erros: ['Empresa sem categorias com código contábil.'] };
+  }
+
+  const combina = (valor: number, c: Conta | undefined) =>
+    !!c && (c.tipo === 'AMBOS' || c.tipo === (valor < 0 ? 'EXPENSE' : 'INCOME'));
+
+  /** As contas mais usadas em cada sentido — as opções quando ninguém sugeriu nada. */
+  const maisUsadas = (await db.execute(sql`
+    SELECT c.id::text, count(*)::int AS n, c.kind AS tipo
+      FROM financial_entry e JOIN category c ON c.id = e.category_id
+     WHERE e.company_id = ${companyId} AND c.accounting_code IS NOT NULL
+     GROUP BY c.id, c.kind ORDER BY n DESC
+  `)) as unknown as { id: string; tipo: string }[];
+
+  const perguntar = async (
+    m: (typeof movimentos)[number],
+    sugeridas: { id: string | null | undefined; motivo?: string }[],
+  ) => {
+    const opcoes: { conta: string; nome: string; motivo: string | null }[] = [];
+    for (const s of sugeridas) {
+      const c = s.id ? porId.get(s.id) : undefined;
+      if (!combina(m.valor, c) || opcoes.some((o) => o.conta === c!.codigo)) continue;
+      opcoes.push({ conta: c!.codigo, nome: c!.nome, motivo: s.motivo ?? null });
+    }
+    for (const u of maisUsadas) {
+      if (opcoes.length >= 3) break;
+      const c = porId.get(u.id);
+      if (!combina(m.valor, c) || opcoes.some((o) => o.conta === c!.codigo)) continue;
+      opcoes.push({ conta: c!.codigo, nome: c!.nome, motivo: null });
+    }
+    await db.execute(sql`
+      INSERT INTO pergunta_de_classificacao (company_id, bank_transaction_id, data, valor, descricao, opcoes, revisar_contador)
+      VALUES (${companyId}, ${m.bankTransactionId}, ${m.data}::date, ${m.valor}, ${m.descricao},
+              ${JSON.stringify(opcoes.slice(0, 3))}::jsonb, ${Math.abs(m.valor) > LIMITE_AUTOMATICO})
+      ON CONFLICT (bank_transaction_id) DO NOTHING
+    `);
+    out.paraRevisao++;
   };
 
   const creds = await resolveCredentials();
-  if (!creds) return { ...vazio, disponivel: false };
-
-  const db = getDb();
-  const movimentos = await movimentosNaTransitoria(db, companyId, opts.limite ?? 40);
-  if (!movimentos.length) return vazio;
-
-  const categorias = await db
-    .select({ id: category.id, nome: category.name, tipo: category.kind, codigo: category.accountingCode })
-    .from(category)
-    .where(eq(category.companyId, companyId));
-
-  const utilizaveis = categorias.filter((c) => c.codigo);
-  if (!utilizaveis.length) {
-    return { ...vazio, analisados: movimentos.length, erros: ['Empresa sem categorias com código contábil.'] };
+  if (!creds) {
+    // Sem IA configurada, nada fica parado sem dono: tudo vira pergunta.
+    for (const m of movimentos) await perguntar(m, []);
+    return { ...out, disponivel: false };
   }
 
-  const contexto =
-    `CATEGORIAS DISPONÍVEIS:\n` +
-    utilizaveis.map((c) => `${c.id} | ${c.tipo} | ${c.codigo} | ${c.nome}`).join('\n') +
-    `\n\nMOVIMENTOS DO EXTRATO A IDENTIFICAR:\n` +
-    movimentos
-      .map((m) => `${m.bankTransactionId} | ${m.data} | R$ ${m.valor.toFixed(2)} | ${m.descricao}`)
+  const contexto = await contextoDaEmpresa(companyId, contas);
+  const lista = movimentos.map((m) => `${m.bankTransactionId} | ${m.data} | R$ ${m.valor.toFixed(2)} | ${m.descricao}`).join('\n');
+  const motor = await resolverMotor(creds, 'conciliacao');
+
+  // ── 1ª passada: classificar ───────────────────────────────────────────────
+  const c1 = await chamar<Classificacao[]>(motor, SYSTEM_CLASSIFICAR, `${contexto}\n\nMOVIMENTOS A IDENTIFICAR:\n${lista}`);
+  if (!c1.ok) {
+    for (const m of movimentos) await perguntar(m, []);
+    return { ...out, erros: [c1.erro] };
+  }
+  const classif = new Map((Array.isArray(c1.dados) ? c1.dados : []).filter((c) => c && typeof c.id === 'string').map((c) => [c.id, c]));
+
+  // ── 2ª passada: revisar o que foi proposto ────────────────────────────────
+  const propostos = movimentos
+    .map((m) => ({ m, c: classif.get(m.bankTransactionId) }))
+    .filter((x) => x.c?.categoria_id && combina(x.m.valor, porId.get(x.c.categoria_id)));
+  let revisoes = new Map<string, Revisao>();
+  let r2: Awaited<ReturnType<typeof chamar<Revisao[]>>> | null = null;
+  if (propostos.length) {
+    const aRevisar = propostos
+      .map(({ m, c }) => {
+        const conta = porId.get(c!.categoria_id!)!;
+        return `${m.bankTransactionId} | ${m.data} | R$ ${m.valor.toFixed(2)} | ${m.descricao} → PROPOSTA: ${conta.id} (${conta.nome}) · motivo: ${c!.motivo ?? '—'}`;
+      })
       .join('\n');
-
-  const motor = await resolverMotor(creds);
-
-  let sugestoes: Sugestao[];
-  try {
-    const r = await callLlmJson<Sugestao[]>(motor, { system: SYSTEM, user: contexto, maxTokens: 4000 });
-    if (!r.dados) {
-      return {
-        ...vazio,
-        analisados: movimentos.length,
-        erros: [`Resposta do modelo não continha JSON válido: ${r.texto.slice(0, 200)}`],
-      };
-    }
-    sugestoes = r.dados;
-  } catch (err) {
-    return {
-      ...vazio,
-      analisados: movimentos.length,
-      erros: [err instanceof Error ? err.message : String(err)],
-    };
+    r2 = await chamar<Revisao[]>(motor, SYSTEM_REVISAR, `${contexto}\n\nIDENTIFICAÇÕES A REVISAR:\n${aRevisar}`);
+    if (r2.ok) revisoes = new Map((Array.isArray(r2.dados) ? r2.dados : []).filter((r) => r && typeof r.id === 'string').map((r) => [r.id, r]));
   }
 
-  const out: ResultadoExtrato = { ...vazio, analisados: movimentos.length };
-  const porId = new Map(movimentos.map((m) => [m.bankTransactionId, m]));
-  const contaDaCategoria = new Map(utilizaveis.map((c) => [c.id, { codigo: c.codigo!, tipo: c.tipo, nome: c.nome }]));
-  const jaVistos = new Set<string>();
+  // ── Decidir cada movimento ────────────────────────────────────────────────
+  const resultado: Record<string, string> = {};
+  for (const m of movimentos) {
+    const c = classif.get(m.bankTransactionId);
+    const r = revisoes.get(m.bankTransactionId);
+    const proposta = c?.categoria_id ? porId.get(c.categoria_id) : undefined;
+    const verificada = !!proposta && combina(m.valor, proposta) && r?.concorda === true;
 
-  for (const s of Array.isArray(sugestoes) ? sugestoes : []) {
-    const mov = porId.get(s?.id ?? '');
-    const cat = contaDaCategoria.get(s?.categoria_id ?? '');
-
-    // As três guardas contra alucinação: movimento que não está na fila,
-    // categoria que não existe, e resposta repetida para o mesmo movimento.
-    if (!mov) { out.descartados.push({ id: String(s?.id), motivo: 'movimento fora da fila enviada' }); continue; }
-    if (!cat) { out.descartados.push({ id: s.id, motivo: `categoria ${s.categoria_id} não existe` }); continue; }
-    if (jaVistos.has(s.id)) { out.descartados.push({ id: s.id, motivo: 'sugestão repetida' }); continue; }
-    jaVistos.add(s.id);
-
-    // Sinal contra natureza: saída só vira despesa, entrada só vira receita.
-    const esperado = mov.valor < 0 ? 'EXPENSE' : 'INCOME';
-    if (cat.tipo !== esperado) {
-      out.descartados.push({
-        id: s.id,
-        motivo: `categoria ${cat.tipo} para movimento de ${mov.valor < 0 ? 'saída' : 'entrada'}`,
-      });
-      continue;
+    if (verificada && Math.abs(m.valor) <= LIMITE_AUTOMATICO) {
+      const motivo = c!.motivo ? `: ${c!.motivo.slice(0, 140)}` : '';
+      const ok = await reclassificarMovimento(db, companyId, m.bankTransactionId, proposta!.codigo, `Identificado pela IA e conferido como "${proposta!.nome}"${motivo}`);
+      if (ok.ok) {
+        await aprender(db, companyId, { descricao: m.descricao, valor: m.valor, conta: proposta!.codigo, categoriaNome: proposta!.nome, origem: 'IA_VERIFICADA' });
+        out.identificados++;
+        resultado[m.bankTransactionId] = `aplicado:${proposta!.codigo}`;
+        continue;
+      }
+      out.descartados.push({ id: m.bankTransactionId, motivo: ok.erro ?? 'falha ao reclassificar' });
     }
 
-    if (Math.abs(mov.valor) > LIMITE_AUTOMATICO) {
-      out.paraRevisao++;
-      continue;
-    }
-
-    const r = await reclassificarMovimento(
-      db, companyId, mov.bankTransactionId, cat.codigo,
-      `Identificado pela IA como "${cat.nome}": ${String(s.justificativa ?? '').slice(0, 160)}`,
-    );
-    if (r.ok) out.identificados++;
-    else out.descartados.push({ id: s.id, motivo: r.erro ?? 'falha ao reclassificar' });
+    // Qualquer dúvida vira pergunta, com o que as duas passadas sugeriram primeiro.
+    await perguntar(m, [
+      { id: c?.categoria_id, motivo: c?.motivo },
+      { id: r && !r.concorda ? r.categoria_id : undefined, motivo: r?.motivo },
+      ...(c?.alternativas ?? []).map((id) => ({ id })),
+    ]);
+    resultado[m.bankTransactionId] = verificada ? 'pergunta:valor_alto' : r && !r.concorda ? 'pergunta:revisor_discordou' : 'pergunta:sem_base';
   }
 
+  await registrar(companyId, 'CONCILIACAO', motor.model, { movimentos: movimentos.length }, { classificacao: c1.dados, revisao: r2?.ok ? r2.dados : null }, resultado, c1, r2);
   return out;
+}
+
+/** O que o modelo precisa saber da empresa para identificar sem chutar. */
+export async function contextoDaEmpresa(companyId: string, contas: Conta[]): Promise<string> {
+  const db = getDb();
+  const q = <T,>(p: Promise<unknown>) => (p as Promise<T>).catch(() => [] as unknown as T);
+  const [empresa, socios, pessoas, clientes, fornecedores, bancos, abertos, exemplos] = await Promise.all([
+    q<{ nome: string; cnpj: string; atividade: string | null; descricao: string | null }[]>(
+      db.execute(sql`SELECT coalesce(trade_name, legal_name) AS nome, cnpj, main_activity_text AS atividade, activity_description AS descricao FROM company WHERE id = ${companyId}`),
+    ),
+    q<{ nome: string; cpf: string | null }[]>(db.execute(sql`SELECT name AS nome, cpf FROM partner WHERE company_id = ${companyId}`)),
+    q<{ nome: string }[]>(db.execute(sql`SELECT name AS nome FROM employee WHERE company_id = ${companyId} AND status <> 'DESLIGADO' LIMIT 40`)),
+    q<{ nome: string; doc: string | null }[]>(db.execute(sql`SELECT name AS nome, document AS doc FROM customer WHERE company_id = ${companyId} ORDER BY created_at DESC LIMIT 80`)),
+    q<{ nome: string; cnpj: string | null }[]>(
+      db.execute(sql`
+        SELECT max(prestador_nome) AS nome, prestador_cnpj AS cnpj FROM nfse_distribuicao_doc
+         WHERE company_id = ${companyId} AND direction = 'RECEBIDA' AND prestador_cnpj IS NOT NULL
+         GROUP BY prestador_cnpj ORDER BY max(data_emissao) DESC LIMIT 60`),
+    ),
+    q<{ banco: string; numero: string | null }[]>(db.execute(sql`SELECT bank_name AS banco, number AS numero FROM bank_account WHERE company_id = ${companyId}`)),
+    q<{ tipo: string; descricao: string; valor: number; venc: string }[]>(
+      db.execute(sql`
+        SELECT type AS tipo, description AS descricao, amount::float AS valor, to_char(due_date, 'YYYY-MM-DD') AS venc
+          FROM financial_entry WHERE company_id = ${companyId} AND status IN ('PENDING', 'OVERDUE')
+         ORDER BY due_date DESC LIMIT 60`),
+    ),
+    exemplosDoConhecimento(db, companyId, 40).catch(() => []),
+  ]);
+  const e = empresa[0];
+  const linhas = (titulo: string, itens: string[]) => (itens.length ? `\n${titulo}:\n${itens.join('\n')}` : '');
+  return [
+    `EMPRESA: ${e?.nome ?? '—'} (CNPJ ${e?.cnpj ?? '—'}) — prestadora de serviços. Atividade: ${e?.atividade ?? '—'}${e?.descricao ? `. ${e.descricao}` : ''}`,
+    linhas('CONTAS DISPONÍVEIS (id | tipo | código | nome)', contas.map((c) => `${c.id} | ${c.tipo} | ${c.codigo} | ${c.nome}`)),
+    linhas('SÓCIOS', socios.map((s) => `${s.nome}${s.cpf ? ` (CPF ${s.cpf})` : ''}`)),
+    linhas('FUNCIONÁRIOS', pessoas.map((p) => p.nome)),
+    linhas('CLIENTES', clientes.map((c) => `${c.nome}${c.doc ? ` (${c.doc})` : ''}`)),
+    linhas('FORNECEDORES (das notas recebidas)', fornecedores.map((f) => `${f.nome} (CNPJ ${f.cnpj})`)),
+    linhas('CONTAS BANCÁRIAS PRÓPRIAS', bancos.map((b) => `${b.banco}${b.numero ? ` ${b.numero}` : ''}`)),
+    linhas('LANÇAMENTOS EM ABERTO (tipo | vencimento | valor | descrição)', abertos.map((a) => `${a.tipo} | ${a.venc} | R$ ${a.valor.toFixed(2)} | ${a.descricao}`)),
+    linhas(
+      'JÁ ENSINADO (descrição → conta, quem ensinou)',
+      exemplos.map((x) => `${x.exemplo} [${x.sentido}] → ${x.conta} ${x.nome ?? ''} (${x.origem})`),
+    ),
+  ].join('\n');
+}
+
+export async function chamar<T>(motor: LlmConfig, system: string, user: string) {
+  try {
+    const r = await callLlmJson<T>(motor, { system, user, maxTokens: 8000, temperature: 0 });
+    if (!r.dados) return { ok: false as const, erro: `Resposta do modelo sem JSON válido: ${r.texto.slice(0, 200)}`, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+    return { ok: true as const, dados: r.dados, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+  } catch (err) {
+    return { ok: false as const, erro: err instanceof Error ? err.message : String(err), tokensIn: null, tokensOut: null };
+  }
+}
+
+export async function registrar(
+  companyId: string,
+  tarefa: string,
+  modelo: string,
+  entrada: unknown,
+  saida: unknown,
+  resultado: unknown,
+  ...chamadas: ({ tokensIn: number | null; tokensOut: number | null } | null)[]
+) {
+  const tIn = chamadas.reduce((s, c) => s + (c?.tokensIn ?? 0), 0);
+  const tOut = chamadas.reduce((s, c) => s + (c?.tokensOut ?? 0), 0);
+  await getDb()
+    .execute(sql`
+      INSERT INTO registro_da_ia (company_id, tarefa, modelo, entrada, saida, resultado, tokens_in, tokens_out)
+      VALUES (${companyId}, ${tarefa}, ${modelo}, ${JSON.stringify(entrada)}::jsonb, ${JSON.stringify(saida)}::jsonb,
+              ${JSON.stringify(resultado)}::jsonb, ${tIn}, ${tOut})
+    `)
+    .catch((e) => console.error('[agente-extrato] registro', e));
+}
+
+/**
+ * Responde uma pergunta: tira o movimento da transitória, põe na conta
+ * escolhida e ensina a base. Depois, as outras perguntas abertas que a base
+ * agora sabe responder se resolvem sozinhas.
+ */
+export async function responderPergunta(
+  companyId: string,
+  perguntaId: string,
+  conta: string,
+  quem: 'EMPRESARIO' | 'CONTADOR',
+): Promise<{ ok: boolean; erro?: string; resolvidasJuntas: number }> {
+  const db = getDb();
+  const [p] = (await db.execute(sql`
+    SELECT id::text, bank_transaction_id::text AS tx, valor::float, descricao, status, revisar_contador
+      FROM pergunta_de_classificacao WHERE id = ${perguntaId} AND company_id = ${companyId}
+  `)) as unknown as { id: string; tx: string; valor: number; descricao: string; status: string; revisar_contador: boolean }[];
+  if (!p) return { ok: false, erro: 'Pergunta não encontrada.', resolvidasJuntas: 0 };
+
+  const nome = await nomeDaConta(companyId, conta);
+  if (p.status === 'ABERTA') {
+    const r = await reclassificarMovimento(db, companyId, p.tx, conta, `Identificado por ${quem === 'CONTADOR' ? 'contador' : 'empresário'} como "${nome ?? conta}"`);
+    if (!r.ok) return { ok: false, erro: r.erro, resolvidasJuntas: 0 };
+  } else {
+    // Já respondida (o contador revendo a do empresário): se mudou a conta, corrige por estorno.
+    const [atual] = (await db.execute(sql`SELECT resposta_conta FROM pergunta_de_classificacao WHERE id = ${perguntaId}`)) as unknown as { resposta_conta: string | null }[];
+    if (atual?.resposta_conta && atual.resposta_conta !== conta) {
+      // `reclassificarMovimento` estorna a partida em vigor e lança de novo — serve para corrigir também.
+      const r = await reclassificarMovimento(db, companyId, p.tx, conta, `Corrigido pelo contador para "${nome ?? conta}"`);
+      if (!r.ok) return { ok: false, erro: r.erro, resolvidasJuntas: 0 };
+    }
+  }
+
+  await db.execute(sql`
+    UPDATE pergunta_de_classificacao
+       SET status = 'RESPONDIDA', resposta_conta = ${conta},
+           respondida_por = CASE WHEN respondida_por IS NULL OR ${quem} = 'CONTADOR' THEN ${quem} ELSE respondida_por END,
+           respondido_em = coalesce(respondido_em, now()),
+           revisado_em = CASE WHEN ${quem} = 'CONTADOR' THEN now() ELSE revisado_em END
+     WHERE id = ${perguntaId}
+  `);
+  await aprender(db, companyId, { descricao: p.descricao, valor: p.valor, conta, categoriaNome: nome, origem: quem });
+
+  // O que a base agora sabe responder, responde.
+  let juntas = 0;
+  const abertas = (await db.execute(sql`
+    SELECT id::text, bank_transaction_id::text AS tx, valor::float, descricao, revisar_contador
+      FROM pergunta_de_classificacao WHERE company_id = ${companyId} AND status = 'ABERTA' AND id <> ${perguntaId}
+  `)) as unknown as { id: string; tx: string; valor: number; descricao: string; revisar_contador: boolean }[];
+  for (const a of abertas) {
+    const k = await consultarConhecimento(db, companyId, a.descricao, a.valor);
+    if (!k || (k.origem !== 'EMPRESARIO' && k.origem !== 'CONTADOR')) continue;
+    const r = await reclassificarMovimento(db, companyId, a.tx, k.conta, `Identificado pelo que ${k.origem === 'CONTADOR' ? 'o contador' : 'o empresário'} já ensinou: "${k.nome ?? k.conta}"`);
+    if (!r.ok) continue;
+    await db.execute(sql`
+      UPDATE pergunta_de_classificacao
+         SET status = 'RESPONDIDA', resposta_conta = ${k.conta}, respondida_por = 'CONHECIMENTO', respondido_em = now()
+       WHERE id = ${a.id}
+    `);
+    juntas++;
+  }
+  return { ok: true, resolvidasJuntas: juntas };
+}
+
+async function nomeDaConta(companyId: string, conta: string): Promise<string | null> {
+  const especial = ESPECIAIS.find((e) => e.codigo === conta);
+  if (especial) return especial.nome;
+  const [c] = (await getDb().execute(sql`
+    SELECT name FROM category WHERE company_id = ${companyId} AND accounting_code = ${conta} LIMIT 1
+  `)) as unknown as { name: string }[];
+  return c?.name ?? null;
+}
+
+// ── O que a tela mostra ──────────────────────────────────────────────────────
+
+export interface PerguntaAberta {
+  id: string;
+  data: string;
+  valor: number;
+  descricao: string;
+  opcoes: { conta: string; nome: string; motivo: string | null }[];
+  revisarContador: boolean;
+}
+
+export async function perguntasAbertas(companyId: string): Promise<PerguntaAberta[]> {
+  return (await getDb().execute(sql`
+    SELECT id::text, to_char(data, 'YYYY-MM-DD') AS data, valor::float, descricao, opcoes, revisar_contador AS "revisarContador"
+      FROM pergunta_de_classificacao
+     WHERE company_id = ${companyId} AND status = 'ABERTA'
+     ORDER BY abs(valor) DESC, data DESC
+  `)) as unknown as PerguntaAberta[];
+}
+
+/** Respondidas pelo empresário com valor alto, esperando a conferência do contador. */
+export async function perguntasParaOContador(companyId: string): Promise<(PerguntaAberta & { resposta: string; respostaNome: string | null })[]> {
+  return (await getDb().execute(sql`
+    SELECT p.id::text, to_char(p.data, 'YYYY-MM-DD') AS data, p.valor::float, p.descricao, p.opcoes,
+           p.revisar_contador AS "revisarContador", p.resposta_conta AS resposta,
+           (SELECT name FROM category c WHERE c.company_id = p.company_id AND c.accounting_code = p.resposta_conta LIMIT 1) AS "respostaNome"
+      FROM pergunta_de_classificacao p
+     WHERE p.company_id = ${companyId} AND p.status = 'RESPONDIDA' AND p.revisar_contador AND p.revisado_em IS NULL
+     ORDER BY abs(p.valor) DESC
+  `)) as unknown as (PerguntaAberta & { resposta: string; respostaNome: string | null })[];
+}
+
+/** Todas as contas que podem responder uma pergunta — o "outra conta" da tela. */
+export async function contasParaResponder(companyId: string): Promise<{ conta: string; nome: string; tipo: 'INCOME' | 'EXPENSE' | 'AMBOS' }[]> {
+  const cats = (await getDb().execute(sql`
+    SELECT DISTINCT ON (accounting_code) accounting_code AS conta, name AS nome, kind AS tipo
+      FROM category WHERE company_id = ${companyId} AND accounting_code IS NOT NULL
+     ORDER BY accounting_code, name
+  `)) as unknown as { conta: string; nome: string; tipo: 'INCOME' | 'EXPENSE' }[];
+  return [...cats.sort((a, b) => a.nome.localeCompare(b.nome)), ...ESPECIAIS.map((e) => ({ conta: e.codigo, nome: e.nome, tipo: e.tipo }))];
+}
+
+export interface MovimentoAmbiguo {
+  id: string;
+  data: string;
+  valor: number;
+  descricao: string;
+  candidatos: { id: string; descricao: string; valor: number; vencimento: string }[];
+}
+
+/** Movimentos com mais de um lançamento possível — a pergunta é "qual destes foi?". */
+export async function movimentosAmbiguos(companyId: string): Promise<MovimentoAmbiguo[]> {
+  const db = getDb();
+  const txs = (await db.execute(sql`
+    SELECT id::text, to_char(posted_at, 'YYYY-MM-DD') AS data, amount::float AS valor, description AS descricao
+      FROM bank_transaction WHERE company_id = ${companyId} AND reconciliation_status = 'UNMATCHED'
+     ORDER BY posted_at DESC LIMIT 50
+  `)) as unknown as Omit<MovimentoAmbiguo, 'candidatos'>[];
+  const out: MovimentoAmbiguo[] = [];
+  for (const t of txs) {
+    const candidatos = (await db.execute(sql`
+      SELECT id::text, coalesce(description, '') AS descricao, amount::float AS valor, to_char(due_date, 'YYYY-MM-DD') AS vencimento
+        FROM financial_entry
+       WHERE company_id = ${companyId} AND type = ${t.valor > 0 ? 'RECEIVABLE' : 'PAYABLE'} AND status <> 'PAID'
+         AND abs(amount::numeric - ${Math.abs(t.valor).toFixed(2)}::numeric) < 0.01
+       ORDER BY abs(due_date - ${t.data}::date) LIMIT 5
+    `)) as unknown as MovimentoAmbiguo['candidatos'];
+    out.push({ ...t, candidatos });
+  }
+  return out;
+}
+
+export interface PerguntaDoEscritorio extends PerguntaAberta {
+  companyId: string;
+  empresa: string;
+  status: 'ABERTA' | 'RESPONDIDA';
+  resposta: string | null;
+  respostaNome: string | null;
+}
+
+/**
+ * A fila do contador, de todos os clientes: as perguntas ainda abertas e as
+ * de valor alto que o empresário respondeu e esperam conferência.
+ */
+export async function perguntasDoEscritorio(): Promise<{ perguntas: PerguntaDoEscritorio[]; contas: Record<string, Awaited<ReturnType<typeof contasParaResponder>>> }> {
+  const perguntas = (await getDb().execute(sql`
+    SELECT p.id::text, p.company_id::text AS "companyId", coalesce(c.trade_name, c.legal_name) AS empresa,
+           to_char(p.data, 'YYYY-MM-DD') AS data, p.valor::float, p.descricao, p.opcoes, p.status,
+           p.revisar_contador AS "revisarContador", p.resposta_conta AS resposta,
+           (SELECT name FROM category k WHERE k.company_id = p.company_id AND k.accounting_code = p.resposta_conta LIMIT 1) AS "respostaNome"
+      FROM pergunta_de_classificacao p JOIN company c ON c.id = p.company_id
+     WHERE p.status = 'ABERTA' OR (p.revisar_contador AND p.revisado_em IS NULL AND p.respondida_por = 'EMPRESARIO')
+     ORDER BY (p.status = 'RESPONDIDA') DESC, abs(p.valor) DESC
+     LIMIT 300
+  `)) as unknown as PerguntaDoEscritorio[];
+  const empresas = [...new Set(perguntas.map((p) => p.companyId))];
+  const contas: Record<string, Awaited<ReturnType<typeof contasParaResponder>>> = {};
+  for (const id of empresas) contas[id] = await contasParaResponder(id);
+  return { perguntas, contas };
 }

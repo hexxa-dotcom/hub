@@ -9,12 +9,14 @@ import {
   inicioDaJanelaDeExtrato,
   contaDoExtrato,
   criarContaBancaria,
+  casarComLancamento,
+  escriturarSemPar,
 } from '@hexxa/db';
 // Nada de constante exportada daqui: um arquivo 'use server' só pode exportar
 // funções assíncronas, e o build quebra sem explicar bem o porquê.
 import { ExtratoIlegivelError, lerExtrato, textoDoExtrato } from '@hexxa/core';
 import { getTenantContext } from '@/lib/server/tenant';
-import { identificarMovimentos } from '@/lib/server/agente-extrato';
+import { identificarMovimentos, responderPergunta } from '@/lib/server/agente-extrato';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -150,4 +152,59 @@ export async function criarContaAction(
   } catch (err) {
     return { ok: false, erro: err instanceof Error ? err.message : String(err) };
   }
+}
+
+// ── Perguntas do extrato ─────────────────────────────────────────────────────
+
+/** O empresário responde "o que foi este movimento?". A resposta ensina a base. */
+export async function responderPerguntaAction(
+  perguntaId: string,
+  conta: string,
+): Promise<{ ok: boolean; mensagem: string }> {
+  const ctx = await getTenantContext();
+  const r = await responderPergunta(ctx.companyId, perguntaId, conta, 'EMPRESARIO');
+  revalidatePath('/meu-negocio/hub-financeiro');
+  if (!r.ok) return { ok: false, mensagem: r.erro ?? 'Não foi possível registrar.' };
+  return {
+    ok: true,
+    mensagem:
+      r.resolvidasJuntas > 0
+        ? `Aprendido — e ${r.resolvidasJuntas} ${r.resolvidasJuntas === 1 ? 'outro movimento igual foi identificado' : 'outros movimentos iguais foram identificados'} junto.`
+        : 'Aprendido. Da próxima vez, este movimento é identificado sozinho.',
+  };
+}
+
+async function movimento(companyId: string, id: string) {
+  const [t] = (await getDb().execute(sql`
+    SELECT id::text, to_char(posted_at, 'YYYY-MM-DD') AS data, amount::float AS valor, description AS descricao
+      FROM bank_transaction WHERE id = ${id} AND company_id = ${companyId} AND reconciliation_status = 'UNMATCHED'
+  `)) as unknown as { id: string; data: string; valor: number; descricao: string }[];
+  return t;
+}
+
+/** Havia mais de um lançamento possível: o empresário diz qual foi. */
+export async function escolherLancamentoAction(bankTransactionId: string, entryId: string): Promise<{ ok: boolean; mensagem: string }> {
+  const ctx = await getTenantContext();
+  const t = await movimento(ctx.companyId, bankTransactionId);
+  if (!t) return { ok: false, mensagem: 'Movimento não encontrado ou já resolvido.' };
+  const [e] = (await getDb().execute(sql`
+    SELECT type, amount::float AS valor FROM financial_entry WHERE id = ${entryId} AND company_id = ${ctx.companyId} AND status <> 'PAID'
+  `)) as unknown as { type: string; valor: number }[];
+  if (!e || e.type !== (t.valor > 0 ? 'RECEIVABLE' : 'PAYABLE') || Math.abs(e.valor - Math.abs(t.valor)) >= 0.01) {
+    return { ok: false, mensagem: 'Esse lançamento não bate com o movimento (tipo ou valor).' };
+  }
+  await casarComLancamento(getDb(), ctx.companyId, t, entryId);
+  revalidatePath('/meu-negocio/hub-financeiro');
+  return { ok: true, mensagem: 'Conta baixada na data do extrato.' };
+}
+
+/** Nenhum dos lançamentos: o movimento segue para a identificação (base, IA verificada ou pergunta). */
+export async function naoEhNenhumAction(bankTransactionId: string): Promise<{ ok: boolean; mensagem: string }> {
+  const ctx = await getTenantContext();
+  const t = await movimento(ctx.companyId, bankTransactionId);
+  if (!t) return { ok: false, mensagem: 'Movimento não encontrado ou já resolvido.' };
+  const conta = await escriturarSemPar(getDb(), ctx.companyId, t);
+  if (!conta) await identificarMovimentos(ctx.companyId);
+  revalidatePath('/meu-negocio/hub-financeiro');
+  return { ok: true, mensagem: conta ? 'Identificado pelo que o sistema já sabia.' : 'Certo — ele foi para a identificação.' };
 }
