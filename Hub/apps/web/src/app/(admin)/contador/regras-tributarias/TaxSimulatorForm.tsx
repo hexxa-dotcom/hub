@@ -14,7 +14,7 @@ export function TaxSimulatorForm() {
   const handleSimulate = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simulação visual simplificada até ligar a Server Action com a TaxEngineService
+    // Simulação visual simplificada (o cálculo oficial é o de TaxThermometerService.simplesPosition)
     const r = parseFloat(rba12);
     const f = parseFloat(folha12);
     const cur = parseFloat(faturamentoMes);

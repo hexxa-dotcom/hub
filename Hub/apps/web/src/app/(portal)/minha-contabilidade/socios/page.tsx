@@ -34,10 +34,11 @@ export default async function Page() {
     enquadramentoApurado(ctx),
   ]);
   const { fatorRFavorable, anexo, fatorR } = posicao;
-  const regraFatorR = fatorRSeAplica(apurado, new TaxThermometerService().simplesPosition({
-    rbt12: simplesInputs.rbt12,
-    payroll12: simplesInputs.folha12,
-  }).fatorR);
+  const regraFatorR = fatorRSeAplica(
+    apurado,
+    new TaxThermometerService().simplesPosition({ rbt12: simplesInputs.rbt12, payroll12: simplesInputs.folha12 }).fatorR,
+    posicao.fatorRMarcado,
+  );
 
   const insightContext = [
     `Tela: Gestão de Sócios de uma empresa de serviço optante do Simples Nacional.`,

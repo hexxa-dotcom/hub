@@ -22,6 +22,8 @@ export interface SendNfseEmailResult {
 export async function sendNfseEmailToCustomer(
   ctx: TenantContext,
   invoiceId: string,
+  /** Para quem mandar. Sem lista, o e-mail do cliente. */
+  destinatarios?: string[],
 ): Promise<SendNfseEmailResult> {
   const { invoice, cust, account } = await withTenant(ctx.companyId, async (tx) => {
     const [inv] = await tx
@@ -48,7 +50,8 @@ export async function sendNfseEmailToCustomer(
   if (!invoice || invoice.status !== 'ISSUED') return { sent: false, reason: 'invoice-not-issued' };
   if (invoice.providerMode === 'mock') return { sent: false, reason: 'mock-invoice' };
   if (!invoice.providerProtocol) return { sent: false, reason: 'no-protocol' };
-  if (!cust?.email) return { sent: false, reason: 'customer-no-email' };
+  const para = (destinatarios?.length ? destinatarios : cust?.email ? [cust.email] : []).map((e) => e.trim()).filter(Boolean);
+  if (!para.length) return { sent: false, reason: 'customer-no-email' };
   if (!account || !account.isActive || !account.smtpHost || !account.password) {
     return { sent: false, reason: 'no-email-account' };
   }
@@ -77,7 +80,7 @@ export async function sendNfseEmailToCustomer(
   const numero = invoice.nfseNumber ?? invoice.providerProtocol;
   const subject = `NFS-e nº ${numero} — ${invoice.serviceDescription.slice(0, 60)}`;
   const text =
-    `Olá, ${cust.name}!\n\n` +
+    `Olá${cust?.name ? `, ${cust.name}` : ''}!\n\n` +
     `Segue em anexo a Nota Fiscal de Serviço Eletrônica (NFS-e) nº ${numero}, ` +
     `no valor de R$ ${Number(invoice.amount).toFixed(2)}.\n\n` +
     `Referente a: ${invoice.serviceDescription}`;
@@ -86,7 +89,7 @@ export async function sendNfseEmailToCustomer(
   try {
     info = await transporter.sendMail({
       from: account.emailAddress,
-      to: cust.email,
+      to: para.join(', '),
       subject,
       text,
       attachments: [{ filename: `nfse_${numero}.pdf`, content: pdf, contentType: 'application/pdf' }],
@@ -95,7 +98,8 @@ export async function sendNfseEmailToCustomer(
     return { sent: false, reason: `smtp-send-failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 
-  await withTenant(ctx.companyId, async (tx) => {
+  // O histórico de e-mails fica na ficha do cliente — sem cliente, não há onde guardar.
+  if (cust) await withTenant(ctx.companyId, async (tx) => {
     await tx.insert(emailMessage).values({
       companyId: ctx.companyId,
       accountId: account.id,
@@ -103,7 +107,7 @@ export async function sendNfseEmailToCustomer(
       remoteId: info.messageId || `local-${Date.now()}`,
       subject,
       fromAddress: account.emailAddress,
-      toAddress: cust.email!,
+      toAddress: para.join(', '),
       bodyText: text,
       sentAt: new Date(),
       isRead: true,

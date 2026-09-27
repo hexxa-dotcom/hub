@@ -266,13 +266,16 @@ export function QuickNfseForm({ onDone }: { onDone: () => void }) {
         </p>
       )}
 
+      {/* Nota igual no mês: o aviso acima pergunta; este campo leva o "sim" no próximo envio. */}
+      {state.precisaConfirmar && <input type="hidden" name="confirmarDuplicada" value="1" />}
+      <input type="hidden" name="customerId" value={selectedId} />
       <button
         type="submit"
         disabled={pending || !selectedId || (profiles.length > 0 && !profileId)}
         className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-hexxa-forest hover:bg-hexxa-green px-6 py-3 text-sm font-bold text-hexxa-lime shadow-(--elev-1) transition-transform hover:scale-[1.01] disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Receipt className="h-4 w-4" />}
-        {pending ? 'Emitindo…' : 'Emitir NFSe'}
+        {pending ? 'Emitindo…' : state.precisaConfirmar ? 'Emitir mesmo assim' : 'Emitir NFSe'}
       </button>
     </form>
   );

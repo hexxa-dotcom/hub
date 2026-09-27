@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft, UploadCloud, BarChart3, Calendar, RotateCw } from 'lucide-react';
 import { UploadPGDASForm } from './UploadPGDASForm';
 import { OneflowSetupForm } from './OneflowSetupForm';
+import { EnquadramentoForm } from './EnquadramentoForm';
+import { sql } from '@hexxa/db';
 import { getOneflowCredential } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -14,6 +16,7 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
 
   let history: (typeof taxHistory.$inferSelect)[] = [];
   let oneflow: { hasToken: boolean; active: boolean } = { hasToken: false, active: false };
+  let marcado: { simples_anexo: string | null; simples_fator_r: string | null; cnae: string | null; atividade: string | null } | undefined;
   try {
     [history, oneflow] = await withDbTimeout(
       Promise.all([
@@ -26,9 +29,13 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
       ]),
       8000,
     );
+    [marcado] = (await db.execute(sql`
+      SELECT simples_anexo, simples_fator_r, main_activity_code AS cnae, main_activity_text AS atividade FROM company WHERE id = ${id}
+    `)) as unknown as NonNullable<typeof marcado>[];
   } catch (err) {
     console.error('[AdminFiscalPage] falha ao carregar dados fiscais:', err);
   }
+  const apuradoOneflow = history.find((h) => h.source === 'ONEFLOW' && /Anexo/.test(h.taxBracket ?? ''))?.taxBracket ?? null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
@@ -45,6 +52,16 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
             Faça upload dos recibos mensais do PGDAS para alimentar a Bússola Tributária do cliente.
           </p>
         </div>
+      </div>
+
+      {/* Enquadramento: vale até haver apuração do OneFlow. */}
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Enquadramento no Simples</h2>
+        <p className="mb-4 mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          {marcado?.cnae ? `CNAE ${marcado.cnae} — ${marcado.atividade ?? ''}. ` : ''}
+          Enquanto o OneFlow não apura, a Bússola usa o anexo marcado aqui; sem marcação, ela mostra o anexo como "a confirmar".
+        </p>
+        <EnquadramentoForm companyId={id} anexoInicial={marcado?.simples_anexo ?? null} fatorRInicial={marcado?.simples_fator_r ?? null} apurado={apuradoOneflow} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

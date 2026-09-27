@@ -44,6 +44,8 @@ export interface EmitNfseInput {
    * sobrevive e permite remontar a nota para envio.
    */
   nfseServiceProfileId?: string;
+  /** IBS/CBS da nota (reforma) — vai ao XML só se o emitente ligar o leiaute. */
+  ibsCbs?: { cst: string; cClassTrib: string; cIndOp: string; nbs?: string | null; consumoFinal?: boolean };
 }
 
 export interface EmitNfseResult {
@@ -105,6 +107,8 @@ export class ServiceInvoiceService {
       referenceMonth: input.referenceMonth,
       competenciaDate: input.competenciaDate,
       retainIss: input.retainIss,
+      aliquotaTributosTotal: input.estimatedTaxRate,
+      ibsCbs: input.ibsCbs,
       serviceOverride: input.serviceOverride,
     });
 

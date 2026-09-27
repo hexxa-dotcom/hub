@@ -23,6 +23,17 @@ export interface NfseIssueInput {
   referenceMonth: string; // YYYY-MM
   competenciaDate?: string; // YYYY-MM-DD
   retainIss?: boolean;
+  /**
+   * Carga total aproximada dos tributos, em % (Lei 12.741/2012). Para o
+   * Simples é a alíquota efetiva do DAS. Sem ela, o XML usava 6% fixo de
+   * tributos federais para qualquer empresa.
+   */
+  aliquotaTributosTotal?: number;
+  /**
+   * IBS e CBS da nota (reforma tributária) — ver `ibsCbsDaNota`. Só entra no
+   * XML quando o emitente liga o leiaute da reforma (`leiauteIbsCbs`).
+   */
+  ibsCbs?: { cst: string; cClassTrib: string; cIndOp: string; nbs?: string | null; consumoFinal?: boolean };
   serviceOverride?: {
     itemListaServico: string;
     codigoTributacaoMunicipio?: string;

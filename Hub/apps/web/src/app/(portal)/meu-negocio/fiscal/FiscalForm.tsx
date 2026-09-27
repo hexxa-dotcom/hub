@@ -1465,6 +1465,17 @@ function PerfisFiscais({ profiles, config }: { profiles: any[], config: NfseConf
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Alíquota ISS (%) (opcional)</label>
             <input name="aliquota" placeholder="3.5" defaultValue={editingProfile?.aliquotaIss || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
           </div>
+          {/* Reforma tributária (LC 214/2025): a classificação do serviço no
+              IBS/CBS. Em 2026 o Simples está dispensado do destaque; o campo
+              fica pronto para quando for exigido. */}
+          <div>
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">IBS/CBS · cClassTrib (reforma)</label>
+            <input name="cClassTrib" placeholder="000001" maxLength={6} defaultValue={editingProfile?.cClassTrib || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">IBS/CBS · CST (reforma)</label>
+            <input name="cstIbsCbs" placeholder="000" maxLength={3} defaultValue={editingProfile?.cstIbsCbs || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" />
+          </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">Descrição Padrão do Serviço (opcional)</label>
             <textarea name="defaultDescription" placeholder="Texto preenchido automaticamente ao selecionar este perfil" defaultValue={editingProfile?.defaultDescription || ''} className="w-full rounded-2xl border border-black/10 dark:border-white/10 px-3.5 py-2 text-xs bg-white dark:bg-[#1A201C]" rows={2} />

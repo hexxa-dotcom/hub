@@ -222,6 +222,9 @@ export interface RetornoResult {
      * `null` = o OneFlow não soube dizer — a mensagem explica por quê.
      */
     sujeito: boolean | null;
+    /** A série somada: folha e receita dos 12 meses que o OneFlow usou. */
+    folha12?: number | null;
+    receita12?: number | null;
   } | null;
   /** Partidas gravadas no razão a partir do que voltou. */
   escrituradas: number;
@@ -820,7 +823,11 @@ async function lerFatorR(
 
     // Sujeição não vem deste endpoint — é deduzida junto com o anexo apurado,
     // em `registrarFatorR`, onde os dois números oficiais estão lado a lado.
-    out.fatorR = { valor, mensagem, sujeito: null };
+    // A série inteira é a folha oficial dos 12 meses — com o que o OneFlow
+    // conta (salário, pró-labore, 13º, FGTS). Somada, substitui a estimativa
+    // do Hub, que multiplicava o salário de hoje por 12.
+    const soma = (k: string) => (serie.length ? serie.reduce((s, x) => s + numero(x?.[k]), 0) : null);
+    out.fatorR = { valor, mensagem, sujeito: null, folha12: soma('valorFolha'), receita12: soma('valorReceita') };
   } catch (err) {
     out.avisos.push(`Fator R: ${msg(err)}`);
   }
@@ -861,7 +868,9 @@ async function registrarFatorR(
 
   await tx.execute(sql`
     UPDATE tax_history
-       SET fator_r = ${fator.toFixed(4)}, fator_r_sujeito = ${sujeito}
+       SET fator_r = ${fator.toFixed(4)}, fator_r_sujeito = ${sujeito},
+           folha_12 = ${out.fatorR?.folha12 != null ? out.fatorR.folha12.toFixed(2) : null},
+           receita_12 = ${out.fatorR?.receita12 != null ? out.fatorR.receita12.toFixed(2) : null}
      WHERE company_id = ${companyId} AND reference_month = ${mesRef} AND source = 'ONEFLOW'
   `);
 }

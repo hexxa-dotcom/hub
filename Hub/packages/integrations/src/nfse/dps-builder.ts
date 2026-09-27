@@ -14,6 +14,20 @@ export interface DpsEmitente {
   optanteSimples: boolean;
   regimeApuracao?: string;     // 1=Não optante, 2=MEI, 3=ME/EPP
   regimeEspecial?: string;     // regEspTrib 0–6; default "0"
+  /**
+   * Leiaute da reforma (IBS/CBS). Desligado, a DPS sai como sempre.
+   * - 'NT009': leiaute RTC v1.04 (NT 009/2026) — finNFSe no corpo da DPS,
+   *   cNBS/cAtvSN antes da descrição, regApIBSCBSSN no regime.
+   * - 'V101': esquema XSD RTC v1.01 (NT 004) — finNFSe dentro do IBSCBS,
+   *   cNBS depois da descrição.
+   * Teste em Produção Restrita (27/09/2026): V101 passou no esquema; NT009
+   * foi recusado (E1235, finNFSe fora do lugar). Use V101.
+   */
+  leiauteIbsCbs?: 'NT009' | 'V101';
+  /** Simples: 1 = IBS e CBS pelo SN; 2 = só a CBS pelo SN; 3 = os dois pelo regime regular. */
+  regApIBSCBSSN?: '1' | '2' | '3';
+  /** Código da atividade no Simples (cAtvSN): 7 Anexo III, 9 Fator R, 14 Anexo IV… */
+  cAtvSN?: string;
   fone?: string;               // Telefone do prestador (opcional no DPS)
   email?: string;              // E-mail do prestador (opcional no DPS)
 }
@@ -85,6 +99,40 @@ export interface BuiltDps {
 export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
   const { emitente: e, servico: s } = params;
   const tpAmb = e.ambiente === 'producao' ? '1' : '2';
+  /*
+   * Tributos aproximados (Lei 12.741). O municipal é o ISS; o federal é o
+   * resto da carga total — que, no Simples, é a alíquota efetiva do DAS.
+   * Antes o federal era 6% fixo, igual para toda empresa. Sem a carga total
+   * informada, mantém o valor antigo para não mudar notas já em uso.
+   */
+  const totTribMun = input.amount * (Number(s.aliquotaIss ?? 0) / 100);
+
+  // opSimpNac: 1 = Não optante, 2 = MEI, 3 = ME/EPP. Optante sem o tipo
+  // informado é ME/EPP — o MEI tem de estar marcado (antes o padrão era 2).
+  const opSimpNac = e.regimeApuracao || (e.optanteSimples ? '3' : '1');
+  const simples = opSimpNac !== '1';
+
+  // Reforma tributária: o grupo IBS/CBS, no leiaute escolhido.
+  const nt009 = e.leiauteIbsCbs === 'NT009';
+  const v101 = e.leiauteIbsCbs === 'V101';
+  const ibs = e.leiauteIbsCbs ? input.ibsCbs : undefined;
+  const ibsCbsXml = ibs
+    ? `<IBSCBS>` +
+      (v101 ? `<finNFSe>0</finNFSe>` : '') +
+      (ibs.consumoFinal ? `<indFinal>1</indFinal>` : '') +
+      `<cIndOp>${onlyDigits(ibs.cIndOp)}</cIndOp>` +
+      // 0 = o destinatário é o próprio tomador.
+      `<indDest>0</indDest>` +
+      `<valores><trib><gIBSCBS>` +
+      `<CST>${onlyDigits(ibs.cst)}</CST>` +
+      `<cClassTrib>${onlyDigits(ibs.cClassTrib)}</cClassTrib>` +
+      `</gIBSCBS></trib></valores>` +
+      `</IBSCBS>`
+    : '';
+  const totTribFed =
+    input.aliquotaTributosTotal != null
+      ? Math.max(0, input.amount * (input.aliquotaTributosTotal / 100) - totTribMun)
+      : input.amount * 0.06;
   // Se competenciaDate for enviada (YYYY-MM-DD), usa ela. Se não, tenta referenceMonth (YYYY-MM) -> se tiver len 7, anexa -01.
   const dCompet = input.competenciaDate 
     ? input.competenciaDate 
@@ -136,6 +184,7 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
     `<nDPS>${params.numero}</nDPS>` +
     `<dCompet>${dCompet}</dCompet>` +
     `<tpEmit>1</tpEmit>` +
+    (nt009 ? `<finNFSe>0</finNFSe>` : '') +
     `<cLocEmi>${e.codigoMunicipio}</cLocEmi>` +
     `<prest>` +
     `<CNPJ>${cnpjPrest}</CNPJ>` +
@@ -143,9 +192,10 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
     (e.email ? `<email>${escapeXml(e.email)}</email>` : '') +
     `<regTrib>` +
     // opSimpNac (Padrão Nacional): 1=Não Optante, 2=Optante MEI, 3=Optante ME/EPP
-    `<opSimpNac>${e.regimeApuracao || (e.optanteSimples ? '2' : '1')}</opSimpNac>` +
+    `<opSimpNac>${opSimpNac}</opSimpNac>` +
     // regApTribSN: 1 = apuração dos tributos pelo SN (padrão para ME/EPP)
-    (e.regimeApuracao === '3' ? `<regApTribSN>1</regApTribSN>` : '') +
+    (opSimpNac === '3' ? `<regApTribSN>1</regApTribSN>` : '') +
+    (nt009 && simples && e.regApIBSCBSSN ? `<regApIBSCBSSN>${e.regApIBSCBSSN}</regApIBSCBSSN>` : '') +
     `<regEspTrib>${e.regimeEspecial ?? '0'}</regEspTrib>` +
     `</regTrib>` +
     `</prest>` +
@@ -162,7 +212,10 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
     (s.codigoTributacaoMunicipio
       ? `<cTribMun>${escapeXml(s.codigoTributacaoMunicipio)}</cTribMun>`
       : '') +
+    (nt009 && ibs?.nbs ? `<cNBS>${onlyDigits(ibs.nbs)}</cNBS>` : '') +
+    (nt009 && simples && e.cAtvSN ? `<cAtvSN>${escapeXml(e.cAtvSN)}</cAtvSN>` : '') +
     `<xDescServ>${escapeXml(input.serviceDescription)}</xDescServ>` +
+    (v101 && ibs?.nbs ? `<cNBS>${onlyDigits(ibs.nbs)}</cNBS>` : '') +
     `</cServ>` +
     `</serv>` +
     `<valores>` +
@@ -172,18 +225,19 @@ export function buildDps(params: DpsParams, input: NfseIssueInput): BuiltDps {
     `<tribISSQN>1</tribISSQN>` +
     `<tpRetISSQN>${tpRetISSQN}</tpRetISSQN>` +
     // pAliq: para ME/EPP SN sem retenção, NÃO informar (E0625)
-    (s.aliquotaIss && (input.retainIss || e.regimeApuracao !== '3') ? `<pAliq>${Number(s.aliquotaIss).toFixed(2)}</pAliq>` : '') +
+    (s.aliquotaIss && (input.retainIss || opSimpNac !== '3') ? `<pAliq>${Number(s.aliquotaIss).toFixed(2)}</pAliq>` : '') +
     `</tribMun>` +
     // totTrib: valores aproximados dos tributos (modelo do XML autorizado)
     `<totTrib>` +
     `<vTotTrib>` +
-    `<vTotTribFed>${(input.amount * 0.0600).toFixed(2)}</vTotTribFed>` +
+    `<vTotTribFed>${totTribFed.toFixed(2)}</vTotTribFed>` +
     `<vTotTribEst>0.00</vTotTribEst>` +
-    `<vTotTribMun>${(input.amount * (Number(s.aliquotaIss ?? 0) / 100)).toFixed(2)}</vTotTribMun>` +
+    `<vTotTribMun>${totTribMun.toFixed(2)}</vTotTribMun>` +
     `</vTotTrib>` +
     `</totTrib>` +
     `</trib>` +
     `</valores>` +
+    ibsCbsXml +
     `</infDPS>` +
     `</DPS>`;
 

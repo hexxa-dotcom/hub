@@ -171,6 +171,8 @@ export async function createProfileAction(_prev: FiscalState, formData: FormData
       cnae: str('cnae') ?? null,
       aliquotaIss: aliquotaRaw ? Number(aliquotaRaw.replace(',', '.')) : null,
       defaultDescription: str('defaultDescription') ?? null,
+      cClassTrib: str('cClassTrib')?.replace(/\D/g, '') || null,
+      cstIbsCbs: str('cstIbsCbs')?.replace(/\D/g, '') || null,
     };
 
     if (id) {

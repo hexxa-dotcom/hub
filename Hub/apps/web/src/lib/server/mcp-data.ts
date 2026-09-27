@@ -1,8 +1,8 @@
 import 'server-only';
 import { withTenant, sql, getDb, company } from '@hexxa/db';
 import { ilike, or, eq } from 'drizzle-orm';
-import { getSimplesInputs } from '@/lib/server/fiscal';
-import { TaxThermometerService, type TenantContext } from '@hexxa/core';
+import { getSimplesInputs, posicaoSimples } from '@/lib/server/fiscal';
+import type { TenantContext } from '@hexxa/core';
 
 export type CompanyInfo = {
   id: string;
@@ -319,10 +319,7 @@ export async function getResumoMes(companyId: string, mesInput?: string) {
 export async function getBussolaTributaria(companyId: string) {
   const ctx: TenantContext = { companyId, companyType: 'SERVICE', userId: 'mcp' };
   const simplesInputs = await getSimplesInputs(ctx);
-  const simples = new TaxThermometerService().simplesPosition({
-    rbt12: simplesInputs.rbt12,
-    payroll12: simplesInputs.folha12,
-  });
+  const simples = await posicaoSimples(ctx, simplesInputs);
   return {
     anexo: simples.anexo,
     faixa: simples.faixa,

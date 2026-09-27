@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
+import { EmitirDeNovo } from '@/app/(portal)/meu-negocio/notas/EmitirDeNovo';
 import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
 import type { FichaDoCliente } from '@/lib/server/clientes';
 import { FormularioDeCliente, formatarDocumento } from '../ClientesClient';
@@ -38,6 +39,8 @@ export function FichaClient({ ficha }: { ficha: FichaDoCliente }) {
   const receber = ficha.aReceber.reduce((s, r) => s + r.valor, 0);
   const atrasado = ficha.aReceber.filter((r) => r.atrasado).reduce((s, r) => s + r.valor, 0);
   const ativos = ficha.contratos.filter((k) => k.status === 'ATIVO');
+  // A última nota (de onde vier) é o ponto de partida do "emitir de novo".
+  const ultima = ficha.notas.filter((n) => !n.cancelada).sort((a, b) => (b.data ?? '').localeCompare(a.data ?? ''))[0];
 
   return (
     <div className="space-y-12">
@@ -63,6 +66,7 @@ export function FichaClient({ ficha }: { ficha: FichaDoCliente }) {
           <button type="button" onClick={() => setEditando(true)} className="text-ink-soft hover:text-ink">
             Editar
           </button>
+          {c.documento && <EmitirDeNovo customerId={c.id} valor={ultima?.valor ?? 0} descricao={ultima?.descricao ?? ''} />}
         </div>
       </div>
 

@@ -111,3 +111,32 @@ describe('buildDps', () => {
     expect(closeTags).toHaveLength(1);
   });
 });
+
+describe('IBS/CBS na DPS (reforma)', () => {
+  const base = {
+    emitente: { ambiente: 'homologacao' as const, cnpj: '62414421000116', codigoMunicipio: '4211306', optanteSimples: true, regimeApuracao: '3' },
+    servico: { itemListaServico: '17.02' },
+    serie: '900',
+    numero: 1,
+  };
+  const input = {
+    customer: { name: 'Cliente', document: '47316917000163' },
+    amount: 100,
+    serviceDescription: 'Teste',
+    referenceMonth: '2026-09',
+    ibsCbs: { cst: '000', cClassTrib: '000001', cIndOp: '100301', nbs: '1.1411.00.00' },
+  };
+  it('desligado, a DPS não leva o grupo', () => {
+    const { xml } = buildDps(base, input as never);
+    expect(xml).not.toContain('<IBSCBS>');
+  });
+  it('V101: grupo no fim da infDPS, finNFSe dentro dele e cNBS depois da descrição', () => {
+    const { xml } = buildDps({ ...base, emitente: { ...base.emitente, leiauteIbsCbs: 'V101' } }, input as never);
+    expect(xml).toContain('</valores><IBSCBS><finNFSe>0</finNFSe><cIndOp>100301</cIndOp><indDest>0</indDest><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib></gIBSCBS></trib></valores></IBSCBS></infDPS>');
+    expect(xml).toContain('<xDescServ>Teste</xDescServ><cNBS>114110000</cNBS>');
+  });
+  it('optante sem o tipo informado sai como ME/EPP (3), não MEI', () => {
+    const { xml } = buildDps({ ...base, emitente: { ...base.emitente, regimeApuracao: undefined } }, input as never);
+    expect(xml).toContain('<opSimpNac>3</opSimpNac>');
+  });
+});

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
@@ -12,19 +12,21 @@ import type { NotasDoMes, NotaDoMes } from '@/lib/server/notas';
 import { syncDfeAction } from './dfeActions';
 import { descartarTentativaAction } from './actions';
 import { cancelNfseAction } from '../nfse/actions';
-import { EmitirNota } from './HubNotas';
+import { EmissaoFacil, Agendadas, type Prestador, type InicialDaEmissao } from './EmissaoFacil';
+import type { EmissaoAgendada, NotaPendente } from '@/lib/server/emissao-agendada';
 import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
 import { nomeDeExibicao, iniciais } from '@/lib/nome-de-exibicao';
 
 /**
  * NOTAS DO MÊS.
  *
- * Três abas: emitidas (o faturamento), recebidas (despesas com nota) e
- * emitir. Clicar numa nota abre a DANFSe dentro do Hub. As tentativas de
- * emissão que deram erro ficam à parte, com "descartar".
+ * A visão geral do emissor: o que foi emitido no mês, o que está agendado e
+ * o que está pendente (parcela de contrato sem nota), com o "Emitir nota" em
+ * destaque no alto — não escondido numa aba. Clicar numa nota abre a DANFSe
+ * dentro do Hub; as tentativas com erro ficam à parte, com "descartar".
  */
 
-type Aba = 'emitidas' | 'recebidas' | 'emitir';
+type Aba = 'emitidas' | 'recebidas' | 'agendadas' | 'pendentes' | 'emitir';
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const nomeDoMes = (m: string) => `${MESES[Number(m.slice(5)) - 1]} de ${m.slice(0, 4)}`;
@@ -56,8 +58,13 @@ export function NotasClient({
     certOk: boolean;
     fiscalOk: boolean;
     profiles: never[] | unknown[];
-    customers: { id: string; name: string; document: string | null; email: string | null }[];
+    customers: { id: string; name: string; document: string | null; email: string | null; phone: string | null; endereco: Record<string, string> | null }[];
     taxRatePercent: number;
+    agendadas: EmissaoAgendada[];
+    pendentes: NotaPendente[];
+    prestador: Prestador | null;
+    /** Simples antes de novembro: a data a partir da qual dá para agendar. */
+    liberaEm: string | null;
   };
 }) {
   const router = useRouter();
@@ -67,6 +74,13 @@ export function NotasClient({
   const [sincronizando, sincronizar] = useTransition();
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [confirmarCancelamento, setConfirmarCancelamento] = useState<string | null>(null);
+  const [inicial, setInicial] = useState<InicialDaEmissao | null>(null);
+  const ativasAgendadas = emissao.agendadas.filter((a) => a.ativa);
+  const totalPendente = emissao.pendentes.reduce((s, p) => s + p.valor, 0);
+  const emitir = (i: InicialDaEmissao | null = null) => {
+    setInicial(i);
+    setAba('emitir');
+  };
   const atual = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
 
   const validas = notas.emitidas.filter((n) => !n.cancelada);
@@ -109,17 +123,32 @@ export function NotasClient({
       {aviso && <p className="rounded-2xl border border-black/5 bg-black/[0.03] px-4 py-3 text-xs font-semibold text-ink dark:border-white/10 dark:bg-white/5">{aviso}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <SegmentedTabs
-          tabs={[
-            { id: 'emitidas', label: `Emitidas`, badge: alertaDaAba(notas.comErro.length) },
-            { id: 'recebidas', label: 'Recebidas' },
-            { id: 'emitir', label: 'Emitir nota' },
-          ]}
-          activeTab={aba}
-          onChange={(id) => setAba(id as Aba)}
-          layoutId="notasAbas"
-        />
-        {aba !== 'emitir' && (
+        <div className="flex flex-wrap items-center gap-3">
+          <SegmentedTabs
+            tabs={[
+              { id: 'emitidas', label: 'Emitidas', badge: alertaDaAba(notas.comErro.length) },
+              { id: 'recebidas', label: 'Recebidas' },
+              { id: 'agendadas', label: 'Agendadas' },
+              { id: 'pendentes', label: 'Pendentes', badge: alertaDaAba(emissao.pendentes.filter((p) => p.atrasada).length) },
+            ]}
+            activeTab={aba === 'emitir' ? '' : aba}
+            onChange={(id) => setAba(id as Aba)}
+            layoutId="notasAbas"
+          />
+          {/* O que mais se faz aqui é emitir: o botão é o destaque da tela. */}
+          <button
+            type="button"
+            onClick={() => emitir()}
+            className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-colors ${
+              aba === 'emitir'
+                ? 'border border-black/15 text-ink dark:border-white/20'
+                : 'bg-hexxa-forest text-hexxa-lime shadow-[0_8px_24px_rgba(30,51,40,0.25)] hover:bg-hexxa-green dark:bg-hexxa-lime dark:text-hexxa-forest'
+            }`}
+          >
+            + Emitir nota
+          </button>
+        </div>
+        {(aba === 'emitidas' || aba === 'recebidas') && (
           <FinanceiroMonthSelector
             selectedMonth={mes}
             monthLabel={nomeDoMes(mes)}
@@ -134,56 +163,90 @@ export function NotasClient({
       </div>
 
       {aba === 'emitir' ? (
-        emissao.bloqueada ? (
-          <div className="rounded-[28px] border border-black/5 p-8 dark:border-white/10">
-            <p className="rotulo text-ink-soft">Emitir pela Hexx</p>
-            <p className="mt-3 text-xl font-light leading-snug text-ink">A emissão pela Hexx libera em novembro para empresas do Simples Nacional.</p>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
-              É quando o Emissor Nacional abre a emissão por sistema para o Simples. Até lá, emita no próprio Emissor Nacional — a nota volta
-              sozinha para cá na sincronização (todo dia de madrugada, ou agora, no botão de sincronizar) e entra no faturamento e no
-              financeiro.
-            </p>
-            <a
-              href="https://www.nfse.gov.br/EmissorNacional"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-hexxa-forest px-5 py-2.5 text-xs font-bold text-hexxa-lime dark:bg-hexxa-lime dark:text-hexxa-forest"
-            >
-              Abrir o Emissor Nacional <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        ) : (
-          <EmitirNota
-            mode={emissao.mode}
-            customers={emissao.customers}
-            certOk={emissao.certOk}
-            fiscalOk={emissao.fiscalOk}
-            profiles={emissao.profiles as never}
-            taxRatePercent={emissao.taxRatePercent}
-          />
-        )
+        <EmissaoFacil
+          key={inicial?.parcelaId ?? inicial?.customerId ?? 'nova'}
+          mode={emissao.mode}
+          customers={emissao.customers}
+          profiles={emissao.profiles as never}
+          taxRatePercent={emissao.taxRatePercent}
+          liberaEm={emissao.liberaEm}
+          prestador={emissao.prestador}
+          inicial={inicial}
+        />
       ) : (
         <>
           <GradeDeResumo colunas={3}>
             <CardResumo
               destaque
-              rotulo={`Faturado em ${MESES[Number(mes.slice(5)) - 1]}`}
+              rotulo={`Emitidas em ${MESES[Number(mes.slice(5)) - 1]}`}
               valor={BRL.format(faturado)}
-              nota={`${validas.length} ${validas.length === 1 ? 'nota emitida' : 'notas emitidas'}${mes === atual ? ' até agora' : ''}`}
+              nota={`${validas.length} ${validas.length === 1 ? 'nota' : 'notas'} · imposto estimado ${BRL.format(imposto)} (${aliquota.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% ${aliquotaApurada ? 'apurado' : 'estimado'})${notas.comErro.length ? ` · ${notas.comErro.length} com erro` : ''}`}
+              onClick={() => setAba('emitidas')}
             />
             <CardResumo
-              rotulo="Imposto estimado"
-              valor={BRL.format(imposto)}
-              nota={`${aliquota.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% ${aliquotaApurada ? 'apurado pela contabilidade' : 'estimado'} · ver Bússola`}
-              href="/minha-contabilidade/termometro-tributario"
+              rotulo="Agendadas"
+              valor={ativasAgendadas.length}
+              nota={ativasAgendadas[0] ? `próxima ${ativasAgendadas[0].proximaData.split('-').reverse().join('/')} · ${nomeDeExibicao(ativasAgendadas[0].cliente)}` : 'Nenhuma nota agendada'}
+              onClick={() => setAba('agendadas')}
             />
             <CardResumo
-              rotulo="Notas recebidas"
-              valor={BRL.format(recebido)}
-              nota={`${notas.recebidas.length} ${notas.recebidas.length === 1 ? 'nota de fornecedor' : 'notas de fornecedores'}`}
-              onClick={() => setAba('recebidas')}
+              rotulo="Pendentes"
+              valor={emissao.pendentes.length}
+              tom={emissao.pendentes.some((p) => p.atrasada) ? 'alerta' : 'padrao'}
+              nota={emissao.pendentes.length ? `${BRL.format(totalPendente)} em parcelas de contrato sem nota` : 'Nenhuma parcela de contrato sem nota'}
+              onClick={() => setAba('pendentes')}
             />
           </GradeDeResumo>
+
+          {aba === 'agendadas' ? (
+            ativasAgendadas.length || emissao.agendadas.length ? (
+              <Agendadas itens={emissao.agendadas} />
+            ) : (
+              <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-10 text-center text-sm text-ink-soft dark:border-white/10">
+                Nenhuma nota agendada. Ao emitir, escolha "repetir todo mês" ou "agendar" em <strong>Depois desta</strong>.
+              </p>
+            )
+          ) : aba === 'pendentes' ? (
+            <section className="space-y-4">
+              <p className="rotulo text-ink-soft">Parcelas de contrato sem nota</p>
+              <ListaEmColunas
+                colunas={[
+                  { rotulo: 'Cliente', largura: 'minmax(0,1fr)' },
+                  { rotulo: 'Vence', largura: '7rem', soDesktop: true },
+                  { rotulo: 'Valor', largura: '8rem', alinhar: 'direita' },
+                  { rotulo: '', largura: '7rem', alinhar: 'direita' },
+                ]}
+                itens={emissao.pendentes}
+                chave={(p) => p.parcelaId}
+                alerta={(p) => p.atrasada}
+                celulas={(p) => [
+                  <Titulo key="t" nome={nomeDeExibicao(p.cliente)} apoio={p.contrato} />,
+                  <span key="v" className={`text-xs ${p.atrasada ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-ink-soft'}`}>
+                    {p.vencimento.split('-').reverse().join('/')}
+                  </span>,
+                  <Valor key="r">{BRL.format(p.valor)}</Valor>,
+                  <BotaoDiscreto
+                    key="b"
+                    onClick={() =>
+                      emitir({
+                        parcelaId: p.parcelaId,
+                        documento: p.documento ?? '',
+                        nome: p.cliente,
+                        email: p.email ?? '',
+                        valor: p.valor,
+                        descricao: p.descricao,
+                        customerId: emissao.customers.find((c) => (c.document ?? '').replace(/\D/g, '') === (p.documento ?? '').replace(/\D/g, ''))?.id,
+                      })
+                    }
+                  >
+                    Emitir
+                  </BotaoDiscreto>,
+                ]}
+                vazio="Nenhuma parcela de contrato esperando nota."
+              />
+            </section>
+          ) : (
+          <>
 
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -296,6 +359,8 @@ export function NotasClient({
                 Cadastro fiscal
               </Link>
             </p>
+          )}
+          </>
           )}
         </>
       )}

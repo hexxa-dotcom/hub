@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { makeServiceInvoiceService, makeServiceInvoiceServiceReadOnly, serviceInvoiceRepository, resolveNfsePort } from '@/lib/server/container';
 import { getTenantContext } from '@/lib/server/tenant';
-import { getNfseConfig, estimateInvoiceTaxRate, listServiceProfiles } from '@/lib/server/fiscal';
-import { sendNfseEmailToCustomer } from '@/lib/server/nfse-email';
+import { emitirNota } from '@/lib/server/emissao';
+import { agendar } from '@/lib/server/emissao-agendada';
+import { getDb, sql } from '@hexxa/db';
+import { consultarCnpj } from '@/lib/server/cnpj';
 
 export type EmitState = {
   ok: boolean;
@@ -16,141 +18,82 @@ export type EmitState = {
   netAmount?: number;
   invoiceId?: string;
   providerProtocol?: string;
+  /** Precisa de um "sim" antes de emitir (nota igual no mesmo mês). */
+  precisaConfirmar?: 'DUPLICADA';
+  /** Link do WhatsApp com a mensagem da nota, pronto para enviar. */
+  whatsappLink?: string;
 };
 
 export async function emitNfseAction(_prev: EmitState, formData: FormData): Promise<EmitState> {
   try {
-    const rawAmount = String(formData.get('amount') ?? '0');
-    const input = {
-      customer: {
-        name: String(formData.get('customerName') ?? '').trim(),
-        document: String(formData.get('customerDocument') ?? '').replace(/\D/g, ''),
-        email: String(formData.get('customerEmail') ?? '').trim() || undefined,
-        address: formData.get('cMun') ? {
-          cep: String(formData.get('cep') ?? '').replace(/\D/g, ''),
-          cMun: String(formData.get('cMun') ?? '').replace(/\D/g, ''),
-          logradouro: String(formData.get('logradouro') ?? '').trim(),
-          numero: String(formData.get('numero') ?? '').trim(),
-          complemento: String(formData.get('complemento') ?? '').trim() || undefined,
-          bairro: String(formData.get('bairro') ?? '').trim(),
-        } : undefined,
-      },
-      amount: parseFloat(rawAmount.replace(',', '.')) || 0,
-      serviceDescription: (() => {
-        const desc = String(formData.get('serviceDescription') ?? '').trim();
-        const info = String(formData.get('additionalInfo') ?? '').trim();
-        return info ? `${desc}\n\nInformações Adicionais:\n${info}` : desc;
-      })(),
-      referenceMonth: String(formData.get('competenciaDate') ?? '').slice(0, 7),
-      competenciaDate: String(formData.get('competenciaDate') ?? ''),
-      retainIss: formData.get('retainIss') === 'on',
-      serviceOverride: undefined as any,
-      /** Preenchido abaixo, com o perfil escolhido — ver o envio ao OneFlow. */
-      nfseServiceProfileId: undefined as string | undefined,
-    };
-
-    const profileId = String(formData.get('profileId') ?? '');
     const ctx = await getTenantContext();
-    const profiles = await listServiceProfiles(ctx);
+    const txt = (k: string) => String(formData.get(k) ?? '').trim();
+    const desc = txt('serviceDescription');
+    const info = txt('additionalInfo');
+    const cMun = txt('cMun').replace(/\D/g, '');
+    // Um caminho só para toda emissão — ver `emitirNota` (travas, CNPJ, e-mail).
+    const valor = parseFloat(txt('amount').replace(',', '.')) || 0;
+    const descricao = info ? `${desc}\n\nInformações Adicionais:\n${info}` : desc;
+    const r = await emitirNota(ctx, {
+      customerId: txt('customerId') || undefined,
+      cliente: {
+        nome: txt('customerName'),
+        documento: txt('customerDocument'),
+        email: txt('customerEmail') || undefined,
+        endereco: cMun
+          ? {
+              cep: txt('cep').replace(/\D/g, ''),
+              cMun,
+              logradouro: txt('logradouro'),
+              numero: txt('numero'),
+              complemento: txt('complemento') || undefined,
+              bairro: txt('bairro'),
+              municipio: txt('municipio'),
+              uf: txt('uf'),
+            }
+          : undefined,
+      },
+      valor,
+      descricao,
+      perfilId: txt('profileId') || undefined,
+      competencia: txt('competenciaDate') || undefined,
+      reterIss: formData.get('retainIss') === 'on',
+      confirmarDuplicada: formData.get('confirmarDuplicada') === '1',
+      parcelaId: txt('parcelaId') || undefined,
+      emails: txt('emails').split(/[,;\s]+/).filter((e) => e.includes('@')),
+      whatsapp: txt('whatsapp') || undefined,
+    });
 
-    let selectedProfile = profiles.find(p => p.id === profileId);
-
-    if (!selectedProfile) {
-      if (profiles.length === 1) {
-        selectedProfile = profiles[0];
-      } else if (profiles.length > 1) {
-        return { ok: false, message: 'Selecione um Perfil Fiscal de Serviço.' };
-      } else {
-        return { ok: false, message: 'Cadastre pelo menos um Perfil Fiscal nas configurações.' };
+    // "Depois desta": deixar a próxima já agendada, para o mesmo cliente.
+    const depois = txt('depois');
+    if (r.ok && r.invoiceId && (depois === 'mensal' || depois === 'data')) {
+      const [nota] = (await getDb().execute(sql`
+        SELECT customer_id::text AS id FROM service_invoice WHERE id = ${r.invoiceId} AND company_id = ${ctx.companyId}
+      `)) as unknown as { id: string | null }[];
+      const data = txt('depoisData');
+      if (nota?.id && data) {
+        const a = await agendar(ctx.companyId, {
+          customerId: nota.id,
+          perfilId: txt('profileId') || undefined,
+          descricao,
+          valor,
+          data,
+          repetir: depois === 'mensal',
+        });
+        return { ...r, message: `${r.message} ${a.ok ? a.mensagem : `Não agendei a próxima: ${a.mensagem}`}` };
       }
     }
-
-    const cfg = await getNfseConfig(ctx);
-    if (!cfg) return { ok: false, message: 'Cadastro fiscal incompleto.' };
-
-    const profile = selectedProfile!;
-    input.serviceOverride = {
-      itemListaServico: profile.itemListaServico,
-      codigoTributacaoMunicipio: profile.codigoTributacaoMunicipio ?? undefined,
-      aliquotaIss: profile.aliquotaIss ?? undefined,
-      cnae: profile.cnae ?? undefined,
-    };
-    // Guarda QUAL perfil emitiu — é daqui que sai o código LC 116 exigido
-    // pelo módulo fiscal do OneFlow para apurar e gerar a guia do DAS.
-    input.nfseServiceProfileId = profile.id;
-
-    // --- CÁLCULO DE IMPOSTO (Integração Financeira) ---
-    const taxRate = await estimateInvoiceTaxRate(ctx, cfg, profile.aliquotaIss);
-    const estimatedTaxAmount = (input.amount * taxRate) / 100;
-
-    (input as any).estimatedTaxAmount = estimatedTaxAmount;
-    (input as any).estimatedTaxRate = taxRate;
-
-    if (!input.customer.name) return { ok: false, message: 'Informe o nome do tomador.' };
-    if (input.customer.document.length < 11) return { ok: false, message: 'CPF ou CNPJ inválido.' };
-    if (!input.amount || input.amount <= 0) return { ok: false, message: 'Informe um valor válido.' };
-    if (!input.serviceDescription) return { ok: false, message: 'Descreva o serviço prestado.' };
-    if (!input.referenceMonth) return { ok: false, message: 'Informe o mês de referência.' };
-    const service = await makeServiceInvoiceService(ctx);
-    const result = await service.emit(ctx, input);
-
-    revalidatePath('/meu-negocio/notas');
-    revalidatePath('/cliente');
-
-    if (result.status === 'ERROR') {
-      console.error('[emitNfseAction] Emissor Nacional rejeitou a DPS:', result.errorMessage);
-      return {
-        ok: false,
-        message: result.errorMessage
-          ? `Emissor Nacional rejeitou a nota: ${result.errorMessage}`
-          : 'Erro na emissão junto ao Emissor Nacional. Verifique o cadastro fiscal.',
-      };
-    }
-
-    if (result.status === 'ISSUING') {
-      return {
-        ok: true,
-        status: 'ISSUING',
-        message: 'Nota enviada ao Emissor Nacional e aguardando processamento. Acompanhe o status na lista abaixo.',
-        taxAmount: estimatedTaxAmount,
-        taxRate,
-        netAmount: input.amount - estimatedTaxAmount,
-        invoiceId: result.invoiceId,
-        providerProtocol: result.providerProtocol,
-      };
-    }
-
-    // Envio automático ao tomador por e-mail (best-effort — a nota já foi
-    // emitida e persistida; falha aqui nunca deve virar erro pro usuário,
-    // só deixar de mandar o e-mail. Exige conta SMTP conectada em
-    // Configurações > Integrações e nunca roda em nota mock.
-    let emailSent = false;
-    if (!result.isMock && result.status === 'ISSUED') {
-      try {
-        const emailResult = await sendNfseEmailToCustomer(ctx, result.invoiceId);
-        emailSent = emailResult.sent;
-      } catch (err) {
-        console.error('[emitNfseAction] falha ao enviar NFSe por e-mail:', err);
-      }
-    }
-
-    return {
-      ok: true,
-      status: 'ISSUED',
-      nfseNumber: result.nfseNumber,
-      taxAmount: estimatedTaxAmount,
-      taxRate,
-      netAmount: input.amount - estimatedTaxAmount,
-      invoiceId: result.invoiceId,
-      providerProtocol: result.providerProtocol,
-      message: result.isMock
-        ? `[MODO TESTE] NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} salva, mas NÃO foi enviada ao governo — configure o certificado A1 para emissão real.`
-        : `NFSe${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada com sucesso!${emailSent ? ' E-mail enviado ao tomador.' : ''}`,
-    };
+    return r;
   } catch (err) {
     console.error('ERROR in emitNfseAction:', err);
-    return { ok: false, message: err instanceof Error ? err.message : 'Falha inesperada ao emitir a NFSe.' };
+    return { ok: false, message: err instanceof Error ? err.message : 'Falha inesperada ao emitir a nota.' };
   }
+}
+
+/** Dados públicos do CNPJ para completar o cliente no formulário. */
+export async function consultarCnpjAction(cnpj: string) {
+  await getTenantContext();
+  return consultarCnpj(cnpj);
 }
 
 export async function cancelNfseAction(id: string, protocol: string): Promise<{ ok: boolean; message: string }> {

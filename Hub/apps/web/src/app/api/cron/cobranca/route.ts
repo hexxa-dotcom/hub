@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb, withDbTimeout } from '@hexxa/db';
 import { contract, financialEntry, customer, company, serviceInvoice } from '@hexxa/db/schema';
 import { eq, and, lte, lt, isNull } from 'drizzle-orm';
-import { makeServiceInvoiceService } from '@/lib/server/container';
+import { emitirNota } from '@/lib/server/emissao';
 import type { TenantContext } from '@hexxa/core';
 
 export const dynamic = 'force-dynamic';
@@ -103,21 +103,23 @@ export async function GET(request: Request) {
               companyType: row.companyType as TenantContext['companyType'],
               userId: 'cron',
             };
-            const service = await makeServiceInvoiceService(ctx);
-            const result = await service.emit(ctx, {
-              customer: {
-                name: row.customerName,
-                document: row.customerDocument ?? '',
-                email: row.customerEmail ?? undefined,
-              },
+            // O mesmo caminho de toda emissão: perfil fiscal (o código LC 116
+            // que o OneFlow usa na apuração), imposto estimado, endereço pelo
+            // CNPJ e e-mail ao cliente. Antes a nota do contrato saía sem perfil.
+            const r = await emitirNota(ctx, {
+              customerId: c.customerId,
               contractId: c.id,
-              amount: Number(c.value),
-              serviceDescription: c.serviceDescription || c.title,
-              referenceMonth: c.nextBillingDate.slice(0, 7),
-              dueDate: c.nextBillingDate,
+              valor: Number(c.value),
+              descricao: c.serviceDescription || c.title,
+              competencia: c.nextBillingDate,
+              vencimento: c.nextBillingDate,
+              // A idempotência do contrato já é conferida acima.
+              confirmarDuplicada: true,
             });
+            const result = { status: r.ok ? 'ISSUED' : 'ERROR', message: r.message };
+            if (!r.ok) console.error(`[cobranca] contrato ${c.id}:`, r.message);
             if (result.status !== 'ERROR') nfseEmitted++;
-            else errors.push(`Contrato ${c.id} (NFSe automática): emissão retornou ERROR.`);
+            else errors.push(`Contrato ${c.id} (NFSe automática): ${result.message}`);
           }
         } else {
           // Idempotência: não gera de novo se já existe lançamento deste

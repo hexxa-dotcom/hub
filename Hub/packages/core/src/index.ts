@@ -8,3 +8,4 @@ export * from './agent/index';
 export * from './banking/index';
 export * from './honorarios';
 export * from './honorarios-adicionais';
+export * from './fiscal/ibscbs';

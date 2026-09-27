@@ -145,3 +145,28 @@ export async function processPGDAS(companyId: string, formData: FormData) {
     return { success: false, error: err.message || 'Erro ao processar PDF' };
   }
 }
+
+// ── Enquadramento no Simples (anexo e Fator R) ─────────────────────────────
+
+/** O contador marca o anexo e a sujeição ao Fator R — vale até haver apuração do OneFlow. */
+export async function salvarEnquadramentoAction(
+  companyId: string,
+  anexo: 'III' | 'IV' | 'V' | '',
+  fatorR: 'SUJEITO' | 'NAO_SUJEITO' | '',
+): Promise<{ ok: boolean; mensagem: string }> {
+  await requireAdmin();
+  const { sql } = await import('@hexxa/db');
+  // Anexo IV nunca depende do Fator R; o V só existe por causa dele.
+  const fr = anexo === 'IV' ? 'NAO_SUJEITO' : anexo === 'V' ? 'SUJEITO' : fatorR || null;
+  await getDb().execute(sql`
+    UPDATE company SET simples_anexo = ${anexo || null}, simples_fator_r = ${fr} WHERE id = ${companyId}
+  `);
+  revalidatePath(`/contador/clientes/${companyId}/fiscal`);
+  return { ok: true, mensagem: anexo ? 'Enquadramento salvo. A Bússola do cliente passa a usar este anexo.' : 'Marcação removida.' };
+}
+
+export async function sugerirEnquadramentoAction(companyId: string) {
+  await requireAdmin();
+  const { sugerirEnquadramento } = await import('@/lib/server/enquadramento');
+  return sugerirEnquadramento(companyId);
+}

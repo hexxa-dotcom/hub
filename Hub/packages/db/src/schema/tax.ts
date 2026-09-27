@@ -22,6 +22,10 @@ export const taxHistory = pgTable('tax_history', {
   fatorR: numeric('fator_r', { precision: 6, scale: 4 }),
   /** Deduzido do anexo apurado + fator. Nulo = não se sabe. */
   fatorRSujeito: boolean('fator_r_sujeito'),
+  /** Folha dos 12 meses que o OneFlow usou no Fator R (série somada). */
+  folha12: numeric('folha_12', { precision: 14, scale: 2 }),
+  /** Receita dos 12 meses da mesma série. */
+  receita12: numeric('receita_12', { precision: 14, scale: 2 }),
   pdfUrl: varchar('pdf_url', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

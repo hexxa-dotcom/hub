@@ -29,6 +29,14 @@ function buildNfsePort(cfg: NfseConfig | null, cert: CertMaterial | null, dpsNum
         optanteSimples: cfg.optanteSimples,
         regimeEspecial: cfg.regimeEspecial,
         regimeApuracao: cfg.regimeApuracao,
+        // Reforma: o grupo IBS/CBS no esquema RTC v1.01 — o único que a
+        // Produção Restrita aceitou em 27/09/2026 (o leiaute NT009 foi recusado
+        // no esquema, E1235). Liga sozinho em 2027, quando passa a ser
+        // obrigatório para o Simples; o cadastro fiscal pode ligar antes.
+        leiauteIbsCbs:
+          cfg.leiauteIbsCbs ??
+          (new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) >= '2027-01-01' ? 'V101' : undefined),
+        regApIBSCBSSN: cfg.regApIbsCbsSn ?? (cfg.optanteSimples ? '1' : undefined),
         fone: cfg.telefone ?? undefined,
         email: cfg.emailContato ?? undefined,
       },

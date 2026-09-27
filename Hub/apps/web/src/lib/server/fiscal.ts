@@ -38,13 +38,19 @@ export interface NfseConfig {
   certPassword?: string | null;
   /** Cursor (NSU) da última sincronização com a Distribuição de DF-e do ADN. */
   ultNsuDistribuicao: number;
+  /** Grupo IBS/CBS na DPS: desligado (null), 'V101' ou 'NT009' — ver 0083. */
+  leiauteIbsCbs: 'V101' | 'NT009' | null;
+  /** Simples: como o IBS e a CBS são apurados (1 = pelo SN). */
+  regApIbsCbsSn: '1' | '2' | '3' | null;
 }
 
 /** cache() deduplica por request — evita reconsultar quando chamada de novo por getCertForTenant/isCertConfiguredForTenant na mesma requisição. */
 export const getNfseConfig = cache(async function getNfseConfig(ctx: TenantContext): Promise<NfseConfig | null> {
   return withTenant(ctx.companyId, async (tx) => {
     const res = await tx.execute(sql`
-      SELECT * FROM nfse_config WHERE company_id = ${ctx.companyId} LIMIT 1
+      SELECT n.*, c.tax_regime AS regime_da_empresa
+        FROM nfse_config n JOIN company c ON c.id = n.company_id
+       WHERE n.company_id = ${ctx.companyId} LIMIT 1
     `);
     if (res.length === 0) return null;
     const r = res[0]!;
@@ -55,7 +61,9 @@ export const getNfseConfig = cache(async function getNfseConfig(ctx: TenantConte
       nomeFantasia: (r.nome_fantasia as string) ?? null,
       inscricaoMunicipal: (r.inscricao_municipal as string) ?? null,
       codigoMunicipio: (r.codigo_municipio as string) ?? null,
-      optanteSimples: Boolean(r.optante_simples),
+      // O regime da empresa manda: uma ME do Simples com o cadastro fiscal sem
+      // a marca de optante saía na nota como "não optante" (opSimpNac 1).
+      optanteSimples: Boolean(r.optante_simples) || r.regime_da_empresa === 'SIMPLES_NACIONAL',
       regimeEspecial: (r.regime_especial as string) ?? undefined,
       regimeApuracao: (r.regime_apuracao as string) ?? undefined,
       emitirExterior: Boolean(r.emitir_exterior),
@@ -76,6 +84,8 @@ export const getNfseConfig = cache(async function getNfseConfig(ctx: TenantConte
       certPfxB64: decryptSecret(r.cert_pfx_b64 as string | null),
       certPassword: decryptSecret(r.cert_password as string | null),
       ultNsuDistribuicao: Number(r.ult_nsu_distribuicao ?? 0),
+      leiauteIbsCbs: (r.leiaute_ibs_cbs as 'V101' | 'NT009' | null) ?? null,
+      regApIbsCbsSn: (r.reg_ap_ibscbs_sn as '1' | '2' | '3' | null) ?? null,
     };
   });
 });
@@ -219,12 +229,19 @@ export interface NfseServiceProfile {
   cnae: string | null;
   aliquotaIss: number | null;
   defaultDescription: string | null;
+  /** Classificação tributária do serviço no IBS/CBS (LC 214/2025) — 6 dígitos. */
+  cClassTrib?: string | null;
+  /** CST do IBS/CBS — 3 dígitos. */
+  cstIbsCbs?: string | null;
+  /** NBS do serviço (quando o item da LC 116 tem mais de uma na tabela oficial). */
+  cNbs?: string | null;
 }
 
 export async function listServiceProfiles(ctx: TenantContext): Promise<NfseServiceProfile[]> {
   return withTenant(ctx.companyId, async (tx) => {
     const res = await tx.execute(sql`
-      SELECT id, company_id, nome, item_lista_servico, codigo_tributacao_municipio, cnae, aliquota_iss, default_description
+      SELECT id, company_id, nome, item_lista_servico, codigo_tributacao_municipio, cnae, aliquota_iss, default_description,
+             c_class_trib, cst_ibs_cbs, c_nbs
       FROM nfse_service_profile
       ORDER BY nome
     `);
@@ -237,6 +254,9 @@ export async function listServiceProfiles(ctx: TenantContext): Promise<NfseServi
       cnae: r.cnae as string | null,
       aliquotaIss: r.aliquota_iss != null ? Number(r.aliquota_iss) : null,
       defaultDescription: r.default_description as string | null,
+      cClassTrib: r.c_class_trib as string | null,
+      cstIbsCbs: r.cst_ibs_cbs as string | null,
+      cNbs: r.c_nbs as string | null,
     }));
   });
 }
@@ -245,7 +265,8 @@ export async function createServiceProfile(ctx: TenantContext, input: Omit<NfseS
   await withTenant(ctx.companyId, async (tx) => {
     await tx.execute(sql`
       INSERT INTO nfse_service_profile (
-        company_id, nome, item_lista_servico, codigo_tributacao_municipio, cnae, aliquota_iss, default_description
+        company_id, nome, item_lista_servico, codigo_tributacao_municipio, cnae, aliquota_iss, default_description,
+        c_class_trib, cst_ibs_cbs
       ) VALUES (
         ${ctx.companyId},
         ${input.nome},
@@ -253,7 +274,9 @@ export async function createServiceProfile(ctx: TenantContext, input: Omit<NfseS
         ${input.codigoTributacaoMunicipio || null},
         ${input.cnae || null},
         ${input.aliquotaIss || null},
-        ${input.defaultDescription || null}
+        ${input.defaultDescription || null},
+        ${input.cClassTrib || null},
+        ${input.cstIbsCbs || null}
       )
     `);
   });
@@ -268,7 +291,9 @@ export async function updateServiceProfile(ctx: TenantContext, id: string, input
         codigo_tributacao_municipio = ${input.codigoTributacaoMunicipio || null},
         cnae = ${input.cnae || null},
         aliquota_iss = ${input.aliquotaIss || null},
-        default_description = ${input.defaultDescription || null}
+        default_description = ${input.defaultDescription || null},
+        c_class_trib = ${input.cClassTrib || null},
+        cst_ibs_cbs = ${input.cstIbsCbs || null}
       WHERE id = ${id} AND company_id = ${ctx.companyId}
     `);
   });
@@ -317,24 +342,33 @@ export async function getSimplesInputs(
   prolabore12: number;
   /** 'APURADO' = RBT12 da última apuração do OneFlow; 'HUB' = soma das notas emitidas daqui. */
   rbt12Fonte: 'APURADO' | 'HUB';
+  /** A empresa tem menos de 12 meses e o RBT12 foi proporcionalizado (média × 12). */
+  rbt12Proporcional: boolean;
+  /** 'ONEFLOW' = folha real dos 12 meses (série do Fator R); 'ESTIMADA' = salário de hoje × 12. */
+  folhaFonte: 'ONEFLOW' | 'ESTIMADA';
 }> {
+  const { rbt12Proporcional } = await import('@hexxa/core');
   return withTenant(ctx.companyId, async (tx) => {
     // As queries não dependem uma da outra — rodam em paralelo na mesma
     // transação (postgres.js pipeline com segurança dentro de sql.begin).
-    const [rbtRes, folhaRes, prolaboreRes, apuradoRes] = await Promise.all([
+    const [porMesRes, folhaRes, prolaboreRes, apuradoRes, oneflowFolhaRes, empresaRes] = await Promise.all([
+      /*
+       * Só o que tem NOTA: emitida pela Hexx (NFSE) ou trazida do Emissor
+       * Nacional (DFE_SYNC). Imposto se paga sobre nota emitida; boleto,
+       * entrada do extrato e recebível digitado não são faturamento
+       * tributável, e somá-los mudaria a faixa do Simples. Mês a mês, para
+       * proporcionalizar a empresa nova.
+       */
       tx.execute(sql`
-        -- Só o que tem NOTA: emitida pela Hexx (NFSE) ou trazida do Emissor
-        -- Nacional (DFE_SYNC). Imposto se paga sobre nota emitida; boleto,
-        -- entrada do extrato e recebível digitado não são faturamento
-        -- tributável, e somá-los mudaria a faixa do Simples.
-        SELECT coalesce(sum(amount), 0) AS total
+        SELECT to_char(reference_month, 'YYYY-MM') AS mes, coalesce(sum(amount), 0) AS total
         FROM financial_entry
         WHERE company_id = ${ctx.companyId}
           AND type = 'RECEIVABLE'
           AND status != 'CANCELED'
           AND source IN ('NFSE', 'DFE_SYNC')
           AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
-          AND reference_month < date_trunc('month', now())::date
+          AND reference_month <= date_trunc('month', now())::date
+        GROUP BY 1
       `),
       // Só CLT/Sócio entram na base do Fator R — contratado PJ não conta como folha.
       tx.execute(sql`
@@ -360,26 +394,62 @@ export async function getSimplesInputs(
       tx.execute(sql`
         SELECT rba12 FROM tax_history
          -- PGDAS é a apuração que a própria empresa transmitiu à Receita; o
-       -- OneFlow é a que o contábil calculou. As duas são oficiais, e
-       -- ignorar o PGDAS deixaria sem anexo apurado justamente o cliente
-       -- que subiu o extrato no primeiro acesso.
-       WHERE company_id = ${ctx.companyId} AND source IN ('ONEFLOW', 'PGDAS')
+         -- OneFlow é a que o contábil calculou. As duas são oficiais.
+         WHERE company_id = ${ctx.companyId} AND source IN ('ONEFLOW', 'PGDAS')
          ORDER BY reference_month DESC LIMIT 1
       `),
+      /**
+       * A folha OFICIAL dos 12 meses — a série que o OneFlow usou no Fator R,
+       * com o que a lei manda contar (salário, pró-labore, 13º, FGTS). A
+       * estimativa daqui (salário de hoje × 12) só vale enquanto ela não existe.
+       */
+      tx.execute(sql`
+        SELECT folha_12 FROM tax_history
+         WHERE company_id = ${ctx.companyId} AND source = 'ONEFLOW' AND folha_12 IS NOT NULL
+         ORDER BY reference_month DESC LIMIT 1
+      `),
+      tx.execute(sql`SELECT to_char(founded_at, 'YYYY-MM') AS inicio FROM company WHERE id = ${ctx.companyId}`),
     ]);
     const folhaEmpregadosMensal = Number(folhaRes[0]?.total ?? 0);
     const prolaboreMensal = Number(prolaboreRes[0]?.total ?? 0);
     const apurado = apuradoRes[0] ? Number(apuradoRes[0].rba12) : null;
     const usaApurado = apurado !== null && Number.isFinite(apurado) && apurado > 0;
+    const folhaOneflow = oneflowFolhaRes[0] ? Number(oneflowFolhaRes[0].folha_12) : null;
+
+    // RBT12 daqui: os 12 meses anteriores ao atual — proporcionalizado se a
+    // empresa tem menos de 12 meses de atividade.
+    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+    const porMes = new Map((porMesRes as unknown as { mes: string; total: string }[]).map((r) => [r.mes, Number(r.total)]));
+    const inicio = (empresaRes[0] as { inicio: string | null } | undefined)?.inicio ?? null;
+    const mesesAntes = inicio
+      ? Math.max(0, (Number(hoje.slice(0, 4)) - Number(inicio.slice(0, 4))) * 12 + Number(hoje.slice(5, 7)) - Number(inicio.slice(5, 7)))
+      : 12;
+    let somaAnteriores = 0;
+    for (const [mes, v] of porMes) if (mes < hoje) somaAnteriores += v;
+    const proporcional = mesesAntes < 12;
+    const rbt12Hub = rbt12Proporcional(somaAnteriores, Math.min(mesesAntes, 12), porMes.get(hoje) ?? 0);
+
     return {
-      rbt12: usaApurado ? apurado! : Number(rbtRes[0]?.total ?? 0),
+      rbt12: usaApurado ? apurado! : rbt12Hub,
       rbt12Fonte: usaApurado ? 'APURADO' : 'HUB',
-      folha12: (folhaEmpregadosMensal + prolaboreMensal) * 12,
+      rbt12Proporcional: !usaApurado && proporcional,
+      folha12: folhaOneflow ?? (folhaEmpregadosMensal + prolaboreMensal) * 12,
+      folhaFonte: folhaOneflow !== null ? 'ONEFLOW' : 'ESTIMADA',
       folhaEmpregados12: folhaEmpregadosMensal * 12,
       prolabore12: prolaboreMensal * 12,
     };
   });
 }
+
+/** As faixas do Simples do banco (`tax_annex_bracket`) — a tabela que o contador edita. */
+const tabelaDoSimples = cache(async function tabelaDoSimples() {
+  const linhas = (await getDb().execute(sql`
+    SELECT annex, bracket, max_revenue::float AS "maxRevenue", nominal_rate::float AS "nominalRate", deduction_amount::float AS "deductionAmount"
+      FROM tax_annex_bracket
+     WHERE valid_from <= now()::date AND (valid_until IS NULL OR valid_until >= now()::date)
+  `)) as unknown as { annex: string; bracket: number; maxRevenue: number; nominalRate: number; deductionAmount: number }[];
+  return linhas;
+});
 
 /**
  * Salário mínimo nacional vigente (setting_code='MINIMUM_WAGE' em
@@ -412,7 +482,12 @@ export async function estimateInvoiceTaxRate(
   cfg: NfseConfig,
   profileAliquota?: number | null,
 ): Promise<number> {
-  if (cfg.optanteSimples) {
+  // O regime da empresa manda: um cadastro fiscal sem a marca de optante não
+  // pode zerar o imposto estimado de quem é do Simples.
+  const [reg] = (await withTenant(ctx.companyId, (tx) =>
+    tx.execute(sql`SELECT tax_regime FROM company WHERE id = ${ctx.companyId}`),
+  )) as unknown as { tax_regime: string | null }[];
+  if (cfg.optanteSimples || reg?.tax_regime === 'SIMPLES_NACIONAL') {
     /**
      * A alíquota REAL da última apuração manda.
      *
@@ -425,9 +500,7 @@ export async function estimateInvoiceTaxRate(
     const real = await ultimaAliquotaApurada(ctx);
     if (real !== null) return real;
 
-    const { rbt12, folha12 } = await getSimplesInputs(ctx);
-    const { TaxThermometerService } = await import('@hexxa/core');
-    const simples = new TaxThermometerService().simplesPosition({ rbt12, payroll12: folha12 });
+    const simples = await posicaoSimples(ctx, await getSimplesInputs(ctx));
     /**
      * EFETIVA, não nominal.
      *
@@ -437,7 +510,9 @@ export async function estimateInvoiceTaxRate(
      * R$ 500 mil no Anexo III, a nominal é 13,5% e a efetiva 9,97% — o
      * cliente veria um imposto 35% maior que o real em toda nota emitida.
      */
-    return simples.effectiveRate;
+    // Sem faturamento nos 12 meses (empresa nova), a efetiva dá zero — quem
+    // começa paga a alíquota da faixa 1, como a Bússola já mostra.
+    return simples.effectiveRate > 0 ? simples.effectiveRate : simples.nominalRate;
   }
   return profileAliquota ?? cfg.aliquotaIss ?? 0;
 }
@@ -563,15 +638,22 @@ export async function enquadramentoApurado(ctx: TenantContext): Promise<Enquadra
  * conta interna — são projeção, não fato, e a apuração não as devolve.
  */
 export type PosicaoSimples = Omit<import('@hexxa/core').SimplesPosition, 'anexo'> & {
-  /** 'I' a 'V'. A conta interna só conhece III e V; a apuração conhece todos. */
+  /** 'I' a 'V'. A conta interna conhece III, IV e V; a apuração conhece todos. */
   anexo: string;
   fonte: 'APURADO' | 'ESTIMADO';
   /** Mês da apuração usada, 'AAAA-MM'. */
   mesApurado: string | null;
   /**
-   * Faixa, alíquota nominal e projeção de próxima faixa estão na tabela
-   * certa? Falso para os anexos I, II e IV, cujas tabelas a Hexx não tem —
-   * aí a tela esconde a projeção em vez de mostrar a do anexo errado.
+   * De onde veio o ANEXO: da apuração do OneFlow, da marcação do contador na
+   * ficha, ou deduzido pelo Fator R — este último é palpite, e a tela diz
+   * "a confirmar".
+   */
+  fonteAnexo: 'APURADO' | 'CONTADOR' | 'A_CONFIRMAR';
+  /** O que o contador marcou sobre o Fator R, se marcou. */
+  fatorRMarcado: 'SUJEITO' | 'NAO_SUJEITO' | null;
+  /**
+   * Faixa, alíquota nominal e projeção estão na tabela certa? Falso só para
+   * os anexos I e II (comércio e indústria), que a Hexx não atende.
    */
   projecaoConfiavel: boolean;
 };
@@ -581,35 +663,38 @@ export async function posicaoSimples(
   entradas: { rbt12: number; folha12: number },
 ): Promise<PosicaoSimples> {
   const { TaxThermometerService } = await import('@hexxa/core');
-  const calc = new TaxThermometerService().simplesPosition({
-    rbt12: entradas.rbt12,
-    payroll12: entradas.folha12,
-  });
-  const apurado = await enquadramentoApurado(ctx);
-  if (!apurado || !apurado.anexo) {
-    return { ...calc, fonte: 'ESTIMADO', mesApurado: null, projecaoConfiavel: true };
+  const svc = new TaxThermometerService();
+  const [apurado, tabela, marcado] = await Promise.all([
+    enquadramentoApurado(ctx),
+    tabelaDoSimples().catch(() => []),
+    withTenant(ctx.companyId, (tx) =>
+      tx.execute(sql`SELECT simples_anexo, simples_fator_r FROM company WHERE id = ${ctx.companyId}`),
+    ).then((r) => r[0] as { simples_anexo: string | null; simples_fator_r: string | null } | undefined).catch(() => undefined),
+  ]);
+  const deServico = (a: string | null | undefined): a is 'III' | 'IV' | 'V' => a === 'III' || a === 'IV' || a === 'V';
+  const fatorRMarcado = (marcado?.simples_fator_r as 'SUJEITO' | 'NAO_SUJEITO' | null) ?? null;
+
+  // O anexo, pela ordem do que é mais oficial: apuração → contador → Fator R (palpite).
+  const anexoApurado = apurado?.anexo || null;
+  const anexo = deServico(anexoApurado) ? anexoApurado : !anexoApurado && deServico(marcado?.simples_anexo) ? marcado!.simples_anexo : undefined;
+  const fonteAnexo: PosicaoSimples['fonteAnexo'] = anexoApurado ? 'APURADO' : anexo ? 'CONTADOR' : 'A_CONFIRMAR';
+  const calc = svc.simplesPosition({ rbt12: entradas.rbt12, payroll12: entradas.folha12, anexo: anexo as 'III' | 'IV' | 'V' | undefined, tabela });
+
+  if (!apurado || !anexoApurado) {
+    return { ...calc, fonte: 'ESTIMADO', mesApurado: null, fonteAnexo, fatorRMarcado, projecaoConfiavel: true };
   }
 
-  // Faixa e projeção na tabela do anexo APURADO. Deduzir pelo Fator R dava
-  // Anexo V, com as alíquotas do V, para quem o contábil apurou no III.
-  const tabelaConhecida = apurado.anexo === 'III' || apurado.anexo === 'V';
-  const naTabela = tabelaConhecida
-    ? new TaxThermometerService().simplesPosition({
-        rbt12: entradas.rbt12,
-        payroll12: entradas.folha12,
-        anexo: apurado.anexo as 'III' | 'V',
-      })
-    : calc;
-
   return {
-    ...naTabela,
-    projecaoConfiavel: tabelaConhecida,
-    anexo: apurado.anexo,
+    ...calc,
+    projecaoConfiavel: deServico(anexoApurado),
+    anexo: anexoApurado,
     effectiveRate: apurado.aliquotaEfetiva,
     fatorR: apurado.fatorR ?? calc.fatorR,
     // Com anexo apurado III ou V, "favorável" é o anexo — não a conta.
-    fatorRFavorable: ['III', 'V'].includes(apurado.anexo) ? apurado.anexo === 'III' : calc.fatorRFavorable,
+    fatorRFavorable: ['III', 'V'].includes(anexoApurado) ? anexoApurado === 'III' : calc.fatorRFavorable,
     fonte: 'APURADO',
+    fonteAnexo,
+    fatorRMarcado,
     mesApurado: apurado.mes,
   };
 }
@@ -634,8 +719,12 @@ export async function posicaoSimples(
 export function fatorRSeAplica(
   apurado: EnquadramentoApurado | null,
   fatorREstimado: number,
+  /** O que o contador marcou na ficha — vale quando a apuração não diz. */
+  marcado: 'SUJEITO' | 'NAO_SUJEITO' | null = null,
 ): { aplica: boolean; fora: 'OFICIAL' | 'ESTIMADO' | null } {
   if (apurado?.fatorRAplica === false) return { aplica: false, fora: 'OFICIAL' };
+  if (apurado?.fatorRAplica !== true && marcado === 'NAO_SUJEITO') return { aplica: false, fora: 'OFICIAL' };
+  if (apurado?.anexo === 'IV') return { aplica: false, fora: 'OFICIAL' };
   if (
     apurado?.anexo === 'III' &&
     apurado.fatorRAplica !== true &&

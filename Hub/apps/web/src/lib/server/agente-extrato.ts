@@ -284,9 +284,9 @@ export async function contextoDaEmpresa(companyId: string, contas: Conta[]): Pro
   ].join('\n');
 }
 
-export async function chamar<T>(motor: LlmConfig, system: string, user: string) {
+export async function chamar<T>(motor: LlmConfig, system: string, user: string, forma: 'array' | 'objeto' = 'array') {
   try {
-    const r = await callLlmJson<T>(motor, { system, user, maxTokens: 8000, temperature: 0 });
+    const r = await callLlmJson<T>(motor, { system, user, maxTokens: 8000, temperature: 0 }, forma);
     if (!r.dados) return { ok: false as const, erro: `Resposta do modelo sem JSON válido: ${r.texto.slice(0, 200)}`, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
     return { ok: true as const, dados: r.dados, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
   } catch (err) {

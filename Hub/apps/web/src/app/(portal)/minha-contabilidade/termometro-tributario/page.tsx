@@ -33,7 +33,7 @@ const TETO = 4_800_000;
 
 export default async function BussolaTributariaPage() {
   const ctx = await getTenantContext();
-  const [{ rbt12, folha12 }, minimumWage, apurado, meses, regime, guia] = await Promise.all([
+  const [{ rbt12, folha12, rbt12Proporcional, folhaFonte }, minimumWage, apurado, meses, regime, guia] = await Promise.all([
     getSimplesInputs(ctx),
     getCurrentMinimumWage(),
     enquadramentoApurado(ctx),
@@ -154,7 +154,7 @@ export default async function BussolaTributariaPage() {
   const impostoDoMes = (mesAtual.valor * aliquota) / 100;
   const mesApurado = apurado ? apurado.mes.split('-').reverse().join('/') : null;
 
-  const regraFatorR = fatorRSeAplica(apurado, simples.fatorR);
+  const regraFatorR = fatorRSeAplica(apurado, simples.fatorR, simples.fatorRMarcado);
   const favoravel = apurado && ['III', 'V'].includes(apurado.anexo) ? apurado.anexo === 'III' : simples.fatorRFavorable;
   const autopilot = new ProlaboreAutopilotService().calculateIdealProlabore({
     rbt12,
@@ -166,10 +166,12 @@ export default async function BussolaTributariaPage() {
   // o fim da faixa atual.
   const naFaixa = simples.faixaMax > simples.faixaMin ? Math.min(100, Math.max(0, ((rbt12 - simples.faixaMin) / (simples.faixaMax - simples.faixaMin)) * 100)) : 0;
   const anexo = apurado?.anexo || simples.anexo;
+  // Sem apuração nem marcação do contador, o anexo é deduzido pelo Fator R — é palpite, e a tela diz.
+  const anexoRotulo = simples.fonteAnexo === 'A_CONFIRMAR' ? `${anexo} (a confirmar pela contabilidade)` : anexo;
 
   return (
     <div className="w-full space-y-16 pb-20">
-      {hero(`Simples Nacional · Anexo ${anexo} · Faixa ${simples.faixa}`)}
+      {hero(`Simples Nacional · Anexo ${anexoRotulo} · Faixa ${simples.faixa}`)}
 
       <GradeDeResumo colunas={3}>
         {temNotas || !guia ? (
@@ -188,7 +190,15 @@ export default async function BussolaTributariaPage() {
           valor={pct(aliquota)}
           nota={apurado ? `apurada pela contabilidade em ${mesApurado}` : `estimativa · nominal da faixa ${pct(simples.nominalRate)}`}
         />
-        <CardResumo rotulo="Faturamento em 12 meses" valor={BRL0.format(rbt12)} nota="É ele que define a sua faixa (RBT12)" />
+        <CardResumo
+          rotulo="Faturamento em 12 meses"
+          valor={BRL0.format(rbt12)}
+          nota={
+            rbt12Proporcional
+              ? 'Empresa com menos de 12 meses: média mensal × 12, como a lei manda'
+              : 'É ele que define a sua faixa (RBT12)'
+          }
+        />
       </GradeDeResumo>
 
       {temNotas ? <GraficoFaturamento meses={meses} /> : semNotasAviso}
@@ -244,7 +254,8 @@ export default async function BussolaTributariaPage() {
               <p className="font-serif text-3xl font-bold tabular text-ink">
                 {rbt12 > 0 || apurado?.fatorR != null ? pct((apurado?.fatorR ?? simples.fatorR) * 100) : 'Sem faturamento ainda'}
               </p>
-              <p className="mt-1 text-xs text-ink-soft">folha e pró-labore ÷ faturamento em 12 meses{apurado?.fatorR != null ? ' · oficial' : ' · estimativa'}</p>
+              <p className="mt-1 text-xs text-ink-soft">folha e pró-labore ÷ faturamento em 12 meses
+                {apurado?.fatorR != null ? ' · oficial' : folhaFonte === 'ONEFLOW' ? ' · folha oficial do OneFlow' : ' · estimativa pela folha de hoje'}</p>
               <p className={`mt-4 text-sm font-semibold ${favoravel ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
                 {favoravel ? 'Acima de 28%: a empresa fica no Anexo III.' : 'Abaixo de 28%: a empresa cai no Anexo V, mais caro.'}
               </p>

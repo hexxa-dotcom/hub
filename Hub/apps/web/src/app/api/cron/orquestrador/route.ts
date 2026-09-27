@@ -67,7 +67,8 @@ const TURNOS: Record<string, Onda[]> = {
     [{ caminho: 'envio-oneflow' }],
   ],
   manha: [
-    [{ caminho: 'resultado-oneflow' }, { caminho: 'nibo-sync' }, { caminho: 'cobrancas-asaas' }],
+    // As notas agendadas saem de manhã, no horário comercial do cliente.
+    [{ caminho: 'resultado-oneflow' }, { caminho: 'nibo-sync' }, { caminho: 'cobrancas-asaas' }, { caminho: 'emissoes-agendadas' }],
     [{ caminho: 'classificacao' }, { caminho: 'nfse-status' }],
     [
       { caminho: 'retorno-oneflow' },

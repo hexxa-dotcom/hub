@@ -35,6 +35,10 @@ export const company = pgTable('company', {
    */
   closedAt: timestamp('closed_at', { withTimezone: true }),
   closedReason: text('closed_reason'),
+  /** Anexo do Simples marcado pelo contador — vale até haver apuração do OneFlow. */
+  simplesAnexo: text('simples_anexo'),
+  /** 'SUJEITO' | 'NAO_SUJEITO' ao Fator R, marcado pelo contador. */
+  simplesFatorR: text('simples_fator_r'),
   /** Quando a Hexx criou ou vinculou a empresa no OneFlow, na aprovação. Ver 0066. */
   /**
    * Faturamento dos últimos 12 meses declarado no primeiro acesso, e quando.
