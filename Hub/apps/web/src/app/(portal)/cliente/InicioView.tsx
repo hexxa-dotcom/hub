@@ -3,7 +3,8 @@ import { areasDaEmpresa, type Pendencia } from '@/lib/server/inicio';
 import { faturamentoMensal } from '@/lib/server/bussola';
 import { ArcoDividido, Medidor, BolhasDoMes, DonutFatias, EspiralDoAno, FunilCirculos, LinhaDoTempo } from '@/components/inicio/graficos';
 import { Cartao } from './Cartao';
-import { PendenciasDoDia } from './PendenciasDoDia';
+import { PendenciasDoDia, areasEmDia } from './PendenciasDoDia';
+import { CheckCircle2 } from 'lucide-react';
 
 /**
  * O RESUMO DA INÍCIO — o que pede você hoje e a empresa inteira em mosaico.
@@ -33,12 +34,13 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
 
   return (
     <div className="space-y-10">
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <p className="rotulo text-ink-soft">O que pede você hoje</p>
-          {pendencias.length > 0 && (
-            <p className="text-xs text-ink-soft">
-              {pendencias.filter((p) => p.tom === 'alerta').length} com prazo vencido · {pendencias.filter((p) => p.tom === 'atencao').length} para os próximos dias
+      <section id="pede-voce" className="scroll-mt-24 space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="rotulo text-ink-soft">O que pede você</p>
+          {pendencias.length > 0 && areasEmDia(pendencias).length > 0 && (
+            <p className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              Em dia: {areasEmDia(pendencias).join(', ')}
             </p>
           )}
         </div>

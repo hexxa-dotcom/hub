@@ -2,8 +2,7 @@ import { Suspense } from 'react';
 import { NumerosDoTopo } from './NumerosDoTopo';
 import { InicioView } from './InicioView';
 import { Saudacao } from './Saudacao';
-import { Relogio } from './Relogio';
-import { DetalhesData } from './resumo-mes/ResumoData';
+import { DetalhesView } from './DetalhesView';
 import { ViewSwitcher } from './ViewSwitcher';
 import { ClienteMonthSelector } from './ClienteMonthSelector';
 import { VIEWS, DEFAULT_VIEW, type ViewId } from './views';
@@ -20,7 +19,7 @@ function isViewId(v: string | undefined): v is ViewId {
 /**
  * INÍCIO — a tela de entrada, de propósito diferente das outras.
  *
- * A saudação de um lado e o dia, a hora e o tempo do outro; logo abaixo os
+ * A saudação de um lado e, do outro, só hoje, a temperatura e a data; logo abaixo os
  * números principais da empresa; e, descendo, o Resumo (o que pede você hoje
  * e cada área em mosaico) ou os Detalhes, pelo `?v=`.
  */
@@ -38,7 +37,6 @@ export default async function ClientePage({
   const activeMonthKey = paramMonth && /^\d{4}-\d{2}/.test(paramMonth) ? `${paramMonth.slice(0, 7)}-01` : currentMonthKey;
 
   const agora = new Date();
-  const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
   const diaDoMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
 
   const ctx = await getTenantContext();
@@ -57,21 +55,16 @@ export default async function ClientePage({
         <div>
           <Saudacao />
           <p className="entrada-subtitulo mt-1 text-xs text-ink-soft sm:text-sm">
-            {pendencias.length === 0
-              ? 'Tudo em dia na sua empresa hoje.'
-              : `${pendencias.length} ${pendencias.length === 1 ? 'coisa pede' : 'coisas pedem'} você hoje — estão no resumo, logo abaixo.`}
+            {/* A contagem mora no cartão "Pede você hoje", logo abaixo — aqui não se repete. */}
+            {pendencias.some((p) => p.tom === 'alerta') ? 'Tem coisa com prazo vencido — está logo abaixo.' : 'Aqui está a sua empresa hoje.'}
           </p>
         </div>
         <div className="entrada-subtitulo shrink-0 self-start sm:text-right">
+          {/* Só o essencial: hoje, a temperatura e a data. Cidade e condição ficam no título, ao passar o mouse. */}
           <p className="text-xs font-medium text-ink-soft sm:text-sm">
-            Hoje, {diaDaSemana} · <Relogio />
+            Hoje
             {clima && (
-              <>
-                {' · '}
-                <span title={`${clima.cidade}${clima.descricao ? `, ${clima.descricao}` : ''}`}>
-                  {clima.temperatura}° {clima.descricao ? clima.descricao : ''} em {clima.cidade}
-                </span>
-              </>
+              <span title={`${clima.cidade}${clima.descricao ? `, ${clima.descricao}` : ''}`}> · {clima.temperatura}°</span>
             )}
           </p>
           <p className="mt-0.5 text-2xl font-bold tracking-tight text-ink sm:text-3xl">{diaDoMes}</p>
@@ -79,7 +72,7 @@ export default async function ClientePage({
       </header>
 
       <Suspense key={`topo-${activeMonthKey}`} fallback={<div className="esqueleto h-80 rounded-[28px] bg-black/[0.05] dark:bg-white/[0.05]" />}>
-        <NumerosDoTopo mes={activeMonthKey.slice(0, 7)} />
+        <NumerosDoTopo mes={activeMonthKey.slice(0, 7)} pendencias={pendencias} />
       </Suspense>
 
       <div className="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
@@ -93,7 +86,7 @@ export default async function ClientePage({
         </Suspense>
       ) : (
         <Suspense key={`${active}-${activeMonthKey}`} fallback={<Esqueleto />}>
-          <DetalhesData selectedMonth={activeMonthKey} />
+          <DetalhesView mes={activeMonthKey.slice(0, 7)} />
         </Suspense>
       )}
     </div>

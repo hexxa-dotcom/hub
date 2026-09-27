@@ -24,9 +24,9 @@ const LEVEL: Record<Level, string> = {
 
 const TONE: Record<Tone, string> = {
   default:
-    'bg-white/60 dark:bg-[#151916]/60 backdrop-blur-xl border border-white/60 dark:border-white/10 ring-1 ring-inset ring-white/50 dark:ring-white/5 text-ink shadow-[0_8px_30px_rgba(0,0,0,0.04)]',
+    'bg-white/55 dark:bg-[#151916]/60 backdrop-blur-2xl border border-white/60 dark:border-white/10 ring-1 ring-inset ring-white/40 dark:ring-white/5 text-ink shadow-[0_8px_30px_rgba(0,0,0,0.04)]',
   deep:
-    'bg-white/75 dark:bg-[#151916]/75 backdrop-blur-xl border border-white/70 dark:border-white/15 ring-1 ring-inset ring-white/60 dark:ring-white/10 text-ink shadow-[0_12px_36px_rgba(0,0,0,0.06)]',
+    'bg-white/55 dark:bg-[#151916]/75 backdrop-blur-2xl border border-white/60 dark:border-white/15 ring-1 ring-inset ring-white/40 dark:ring-white/10 text-ink shadow-[0_12px_36px_rgba(0,0,0,0.06)]',
   forest:
     'bg-[#1E3328]/90 dark:bg-[#1E3328]/80 backdrop-blur-xl border border-emerald-500/30 text-white shadow-(--shadow-highlight)',
 };

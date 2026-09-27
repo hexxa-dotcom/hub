@@ -845,11 +845,10 @@ export function HubGuias({
       {mainTab === 'guias' && (
         <>
           {/*
-            O resumo do mês no padrão do Início: quatro cards pequenos, o
-            primeiro escuro com o número principal, e a seta no canto — que
-            aqui filtra a lista pelo que o card mostra. Sem pílulas: a linha de
-            baixo é texto. O último card troca a barra por um anel, que diz
-            num relance quanto do mês já foi pago.
+            O resumo do mês em três cards (o máximo do sistema): o primeiro
+            escuro com o número principal; clicar num card filtra a lista pelo
+            que ele mostra. O de pago leva o anel de quanto do mês já foi
+            quitado.
           */}
           {(() => {
             // honAbertos já inclui os honorários vencidos.
@@ -866,7 +865,7 @@ export function HubGuias({
             const R = 22;
             const C = 2 * Math.PI * R;
             return (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="entrada-grade grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <button type="button" onClick={() => filtrar('OPEN')} title="Ver o que está a pagar" className="group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-emerald-500/20 text-left transition-transform hover:scale-[1.01] bg-[#0A0D0B]/85 p-5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-xl sm:p-6 dark:bg-[#0A0D0B]/75">
                   <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4FF00]/15 blur-2xl" />
                   <div className="relative z-10 flex items-start justify-between gap-2">
@@ -898,43 +897,40 @@ export function HubGuias({
                 </Card>
                 </button>
 
+                {/* Pago no mês e "mês quitado" num card só: o valor pago à esquerda,
+                    o anel de quanto do mês já foi quitado à direita. */}
                 <button type="button" onClick={() => filtrar('PAID')} className="block h-full text-left">
                 <Card level={1} interactive className="flex h-full flex-col justify-between p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="rotulo text-ink-soft">Pago no mês</p>
                       <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{BRL.format(totalPago)}</p>
+                    </div>
+                    <div className="relative h-14 w-14 shrink-0" title={`${pctPago}% do mês quitado`}>
+                      <svg viewBox="0 0 56 56" className="h-14 w-14 -rotate-90" aria-hidden>
+                        <circle cx="28" cy="28" r={R} fill="none" strokeWidth="6" className="stroke-black/5 dark:stroke-white/10" />
+                        <circle
+                          cx="28"
+                          cy="28"
+                          r={R}
+                          fill="none"
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeDasharray={C}
+                          strokeDashoffset={C * (1 - pctPago / 100)}
+                          className="stroke-hexxa-forest transition-[stroke-dashoffset] duration-700 ease-out dark:stroke-hexxa-lime"
+                        />
+                      </svg>
+                      <span className="absolute inset-0 grid place-items-center text-[11px] font-bold tabular text-ink">{pctPago}%</span>
                     </div>
                   </div>
                   <p className="mt-5 text-xs text-ink-soft">
                     {qtdPago === 0 ? 'Nenhum pagamento ainda' : plural(qtdPago, 'pagamento', 'pagamentos')}
+                    {' · '}
+                    {totalDoMes === 0 ? 'sem valores no mês' : totalAberto > 0 ? `faltam ${BRL.format(totalAberto)} para quitar` : 'mês quitado'}
                   </p>
                 </Card>
                 </button>
-
-                <Card level={1} className="flex items-center gap-4 p-5 sm:p-6">
-                  <svg viewBox="0 0 56 56" className="h-16 w-16 shrink-0 -rotate-90" aria-hidden>
-                    <circle cx="28" cy="28" r={R} fill="none" strokeWidth="6" className="stroke-black/5 dark:stroke-white/10" />
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r={R}
-                      fill="none"
-                      strokeWidth="6"
-                      strokeLinecap="round"
-                      strokeDasharray={C}
-                      strokeDashoffset={C * (1 - pctPago / 100)}
-                      className="stroke-hexxa-forest transition-[stroke-dashoffset] duration-700 ease-out dark:stroke-hexxa-lime"
-                    />
-                  </svg>
-                  <div className="min-w-0">
-                    <p className="rotulo text-ink-soft">Mês quitado</p>
-                    <p className="mt-1 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{pctPago}%</p>
-                    <p className="mt-1 text-xs text-ink-soft">
-                      {totalDoMes === 0 ? 'Sem valores no mês' : totalAberto > 0 ? `faltam ${BRL.format(totalAberto)}` : 'tudo pago'}
-                    </p>
-                  </div>
-                </Card>
               </div>
             );
           })()}
@@ -1045,7 +1041,7 @@ export function HubGuias({
               )}
             </div>
           ) : (
-            <div className="entrada-lista divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+            <div className="entrada-lista divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
               {itens.map((it) =>
                 it.kind === 'guia' ? renderGuia(it.guia) : it.kind === 'documento' ? (
                   <LinhaDocumento key={it.id} doc={it.doc} />

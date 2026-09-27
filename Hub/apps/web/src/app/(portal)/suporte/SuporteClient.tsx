@@ -102,7 +102,7 @@ export function SuporteClient({ initialTickets, escritorio }: { initialTickets: 
                 {filtro === 'ABERTAS' ? 'Nenhuma conversa em aberto. Precisa de algo? Comece uma nova conversa.' : 'Nenhuma conversa concluída.'}
               </p>
             ) : (
-              <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+              <ul className="divide-y divide-black/[0.08] overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:divide-white/[0.12] dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
                 {lista.map((t) => {
                   const s = SITUACAO[t.status];
                   const pendente = !concluida(t) && (t.respondido || t.status === 'WAITING_CLIENT');
@@ -188,7 +188,7 @@ function Conversa({ conversa, onChanged }: { conversa: SupportTicketRow; onChang
   }
 
   return (
-    <section className="flex h-[calc(100vh-16rem)] min-h-[480px] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+    <section className="flex h-[calc(100vh-16rem)] min-h-[480px] flex-col overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className="flex items-start justify-between gap-4 border-b border-black/5 px-6 py-4 dark:border-white/10">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{conversa.subject}</p>

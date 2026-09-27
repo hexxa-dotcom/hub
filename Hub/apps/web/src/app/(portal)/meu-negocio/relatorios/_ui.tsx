@@ -28,7 +28,7 @@ export function Painel({
         <p className="rotulo text-ink-soft">{titulo}</p>
         {acao && <div className="print:hidden">{acao}</div>}
       </div>
-      <div className="overflow-x-auto rounded-[28px] border border-white/70 bg-white/75 px-6 py-2 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5 print:border-0 print:bg-transparent print:px-0 print:ring-0">
+      <div className="overflow-x-auto rounded-[28px] border border-white/60 bg-white/55 px-6 py-2 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5 print:border-0 print:bg-transparent print:px-0 print:ring-0">
         {children}
       </div>
     </section>

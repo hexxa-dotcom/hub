@@ -44,7 +44,7 @@ export interface ListaEmColunasProps<T> {
 }
 
 const painel =
-  'overflow-hidden rounded-[28px] border border-white/70 bg-white/75 ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
+  'overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
 
 export function ListaEmColunas<T>({ colunas, itens, chave, celulas, detalhe, href, aoClicar, apagada, alerta, vazio, abertoInicial = null }: ListaEmColunasProps<T>) {
   const [aberto, setAberto] = useState<string | null>(abertoInicial);

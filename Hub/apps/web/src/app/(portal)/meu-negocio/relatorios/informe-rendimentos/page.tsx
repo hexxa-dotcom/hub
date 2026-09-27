@@ -52,7 +52,7 @@ export default async function InformeRendimentosPage({
         <PrintButton />
       </div>
 
-      <div className="rounded-[28px] border border-white/70 bg-white/75 p-6 ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5 print:border-0 print:bg-transparent print:p-0 print:ring-0">
+      <div className="rounded-[28px] border border-white/60 bg-white/55 p-6 ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-8 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5 print:border-0 print:bg-transparent print:p-0 print:ring-0">
         <header className="border-b border-black/5 pb-5 dark:border-white/10">
           <p className="rotulo text-ink-soft">Fonte pagadora</p>
           <p className="text-heading text-ink mt-1">{informe.empresa.razaoSocial}</p>

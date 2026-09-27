@@ -78,8 +78,9 @@ export function summarizeBalanco(entries: BalancoEntry[], effectiveRate: number)
   const prolabore = entries
     .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
     .reduce((s, e) => s + Number(e.amount), 0);
+  // A provisão de imposto já está no imposto estimado — somada aqui, contava duas vezes.
   const despesasOperacionais = entries
-    .filter((e) => e.type === 'PAYABLE' && !String(e.description || '').startsWith('Pró-labore'))
+    .filter((e) => e.type === 'PAYABLE' && !String(e.description || '').startsWith('Pró-labore') && !String(e.description || '').startsWith('Provisão de Imposto'))
     .reduce((s, e) => s + Number(e.amount), 0);
   const impostoEstimado = receita * (effectiveRate / 100);
   const lucroLiquido = receita - despesasOperacionais - prolabore - impostoEstimado;
@@ -142,6 +143,7 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
   for (const e of entries) {
     if (e.type !== 'PAYABLE') continue;
     if (String(e.description || '').startsWith('Pró-labore')) continue;
+    if (String(e.description || '').startsWith('Provisão de Imposto')) continue;
     const key = e.category_name?.trim() || 'Sem categoria';
     byCat.set(key, (byCat.get(key) ?? 0) + Number(e.amount));
   }

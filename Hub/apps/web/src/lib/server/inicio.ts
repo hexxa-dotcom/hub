@@ -35,6 +35,15 @@ const somaDias = (iso: string, n: number) => {
 const diasAte = (iso: string) => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hojeSP()}T12:00:00Z`)) / 86400000);
 const br = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+/** "venceu 20/09", "vence hoje", "amanhã", "em 4 dias", "25/10". */
+const prazoDe = (iso: string) => {
+  const d = diasAte(iso);
+  if (d < 0) return `venceu ${br(iso).slice(0, 5)}`;
+  if (d === 0) return 'vence hoje';
+  if (d === 1) return 'amanhã';
+  if (d <= 14) return `em ${d} dias`;
+  return br(iso).slice(0, 5);
+};
 
 export type Area = 'Impostos' | 'Financeiro' | 'Notas' | 'Contratos' | 'Propostas' | 'Clientes' | 'Documentos' | 'Atendimento' | 'Contabilidade' | 'Plano';
 
@@ -43,8 +52,10 @@ export interface Pendencia {
   area: Area;
   texto: string;
   detalhe?: string;
-  /** alerta = já passou do prazo ou trava algo; atencao = vence logo. */
-  tom: 'alerta' | 'atencao';
+  /** alerta = já passou do prazo ou trava algo; atencao = vence logo; aviso = já dá para resolver, sem pressa. */
+  tom: 'alerta' | 'atencao' | 'aviso';
+  /** O prazo em poucas palavras, à direita do item ("vence amanhã", "venceu 20/09"). */
+  prazo?: string;
   href: string;
   acao: string;
 }
@@ -66,7 +77,7 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
   const em30 = somaDias(hoje, 30);
   const mes = hoje.slice(0, 7);
 
-  const [financeiro, guias, contratos, propostas, tarefas, docs, extras, pedidos, conversas, notas, fila, honorarios] = await Promise.all([
+  const [financeiro, guias, contratos, propostas, tarefas, docs, extras, pedidos, conversas, notas, fila, honorarios, aEmitir] = await Promise.all([
     seguro(
       withTenant(ctx.companyId, (tx) =>
         tx.execute(sql`
@@ -87,7 +98,7 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
       withTenant(ctx.companyId, (tx) =>
         tx.execute(sql`
           SELECT id, tax_name, amount, to_char(due_date, 'YYYY-MM-DD') AS venc FROM tax_guide
-           WHERE company_id = ${ctx.companyId} AND status <> 'PAID' AND NOT provisional AND due_date <= ${em7}
+           WHERE company_id = ${ctx.companyId} AND status <> 'PAID' AND NOT provisional AND due_date <= ${em30}
            ORDER BY due_date
         `),
       ) as unknown as Promise<{ id: string; tax_name: string; amount: string; venc: string }[]>,
@@ -119,19 +130,47 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
       ) as unknown as Promise<{ n: string; valor: string }[]>,
       [],
     ),
+    // Parcela de contrato de cliente vencendo (ou vencida há até 30 dias) sem
+    // nota no mês — nem emitida daqui, nem no Emissor Nacional para o CNPJ.
+    seguro(
+      withTenant(ctx.companyId, (tx) =>
+        tx.execute(sql`
+          SELECT fe.id, coalesce(nullif(bc.party_name, ''), bc.title) AS cliente, fe.amount,
+                 to_char(fe.due_date, 'YYYY-MM-DD') AS venc
+            FROM financial_entry fe
+            JOIN business_contract bc ON bc.id = fe.source_id AND bc.company_id = fe.company_id
+           WHERE fe.company_id = ${ctx.companyId} AND fe.source = 'CONTRACT' AND fe.type = 'RECEIVABLE'
+             AND fe.status <> 'CANCELED' AND bc.type = 'ENTRADA'
+             AND fe.due_date BETWEEN ${somaDias(hoje, -30)}::date AND ${em7}::date
+             AND NOT EXISTS (
+               SELECT 1 FROM service_invoice si
+                WHERE si.company_id = fe.company_id AND si.contract_id = bc.id
+                  AND si.reference_month = fe.reference_month AND si.status IN ('ISSUED', 'ISSUING'))
+             AND NOT EXISTS (
+               SELECT 1 FROM nfse_distribuicao_doc d
+                WHERE d.company_id = fe.company_id AND d.tipo_documento = 'NFSE' AND d.direction = 'EMITIDA' AND NOT d.cancelado
+                  AND regexp_replace(coalesce(d.tomador_documento, ''), '[^0-9]', '', 'g') = regexp_replace(coalesce(bc.party_cnpj, ''), '[^0-9]', '', 'g')
+                  AND bc.party_cnpj IS NOT NULL
+                  AND to_char(d.data_emissao AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM') = to_char(fe.reference_month, 'YYYY-MM'))
+           ORDER BY fe.due_date
+        `),
+      ) as unknown as Promise<{ id: string; cliente: string; amount: string; venc: string }[]>,
+      [],
+    ),
   ]);
 
   const p: Pendencia[] = [];
 
-  // Impostos: guia vencida ou vencendo na semana.
+  // Contabilidade: guia em aberto que vence em até 30 dias (ou já venceu).
   for (const g of guias) {
     const d = diasAte(g.venc);
     p.push({
       id: `guia-${g.id}`,
-      area: 'Impostos',
-      texto: d < 0 ? `${g.tax_name} venceu em ${br(g.venc)}` : d === 0 ? `${g.tax_name} vence hoje` : `${g.tax_name} vence em ${br(g.venc)}`,
+      area: 'Contabilidade',
+      texto: g.tax_name,
       detalhe: BRL.format(Number(g.amount)),
-      tom: d < 0 ? 'alerta' : 'atencao',
+      prazo: prazoDe(g.venc),
+      tom: d < 0 ? 'alerta' : d <= 7 ? 'atencao' : 'aviso',
       href: '/minha-contabilidade/guias',
       acao: 'Ver guia',
     });
@@ -142,48 +181,58 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
     p.push({
       id: 'fechamento',
       area: 'Contabilidade',
-      texto: 'Fechamento do mês esperando a sua aprovação',
+      texto: 'Fechamento do mês para aprovar',
       tom: 'atencao',
       href: '/meu-negocio/relatorios/fechamento',
       acao: 'Revisar',
     });
   }
 
-  // Financeiro.
+  // Financeiro: só conta a pagar vencida — o que está para receber e os
+  // próximos dias já estão nos números do topo.
   const pagar = financeiro.find((f) => f.type === 'PAYABLE');
-  const receber = financeiro.find((f) => f.type === 'RECEIVABLE');
   if (pagar && Number(pagar.vencidos) > 0)
-    p.push({ id: 'pagar-vencido', area: 'Financeiro', texto: `${plural(Number(pagar.vencidos), 'conta a pagar vencida', 'contas a pagar vencidas')}`, detalhe: BRL.format(Number(pagar.valor_vencido)), tom: 'alerta', href: '/meu-negocio/hub-financeiro?aba=pagar', acao: 'Ver contas' });
-  if (pagar && Number(pagar.semana) > 0)
-    p.push({ id: 'pagar-semana', area: 'Financeiro', texto: `${plural(Number(pagar.semana), 'conta vence', 'contas vencem')} nos próximos 7 dias`, detalhe: BRL.format(Number(pagar.valor_semana)), tom: 'atencao', href: '/meu-negocio/hub-financeiro?aba=pagar', acao: 'Ver contas' });
-  if (receber && Number(receber.vencidos) > 0)
-    p.push({ id: 'receber-atrasado', area: 'Financeiro', texto: `${plural(Number(receber.vencidos), 'recebimento atrasado', 'recebimentos atrasados')}`, detalhe: BRL.format(Number(receber.valor_vencido)), tom: 'alerta', href: '/meu-negocio/hub-financeiro?aba=receber', acao: 'Cobrar' });
+    p.push({ id: 'pagar-vencido', area: 'Financeiro', texto: `${plural(Number(pagar.vencidos), 'conta a pagar vencida', 'contas a pagar vencidas')}`, detalhe: BRL.format(Number(pagar.valor_vencido)), prazo: 'vencida', tom: 'alerta', href: '/meu-negocio/hub-financeiro?aba=pagar', acao: 'Ver contas' });
+
+  // Notas a emitir.
+  for (const n of aEmitir) {
+    p.push({
+      id: `emitir-${n.id}`,
+      area: 'Notas',
+      texto: nomeDeExibicao(n.cliente),
+      detalhe: BRL.format(Number(n.amount)),
+      prazo: diasAte(n.venc) < 0 ? `parcela venceu ${br(n.venc).slice(0, 5)}` : `parcela ${prazoDe(n.venc)}`,
+      tom: diasAte(n.venc) < 0 ? 'alerta' : 'atencao',
+      href: '/meu-negocio/notas',
+      acao: 'Emitir',
+    });
+  }
 
   // Contratos.
   const assinar = contratos.filter((c) => c.meFaltaAssinar);
   if (assinar.length)
-    p.push({ id: 'contrato-assinar', area: 'Contratos', texto: assinar.length === 1 ? `Contrato esperando a sua assinatura: ${assinar[0]!.title}` : `${assinar.length} contratos esperando a sua assinatura`, tom: 'alerta', href: '/meu-negocio/contratos', acao: 'Assinar' });
+    p.push({ id: 'contrato-assinar', area: 'Contratos', texto: assinar.length === 1 ? assinar[0]!.title : `${assinar.length} contratos`, prazo: 'assinar', tom: 'alerta', href: '/meu-negocio/contratos', acao: 'Assinar' });
   const terminando = contratos.filter((c) => c.status === 'ATIVO' && c.endDate >= hoje && c.endDate <= em30);
   if (terminando.length)
-    p.push({ id: 'contrato-fim', area: 'Contratos', texto: `${plural(terminando.length, 'contrato termina', 'contratos terminam')} nos próximos 30 dias`, detalhe: terminando.length === 1 ? terminando[0]!.title : undefined, tom: 'atencao', href: '/meu-negocio/contratos', acao: 'Ver' });
+    p.push({ id: 'contrato-fim', area: 'Contratos', texto: terminando.length === 1 ? terminando[0]!.title : `${terminando.length} contratos terminando`, prazo: terminando.length === 1 ? `termina ${prazoDe(terminando[0]!.endDate).replace('vence ', '')}` : 'em 30 dias', tom: 'atencao', href: '/meu-negocio/contratos', acao: 'Ver' });
   const reajuste = contratos.filter((c) => c.status === 'ATIVO' && c.adjustmentIndex !== 'NENHUM' && c.nextAdjustmentDate && c.nextAdjustmentDate <= em30);
   if (reajuste.length)
-    p.push({ id: 'contrato-reajuste', area: 'Contratos', texto: `${plural(reajuste.length, 'contrato tem', 'contratos têm')} reajuste para aplicar`, tom: 'atencao', href: '/meu-negocio/contratos', acao: 'Reajustar' });
+    p.push({ id: 'contrato-reajuste', area: 'Contratos', texto: reajuste.length === 1 ? reajuste[0]!.title : `${reajuste.length} contratos`, prazo: 'reajustar', tom: 'atencao', href: '/meu-negocio/contratos', acao: 'Reajustar' });
 
   // Propostas.
   const aceitasSemContrato = propostas.filter((x) => x.status === 'aprovada' && !x.contratoId);
   if (aceitasSemContrato.length)
-    p.push({ id: 'proposta-aceita', area: 'Propostas', texto: `${plural(aceitasSemContrato.length, 'proposta aceita', 'propostas aceitas')} sem contrato`, tom: 'atencao', href: '/meu-negocio/propostas', acao: 'Fazer contrato' });
+    p.push({ id: 'proposta-aceita', area: 'Contratos', texto: `${plural(aceitasSemContrato.length, 'proposta aceita', 'propostas aceitas')} sem contrato`, prazo: 'fazer contrato', tom: 'atencao', href: '/meu-negocio/propostas', acao: 'Fazer contrato' });
   const vistas = propostas.filter((x) => x.status === 'vista');
   if (vistas.length)
-    p.push({ id: 'proposta-vista', area: 'Propostas', texto: `${plural(vistas.length, 'proposta foi vista', 'propostas foram vistas')} pelo cliente, sem resposta`, detalhe: 'Bom momento para um contato', tom: 'atencao', href: '/meu-negocio/propostas', acao: 'Ver' });
+    p.push({ id: 'proposta-vista', area: 'Clientes', texto: `${plural(vistas.length, 'proposta vista', 'propostas vistas')}, sem resposta`, detalhe: 'Bom momento para um contato', prazo: 'ligar', tom: 'aviso', href: '/meu-negocio/propostas', acao: 'Ver' });
 
   // Clientes: tarefas.
   const t = tarefas[0];
   if (t && Number(t.atrasadas) > 0)
-    p.push({ id: 'tarefa-atrasada', area: 'Clientes', texto: `${plural(Number(t.atrasadas), 'tarefa atrasada', 'tarefas atrasadas')}`, tom: 'alerta', href: '/relacionamento', acao: 'Ver tarefas' });
+    p.push({ id: 'tarefa-atrasada', area: 'Clientes', texto: `${plural(Number(t.atrasadas), 'tarefa atrasada', 'tarefas atrasadas')}`, prazo: 'atrasada', tom: 'alerta', href: '/relacionamento', acao: 'Ver tarefas' });
   if (t && Number(t.hoje) > 0)
-    p.push({ id: 'tarefa-hoje', area: 'Clientes', texto: `${plural(Number(t.hoje), 'tarefa para hoje', 'tarefas para hoje')}`, tom: 'atencao', href: '/relacionamento', acao: 'Ver tarefas' });
+    p.push({ id: 'tarefa-hoje', area: 'Clientes', texto: `${plural(Number(t.hoje), 'tarefa para hoje', 'tarefas para hoje')}`, prazo: 'hoje', tom: 'atencao', href: '/relacionamento', acao: 'Ver tarefas' });
 
   // Documentos: o essencial vencido ou vencendo, e o certificado.
   for (const i of checklist(docs)) {
@@ -191,34 +240,48 @@ export async function pendenciasDoDia(ctx: TenantContext): Promise<Pendencia[]> 
       p.push({
         id: `doc-${i.categoria}`,
         area: 'Documentos',
-        texto: i.situacao === 'VENCIDO' ? `${i.nome} vencida` : `${i.nome} vence em ${plural(i.diasParaVencer ?? 0, 'dia', 'dias')}`,
+        texto: i.nome,
+        prazo: i.situacao === 'VENCIDO' ? 'vencida' : `em ${plural(i.diasParaVencer ?? 0, 'dia', 'dias')}`,
         tom: i.situacao === 'VENCIDO' ? 'alerta' : 'atencao',
         href: i.servico ? `/mais/servicos?pedir=${encodeURIComponent(i.servico)}` : '/minha-contabilidade/arquivos',
         acao: i.servico ? 'Pedir' : 'Ver',
       });
   }
+  // O que falta enviar vira um item só — seis linhas de "falta" enchiam o cartão.
+  const faltando = checklist(docs).filter((i) => i.situacao === 'FALTA');
+  if (faltando.length)
+    p.push({
+      id: 'doc-faltando',
+      area: 'Documentos',
+      texto: faltando.length === 1 ? faltando[0]!.nome : `${faltando.length} documentos essenciais faltando`,
+      prazo: 'enviar',
+      tom: 'aviso',
+      href: '/minha-contabilidade/arquivos',
+      acao: 'Enviar',
+    });
   if (extras && ['VENCIDO', 'INVALIDO'].includes(extras.certificado.nivel))
-    p.push({ id: 'certificado', area: 'Documentos', texto: 'Certificado digital vencido ou inválido', detalhe: 'Sem ele, a nota não é emitida', tom: 'alerta', href: '/configuracoes/fiscal', acao: 'Enviar' });
+    p.push({ id: 'certificado', area: 'Documentos', texto: 'Certificado digital', detalhe: 'Sem ele, a nota não é emitida', prazo: 'vencido', tom: 'alerta', href: '/configuracoes/fiscal', acao: 'Enviar' });
   else if (extras?.certificado.validoAte && diasAte(extras.certificado.validoAte) <= 30)
-    p.push({ id: 'certificado', area: 'Documentos', texto: `Certificado digital vence em ${plural(diasAte(extras.certificado.validoAte), 'dia', 'dias')}`, tom: 'atencao', href: '/configuracoes/fiscal', acao: 'Renovar' });
+    p.push({ id: 'certificado', area: 'Documentos', texto: 'Certificado digital', prazo: `em ${plural(diasAte(extras.certificado.validoAte), 'dia', 'dias')}`, tom: 'atencao', href: '/configuracoes/fiscal', acao: 'Renovar' });
 
   // Atendimento e serviços: o que espera resposta sua.
   const comVoce = pedidos.filter((x) => x.situacao === 'AGUARDANDO_VOCE').length;
-  if (comVoce) p.push({ id: 'pedido', area: 'Atendimento', texto: `A contabilidade precisa de algo seu em ${plural(comVoce, 'pedido', 'pedidos')} de serviço`, tom: 'alerta', href: '/mais/servicos', acao: 'Responder' });
+  if (comVoce) p.push({ id: 'pedido', area: 'Atendimento', texto: `${plural(comVoce, 'pedido esperando você', 'pedidos esperando você')}`, prazo: 'responder', tom: 'alerta', href: '/mais/servicos', acao: 'Responder' });
   const respondidas = conversas.filter((c) => c.status !== 'RESOLVED' && c.status !== 'CLOSED' && (c.respondido || c.status === 'WAITING_CLIENT')).length;
-  if (respondidas) p.push({ id: 'conversa', area: 'Atendimento', texto: `${plural(respondidas, 'resposta nova', 'respostas novas')} da contabilidade`, tom: 'atencao', href: '/suporte', acao: 'Ler' });
+  if (respondidas) p.push({ id: 'conversa', area: 'Atendimento', texto: `${plural(respondidas, 'resposta nova', 'respostas novas')} da contabilidade`, prazo: 'ler', tom: 'atencao', href: '/suporte', acao: 'Ler' });
 
   // Notas com erro.
   if (notas && notas.comErro.length)
-    p.push({ id: 'nota-erro', area: 'Notas', texto: `${plural(notas.comErro.length, 'tentativa', 'tentativas')} de nota com erro`, detalhe: 'Não viraram nota', tom: 'alerta', href: '/meu-negocio/notas', acao: 'Ver' });
+    p.push({ id: 'nota-erro', area: 'Notas', texto: `${plural(notas.comErro.length, 'nota com erro', 'notas com erro')}`, detalhe: 'Não viraram nota', prazo: 'refazer', tom: 'alerta', href: '/meu-negocio/notas', acao: 'Ver' });
 
   // Honorários atrasados.
   const h = honorarios[0];
   if (h && Number(h.n) > 0)
-    p.push({ id: 'honorario', area: 'Plano', texto: `${plural(Number(h.n), 'fatura de honorários atrasada', 'faturas de honorários atrasadas')}`, detalhe: BRL.format(Number(h.valor)), tom: 'alerta', href: '/meu-plano', acao: 'Ver fatura' });
+    p.push({ id: 'honorario', area: 'Contabilidade', texto: `Honorários · ${plural(Number(h.n), 'fatura', 'faturas')}`, detalhe: BRL.format(Number(h.valor)), prazo: 'atrasada', tom: 'alerta', href: '/meu-plano', acao: 'Ver fatura' });
 
   // O que já passou do prazo vem antes.
-  return p.sort((a, b) => (a.tom === b.tom ? 0 : a.tom === 'alerta' ? -1 : 1));
+  const peso = { alerta: 0, atencao: 1, aviso: 2 } as const;
+  return p.sort((a, b) => peso[a.tom] - peso[b.tom]);
 }
 
 // ── Cada área num relance ───────────────────────────────────────────────────

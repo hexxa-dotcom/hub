@@ -22,7 +22,7 @@ export function Cartao({
 }) {
   const pele = destaque
     ? 'border-emerald-500/20 bg-[#0A0D0B]/85 text-white shadow-[0_12px_32px_rgba(0,0,0,0.18)] ring-white/10 dark:bg-[#0A0D0B]/75'
-    : 'border-white/70 bg-white/75 ring-white/60 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
+    : 'border-white/60 bg-white/55 ring-white/40 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
   const conteudo = (
     <>
       {destaque && <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-[#D4FF00]/15 blur-3xl" />}
@@ -33,9 +33,9 @@ export function Cartao({
       <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
     </>
   );
-  const cls = `group relative flex flex-col overflow-hidden rounded-[28px] border p-5 ring-1 ring-inset backdrop-blur-xl transition-colors sm:p-6 ${pele} ${className}`;
+  const cls = `group relative flex flex-col overflow-hidden rounded-[28px] border p-5 ring-1 ring-inset backdrop-blur-2xl transition-colors sm:p-6 ${pele} ${className}`;
   return href ? (
-    <Link href={href as Route} className={`${cls} ${destaque ? '' : 'hover:bg-white/90 dark:hover:bg-[#1b201c]/85'}`}>
+    <Link href={href as Route} className={`${cls} ${destaque ? '' : 'hover:bg-white/70 dark:hover:bg-[#1b201c]/85'}`}>
       {conteudo}
     </Link>
   ) : (

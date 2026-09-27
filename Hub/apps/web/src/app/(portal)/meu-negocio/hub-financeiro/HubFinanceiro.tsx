@@ -8,7 +8,11 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { AgendaDaCentral } from '../../minha-contabilidade/guias/AgendaDaCentral';
-import { GraficoEntradasSaidas, periodosPorDia } from '@/components/ui/GraficoEntradasSaidas';
+import { CalendarioDoCaixa } from '@/components/inicio/graficos-do-mes';
+import { MeiaLua } from '@/components/inicio/graficos';
+
+const PAINEL =
+  'rounded-[28px] border border-white/60 bg-white/55 p-6 ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
 import { ColarPagamento } from './ColarPagamento';
 import { Comparativo12Meses, type MesDoComparativo } from './Comparativo12Meses';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
@@ -1250,6 +1254,16 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
   const totalPagarMes = pagarMes.reduce((s, l) => s + l.valor, 0);
   const resultadoMes = totalReceberMes - totalPagarMes;
   // Sem receita não há margem — o 80% que aparecia aqui era um valor inventado.
+  // O calendário: um item por dia do mês escolhido, com o que vence entrando e saindo.
+  const mesDoCalendario = /^\d{4}-\d{2}$/.test(String(selectedMonth)) ? String(selectedMonth) : new Date().toISOString().slice(0, 7);
+  const diasDoCalendario = Array.from({ length: new Date(Number(mesDoCalendario.slice(0, 4)), Number(mesDoCalendario.slice(5, 7)), 0).getDate() }, () => ({ entra: 0, sai: 0 }));
+  // Em "todos os períodos" o calendário fica no mês atual — um calendário só tem um mês.
+  for (const l of data.filter((x) => x.vencimento.slice(0, 7) === mesDoCalendario)) {
+    const d = diasDoCalendario[Number(l.vencimento.slice(8, 10)) - 1];
+    if (!d) continue;
+    if (l.tipo === 'RECEBER') d.entra += l.valor;
+    else d.sai += l.valor;
+  }
   const margemPct = totalReceberMes > 0 ? Math.max(0, Math.min(100, Math.round((resultadoMes / totalReceberMes) * 100))) : 0;
 
   return (
@@ -1264,7 +1278,9 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
           destaque
           rotulo="Resultado do mês"
           valor={fmt(resultadoMes)}
-          nota={totalReceberMes > 0 ? `Margem de ${margemPct}% · ${resultadoMes >= 0 ? 'superávit' : 'déficit'}` : 'Sem receita no mês'}
+          // O antigo card "Saldo líquido" virou esta linha: é tudo que está em
+          // aberto (a receber menos a pagar), não só o mês — o texto dizia "do mês".
+          nota={`${totalReceberMes > 0 ? `Margem de ${margemPct}%` : 'Sem receita no mês'} · em aberto, ${saldo >= 0 ? 'sobram' : 'faltam'} ${fmt(Math.abs(saldo))}`}
         />
         <CardResumo
           rotulo="A pagar no mês"
@@ -1279,82 +1295,44 @@ function VisaoGeral({ data, selectedMonth, onNavigate }: { data: Lancamento[]; s
           nota={`${data.filter((l) => l.tipo === 'RECEBER' && !l.pago_em).length} a receber`}
           onClick={() => onNavigate('receber')}
         />
-        <CardResumo
-          rotulo="Saldo líquido"
-          valor={fmt(saldo)}
-          tom={saldo < 0 ? 'negativo' : 'padrao'}
-          nota="Receitas menos despesas do mês"
-        />
       </GradeDeResumo>
 
       {/* ── Bento Row 2: Balance Wavy Chart + Eficiência Gauge ───────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Entradas e saídas do mês, dia a dia — dado real (ver GraficoEntradasSaidas).
-            Aqui ficava uma curva desenhada à mão, igual para toda empresa. */}
-        <GraficoEntradasSaidas
-          className="lg:col-span-2"
-          titulo={`Entradas e saídas · ${mesLabel(selectedMonth)}`}
-          periodos={periodosPorDia(
-            /^\d{4}-\d{2}$/.test(String(selectedMonth)) ? String(selectedMonth) : new Date().toISOString().slice(0, 7),
-            [...receberMes, ...pagarMes].map((l) => ({ data: l.vencimento, valor: l.valor, entrada: l.tipo === 'RECEBER' })),
-          )}
-        />
-
-        {/* Card de Eficiência / Gauge Semi-circular Estilo 'Earnings 80%' (col-span-1) */}
-        <Card level={1} className="p-6 sm:p-7 card-finish flex flex-col justify-between space-y-4">
-          <div>
-            <p className="rotulo text-ink-soft">Eficiência Operacional</p>
-            <p className="text-xs text-ink-soft mt-1">Total de Despesas</p>
-            <p className="font-serif text-2xl sm:text-3xl font-bold text-ink tabular mt-0.5">
-              {fmt(totalPagarMes)}
-            </p>
-            <p className="text-xs text-ink-soft mt-2">
-              Margem operacional de <strong className="text-hexxa-forest dark:text-hexxa-lime font-bold">{margemPct}%</strong> no mês
-            </p>
-          </div>
-
-          {/* Semi-circular Gauge Visual */}
-          <div className="flex flex-col items-center justify-center py-2">
-            <div className="relative w-44 h-24 flex items-center justify-center">
-              <svg className="w-full h-full" viewBox="0 0 100 55">
-                {/* Arco de fundo cinza suave */}
-                <path
-                  d="M 12 50 A 38 38 0 0 1 88 50"
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-black/10 dark:text-white/10"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
-                {/* Arco ativo verde floresta */}
-                <path
-                  d="M 12 50 A 38 38 0 0 1 88 50"
-                  fill="none"
-                  stroke="#5F7A6A"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray="119.38"
-                  strokeDashoffset={119.38 * (1 - margemPct / 100)}
-                  className="transition-all duration-1000 ease-out"
-                />
-              </svg>
-              {/* Valor numérico no centro */}
-              <div className="absolute bottom-1 flex flex-col items-center">
-                <span className="font-serif text-2xl font-bold text-ink tabular">{margemPct}%</span>
-              </div>
+        {/* Entradas e saídas do mês no calendário do caixa — o mesmo desenho da
+            aba Detalhes da Início: verde entrou, rosa saiu, hoje marcado. */}
+        <div className={`${PAINEL} lg:col-span-2`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <p className="rotulo text-ink-soft">Entradas e saídas · {mesLabel(selectedMonth)}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-emerald-400" /> entra {fmt(totalReceberMes)}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm bg-rose-400" /> sai {fmt(totalPagarMes)}
+              </span>
             </div>
-            <p className="text-[11px] font-bold text-ink-soft mt-1">Índice de Retenção Líquida</p>
           </div>
+          <div className="mt-5">
+            <CalendarioDoCaixa mes={mesDoCalendario} dias={diasDoCalendario} hoje={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })} />
+          </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setShowDre(true)}
-            className="w-full tap-target pressable focusable flex items-center justify-center gap-2 rounded-full bg-surface shadow-(--elev-1) hover:shadow-(--elev-2) px-4 py-2.5 text-xs font-bold text-ink hover:text-hexxa-forest dark:hover:text-hexxa-lime transition-all"
-          >
-            <FileText className="h-4 w-4" />
-            Abrir DRE Completo
-          </button>
-        </Card>
+        {/* Margem do mês na meia-lua, a mesma dos números da Início. */}
+        <div className={`${PAINEL} flex flex-col`}>
+          <p className="rotulo text-ink-soft">Margem do mês</p>
+          <p className="mt-2 font-serif text-2xl font-bold tracking-tight text-ink tabular sm:text-3xl">{fmt(totalPagarMes)}</p>
+          <p className="text-xs text-ink-soft">em despesas no mês</p>
+          <div className="mx-auto mt-6 w-44">
+            <MeiaLua fracao={margemPct / 100} rotulo={`${margemPct}%`} />
+          </div>
+          <p className="mt-1 text-center text-xs text-ink-soft">
+            {totalReceberMes > 0 ? 'do que entrou ficou na empresa' : 'sem receita no mês para medir'}
+          </p>
+          <div className="mt-auto flex justify-center pt-6">
+            <BotaoDiscreto onClick={() => setShowDre(true)}>Abrir DRE completo</BotaoDiscreto>
+          </div>
+        </div>
       </div>
 
       {/* Doze meses lado a lado, e o que mais mudou no mês escolhido. */}

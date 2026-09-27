@@ -139,7 +139,7 @@ export default async function Page() {
       </section>
 
       {/* ── O QUE APARECE NO LINK ───────────────────────────────────────── */}
-      <article className="overflow-hidden rounded-[32px] border border-white/70 bg-white/80 shadow-[0_12px_40px_rgba(0,0,0,0.05)] ring-1 ring-inset ring-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-[#151916]/80 dark:ring-white/5">
+      <article className="overflow-hidden rounded-[32px] border border-white/60 bg-white/55 shadow-[0_12px_40px_rgba(0,0,0,0.05)] ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/80 dark:ring-white/5">
         <header className="flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:p-10">
           <CompanyLogoBadge logoUrl={ficha.logoUrl} companyName={nome} />
           <div className="min-w-0 flex-1">

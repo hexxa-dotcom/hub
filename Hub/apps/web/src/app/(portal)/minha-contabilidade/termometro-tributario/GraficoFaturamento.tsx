@@ -18,7 +18,7 @@ export function GraficoFaturamento({ meses }: { meses: { mes: string; valor: num
   const f = foco !== null ? meses[foco] : null;
 
   return (
-    <div className="rounded-[28px] border border-white/70 bg-white/75 p-6 ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+    <div className="rounded-[28px] border border-white/60 bg-white/55 p-6 ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="rotulo text-ink-soft">Faturamento mês a mês</p>
         <p className="text-xs text-ink-soft">

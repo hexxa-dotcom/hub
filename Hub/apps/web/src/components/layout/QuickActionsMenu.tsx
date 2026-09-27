@@ -34,7 +34,7 @@ export function QuickActionsMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-hexxa-forest hover:bg-hexxa-green text-hexxa-lime px-3.5 text-xs font-bold shadow-(--elev-1) transition-all duration-200 hover:scale-105 cursor-pointer dark:bg-hexxa-lime dark:text-hexxa-forest dark:hover:bg-[#c9f58c]"
+        className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-black/15 px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-black/[0.04] dark:border-white/20 dark:hover:bg-white/[0.06]"
       >
         <Plus className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
         <span className="hidden sm:inline">Nova ação</span>
@@ -42,7 +42,7 @@ export function QuickActionsMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-3xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] p-2 shadow-2xl z-50 animate-fade-up">
+        <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-3xl border border-white/60 bg-white/55 p-2 shadow-2xl ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#1A201C]/60 dark:ring-white/5 z-50 animate-fade-up">
           <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
             <span className="rotulo text-[#2F4A3C] dark:text-[#DFFFAE] flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" /> Ações Rápidas

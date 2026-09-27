@@ -147,7 +147,7 @@ export function ThemeHeaderSelector({ compact = false }: { compact?: boolean }) 
             aria-pressed={isActive}
             className={`tap-target pressable focusable inline-flex h-7 items-center justify-center rounded-full text-xs cursor-pointer shrink-0 overflow-hidden ${
               isActive
-                ? 'bg-[#1E3328] text-[#DFFFAE] dark:bg-[#DFFFAE] dark:text-[#1E3328] shadow-xs font-semibold'
+                ? 'tema-ativo bg-white/55 text-ink ring-1 ring-inset ring-black/15 backdrop-blur-xl dark:bg-white/10 dark:ring-white/15 font-semibold'
                 : 'text-ink-soft hover:text-ink hover:bg-black/5 dark:hover:bg-white/5 font-medium'
             }`}
           >

@@ -37,16 +37,18 @@ export function Comparativo12Meses({ meses, mesAtual }: { meses: MesDoComparativ
           .slice(0, 4)
       : [];
 
+  // Hachurado é o mês que ainda não fechou (o de hoje), não o escolhido na lista.
+  const mesCorrente = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
   const resultado = (m: MesDoComparativo) => m.receitas - m.despesas;
   const semDados = meses.every((m) => m.receitas === 0 && m.despesas === 0);
 
   return (
-    <div className="rounded-[28px] border border-white/70 bg-white/75 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+    <div className="rounded-[28px] border border-white/60 bg-white/55 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-7 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="rotulo text-ink-soft">Últimos 12 meses</p>
         <div className="flex gap-4 text-[11px] font-semibold text-ink-soft">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-full bg-[#1E3328] dark:bg-[#D4FF00]" /> Receitas</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-full bg-black/20 dark:bg-white/25" /> Despesas</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-hexxa-forest dark:bg-hexxa-lime" /> Receitas</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-black/25 dark:bg-white/30" /> Despesas</span>
         </div>
       </div>
 
@@ -65,9 +67,26 @@ export function Comparativo12Meses({ meses, mesAtual }: { meses: MesDoComparativ
                   escolhido === m.mes ? 'bg-black/[0.04] dark:bg-white/[0.06]' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.03]'
                 }`}
               >
-                <span className="flex h-full items-end justify-center gap-0.5">
-                  <span className="w-1/2 max-w-[10px] rounded-t-full bg-[#1E3328] dark:bg-[#D4FF00]" style={{ height: `${m.receitas > 0 ? Math.max(3, (m.receitas / maximo) * 100) : 0}%` }} />
-                  <span className="w-1/2 max-w-[10px] rounded-t-full bg-black/20 dark:bg-white/25" style={{ height: `${m.despesas > 0 ? Math.max(3, (m.despesas / maximo) * 100) : 0}%` }} />
+                {/* As barras da Bússola: sólidas nos meses fechados, hachuradas no
+                    mês em andamento. Receita na cor do sistema, despesa em cinza. */}
+                <span className="flex h-full items-end justify-center gap-1">
+                  {(['receitas', 'despesas'] as const).map((k) => {
+                    const v = m[k];
+                    const emAndamento = m.mes === mesCorrente;
+                    const cor = k === 'receitas' ? 'text-hexxa-forest dark:text-hexxa-lime' : 'text-black/25 dark:text-white/30';
+                    return v > 0 ? (
+                      <span
+                        key={k}
+                        className={`w-1/2 max-w-[14px] rounded-t-md ${cor} ${emAndamento ? 'ring-1 ring-inset ring-current' : 'bg-current'}`}
+                        style={{
+                          height: `${Math.max(3, (v / maximo) * 100)}%`,
+                          ...(emAndamento ? { background: 'repeating-linear-gradient(135deg, currentColor 0 1.5px, transparent 1.5px 7px)' } : {}),
+                        }}
+                      />
+                    ) : (
+                      <span key={k} className="w-1/2 max-w-[14px]" />
+                    );
+                  })}
                 </span>
               </button>
             ))}

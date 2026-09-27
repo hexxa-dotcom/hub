@@ -244,8 +244,7 @@ function ProLaboreTab({
       )}
 
       <GradeDeResumo>
-        <CardResumo destaque rotulo="Pró-labore líquido" valor={BRL.format(totalLiq)} nota="O que os sócios recebem no mês" />
-        <CardResumo rotulo="Pró-labore bruto" valor={BRL.format(totalBruto)} nota="Antes dos descontos" />
+        <CardResumo destaque rotulo="Pró-labore líquido" valor={BRL.format(totalLiq)} nota={`O que os sócios recebem no mês · bruto de ${BRL.format(totalBruto)}`} />
         <CardResumo rotulo="INSS (11%)" valor={BRL.format(totalINSS)} tom={totalINSS > 0 ? 'alerta' : 'padrao'} nota="Retido na fonte" />
         <CardResumo rotulo="IRRF" valor={BRL.format(totalIRRF)} tom={totalIRRF > 0 ? 'negativo' : 'padrao'} nota="Imposto de renda retido" />
       </GradeDeResumo>

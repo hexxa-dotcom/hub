@@ -228,7 +228,7 @@ export function ContratoDetailClient({ detail }: { detail: ContractDetail }) {
       )}
 
       {/* Em que pé está + o que fazer agora */}
-      <section className="rounded-[28px] border border-white/70 bg-white/75 p-6 ring-1 ring-inset ring-white/60 backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
+      <section className="rounded-[28px] border border-white/60 bg-white/55 p-6 ring-1 ring-inset ring-white/40 backdrop-blur-2xl sm:p-8 dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
             <p className="rotulo text-ink-soft">{isEntrada ? 'Entrada · você recebe' : 'Saída · você paga'}</p>

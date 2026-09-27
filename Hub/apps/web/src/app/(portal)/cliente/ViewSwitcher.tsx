@@ -23,9 +23,8 @@ const ICONS: Record<ViewId, Icon> = {
 };
 
 /**
- * Seletor de vista em pílula, mesmo padrão do Financeiro — a pílula já é o
- * controle de troca de vista do sistema, então repetir a forma aqui poupa a
- * pessoa de aprender dois jeitos de fazer a mesma coisa.
+ * Seletor de vista em pílula, mesmo padrão das outras telas (a peça
+ * selecionada é o contorno do `segmented-thumb`).
  *
  * São links, não botões: a vista mora na URL (`?v=`), o que mantém o estado
  * compartilhável, navegável pelo histórico e recarregável.

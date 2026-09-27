@@ -2,7 +2,11 @@ import { getTenantContext } from '@/lib/server/tenant';
 import { numerosDoTopo } from '@/lib/server/inicio';
 import { getAvailableProfitAction } from '@/lib/server/profit-distribution';
 import { AreaSuave, Anel, PontosTendencia, MeiaLua, AneisConcentricos, Fluxo } from '@/components/inicio/graficos';
+import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
+import type { Pendencia } from '@/lib/server/inicio';
 import { Cartao } from './Cartao';
+import { COR_DO_PRAZO } from './PendenciasDoDia';
 
 /**
  * OS NÚMEROS PRINCIPAIS — o topo da Início, em mosaico.
@@ -18,7 +22,7 @@ const NOMES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
 const rotuloMes = (m: string) => `${NOMES[Number(m.slice(5)) - 1]}/${m.slice(2, 4)}`;
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
-export async function NumerosDoTopo({ mes }: { mes: string }) {
+export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendencias: Pendencia[] }) {
   const ctx = await getTenantContext();
   const lucro = await getAvailableProfitAction().catch(() => null);
   const n = await numerosDoTopo(ctx, mes, lucro?.availableToDistribute ?? 0);
@@ -34,6 +38,7 @@ export async function NumerosDoTopo({ mes }: { mes: string }) {
   const entra14 = n.proximos14.entradas.reduce((s, v) => s + v, 0);
   const sai14 = n.proximos14.saidas.reduce((s, v) => s + v, 0);
   const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const vencidos = pendencias.filter((p) => p.tom === 'alerta').length;
 
   return (
     <div className="entrada-grade grid grid-flow-dense grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
@@ -130,7 +135,7 @@ export async function NumerosDoTopo({ mes }: { mes: string }) {
       </Cartao>
 
       {/* Próximos 14 dias — fluxo. */}
-      <Cartao rotulo="Próximos 14 dias" href="/meu-negocio/hub-financeiro?aba=agenda" className="sm:col-span-2 lg:col-span-12">
+      <Cartao rotulo="Próximos 14 dias" href="/meu-negocio/hub-financeiro?aba=agenda" className="sm:col-span-2 lg:col-span-8">
         <div className="-mt-5 flex justify-end text-xs text-ink-soft">
           entra {BRL.format(entra14)} · sai {BRL.format(sai14)} ·{' '}
           <span className={`ml-1 font-semibold ${entra14 - sai14 >= 0 ? 'text-emerald-700 dark:text-[#D4FF00]' : 'text-rose-600 dark:text-rose-400'}`}>
@@ -150,6 +155,40 @@ export async function NumerosDoTopo({ mes }: { mes: string }) {
             );
           })}
         </div>
+      </Cartao>
+
+      {/* Pede você hoje — as três coisas mais urgentes; o resto está no Resumo, por área. */}
+      <Cartao rotulo="Pede você hoje" className="sm:col-span-2 lg:col-span-4">
+        {pendencias.length === 0 ? (
+          <p className="flex flex-1 items-center gap-2 py-6 text-sm text-ink-soft">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Tudo em dia hoje.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 font-serif text-2xl font-bold tracking-tight tabular text-ink">
+              {pendencias.length}{' '}
+              <span className="font-sans text-xs font-normal text-ink-soft">
+                {pendencias.length === 1 ? 'item' : 'itens'}
+                {vencidos > 0 && <span className={`font-semibold ${COR_DO_PRAZO.alerta}`}> · {vencidos} com prazo vencido</span>}
+              </span>
+            </p>
+            <ul className="mt-2 divide-y divide-black/[0.06] dark:divide-white/[0.08]">
+              {pendencias.slice(0, 3).map((p) => (
+                <li key={p.id}>
+                  <Link href={p.href as never} className="flex items-baseline justify-between gap-3 py-1.5 text-sm">
+                    <span className="min-w-0 truncate text-ink">{p.texto}</span>
+                    {p.prazo && <span className={`shrink-0 text-xs font-medium ${COR_DO_PRAZO[p.tom]}`}>{p.prazo}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {pendencias.length > 3 && (
+              <Link href="/cliente?v=resumo#pede-voce" className="mt-auto pt-2 text-xs font-semibold text-ink-soft transition-colors hover:text-ink">
+                Ver todos, por área ↓
+              </Link>
+            )}
+          </>
+        )}
       </Cartao>
     </div>
   );
