@@ -3,6 +3,8 @@ import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { serviceInvoice, company, customer } from '@hexxa/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { NotasFiscaisTable, type NotaFiscal } from './NotasFiscaisTable';
+import { ConferenciaDoFaturamento } from './ConferenciaDoFaturamento';
+import { divergenciasDoFaturamento, competenciasConferidas } from '@/lib/server/conferencia-faturamento';
 
 async function getNotas(): Promise<NotaFiscal[]> {
   const db = getDb();
@@ -51,5 +53,11 @@ export default async function AdminNotasPage() {
   } catch (err) {
     console.error('[AdminNotasPage] falha ao carregar notas:', err);
   }
-  return <NotasFiscaisTable initial={notas} />;
+  const [divergencias, conferidas] = await Promise.all([divergenciasDoFaturamento().catch(() => []), competenciasConferidas().catch(() => 0)]);
+  return (
+    <>
+      <ConferenciaDoFaturamento itens={divergencias} conferidas={conferidas} />
+      <NotasFiscaisTable initial={notas} />
+    </>
+  );
 }

@@ -361,6 +361,13 @@ async function importarGuiasDaApuracao(
     const taxName = NOME_DO_IMPOSTO[codigo] ?? codigo;
 
     if (codigo === 'SIMPLES') {
+      // A receita que o OneFlow apurou (mesmo zerada): a conferência com as notas emitidas.
+      const mesRef = `${competencia.slice(0, 4)}-${competencia.slice(4, 6)}`;
+      await tx.execute(sql`
+        INSERT INTO receita_apurada (company_id, competencia, receita)
+        VALUES (${companyId}, ${mesRef}, ${numero(a.SN_PA_MERC_INTERNO_COMPETENCIA).toFixed(2)})
+        ON CONFLICT (company_id, competencia) DO UPDATE SET receita = EXCLUDED.receita, recebida_em = now()
+      `);
       await registrarAliquota(tx, companyId, appHash, competencia, a, of, out);
     }
 
