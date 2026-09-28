@@ -63,6 +63,8 @@ async function getClientes(): Promise<Cliente[]> {
   const pendByCompany = new Map<string, number>();
   for (const t of ticketCounts) pendByCompany.set(t.companyId, (pendByCompany.get(t.companyId) ?? 0) + 1);
 
+  // Em ordem de número: 000 (o escritório) no topo, depois 001, 002…
+  empresas.sort((a, b) => (a.numero ?? 9999) - (b.numero ?? 9999));
   return empresas.map(s => {
     const owner = ownerByCompany.get(s.companyId);
     return {

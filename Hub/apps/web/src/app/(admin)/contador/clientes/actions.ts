@@ -196,13 +196,14 @@ export async function habilitarClienteDoNiboAction(document: string): Promise<{ 
   }
 }
 
-/** Troca o número da empresa no escritório (001–999), sem repetir. */
+/** Troca o número da empresa no escritório (000 = o próprio escritório; clientes 001–999), sem repetir. */
 export async function alterarNumeroDaEmpresaAction(companyId: string, _prev: { ok: boolean; mensagem: string }, formData: FormData): Promise<{ ok: boolean; mensagem: string }> {
   await requireAdmin();
   const bruto = String(formData.get('numero') ?? '').trim();
-  if (!/^\d{1,3}$/.test(bruto)) return { ok: false, mensagem: 'Use de 1 a 3 dígitos (001 a 999).' };
+  if (!/^\d{1,3}$/.test(bruto)) return { ok: false, mensagem: 'Use de 1 a 3 dígitos (000 a 999).' };
   const numero = Number(bruto);
-  if (numero < 1 || numero > 999) return { ok: false, mensagem: 'O número vai de 001 a 999.' };
+  // 000 é do escritório (a HEXX); clientes vão de 001 a 999. O índice único impede repetir.
+  if (numero < 0 || numero > 999) return { ok: false, mensagem: 'O número vai de 000 a 999.' };
   const db = getDb();
   const [dono] = await db.select({ id: company.id, nome: company.legalName }).from(company).where(eq(company.numero, numero));
   if (dono && dono.id !== companyId) return { ok: false, mensagem: `O ${String(numero).padStart(3, '0')} já é de ${dono.nome}.` };
