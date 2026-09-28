@@ -5,6 +5,9 @@ import { ArrowLeft, UploadCloud, BarChart3, Calendar, RotateCw } from 'lucide-re
 import { UploadPGDASForm } from './UploadPGDASForm';
 import { OneflowSetupForm } from './OneflowSetupForm';
 import { EnquadramentoForm } from './EnquadramentoForm';
+import { CertificadoDoCliente } from './CertificadoDoCliente';
+import { getStatusDoCertificado } from '@/lib/server/certificado';
+import type { TenantContext } from '@hexxa/core';
 import { sql } from '@hexxa/db';
 import { getOneflowCredential } from './actions';
 
@@ -35,6 +38,12 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
   } catch (err) {
     console.error('[AdminFiscalPage] falha ao carregar dados fiscais:', err);
   }
+  // Situação do certificado A1 — o escritório envia/troca por aqui.
+  const [tipo] = (await db.execute(sql`SELECT type FROM company WHERE id = ${id}`).catch(() => [])) as unknown as { type: string }[];
+  const cert = await getStatusDoCertificado({ companyId: id, companyType: tipo?.type ?? 'SERVICE', userId: 'contador' } as TenantContext).catch(() => null);
+  const situacaoCert = cert
+    ? { nivel: String(cert.nivel), mensagem: cert.mensagem, validoAte: cert.ficha?.validoAte ?? null, titular: (cert.ficha as { titular?: string } | null)?.titular ?? null }
+    : null;
   const apuradoOneflow = history.find((h) => h.source === 'ONEFLOW' && /Anexo/.test(h.taxBracket ?? ''))?.taxBracket ?? null;
 
   return (
@@ -52,6 +61,14 @@ export default async function AdminFiscalPage({ params }: { params: Promise<{ id
             Faça upload dos recibos mensais do PGDAS para alimentar a Bússola Tributária do cliente.
           </p>
         </div>
+      </div>
+
+      <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+        <h2 className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Certificado digital (A1)</h2>
+        <p className="mb-4 mt-1 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+          Envie ou troque o certificado do cliente por aqui. É ele que traz as notas do Emissor Nacional (receita e fornecedores com CNPJ) e emite pela Hexx.
+        </p>
+        <CertificadoDoCliente companyId={id} situacao={situacaoCert} />
       </div>
 
       {/* Enquadramento: vale até haver apuração do OneFlow. */}

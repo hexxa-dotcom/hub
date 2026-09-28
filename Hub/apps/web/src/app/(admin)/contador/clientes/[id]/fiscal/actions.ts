@@ -1,5 +1,11 @@
 'use server';
 
+import { saveNfseConfig } from '@/lib/server/fiscal';
+import { inspecionarCertificado } from '@hexxa/integrations';
+import { normalizeDocument } from '@hexxa/core/document-br';
+import { syncDistribuicaoDfe } from '@/lib/server/nfse-dfe-sync';
+import type { TenantContext } from '@hexxa/core';
+import { sql } from '@hexxa/db';
 import { taxHistory, getDb, eq, and, withDbTimeout } from '@hexxa/db';
 import { lerExtratoPgdas } from '@hexxa/core';
 import { integrationCredential } from '@hexxa/db/schema';
@@ -169,4 +175,68 @@ export async function sugerirEnquadramentoAction(companyId: string) {
   await requireAdmin();
   const { sugerirEnquadramento } = await import('@/lib/server/enquadramento');
   return sugerirEnquadramento(companyId);
+}
+
+// ── Certificado digital pelo escritório ────────────────────────────────────
+
+export type EstadoDoCertificado = { ok: boolean; message: string };
+
+/**
+ * O contador envia (ou troca) o certificado A1 do cliente pela área dele —
+ * sem depender do cliente entrar no Hub. Confere senha, validade e CNPJ,
+ * grava criptografado (saveNfseConfig) em PRODUÇÃO e já busca as notas
+ * emitidas e recebidas no Emissor Nacional: é o que faz a receita (da nota)
+ * e os fornecedores com CNPJ entrarem no Hub e seguirem para o OneFlow.
+ */
+export async function enviarCertificadoDoClienteAction(
+  companyId: string,
+  _prev: EstadoDoCertificado,
+  formData: FormData,
+): Promise<EstadoDoCertificado> {
+  await requireAdmin();
+  const arquivo = formData.get('pfx');
+  const senha = String(formData.get('senha') ?? '').trim();
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { ok: false, message: 'Escolha o arquivo .pfx do certificado.' };
+  if (!/\.(pfx|p12)$/i.test(arquivo.name)) return { ok: false, message: 'O certificado é um arquivo .pfx ou .p12.' };
+  if (arquivo.size > 1024 * 1024) return { ok: false, message: 'Arquivo grande demais para um certificado.' };
+  if (!senha) return { ok: false, message: 'Informe a senha do certificado.' };
+
+  const [empresa] = (await getDb().execute(
+    sql`SELECT cnpj, type, legal_name, tax_regime FROM company WHERE id = ${companyId}`,
+  )) as unknown as { cnpj: string | null; type: string; legal_name: string; tax_regime: string | null }[];
+  if (!empresa) return { ok: false, message: 'Empresa não encontrada.' };
+  const ctx = { companyId, companyType: empresa.type, userId: 'contador' } as TenantContext;
+
+  const b64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64');
+  let ficha;
+  try {
+    ficha = inspecionarCertificado(b64, senha);
+  } catch {
+    return { ok: false, message: 'Não consegui abrir o certificado. Confira a senha.' };
+  }
+  const cnpjDaEmpresa = normalizeDocument(empresa.cnpj ?? '');
+  if (ficha.cnpj && cnpjDaEmpresa && ficha.cnpj !== cnpjDaEmpresa) {
+    return { ok: false, message: `Este certificado é de outro CNPJ (${ficha.cnpj}), não de ${empresa.legal_name}.` };
+  }
+  if (ficha.vencido) return { ok: false, message: `Este certificado venceu em ${ficha.validoAte}.` };
+
+  await saveNfseConfig(ctx, {
+    certPfxB64: b64,
+    certPassword: senha,
+    cnpj: cnpjDaEmpresa || ficha.cnpj || undefined,
+    razaoSocial: empresa.legal_name,
+    ambiente: 'producao',
+    optanteSimples: empresa.tax_regime === 'SIMPLES_NACIONAL',
+  } as never);
+
+  // Já traz as notas do Emissor Nacional (emitidas e recebidas).
+  const sync = await syncDistribuicaoDfe(ctx).catch((e: unknown) => ({ erro: e instanceof Error ? e.message : String(e) }) as never);
+  revalidatePath(`/contador/clientes/${companyId}/fiscal`);
+  const r = sync as { erro?: string; documentosNovos?: number };
+  return {
+    ok: true,
+    message: r.erro
+      ? `Certificado salvo (válido até ${ficha.validoAte}). A busca das notas falhou agora: ${r.erro} — ela roda de novo toda madrugada.`
+      : `Certificado salvo (válido até ${ficha.validoAte}). ${r.documentosNovos ?? 0} documento(s) trazido(s) do Emissor Nacional.`,
+  };
 }
