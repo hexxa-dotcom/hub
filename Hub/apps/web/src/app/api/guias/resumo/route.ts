@@ -16,7 +16,7 @@ export async function GET() {
       .reduce((s, g) => s + g.amount, 0);
 
     const totalImpostosPago = guias
-      .filter(g => ['DAS', 'DARF', 'ISS'].includes(categoriaDe(g.taxName)) && g.status === 'PAID' && g.referenceMonth.startsWith(currentMonth))
+      .filter(g => ['DAS', 'FOLHA', 'DARF', 'ISS'].includes(categoriaDe(g.taxName)) && g.status === 'PAID' && g.referenceMonth.startsWith(currentMonth))
       .reduce((s, g) => s + g.amount, 0);
 
     return NextResponse.json({ dasPago, totalImpostosPago });

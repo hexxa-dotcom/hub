@@ -80,7 +80,7 @@ const CAT_CONFIG: Record<GuiaCategoria, { label: string; cls: string }> = {
   DARF:         { label: 'DARF',         cls: 'bg-black/5 text-ink dark:bg-white/10 dark:text-white border border-black/10 dark:border-white/10' },
   ISS:          { label: 'ISS',          cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20' },
   PARCELAMENTO: { label: 'Parcelamento', cls: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20' },
-  FGTS:         { label: 'FGTS',         cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' },
+  FOLHA:        { label: 'Folha',        cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' },
   DIVERSA:      { label: 'Diversa',      cls: 'bg-black/5 text-ink-soft dark:bg-white/5 dark:text-ink-soft border border-black/5 dark:border-white/10' },
 };
 
@@ -448,9 +448,9 @@ export function HubGuias({
   const cats: { key: CatFilter; label: string }[] = [
     { key: 'todas', label: 'Todas' },
     { key: 'DAS', label: 'DAS' },
+    { key: 'FOLHA', label: 'Folha' },
     { key: 'DARF', label: 'DARF' },
     { key: 'ISS', label: 'ISS' },
-    { key: 'FGTS', label: 'FGTS' },
     { key: 'DIVERSA', label: 'Diversas' },
     { key: 'DOCUMENTOS', label: 'Documentos' },
     { key: 'HONORARIOS', label: 'Honorários' },

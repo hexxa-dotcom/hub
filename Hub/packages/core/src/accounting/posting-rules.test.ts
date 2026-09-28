@@ -4,6 +4,8 @@ import {
   settleFinancialEntry,
   accrueTaxGuide,
   settleTaxGuide,
+  tipoDaGuia,
+  parteDaGuiaDaFolha,
   accruePayslip,
   settlePayslip,
   accrueProfitDistribution,
@@ -467,5 +469,48 @@ describe('segregação do DAS (ITG 1000, Anexo 3)', () => {
     const d = settleTaxGuide({ ...das, reparticao: anexoIII, paidAt: '2026-09-19' });
     expect(conta(d, ACCOUNTS.DAS_A_RECOLHER, 'DEBIT')?.amount).toBe(1000);
     expect(conta(d, ACCOUNTS.BANCOS, 'CREDIT')?.amount).toBe(1000);
+  });
+});
+
+describe('guias da folha que voltam do OneFlow', () => {
+  // BM3, agosto/2026: DCTFWeb de R$ 178,31 sobre o pró-labore (Simples, Anexo III: sem CPP).
+  const dctf = {
+    id: 'g-dctf',
+    taxName: 'INSS/IRRF — DCTFWeb',
+    amount: 178.31,
+    dueDate: '2026-09-18',
+    referenceMonth: '2026-08-01',
+    retidoNaFolha: { inss: 178.31, irrf: 0 },
+  };
+
+  it('DCTFWeb só com retenções: nada de despesa nova (a folha já lançou)', () => {
+    expect(tipoDaGuia(dctf.taxName)).toBe('DCTFWEB');
+    expect(parteDaGuiaDaFolha(dctf).patronal).toBe(0);
+  });
+
+  it('DCTFWeb com parte patronal: provisiona só a patronal, em encargos de pessoal', () => {
+    const d = accrueTaxGuide({ ...dctf, amount: 500, retidoNaFolha: { inss: 150, irrf: 50 } });
+    expect(fecha(d)).toBe(true);
+    expect(conta(d, ACCOUNTS.ENCARGOS_PESSOAL, 'DEBIT')?.amount).toBe(300);
+    expect(conta(d, ACCOUNTS.ENCARGOS_A_RECOLHER, 'CREDIT')?.amount).toBe(300);
+  });
+
+  it('pagamento da DCTFWeb baixa o IRRF em impostos e o resto em encargos', () => {
+    const d = settleTaxGuide({ ...dctf, amount: 500, retidoNaFolha: { inss: 150, irrf: 50 }, paidAt: '2026-09-18' });
+    expect(fecha(d)).toBe(true);
+    expect(conta(d, ACCOUNTS.IMPOSTOS_A_RECOLHER, 'DEBIT')?.amount).toBe(50);
+    expect(conta(d, ACCOUNTS.ENCARGOS_A_RECOLHER, 'DEBIT')?.amount).toBe(450);
+    expect(conta(d, ACCOUNTS.BANCOS, 'CREDIT')?.amount).toBe(500);
+  });
+
+  it('retenção maior que a guia não gera patronal negativa', () => {
+    expect(parteDaGuiaDaFolha({ ...dctf, amount: 100, retidoNaFolha: { inss: 90, irrf: 30 } })).toEqual({ inss: 70, irrf: 30, patronal: 0 });
+  });
+
+  it('FGTS é encargo de pessoal a recolher', () => {
+    const d = accrueTaxGuide({ ...dctf, id: 'g-fgts', taxName: 'FGTS', amount: 240, retidoNaFolha: null });
+    expect(fecha(d)).toBe(true);
+    expect(conta(d, ACCOUNTS.ENCARGOS_PESSOAL, 'DEBIT')?.amount).toBe(240);
+    expect(conta(d, ACCOUNTS.ENCARGOS_A_RECOLHER, 'CREDIT')?.amount).toBe(240);
   });
 });

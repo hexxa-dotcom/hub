@@ -743,6 +743,17 @@ export class OneflowAdapter {
   }
 
   /** Status das folhas da competência — diz se existe folha antes de buscá-la. */
+  /**
+   * Status de um módulo na competência, como o painel "Minhas empresas":
+   * `{ status: 'Fechada' | 'Aberta' | …, statusData }`. Para a folha (FPG) é
+   * o sinal de que as guias dela (DCTFWeb, FGTS) já foram geradas — o
+   * OneFlow gera as guias no mesmo segundo em que fecha a folha.
+   */
+  async statusDoModulo(companyId: string, appHash: string, competencia: string, modulo: 'FIS' | 'CTL' | 'FPG'): Promise<unknown> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    return this.pedir(`${API}/oneflow/empresa/moduloprocessostatus?competencia=${competencia}&modulo=${modulo}`, { token });
+  }
+
   async statusDaFolha(companyId: string, appHash: string, competencia: string): Promise<unknown> {
     const token = await this.tokenDaEmpresa(companyId, appHash);
     return this.pedir(

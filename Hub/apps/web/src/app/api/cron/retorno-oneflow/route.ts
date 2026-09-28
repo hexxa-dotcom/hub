@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@hexxa/db';
 import {
   importarDoOneflow,
+  importarSoFolha,
+  lerCompetencia,
   cotaDiariaEsgotada,
   guiaDisponivel,
   cotaRestante,
@@ -51,6 +53,12 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const competencia = url.searchParams.get('competencia') ?? mesAnterior();
+    /**
+     * A competência de antes da anterior continua sendo olhada até o dia 20
+     * — o vencimento das guias —, mas só onde algo ficou faltando: é o caso
+     * da folha que fecha depois do DAS e cuja guia sai no mês seguinte.
+     */
+    const retrasada = !url.searchParams.get('competencia') && diaSP() <= 20 ? mesAntes(competencia) : null;
 
     const ligadas = await empresasComAgenteLigado(db, 'retornoOneflow');
     const relatorio: Record<string, unknown>[] = [];
@@ -75,25 +83,23 @@ export async function GET(request: Request) {
 
     for (const empresa of ligadas) {
       const [dados] = (await db.execute(sql`
-        SELECT cnpj FROM company WHERE id = ${empresa.id}
-      `)) as unknown as { cnpj: string }[];
+        SELECT cnpj, tax_regime AS regime FROM company WHERE id = ${empresa.id}
+      `)) as unknown as { cnpj: string; regime: string | null }[];
       if (!dados) continue;
 
       /**
-       * Já chegou tudo desta competência? Pula sem gastar chamada.
-       *
-       * "Tudo" é a guia COM o arquivo dentro: guia sem PDF é guia que o
-       * cliente vê mas não consegue pagar, e é exatamente o estado que a
-       * execução do dia seguinte precisa tentar resolver.
+       * O que falta desta competência? O fiscal (DAS e guias da apuração) e a
+       * folha (recibos e guias DCTFWeb/FGTS) têm marcação própria — a
+       * primeira guia que chega não encerra mais o mês, como antes.
        */
-      const [pronta] = (await db.execute(sql`
-        SELECT 1 FROM tax_guide
-         WHERE company_id = ${empresa.id}
-           AND reference_month = ${`${competencia.slice(0, 4)}-${competencia.slice(4, 6)}-01`}
-           AND file_url IS NOT NULL
-         LIMIT 1
-      `)) as unknown as { '?column?': number }[];
-      if (pronta) continue;
+      const alvos: { comp: string; fiscal: boolean; folha: boolean }[] = [];
+      for (const comp of [competencia, ...(retrasada ? [retrasada] : [])]) {
+        const m = await lerCompetencia(db, empresa.id, comp);
+        if (comp === retrasada && !m) continue; // a retrasada só se já começou e ficou faltando
+        if (m?.fiscalOk && m.folhaOk) continue;
+        alvos.push({ comp, fiscal: !m?.fiscalOk, folha: !m?.folhaOk });
+      }
+      if (!alvos.length) continue;
 
       const appHash = await appHashPorCnpj(db, dados.cnpj, empresa.id);
       if (!appHash) {
@@ -101,57 +107,74 @@ export async function GET(request: Request) {
         continue;
       }
 
-      if (orcamento <= 0) { interrompido = `${empresa.nome} (cota)`; break; }
-      if (Date.now() > prazo) { interrompido = `${empresa.nome} (tempo)`; break; }
+      let parar = false;
+      for (const alvo of alvos) {
+        if (orcamento <= 0) {
+          interrompido = `${empresa.nome} (cota)`;
+          parar = true;
+          break;
+        }
+        if (Date.now() > prazo) {
+          interrompido = `${empresa.nome} (tempo)`;
+          parar = true;
+          break;
+        }
 
-      /**
-       * Sondagem barata antes de gastar a importação inteira.
-       *
-       * A importação custa ~6 chamadas; a sondagem, 1. Com 50 empresas
-       * esperando a guia sair, a diferença é entre 300 e 50 chamadas por dia
-       * — e a maior parte desses dias a resposta é "ainda não".
-       */
-      sondagens++;
-      orcamento -= 1;
-      if (!(await guiaDisponivel(db, empresa.id, appHash, competencia))) continue;
+        let r;
+        if (alvo.fiscal) {
+          /**
+           * Sondagem barata antes de gastar a importação inteira (~6
+           * chamadas): 1 chamada responde se a guia do Simples já existe.
+           */
+          sondagens++;
+          orcamento -= 1;
+          const codigo = dados.regime === 'MEI' ? 'GMEIGUIA' : 'GPGDAS';
+          if (!(await guiaDisponivel(db, empresa.id, appHash, alvo.comp, codigo))) continue;
+          r = await importarDoOneflow(db, empresa.id, appHash, alvo.comp);
+        } else {
+          // Fiscal já voltou; só a folha falta: 1 chamada de status, e o resto só se ela fechou.
+          r = await importarSoFolha(db, empresa.id, appHash, alvo.comp);
+        }
+        orcamento = await cotaRestante(db);
 
-      const r = await importarDoOneflow(db, empresa.id, appHash, competencia);
-      orcamento = await cotaRestante(db);
+        // Conferir depois de escrever. Vale aqui ainda mais que na escrituração
+        // comum: o valor veio de fora, e um razão que ninguém verifica é só uma
+        // soma com mais tabelas.
+        const equilibrio = await assertLedgerBalances(db, empresa.id, '2999-12-01');
 
-      // Conferir depois de escrever. Vale aqui ainda mais que na escrituração
-      // comum: o valor veio de fora, e um razão que ninguém verifica é só uma
-      // soma com mais tabelas.
-      const equilibrio = await assertLedgerBalances(db, empresa.id, '2999-12-01');
+        relatorio.push({
+          empresa: empresa.nome,
+          competencia: alvo.comp,
+          guias: r.guias.filter((g) => g.acao === 'criada' || g.acao === 'atualizada'),
+          folha: r.folha,
+          fatorR: r.fatorR,
+          escrituradas: r.escrituradas,
+          avisos: r.avisos,
+          razaoFecha: equilibrio.ok,
+          ...(equilibrio.ok ? {} : { diferenca: equilibrio.diff }),
+        });
 
-      relatorio.push({
-        empresa: empresa.nome,
-        guias: r.guias.filter((g) => g.acao === 'criada' || g.acao === 'atualizada'),
-        folha: r.folha,
-        fatorR: r.fatorR,
-        escrituradas: r.escrituradas,
-        avisos: r.avisos,
-        razaoFecha: equilibrio.ok,
-        ...(equilibrio.ok ? {} : { diferenca: equilibrio.diff }),
-      });
+        if (!equilibrio.ok) {
+          console.error(
+            `[cron/retorno-oneflow] RAZÃO NÃO FECHA para ${empresa.nome}: diferença ${equilibrio.diff}.`,
+          );
+        }
 
-      if (!equilibrio.ok) {
-        console.error(
-          `[cron/retorno-oneflow] RAZÃO NÃO FECHA para ${empresa.nome}: diferença ${equilibrio.diff}.`,
-        );
+        /**
+         * Cota diária estourada para o lote inteiro.
+         *
+         * Seguir para a próxima empresa produziria uma lista de erros idênticos
+         * e ainda consumiria a cota de amanhã, porque as tentativas continuam
+         * contando. Parar preserva o que já foi importado e deixa o resto para
+         * a próxima execução.
+         */
+        if (cotaDiariaEsgotada(r)) {
+          interrompido = empresa.nome;
+          parar = true;
+          break;
+        }
       }
-
-      /**
-       * Cota diária estourada para o lote inteiro.
-       *
-       * Seguir para a próxima empresa produziria uma lista de erros idênticos
-       * e ainda consumiria a cota de amanhã, porque as tentativas continuam
-       * contando. Parar preserva o que já foi importado e deixa o resto para
-       * a próxima execução.
-       */
-      if (cotaDiariaEsgotada(r)) {
-        interrompido = empresa.nome;
-        break;
-      }
+      if (parar) break;
     }
 
     return NextResponse.json({
@@ -171,6 +194,17 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/** Dia do mês em São Paulo. */
+function diaSP(): number {
+  return Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(8, 10));
+}
+
+/** A competência AAAAMM anterior a esta. */
+function mesAntes(comp: string): string {
+  const d = new Date(Date.UTC(Number(comp.slice(0, 4)), Number(comp.slice(4, 6)) - 2, 1));
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 /** Competência AAAAMM do mês anterior ao de hoje. */

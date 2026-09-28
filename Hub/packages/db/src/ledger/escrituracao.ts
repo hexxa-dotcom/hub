@@ -7,6 +7,9 @@ import {
   settleFinancialEntry,
   accrueTaxGuide,
   settleTaxGuide,
+  tipoDaGuia,
+  parteDaGuiaDaFolha,
+  ACCOUNTS,
   accrueProfitDistribution,
   settleProfitDistribution,
 } from '@hexxa/core';
@@ -244,6 +247,26 @@ async function reparticaoDoDas(
   return p && Object.keys(p).length ? p : null;
 }
 
+/**
+ * INSS e IRRF que a folha da competência reteve e lançou como obrigação —
+ * o que a guia da DCTFWeb recolhe sem ser despesa nova. A guia do 13º casa
+ * com a folha de 13º; a mensal, com as demais.
+ */
+async function retidoNaFolha(tx: DbHandle, companyId: string, taxName: string, referenceMonth: string): Promise<{ inss: number; irrf: number }> {
+  const decimoTerceiro = /13/.test(taxName);
+  const [r] = (await tx.execute(sql`
+    SELECT coalesce(sum(l.amount) FILTER (WHERE a.code = ${ACCOUNTS.ENCARGOS_A_RECOLHER}), 0)::float AS inss,
+           coalesce(sum(l.amount) FILTER (WHERE a.code = ${ACCOUNTS.IMPOSTOS_A_RECOLHER}), 0)::float AS irrf
+      FROM journal_entry j
+      JOIN ledger_line l ON l.journal_entry_id = j.id AND l.direction = 'CREDIT'
+      JOIN chart_of_account a ON a.id = l.account_id
+     WHERE j.company_id = ${companyId} AND j.source = 'PAYSLIP' AND j.event = 'ACCRUAL'
+       AND j.reversed_by IS NULL AND j.reference_month = ${referenceMonth}::date
+       AND (j.memo ILIKE '13%') = ${decimoTerceiro}
+  `)) as unknown as { inss: number; irrf: number }[];
+  return { inss: r?.inss ?? 0, irrf: r?.irrf ?? 0 };
+}
+
 async function escriturarLinhaGuia(
   tx: DbHandle,
   companyId: string,
@@ -262,11 +285,13 @@ async function escriturarLinhaGuia(
     // um número inexplicável no balancete.
     paidAt: g.status === 'PAID' ? g.dueDate : null,
     reparticao: await reparticaoDoDas(tx, companyId, g.taxName, g.referenceMonth),
+    retidoNaFolha: tipoDaGuia(g.taxName) === 'DCTFWEB' ? await retidoNaFolha(tx, companyId, g.taxName, g.referenceMonth) : null,
   };
 
-  const drafts: DraftThunk[] = [
-    { documento: `tax_guide/${g.id}`, montar: () => accrueTaxGuide(doc) },
-  ];
+  // DCTFWeb sem parte patronal (Simples, Anexos III e V): nada a provisionar —
+  // as retenções já estão no razão pela folha. Só o pagamento é lançado.
+  const semProvisao = tipoDaGuia(g.taxName) === 'DCTFWEB' && parteDaGuiaDaFolha(doc).patronal < 0.01;
+  const drafts: DraftThunk[] = semProvisao ? [] : [{ documento: `tax_guide/${g.id}`, montar: () => accrueTaxGuide(doc) }];
   if (g.status === 'PAID') {
     drafts.push({ documento: `tax_guide/${g.id}#baixa`, montar: () => settleTaxGuide(doc) });
   }

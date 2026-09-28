@@ -23,7 +23,7 @@ const CAT_CONFIG: Record<GuiaCategoria, string> = {
   DARF: 'DARF',
   ISS: 'ISS',
   PARCELAMENTO: 'Parcelamento',
-  FGTS: 'FGTS',
+  FOLHA: 'Folha',
   DIVERSA: 'Diversa',
 };
 

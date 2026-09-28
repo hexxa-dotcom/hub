@@ -127,7 +127,8 @@ const NOME_DO_IMPOSTO: Record<string, string> = {
  */
 const OBRIGACAO_DO_IMPOSTO: Record<string, string> = {
   SIMPLES: 'GPGDAS',
-  MEI: 'GPGDAS',
+  // A guia do MEI tem código próprio na API — GPGDAS é a do Simples ME/EPP.
+  MEI: 'GMEIGUIA',
   IRRF: 'GIRRFRET',
   PISCOFINS: 'GPCC',
   CPRB: 'GCPRB',
@@ -256,12 +257,8 @@ export async function importarDoOneflow(
   };
 
   await importarGuias(tx, companyId, appHash, competencia, of, out);
-  await importarFolha(tx, companyId, appHash, competencia, of, out);
-
-  // O Fator R só existe com folha mensal finalizada — o próprio OneFlow
-  // responde isso quando não há. Perguntar assim mesmo seria queimar uma
-  // requisição da cota diária para receber uma frase que já sabemos.
-  if (out.folha.length > 0) await lerFatorR(companyId, appHash, competencia, of, out);
+  await marcarCompetencia(tx, companyId, competencia, { fiscalOk: await fiscalCompleto(tx, companyId, competencia, out) });
+  await importarFolhaEGuias(tx, companyId, appHash, competencia, of, out);
 
   /**
    * Guarda o Fator R oficial junto da alíquota apurada. Era lido e
@@ -274,6 +271,187 @@ export async function importarDoOneflow(
 
   return out;
 }
+
+/**
+ * Só a parte da FOLHA de uma competência cujo fiscal já voltou: status da
+ * folha lá (1 chamada) e, fechada, recibos e guias (DCTFWeb, FGTS).
+ */
+export async function importarSoFolha(tx: DbHandle, companyId: string, appHash: string, competencia: string): Promise<RetornoResult> {
+  const of = clienteOneflow(tx);
+  const out: RetornoResult = { competencia, guias: [], folha: [], fatorR: null, escrituradas: 0, avisos: [] };
+  await importarFolhaEGuias(tx, companyId, appHash, competencia, of, out);
+  return out;
+}
+
+/**
+ * A folha da competência: só com ela FECHADA lá. O OneFlow gera as guias da
+ * folha no mesmo instante em que fecha (observado: fechou 01:34:25, DCTFWeb
+ * gerada 01:34:26) — então fechada = guias prontas para buscar, numa passada.
+ */
+async function importarFolhaEGuias(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+  of: ReturnType<typeof clienteOneflow>,
+  out: RetornoResult,
+): Promise<void> {
+  let status: string;
+  try {
+    const r = conteudo(await of.statusDoModulo(companyId, appHash, competencia, 'FPG'));
+    status = String(r.status ?? '').trim() || 'DESCONHECIDO';
+  } catch (err) {
+    const m = msg(err);
+    if (cotaEstourada(m)) {
+      out.avisos.push(`Status da folha: ${m}`);
+      return;
+    }
+    // Sem módulo de folha lá (ou sem competência de folha): não há guia de folha a esperar.
+    // Visto na Gateway (sem folha): 404 "Não foi possível localizar o registro!(5114)".
+    status = /n.o foi poss.vel (encontrar|localizar)|n.o habilitad|n.o implantad|\(5114\)/i.test(m) ? 'SEM_MODULO' : 'ERRO';
+    if (status === 'ERRO') out.avisos.push(`Status da folha: ${m}`);
+  }
+
+  if (status === 'SEM_MODULO' || /sem movimento|dispensad/i.test(status)) {
+    await marcarCompetencia(tx, companyId, competencia, { folhaOk: true, folhaStatus: status });
+    return;
+  }
+  if (!/fechad/i.test(status)) {
+    await marcarCompetencia(tx, companyId, competencia, { folhaStatus: status });
+    if (status !== 'ERRO') out.avisos.push(`Folha ${status.toLowerCase()} no OneFlow — as guias da folha saem quando ela fechar.`);
+    return;
+  }
+
+  await importarFolha(tx, companyId, appHash, competencia, of, out);
+  // O Fator R só existe com folha mensal finalizada.
+  if (out.folha.length > 0) await lerFatorR(companyId, appHash, competencia, of, out);
+  const completas = await importarGuiasDaFolha(tx, companyId, appHash, competencia, of, out);
+  await marcarCompetencia(tx, companyId, competencia, { folhaOk: completas, folhaStatus: status });
+}
+
+/**
+ * As guias da folha, pelo código da obrigação na API do OneFlow. Os nomes
+ * são fixos porque decidem as contas (`tipoDaGuia` no core).
+ */
+const GUIAS_DA_FOLHA: { codigo: string; taxName: string; quando?: (competencia: string) => boolean }[] = [
+  { codigo: 'GDCTFWEBMEN', taxName: 'INSS/IRRF — DCTFWeb' },
+  { codigo: 'GFGTSMENSAL', taxName: 'FGTS' },
+  { codigo: 'GFGTSRECISORIO', taxName: 'FGTS rescisório' },
+  // O 13º tem DCTFWeb própria, na competência de dezembro.
+  { codigo: 'GDCTFWEBDEC', taxName: 'INSS/IRRF — DCTFWeb 13º', quando: (c) => c.endsWith('12') },
+];
+
+/** Traz as guias da folha fechada. Devolve se todas as que existem têm arquivo. */
+async function importarGuiasDaFolha(
+  tx: DbHandle,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+  of: ReturnType<typeof clienteOneflow>,
+  out: RetornoResult,
+): Promise<boolean> {
+  const referenceMonth = primeiroDia(competencia);
+  let completas = true;
+
+  for (const g of GUIAS_DA_FOLHA) {
+    if (g.quando && !g.quando(competencia)) continue;
+    const [existente] = await tx
+      .select()
+      .from(taxGuide)
+      .where(and(eq(taxGuide.companyId, companyId), eq(taxGuide.taxName, g.taxName), eq(taxGuide.referenceMonth, referenceMonth)));
+    // Já com arquivo: não gasta chamada.
+    if (existente?.fileUrl) continue;
+
+    const a = await baixarAnexo(of, companyId, appHash, competencia, g.codigo, out);
+    if (!a.existe || a.valor <= 0) continue; // essa guia não existe neste mês (sem empregado, sem rescisão…)
+    if (!a.fileUrl) completas = false; // existe, mas o arquivo não veio: tenta de novo amanhã
+
+    let guiaId: string;
+    if (!existente) {
+      const [nova] = await tx
+        .insert(taxGuide)
+        .values({
+          companyId,
+          taxName: g.taxName,
+          referenceMonth,
+          amount: a.valor.toFixed(2),
+          dueDate: a.vencimento ?? vencimentoPadrao(competencia),
+          status: 'OPEN',
+          fileUrl: a.fileUrl,
+          pixCode: a.pixCode,
+        })
+        .returning({ id: taxGuide.id });
+      guiaId = nova!.id;
+      const r = await escriturarGuia(tx, companyId, guiaId);
+      out.escrituradas += r.gravadas;
+      for (const e of r.erros) out.avisos.push(`${g.taxName}: ${e.motivo}`);
+      out.guias.push({ imposto: g.codigo, taxName: g.taxName, valor: a.valor, acao: 'criada', guiaId });
+    } else {
+      guiaId = existente.id;
+      const preencher: { fileUrl?: string; pixCode?: string; dueDate?: string; provisional?: boolean } = {};
+      if (existente.provisional) preencher.provisional = false;
+      if (a.fileUrl) preencher.fileUrl = a.fileUrl;
+      if (!existente.pixCode && a.pixCode) preencher.pixCode = a.pixCode;
+      if (a.vencimento && existente.dueDate !== a.vencimento) preencher.dueDate = a.vencimento;
+      if (Object.keys(preencher).length) await tx.update(taxGuide).set(preencher).where(eq(taxGuide.id, guiaId));
+      const anterior = Number(existente.amount);
+      if (Math.abs(anterior - a.valor) >= 0.005) {
+        await tx.update(taxGuide).set({ amount: a.valor.toFixed(2) }).where(eq(taxGuide.id, guiaId));
+        const r = await reescriturarGuia(tx, companyId, guiaId, `Guia da folha do OneFlow para ${competencia}: ${anterior.toFixed(2)} → ${a.valor.toFixed(2)}`);
+        out.escrituradas += r.gravadas;
+        for (const e of r.erros) out.avisos.push(`${g.taxName}: ${e.motivo}`);
+      }
+      out.guias.push({ imposto: g.codigo, taxName: g.taxName, valor: a.valor, acao: 'atualizada', guiaId });
+    }
+    await garantirEntregaDaGuia(tx, companyId, guiaId);
+  }
+  return completas;
+}
+
+/** O fiscal da competência voltou inteiro: apuração lida e toda guia com valor tem arquivo. */
+async function fiscalCompleto(tx: DbHandle, companyId: string, competencia: string, out: RetornoResult): Promise<boolean> {
+  const simples = out.guias.find((g) => g.imposto === 'SIMPLES' || g.imposto === 'MEI');
+  if (!simples) return false; // apuração do Simples ainda não veio (ou está aberta)
+  const [r] = (await tx.execute(sql`
+    SELECT count(*) FILTER (WHERE file_url IS NULL)::int AS sem_arquivo
+      FROM tax_guide
+     WHERE company_id = ${companyId} AND reference_month = ${primeiroDia(competencia)}::date
+       AND NOT provisional AND tax_name NOT ILIKE '%DCTFWeb%' AND tax_name NOT ILIKE '%FGTS%'
+  `)) as unknown as { sem_arquivo: number }[];
+  return (r?.sem_arquivo ?? 0) === 0;
+}
+
+/** O que já voltou da competência: fiscal e folha, cada um com sua marca. */
+export async function lerCompetencia(
+  tx: DbHandle,
+  companyId: string,
+  competencia: string,
+): Promise<{ fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null } | null> {
+  const [r] = (await tx.execute(sql`
+    SELECT fiscal_ok AS "fiscalOk", folha_ok AS "folhaOk", folha_status AS "folhaStatus"
+      FROM oneflow_competencia WHERE company_id = ${companyId} AND competencia = ${competencia}
+  `)) as unknown as { fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null }[];
+  return r ?? null;
+}
+
+async function marcarCompetencia(
+  tx: DbHandle,
+  companyId: string,
+  competencia: string,
+  m: { fiscalOk?: boolean; folhaOk?: boolean; folhaStatus?: string },
+): Promise<void> {
+  await tx.execute(sql`
+    INSERT INTO oneflow_competencia (company_id, competencia, fiscal_ok, folha_ok, folha_status)
+    VALUES (${companyId}, ${competencia}, ${m.fiscalOk ?? false}, ${m.folhaOk ?? false}, ${m.folhaStatus ?? null})
+    ON CONFLICT (company_id, competencia) DO UPDATE SET
+      fiscal_ok = oneflow_competencia.fiscal_ok OR ${m.fiscalOk ?? false},
+      folha_ok = oneflow_competencia.folha_ok OR ${m.folhaOk ?? false},
+      folha_status = coalesce(${m.folhaStatus ?? null}, oneflow_competencia.folha_status),
+      atualizado_em = now()
+  `);
+}
+
+const cotaEstourada = (m: string) => /requisi..es por dia|RATE_LIMIT/i.test(m);
 
 /**
  * A guia já existe do lado de lá? UMA chamada responde.
@@ -297,10 +475,12 @@ export async function guiaDisponivel(
   companyId: string,
   appHash: string,
   competencia: string,
+  /** `GMEIGUIA` para MEI; o padrão é a guia do Simples. */
+  codigo = 'GPGDAS',
 ): Promise<boolean> {
   const of = clienteOneflow(tx);
   try {
-    const r = conteudo(await of.anexosDasObrigacoes(companyId, appHash, competencia, 'GPGDAS'));
+    const r = conteudo(await of.anexosDasObrigacoes(companyId, appHash, competencia, codigo));
     return lista(r.obrigacoes).length > 0;
   } catch {
     // Na dúvida, deixa passar: um falso positivo custa cinco chamadas, um
@@ -913,10 +1093,25 @@ async function buscarArquivoDaGuia(
   imposto: string,
   out: RetornoResult,
 ): Promise<{ fileUrl: string | null; pixCode: string | null; vencimento: string | null }> {
-  const vazio = { fileUrl: null, pixCode: null, vencimento: null };
-
   const codigo = OBRIGACAO_DO_IMPOSTO[imposto];
-  if (!codigo) return vazio;
+  if (!codigo) return { fileUrl: null, pixCode: null, vencimento: null };
+  const r = await baixarAnexo(of, companyId, appHash, competencia, codigo, out);
+  return { fileUrl: r.fileUrl, pixCode: r.pixCode, vencimento: r.vencimento };
+}
+
+/**
+ * O anexo de uma obrigação pelo código dela (`GPGDAS`, `GDCTFWEBMEN`…):
+ * arquivo, Pix, vencimento real e valor. `existe: false` = ainda não gerada.
+ */
+async function baixarAnexo(
+  of: ReturnType<typeof clienteOneflow>,
+  companyId: string,
+  appHash: string,
+  competencia: string,
+  codigo: string,
+  out: RetornoResult,
+): Promise<{ existe: boolean; valor: number; fileUrl: string | null; pixCode: string | null; vencimento: string | null }> {
+  const vazio = { existe: false, valor: 0, fileUrl: null, pixCode: null, vencimento: null };
 
   let anexos: Record<string, unknown>[];
   try {
@@ -930,6 +1125,8 @@ async function buscarArquivoDaGuia(
   if (anexos.length === 0) return vazio; // ainda não gerada lá — normal.
 
   const a = anexos[0]!;
+  // O mesmo anexo pode vir repetido (visto na DCTFWeb): vale o primeiro.
+  const valor = numero(a.valor ?? a.VALOR);
   const texto = (...chaves: string[]): string | null => {
     for (const k of chaves) {
       const v = a[k] ?? a[k.toUpperCase()] ?? a[k.toLowerCase()];
@@ -954,7 +1151,7 @@ async function buscarArquivoDaGuia(
       `Arquivo da guia (${codigo}): anexo sem campo de arquivo. ` +
         `Chaves recebidas: ${Object.keys(a).join(', ')}.`,
     );
-    return { ...vazio, pixCode: pix, vencimento };
+    return { ...vazio, existe: true, valor, pixCode: pix, vencimento };
   }
 
   let decodificado: string;
@@ -972,6 +1169,8 @@ async function buscarArquivoDaGuia(
       const bytes = Buffer.from(await res.arrayBuffer());
       const tipo = res.headers.get('content-type')?.split(';')[0] ?? 'application/pdf';
       return {
+        existe: true,
+        valor,
         fileUrl: `data:${tipo};base64,${bytes.toString('base64')}`,
         pixCode: pix,
         vencimento,
@@ -981,21 +1180,21 @@ async function buscarArquivoDaGuia(
         `Arquivo da guia (${codigo}): a URL veio, mas o download falhou (${msg(err)}). ` +
           'A guia fica sem arquivo e a próxima rodada tenta de novo.',
       );
-      return { ...vazio, pixCode: pix, vencimento };
+      return { ...vazio, existe: true, valor, pixCode: pix, vencimento };
     }
   }
 
   // Caminho alternativo: o próprio PDF em base64. Não observado até aqui,
   // mas barato de aceitar — e melhor que recusar um formato plausível.
   if (bruto.length > 1024) {
-    return { fileUrl: `data:application/pdf;base64,${bruto}`, pixCode: pix, vencimento };
+    return { existe: true, valor, fileUrl: `data:application/pdf;base64,${bruto}`, pixCode: pix, vencimento };
   }
 
   out.avisos.push(
     `Arquivo da guia (${codigo}): conteúdo não reconhecido como URL nem como PDF. ` +
       `Chaves recebidas: ${Object.keys(a).join(', ')}.`,
   );
-  return { ...vazio, pixCode: pix, vencimento };
+  return { ...vazio, existe: true, valor, pixCode: pix, vencimento };
 }
 
 function msg(err: unknown): string {

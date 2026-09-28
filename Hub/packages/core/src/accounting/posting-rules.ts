@@ -301,10 +301,40 @@ export function settleFinancialEntry(doc: FinancialEntryDoc): JournalDraft {
  * Simples na DRE e faria a conferência contra o PGDAS falhar.
  */
 function contasDoTributo(taxName: string): { despesa: string; passivo: string } {
-  const ehSimples = /simples|\bdas\b/i.test(taxName);
-  return ehSimples
-    ? { despesa: ACCOUNTS.IMPOSTO_SIMPLES, passivo: ACCOUNTS.DAS_A_RECOLHER }
-    : { despesa: ACCOUNTS.IMPOSTO_OUTROS, passivo: ACCOUNTS.IMPOSTOS_A_RECOLHER };
+  const tipo = tipoDaGuia(taxName);
+  if (tipo === 'SIMPLES') return { despesa: ACCOUNTS.IMPOSTO_SIMPLES, passivo: ACCOUNTS.DAS_A_RECOLHER };
+  // Guias da folha: encargo de pessoal, não imposto sobre faturamento.
+  if (tipo === 'FGTS' || tipo === 'DCTFWEB') return { despesa: ACCOUNTS.ENCARGOS_PESSOAL, passivo: ACCOUNTS.ENCARGOS_A_RECOLHER };
+  return { despesa: ACCOUNTS.IMPOSTO_OUTROS, passivo: ACCOUNTS.IMPOSTOS_A_RECOLHER };
+}
+
+/**
+ * De que tipo é a guia, pelo nome. As guias da folha que voltam do OneFlow
+ * têm nome fixo (`GUIA_DCTFWEB`, `GUIA_FGTS`…), e o nome decide as contas.
+ */
+export function tipoDaGuia(taxName: string): 'SIMPLES' | 'DCTFWEB' | 'FGTS' | 'OUTROS' {
+  if (/dctf\s*web/i.test(taxName)) return 'DCTFWEB';
+  if (/fgts/i.test(taxName)) return 'FGTS';
+  if (/simples|\bdas\b/i.test(taxName)) return 'SIMPLES';
+  return 'OUTROS';
+}
+
+/**
+ * Parte da guia da DCTFWeb que ainda não está no razão.
+ *
+ * A DCTFWeb recolhe o INSS e o IRRF RETIDOS dos trabalhadores — que a folha
+ * já lançou como obrigação (`accrueFolha`) — mais a parte patronal (CPP,
+ * RAT, terceiros), que ninguém lançou. Provisionar a guia inteira dobraria
+ * as retenções; por isso só a patronal vira despesa. No Simples dos Anexos
+ * III e V ela é zero, e a guia não provisiona nada: só baixa as retenções.
+ */
+export function parteDaGuiaDaFolha(doc: TaxGuideDoc): { inss: number; irrf: number; patronal: number } {
+  const r = doc.retidoNaFolha ?? { inss: 0, irrf: 0 };
+  const cent = (n: number) => Math.round(n * 100);
+  const total = cent(doc.amount);
+  const irrf = Math.min(cent(r.irrf), total);
+  const inss = Math.min(cent(r.inss), total - irrf);
+  return { inss: inss / 100, irrf: irrf / 100, patronal: (total - irrf - inss) / 100 };
 }
 
 export interface TaxGuideDoc {
@@ -324,6 +354,8 @@ export interface TaxGuideDoc {
    * fazia e a ITG 1000 não permite.
    */
   reparticao?: Partial<Record<'irpj' | 'csll' | 'cofins' | 'pis' | 'cpp' | 'icms' | 'iss', number>> | null;
+  /** Guia da DCTFWeb: o INSS e o IRRF que a folha da competência já reteve e lançou. */
+  retidoNaFolha?: { inss: number; irrf: number } | null;
 }
 
 /**
@@ -352,6 +384,23 @@ const CONTA_DO_TRIBUTO: Record<string, string> = {
  */
 export function accrueTaxGuide(doc: TaxGuideDoc): JournalDraft {
   const { despesa: contaDespesa, passivo: contaPassivo } = contasDoTributo(doc.taxName);
+
+  // DCTFWeb: só a parte patronal é fato novo — ver `parteDaGuiaDaFolha`.
+  if (tipoDaGuia(doc.taxName) === 'DCTFWEB') {
+    const { patronal } = parteDaGuiaDaFolha(doc);
+    return assertBalanced({
+      entryDate: doc.dueDate,
+      referenceMonth: doc.referenceMonth,
+      memo: `Provisão — ${doc.taxName} (parte patronal)`,
+      source: 'TAX_GUIDE',
+      sourceId: doc.id,
+      event: 'ACCRUAL',
+      lines: [
+        { accountCode: contaDespesa, direction: 'DEBIT', amount: patronal },
+        { accountCode: contaPassivo, direction: 'CREDIT', amount: patronal },
+      ],
+    });
+  }
 
   return assertBalanced({
     entryDate: doc.dueDate,
@@ -416,6 +465,26 @@ function segregarGuia(doc: TaxGuideDoc, contaPadrao: string): DraftLine[] {
 export function settleTaxGuide(doc: TaxGuideDoc): JournalDraft {
   const { passivo: contaPassivo } = contasDoTributo(doc.taxName);
   const data = doc.paidAt ?? doc.dueDate;
+
+  // DCTFWeb: o pagamento baixa o IRRF retido (impostos) e o resto (INSS
+  // retido + patronal) em encargos — as mesmas contas em que nasceram.
+  if (tipoDaGuia(doc.taxName) === 'DCTFWEB') {
+    const { irrf } = parteDaGuiaDaFolha(doc);
+    const encargos = Math.round((doc.amount - irrf) * 100) / 100;
+    return assertBalanced({
+      entryDate: data,
+      referenceMonth: monthOf(data),
+      memo: `Pagamento — ${doc.taxName}`,
+      source: 'TAX_GUIDE',
+      sourceId: doc.id,
+      event: 'SETTLEMENT',
+      lines: [
+        ...(encargos > 0 ? [{ accountCode: ACCOUNTS.ENCARGOS_A_RECOLHER, direction: 'DEBIT' as const, amount: encargos }] : []),
+        ...(irrf > 0 ? [{ accountCode: ACCOUNTS.IMPOSTOS_A_RECOLHER, direction: 'DEBIT' as const, amount: irrf }] : []),
+        { accountCode: doc.cashAccountCode ?? ACCOUNTS.BANCOS, direction: 'CREDIT', amount: doc.amount },
+      ],
+    });
+  }
 
   return assertBalanced({
     entryDate: data,
