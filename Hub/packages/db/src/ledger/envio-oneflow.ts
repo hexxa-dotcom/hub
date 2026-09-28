@@ -164,7 +164,7 @@ export async function ensaiarEnvio(
   referenceMonth: string,
   cnpjDaEmpresa: string,
   /** O plano da empresa no OneFlow decide o de-para — ver `planoDaEmpresa`. */
-  plano: PlanoOneflow = 'DINAMICO',
+  plano: PlanoOneflow = 'PADRAO',
 ): Promise<EnsaioResult> {
   const linhas = (await tx.execute(sql`
     SELECT
@@ -183,6 +183,12 @@ export async function ensaiarEnvio(
         WHERE l2.journal_entry_id = j.id AND coalesce(bp2.document, '') <> '' LIMIT 1) AS doc_da_partida,
       (SELECT bp2.name FROM ledger_line l2 JOIN business_partner bp2 ON bp2.id = l2.partner_id
         WHERE l2.journal_entry_id = j.id AND coalesce(bp2.document, '') <> '' LIMIT 1) AS nome_da_partida,
+      -- E o parceiro do documento de origem (o lançamento financeiro): ligado
+      -- depois de escriturado, ele não está nas linhas do razão.
+      (SELECT bp3.document FROM financial_entry fe3 JOIN business_partner bp3 ON bp3.id = fe3.partner_id
+        WHERE j.source = 'FINANCIAL_ENTRY' AND fe3.id = j.source_id AND coalesce(bp3.document, '') <> '') AS doc_do_documento,
+      (SELECT bp3.name FROM financial_entry fe3 JOIN business_partner bp3 ON bp3.id = fe3.partner_id
+        WHERE j.source = 'FINANCIAL_ENTRY' AND fe3.id = j.source_id AND coalesce(bp3.document, '') <> '') AS nome_do_documento,
       EXISTS (SELECT 1 FROM oneflow_envio e
               WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO') AS ja_enviada,
       ${PARADA_NO_ENVIO} AS parada,
@@ -242,8 +248,8 @@ export async function ensaiarEnvio(
       const destino = traduzirConta(conta, plano);
       if (!destino) { faltando.push(conta); continue; }
 
-      const doc = String(l.doc_parceiro || l.doc_da_partida || '').replace(/\D/g, '');
-      const nomeParceiro = l.nome_parceiro || (l.doc_parceiro ? null : l.nome_da_partida);
+      const doc = String(l.doc_parceiro || l.doc_da_partida || l.doc_do_documento || '').replace(/\D/g, '');
+      const nomeParceiro = l.nome_parceiro || (l.doc_parceiro ? null : l.nome_da_partida || l.nome_do_documento);
       const ehDebito = String(l.direction) === 'DEBIT';
 
       // Conta de participante com lado fixo (fornecedor/cliente): sem o CNPJ
@@ -389,7 +395,7 @@ export async function enviarRazao(
   },
   /** Instante (epoch ms) em que esta execução precisa ter terminado. */
   prazo?: number,
-  plano: PlanoOneflow = 'DINAMICO',
+  plano: PlanoOneflow = 'PADRAO',
 ): Promise<ResultadoEnvioRazao> {
   if (!(await envioAutorizado(tx, companyId, referenceMonth))) {
     return {

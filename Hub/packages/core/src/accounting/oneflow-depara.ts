@@ -212,7 +212,8 @@ export const CONTAS_A_CRIAR_NO_ONEFLOW: {
  * Partida retida com o nome da conta faltando é visível; partida na conta
  * errada parece certa.
  */
-export function traduzirConta(codigoDoHub: string, plano: PlanoOneflow = 'DINAMICO'): DestinoOneflow | null {
+/** O plano PADRÃO do OneFlow é o do sistema (decisão de 28/09/2026); o Dinâmico só para quem ainda está nele. */
+export function traduzirConta(codigoDoHub: string, plano: PlanoOneflow = 'PADRAO'): DestinoOneflow | null {
   return (plano === 'PADRAO' ? DE_PARA_ONEFLOW_PADRAO : DE_PARA_ONEFLOW)[codigoDoHub] ?? null;
 }
 
@@ -329,7 +330,7 @@ export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
  * É o que o ensaio de envio usa para produzir a lista exata do que criar no
  * OneFlow, em vez de descobrir uma conta faltando por vez a cada tentativa.
  */
-export function contasSemDestino(codigosDoHub: string[], plano: PlanoOneflow = 'DINAMICO'): {
+export function contasSemDestino(codigosDoHub: string[], plano: PlanoOneflow = 'PADRAO'): {
   codigo: string;
   aCriar: (typeof CONTAS_A_CRIAR_NO_ONEFLOW)[number] | null;
 }[] {
