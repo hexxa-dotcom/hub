@@ -29,6 +29,13 @@ export interface DestinoOneflow {
    * recusa com "Conta Contábil identificada por participante".
    */
   exigeParticipante?: boolean;
+  /**
+   * A conta é "por participante" de um lado fixo: Fornecedores sempre com
+   * `cnpjForn`, Clientes sempre com `cnpjCli` — débito ou crédito. Sem o
+   * CNPJ do parceiro a partida fica retida (nunca vai com o da própria
+   * empresa: criaria no livro de lá um fornecedor que é a empresa).
+   */
+  participante?: 'cliente' | 'fornecedor';
   /** Por que este destino, quando não é óbvio. */
   nota?: string;
 }
@@ -240,8 +247,8 @@ export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
    */
   '1.1.01.002': { classificacao: '1.1.01.003', exigeParticipante: true, nota: 'Banco Conta Movimento' },
   '1.1.01.003': { classificacao: '1.1.01.005.007', nota: 'Aplicações - Renda Fixa' },
-  '1.1.02.001': { classificacao: '1.1.02.001', nota: 'Clientes Nacionais' },
-  '1.1.03.001': { classificacao: '1.1.02.007.004', nota: 'Adiantamentos a Fornecedores Nacionais' },
+  '1.1.02.001': { classificacao: '1.1.02.001', participante: 'cliente', nota: 'Clientes Nacionais' },
+  '1.1.03.001': { classificacao: '1.1.02.007.004', participante: 'fornecedor', nota: 'Adiantamentos a Fornecedores Nacionais' },
   '1.1.03.002': { classificacao: '1.1.02.009.006', nota: 'Adiantamentos de Salários' },
   '1.1.05.001': { classificacao: '1.1.02.013.014', nota: 'Mercadorias para Revenda' },
   '1.2.03.001': { classificacao: '1.2.05.001.004', nota: 'Imóveis' },
@@ -253,7 +260,8 @@ export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
   '1.2.04.099': { classificacao: '1.2.06.002.001', nota: '(-) Amortiz. Lic. de Uso de Software' },
 
   /* ── Passivo ─────────────────────────────────────────────────────────── */
-  '2.1.01.001': { classificacao: '2.1.01.001', nota: 'Fornecedores Nacionais' },
+  // Visto em 28/09/2026: "Conta Contábil identificada por participante, sem informar o fornecedor [2.1.01.001]".
+  '2.1.01.001': { classificacao: '2.1.01.001', participante: 'fornecedor', nota: 'Fornecedores Nacionais' },
   '2.1.02.001': { classificacao: '2.1.05.003.005', nota: 'Salários e Ordenados a Pagar' },
   // No Hub, "Encargos a recolher" recebe o INSS retido da folha (accrueFolha) e a DCTFWeb.
   '2.1.02.002': { classificacao: '2.1.05.003.010', nota: 'Inss a Recolher' },
@@ -262,7 +270,7 @@ export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
   '2.1.03.001': { classificacao: '2.1.05.001.010', nota: 'Irrf Retido a Recolher' },
   '2.1.03.002': { classificacao: '2.1.05.001.002', nota: 'Simples a Recolher' },
   '2.1.04.001': { classificacao: '2.1.09.001', nota: 'Dividendos a Pagar (Obrigações com Sócios)' },
-  '2.1.05.001': { classificacao: '2.1.06.001.002', nota: 'Adiantamentos de Clientes' },
+  '2.1.05.001': { classificacao: '2.1.06.001.002', participante: 'cliente', nota: 'Adiantamentos de Clientes' },
   '2.1.05.003': { classificacao: '2.1.06.001.006', nota: 'Contas a Pagar' },
 
   /* ── Patrimônio líquido ──────────────────────────────────────────────── */

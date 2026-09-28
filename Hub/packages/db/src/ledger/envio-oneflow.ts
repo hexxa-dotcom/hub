@@ -177,6 +177,12 @@ export async function ensaiarEnvio(
       l.line_memo,
       bp.document AS doc_parceiro,
       bp.name AS nome_parceiro,
+      -- O parceiro costuma estar ligado numa perna só (a despesa); a do
+      -- fornecedor/cliente fica sem. Qualquer perna do mesmo lançamento vale.
+      (SELECT bp2.document FROM ledger_line l2 JOIN business_partner bp2 ON bp2.id = l2.partner_id
+        WHERE l2.journal_entry_id = j.id AND coalesce(bp2.document, '') <> '' LIMIT 1) AS doc_da_partida,
+      (SELECT bp2.name FROM ledger_line l2 JOIN business_partner bp2 ON bp2.id = l2.partner_id
+        WHERE l2.journal_entry_id = j.id AND coalesce(bp2.document, '') <> '' LIMIT 1) AS nome_da_partida,
       EXISTS (SELECT 1 FROM oneflow_envio e
               WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO') AS ja_enviada,
       ${PARADA_NO_ENVIO} AS parada,
@@ -236,22 +242,30 @@ export async function ensaiarEnvio(
       const destino = traduzirConta(conta, plano);
       if (!destino) { faltando.push(conta); continue; }
 
-      const doc = String(l.doc_parceiro ?? '').replace(/\D/g, '');
+      const doc = String(l.doc_parceiro || l.doc_da_partida || '').replace(/\D/g, '');
+      const nomeParceiro = l.nome_parceiro || (l.doc_parceiro ? null : l.nome_da_partida);
       const ehDebito = String(l.direction) === 'DEBIT';
 
-      // Conta por participante sem CNPJ do parceiro usa o CNPJ da própria
-      // empresa: é o caso do banco, em que o "participante" é a instituição
-      // e não há parceiro comercial. Sem algum CNPJ o OneFlow recusa.
+      // Conta de participante com lado fixo (fornecedor/cliente): sem o CNPJ
+      // do parceiro, retida — com o motivo, para alguém completar o cadastro.
+      if (destino.participante && !doc) {
+        faltando.push(`${conta} (sem CNPJ do ${destino.participante})`);
+        continue;
+      }
+
+      // Conta por participante sem lado fixo (banco): sem parceiro usa o CNPJ
+      // da própria empresa — o "participante" é a instituição. Sem algum CNPJ o OneFlow recusa.
       const cnpj = doc || (destino.exigeParticipante ? cnpjDaEmpresa.replace(/\D/g, '') : '');
+      const comoCliente = destino.participante ? destino.participante === 'cliente' : ehDebito;
 
       partidas.push({
         valor: Number(Number(l.amount).toFixed(2)),
         d_c: ehDebito ? 'D' : 'C',
         historico: String(l.line_memo || l.memo).slice(0, 255),
         classificacao: destino.classificacao,
-        ...(cnpj && ehDebito ? { cnpjCli: cnpj } : {}),
-        ...(cnpj && !ehDebito ? { cnpjForn: cnpj } : {}),
-        ...(l.nome_parceiro ? { razaoSocial: String(l.nome_parceiro).slice(0, 120) } : {}),
+        ...(cnpj && comoCliente ? { cnpjCli: cnpj } : {}),
+        ...(cnpj && !comoCliente ? { cnpjForn: cnpj } : {}),
+        ...(nomeParceiro ? { razaoSocial: String(nomeParceiro).slice(0, 120) } : {}),
       });
     }
 
@@ -528,7 +542,8 @@ export async function enviarRazao(
 }
 
 /** Recusas que valem para a empresa inteira — ver `empresaBloqueada`. */
-export const RECUSA_DA_EMPRESA = /n.o est. configurado|\(5145\)|m.dulo cont.bil .* n.o/i;
+// Só a mensagem: o código 5145 é genérico (visto também em conta sem participante).
+export const RECUSA_DA_EMPRESA = /m.dulo cont.bil .* n.o est. configurado/i;
 
 /** Até quantos lançamentos vão num composto. A API não documenta limite de partidas; 20 lançamentos (~40–60 partidas) é conservador. */
 export const LANCAMENTOS_POR_COMPOSTO = 20;
