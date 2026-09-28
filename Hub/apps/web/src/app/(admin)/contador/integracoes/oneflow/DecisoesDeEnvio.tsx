@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { EnvioIncerto } from '@/lib/server/saude-oneflow';
-import { resolverEnvioIncertoAction, tentarDeNovoAction } from './actions';
+import { resolverEnvioIncertoAction, tentarDeNovoAction, empresaResetadaAction } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const botao =
@@ -86,6 +86,57 @@ export function EnviosEsgotados({ itens }: { itens: { companyId: string; empresa
         </div>
       ))}
       {aviso && <p className="text-xs text-emerald-700 dark:text-emerald-400">{aviso}</p>}
+    </div>
+  );
+}
+
+/**
+ * Cada empresa ligada, com o plano de contas lá e o botão para quando ela for
+ * RESETADA no contábil do OneFlow — o Hub não tem como saber sozinho que os
+ * lançamentos sumiram de lá.
+ */
+export function EmpresasNoOneflow({ itens }: { itens: { companyId: string; nome: string; plano: string | null; enviados: number }[] }) {
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [, iniciar] = useTransition();
+  const nomeDoPlano = (p: string | null) => (p === 'PADRAO' ? 'Plano Padrão' : p === 'DINAMICO' ? 'Plano Dinâmico' : 'plano: lê na próxima rodada');
+  return (
+    <div>
+      <ul className="divide-y divide-black/[0.06] dark:divide-white/[0.08]">
+        {itens.map((e) => (
+          <li key={e.companyId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <span className="min-w-0">
+              <span className="block truncate text-sm text-ink">{e.nome}</span>
+              <span className={`block text-xs ${e.plano === 'DINAMICO' ? 'text-amber-700 dark:text-amber-400' : 'text-ink-soft'}`}>
+                {nomeDoPlano(e.plano)}
+                {e.plano === 'DINAMICO' ? ' — migrar para o Padrão' : ''} · {e.enviados} lançamentos lá
+              </span>
+            </span>
+            <button
+              type="button"
+              disabled={ocupado === e.companyId}
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Confirma que ${e.nome} foi RESETADA no contábil do OneFlow? Os ${e.enviados} lançamentos voltam para a fila e são reenviados na próxima madrugada, pelo plano que ela tiver agora.`,
+                  )
+                )
+                  return;
+                iniciar(async () => {
+                  setOcupado(e.companyId);
+                  const r = await empresaResetadaAction(e.companyId);
+                  setAviso(`${e.nome}: ${r.mensagem}`);
+                  setOcupado(null);
+                });
+              }}
+              className={botao}
+            >
+              {ocupado === e.companyId && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Resetei no OneFlow: reenviar tudo
+            </button>
+          </li>
+        ))}
+      </ul>
+      {aviso && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">{aviso}</p>}
     </div>
   );
 }

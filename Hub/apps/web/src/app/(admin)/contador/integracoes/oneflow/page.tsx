@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, KeyRound, Gauge, Send, XCircle, Clock } from 'lucide-react';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { saudeDoOneflow, type SaudeOneflow } from '@/lib/server/saude-oneflow';
-import { EnviosIncertos, EnviosEsgotados } from './DecisoesDeEnvio';
+import { EnviosIncertos, EnviosEsgotados, EmpresasNoOneflow } from './DecisoesDeEnvio';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Integração OneFlow | Hexx Digital' };
@@ -91,6 +91,17 @@ export default async function Page() {
       )}
 
       <UsoDaCota s={s} util={util} />
+
+      <section className={`${painel} min-w-0`}>
+        <p className={rotulo}>Empresas no OneFlow</p>
+        <p className="mt-1 text-xs text-ink-soft">
+          O padrão do sistema é o Plano de Contas Padrão OneFlow. Resetou o contábil de uma empresa lá (para trocar o plano ou limpar teste)? Avise aqui: o Hub
+          não tem como saber sozinho que os lançamentos sumiram, e reenvia tudo na madrugada seguinte.
+        </p>
+        <div className="mt-3">
+          <EmpresasNoOneflow itens={s.empresas} />
+        </div>
+      </section>
 
       <section className="space-y-3">
         <p className={rotulo}>Rotinas</p>

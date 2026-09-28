@@ -69,6 +69,19 @@ export const MODELO_FORTE: Record<LlmProvider, string> = {
 export type Tarefa = 'padrao' | 'conciliacao';
 
 export async function resolverMotor(cred: Credencial, tarefa: Tarefa = 'padrao'): Promise<LlmConfig> {
+  /**
+   * Classificação (conciliação, classificador, enquadramento, CNAE) vai no
+   * Claude quando há chave da Anthropic no ambiente (`ANTHROPIC_API_KEY`);
+   * todo o resto segue no motor configurado (Gemini). Decisão de 28/09/2026:
+   * o motor mais forte só onde erro vira lançamento errado no livro.
+   */
+  if (tarefa === 'conciliacao' && cred.provider !== 'anthropic' && process.env.ANTHROPIC_API_KEY) {
+    return {
+      provider: 'anthropic',
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      model: process.env.LLM_MODEL_CONCILIACAO_ANTHROPIC || MODELO_FORTE.anthropic,
+    };
+  }
   const model =
     tarefa === 'conciliacao'
       ? process.env.LLM_MODEL_CONCILIACAO || MODELO_FORTE[cred.provider]

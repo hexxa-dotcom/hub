@@ -39,3 +39,34 @@ export async function tentarDeNovoAction(companyId: string): Promise<{ ok: boole
   revalidatePath('/contador/integracoes/oneflow');
   return { ok: true, mensagem: `${r.length} tentativa(s) zerada(s): o envio tenta de novo na próxima madrugada.` };
 }
+
+/**
+ * A empresa foi RESETADA no contábil do OneFlow (troca de plano, limpeza de
+ * teste): tudo que o Hub marcava como enviado deixou de existir lá.
+ *
+ * Sem isto o Hub continua achando que os lançamentos estão lá — foi o que
+ * aconteceu com a HEXX: 153 "enviados" que o reset de 20–21/09 apagou. Aqui:
+ * os envios viram RETIRADO (com o motivo), as tentativas zeram e o plano e a
+ * implantação são relidos na próxima rodada. A madrugada reenvia tudo, já em
+ * lote composto e pelo plano novo.
+ */
+export async function empresaResetadaAction(companyId: string): Promise<{ ok: boolean; mensagem: string }> {
+  await requireAdmin();
+  const db = getDb();
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const enviados = (await db.execute(sql`
+    UPDATE oneflow_envio
+       SET status = 'RETIRADO', erro = coalesce(erro, '') || ${` · Empresa resetada no contábil do OneFlow (informado em ${hoje}) — volta para a fila.`}
+     WHERE company_id = ${companyId}::uuid AND status IN ('ENVIADO', 'ENVIANDO', 'INCERTO')
+    RETURNING 1`)) as unknown as unknown[];
+  await db.execute(sql`DELETE FROM oneflow_envio WHERE company_id = ${companyId}::uuid AND status = 'ERRO'`);
+  // Plano e início do contábil mudam no reset: relê na próxima rodada.
+  await db.execute(sql`DELETE FROM oneflow_empresa WHERE company_id = ${companyId}::uuid`);
+  // O mês "enviado" volta a "conferido" para o fechamento acompanhar o reenvio.
+  await db.execute(sql`UPDATE monthly_closure SET stage = 'CONFERIDO' WHERE company_id = ${companyId}::uuid AND stage = 'ENVIADO'`);
+  revalidatePath('/contador/integracoes/oneflow');
+  return {
+    ok: true,
+    mensagem: `${enviados.length} lançamento(s) voltam para a fila e saem na próxima madrugada, pelo plano que a empresa tiver agora no OneFlow.`,
+  };
+}

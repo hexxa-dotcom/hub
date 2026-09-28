@@ -101,6 +101,8 @@ export interface SaudeOneflow {
   };
   volta: { competencia: string; empresas: { nome: string; fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null }[] };
   problemas: Problema[];
+  /** Empresas ligadas ao OneFlow, com o plano de contas lá (null = ainda não lido). */
+  empresas: { companyId: string; nome: string; plano: string | null; enviados: number }[];
 }
 
 const hojeSP = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -205,6 +207,18 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
        GROUP BY 1, 2 ORDER BY 3 DESC`),
   ])
     lista.push(await consulta());
+  // As empresas ligadas: plano de contas lá e quantos lançamentos o Hub diz ter enviado.
+  const empresasOneflow = ids.length
+    ? ((await db.execute(sql`
+        SELECT c.id::text AS "companyId", coalesce(nullif(c.trade_name, ''), c.legal_name) AS nome, oe.plano_modelo AS plano,
+               (SELECT count(*)::int FROM oneflow_envio e WHERE e.company_id = c.id AND e.status = 'ENVIADO') AS enviados
+          FROM company c LEFT JOIN oneflow_empresa oe ON oe.company_id = c.id
+         WHERE c.id IN (${sql.join(
+           ids.map((i) => sql`${i}::uuid`),
+           sql`, `,
+         )}) AND c.closed_at IS NULL
+         ORDER BY 2`)) as unknown as SaudeOneflow['empresas'])
+    : [];
   const [serie, tokens, ultimas, falhas, medias, envio, errosMotivo, pendentes, volta, razao, incertos, esgotadas] = lista as unknown as [
     { dia: string; chamadas: number }[],
     { expires_at: Date | null; last_used_at: Date | null; renova: boolean }[],
@@ -362,6 +376,7 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
     },
     volta: { competencia, empresas: volta },
     problemas,
+    empresas: empresasOneflow,
   };
 }
 
