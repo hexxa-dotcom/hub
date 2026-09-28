@@ -12,7 +12,8 @@ import {
   HelpCircle,
   TrendingUp,
 } from 'lucide-react';
-import { getDb, eq, desc, withDbTimeout } from '@hexxa/db';
+import { getDb, eq, desc, withDbTimeout, sql } from '@hexxa/db';
+import { certificadosDasEmpresas } from '@/lib/server/fiscal';
 import { valorDosHonorarios } from '@hexxa/core';
 import { company, subscription, plan, ticket } from '@hexxa/db/schema';
 
@@ -81,7 +82,30 @@ function displayName(c: { legalName: string; tradeName: string | null; useTradeN
   return c.useTradeName && c.tradeName ? c.tradeName : c.legalName;
 }
 
+/**
+ * Certificados que pedem ação: vencidos ou vencendo em até 30 dias (a partir
+ * de 15 com destaque). Sem certificado a nota não é emitida pela Hexx nem as
+ * notas chegam do Emissor Nacional.
+ */
+async function certificadosParaRenovar(): Promise<{ companyId: string; nome: string; validoAte: string; dias: number }[]> {
+  const mapa = await certificadosDasEmpresas();
+  if (!mapa.size) return [];
+  const nomes = (await getDb().execute(
+    sql`SELECT id::text, coalesce(nullif(trade_name, ''), legal_name) AS nome FROM company WHERE closed_at IS NULL`,
+  )) as unknown as { id: string; nome: string }[];
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  return nomes
+    .flatMap((n) => {
+      const v = mapa.get(n.id)?.validoAte;
+      if (!v) return [];
+      const dias = Math.round((Date.parse(`${v}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 86_400_000);
+      return dias <= 30 ? [{ companyId: n.id, nome: n.nome, validoAte: v, dias }] : [];
+    })
+    .sort((a, b) => a.dias - b.dias);
+}
+
 export default async function AdminDashboard() {
+  const renovar = await certificadosParaRenovar().catch(() => []);
   // Sem timeout aqui essa página já travou o /contador inteiro por até 5
   // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
   // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
@@ -181,6 +205,28 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       </div>
+
+      {renovar.length > 0 && (
+        <div className={`rounded-3xl border px-6 py-5 ${renovar.some((r) => r.dias <= 15) ? 'border-red-300/60 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30' : 'border-amber-300/60 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30'}`}>
+          <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {renovar.length === 1 ? 'Um certificado digital' : `${renovar.length} certificados digitais`} para renovar
+          </p>
+          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            Sem certificado válido a nota não sai pela Hexx e as notas do Emissor Nacional param de chegar. Troque na página fiscal do cliente.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {renovar.map((r) => (
+              <Link
+                key={r.companyId}
+                href={`/contador/clientes/${r.companyId}/fiscal` as never}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-bold ${r.dias < 0 ? 'bg-red-600 text-white' : r.dias <= 15 ? 'bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200'}`}
+              >
+                {r.nome} · {r.dias < 0 ? `venceu ${r.validoAte.split('-').reverse().join('/')}` : r.dias === 0 ? 'vence hoje' : `vence em ${r.dias} ${r.dias === 1 ? 'dia' : 'dias'}`}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPIs Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6">

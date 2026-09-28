@@ -3,6 +3,7 @@ import { getDb, eq, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket } from '@hexxa/db/schema';
 import { valorDosHonorarios } from '@hexxa/core';
 import { ClientesTable, type Cliente } from './ClientesTable';
+import { certificadosDasEmpresas } from '@/lib/server/fiscal';
 
 /**
  * A lista parte de COMPANY, não de subscription.
@@ -18,6 +19,7 @@ import { ClientesTable, type Cliente } from './ClientesTable';
 async function getClientes(): Promise<Cliente[]> {
   const db = getDb();
 
+  const certificados = await certificadosDasEmpresas().catch(() => new Map<string, { validoAte: string | null; titular: string | null }>());
   const [empresas, owners, acessos, ticketCounts] = await withDbTimeout(Promise.all([
     db
       .select({
@@ -90,6 +92,9 @@ async function getClientes(): Promise<Cliente[]> {
       municipio: s.city && s.state ? `${s.city}/${s.state}` : '—',
       pendencias: pendByCompany.get(s.companyId) ?? 0,
       semAcesso: !s.closedAt && (acessosPorEmpresa.get(s.companyId) ?? 0) === 0,
+      // Certificado A1: tem ou não, e até quando vale.
+      temCertificado: certificados.has(s.companyId),
+      certValidoAte: certificados.get(s.companyId)?.validoAte ?? null,
       asaasCustomerId: s.asaasCustomerId ?? undefined,
       asaasSubscriptionId: s.asaasSubscriptionId ?? undefined,
     };

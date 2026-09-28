@@ -57,6 +57,10 @@ export type Cliente = {
   pendencias: number;
   /** Ninguém consegue entrar nesta empresa ainda. */
   semAcesso?: boolean;
+  /** Certificado A1 enviado ao Hub. */
+  temCertificado?: boolean;
+  /** Validade do certificado (AAAA-MM-DD). */
+  certValidoAte?: string | null;
   asaasCustomerId?: string;
   asaasSubscriptionId?: string;
 };
@@ -239,6 +243,11 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                 <span className={`hidden rounded-full px-3 py-1 text-xs font-bold sm:inline-flex shadow-sm ${PLANO_PALETTE[planos.indexOf(c.plano) % PLANO_PALETTE.length] ?? PLANO_PALETTE[0]}`}>
                   {c.plano}
                 </span>
+                {c.status === 'ENCERRADO' ? (
+                  <span className="hidden w-36 shrink-0 text-center text-xs text-[#6E6A61] md:inline">—</span>
+                ) : (
+                  <SeloDoCertificado tem={c.temCertificado} validoAte={c.certValidoAte} />
+                )}
                 <span className="hidden text-sm font-serif font-bold text-[#231F20] dark:text-[#F5F6F4] lg:block w-28 text-right tabular">
                   {c.mrr > 0 ? BRL.format(c.mrr) : '—'}
                 </span>
@@ -258,6 +267,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                       ['Regime', c.regime],
                       ['Cliente desde', fmtDate(c.desde)],
                       ['MRR', c.mrr > 0 ? BRL.format(c.mrr) : 'Trial / isento'],
+                      ['Certificado digital', !c.temCertificado ? 'Não enviado' : c.certValidoAte ? `Válido até ${fmtDate(c.certValidoAte)}` : 'Enviado (validade não lida)'],
                     ].map(([k, v]) => (
                       <div key={k} className="space-y-0.5">
                         <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
@@ -388,4 +398,22 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
       )}
     </div>
   );
+}
+
+/** Situação do certificado A1 na linha do cliente: sem, ativo, vencendo (≤30 dias) ou vencido. */
+function SeloDoCertificado({ tem, validoAte }: { tem?: boolean; validoAte?: string | null }) {
+  const base = 'hidden md:inline-flex w-36 shrink-0 justify-center rounded-full px-3 py-1 text-[11px] font-bold';
+  if (!tem) return <span className={`${base} bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]`}>Sem certificado</span>;
+  if (!validoAte) return <span className={`${base} bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]`}>Certificado enviado</span>;
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const dias = Math.round((Date.parse(`${validoAte}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 86_400_000);
+  const data = validoAte.split('-').reverse().join('/');
+  if (dias < 0) return <span className={`${base} bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300`} title={`Venceu em ${data}`}>Vencido {data}</span>;
+  if (dias <= 30)
+    return (
+      <span className={`${base} bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-300`} title={`Faltam ${dias} dias`}>
+        Vence {data}
+      </span>
+    );
+  return <span className={`${base} bg-[#EFFFD6] text-[#2F4A3C] dark:bg-[#1E3328] dark:text-[#DFFFAE]`}>Ativo até {data}</span>;
 }

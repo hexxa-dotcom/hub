@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { TenantContext } from '@hexxa/core';
-import { loadCertFromBase64, type CertMaterial } from '@hexxa/integrations';
+import { loadCertFromBase64, inspecionarCertificado, type CertMaterial } from '@hexxa/integrations';
 import { withTenant, getDb, sql } from '@hexxa/db';
 import { encryptSecret, decryptSecret } from './secret-crypto';
 
@@ -166,6 +166,51 @@ export async function saveNfseConfig(ctx: TenantContext, input: Partial<NfseConf
       `);
     }
   });
+
+  // Certificado novo: grava validade e titular ao lado dele — a lista de
+  // clientes e o alerta do escritório leem daqui, sem abrir o certificado.
+  if (input.certPfxB64 && input.certPassword) await registrarValidadeDoCertificado(ctx.companyId, input.certPfxB64, input.certPassword);
+}
+
+/** Lê validade e titular do certificado e grava em nfse_config. Nunca derruba quem chamou. */
+export async function registrarValidadeDoCertificado(companyId: string, pfxB64: string, senha: string): Promise<{ validoAte: string; titular: string } | null> {
+  try {
+    const f = inspecionarCertificado(pfxB64, senha);
+    await getDb().execute(sql`UPDATE nfse_config SET cert_valido_ate = ${f.validoAte}::date, cert_titular = ${f.titular} WHERE company_id = ${companyId}`);
+    return { validoAte: f.validoAte, titular: f.titular };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Certificado de cada empresa para a lista do escritório e o alerta do painel.
+ * Quem tem certificado gravado mas ainda sem validade registrada (enviado antes
+ * desta coluna existir) é lido uma vez e passa a ter.
+ */
+export async function certificadosDasEmpresas(): Promise<Map<string, { validoAte: string | null; titular: string | null }>> {
+  const db = getDb();
+  const linhas = (await db.execute(sql`
+    SELECT company_id::text AS "companyId", cert_pfx_b64 IS NOT NULL AS tem, to_char(cert_valido_ate, 'YYYY-MM-DD') AS "validoAte", cert_titular AS titular
+      FROM nfse_config
+  `)) as unknown as { companyId: string; tem: boolean; validoAte: string | null; titular: string | null }[];
+  const out = new Map<string, { validoAte: string | null; titular: string | null }>();
+  for (const l of linhas) {
+    if (!l.tem) continue;
+    if (!l.validoAte) {
+      const [c] = (await db.execute(sql`SELECT cert_pfx_b64, cert_password FROM nfse_config WHERE company_id = ${l.companyId}`)) as unknown as {
+        cert_pfx_b64: string | null;
+        cert_password: string | null;
+      }[];
+      const pfx = decryptSecret(c?.cert_pfx_b64 ?? null);
+      const senha = decryptSecret(c?.cert_password ?? null);
+      const r = pfx && senha ? await registrarValidadeDoCertificado(l.companyId, pfx, senha) : null;
+      out.set(l.companyId, { validoAte: r?.validoAte ?? null, titular: r?.titular ?? null });
+      continue;
+    }
+    out.set(l.companyId, { validoAte: l.validoAte, titular: l.titular });
+  }
+  return out;
 }
 
 /** Certificado A1: primeiro tenta env var (deploy-wide), depois banco (por tenant). */
