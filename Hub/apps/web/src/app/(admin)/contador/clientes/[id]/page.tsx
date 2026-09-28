@@ -20,6 +20,8 @@ import {
   Receipt,
   Sliders,
   Scale,
+  ShieldCheck,
+  Activity,
 } from 'lucide-react';
 import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
@@ -29,6 +31,7 @@ import { HonorariosEditor } from './HonorariosEditor';
 import { EncerramentoCard } from './EncerramentoCard';
 import { AprovacaoCard } from './AprovacaoCard';
 import { entrarNaAreaDoClienteAction } from '../actions';
+import { NumeroDaEmpresa } from './NumeroDaEmpresa';
 import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -36,10 +39,10 @@ const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 type SubStatus = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED';
 
 const STATUS_CFG: Record<SubStatus, { label: string; cls: string; dot: string }> = {
-  ACTIVE:   { label: 'Ativo',        cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-  TRIAL:    { label: 'Trial',        cls: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',         dot: 'bg-blue-500' },
-  PAST_DUE: { label: 'Inadimplente', cls: 'bg-red-500/10 text-red-700 dark:text-red-400',           dot: 'bg-red-500' },
-  CANCELED: { label: 'Cancelado',    cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', dot: 'bg-[#6E6A61]' },
+  ACTIVE: { label: 'Ativo', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  TRIAL: { label: 'Trial', cls: 'bg-blue-500/10 text-blue-700 dark:text-blue-400', dot: 'bg-blue-500' },
+  PAST_DUE: { label: 'Inadimplente', cls: 'bg-red-500/10 text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+  CANCELED: { label: 'Cancelado', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]', dot: 'bg-[#6E6A61]' },
 };
 
 const REGIME_LABEL: Record<string, string> = {
@@ -82,7 +85,20 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     SELECT bool_or(authorized) AS ok FROM membership WHERE company_id = ${companyId} AND role = 'OWNER'
   `)) as unknown as { ok: boolean | null }[];
 
-  let sub: { subscriptionId: string; status: string; planId: string; planName: string | null; monthlyValue: string | null; discountValue: string; customValue: string | null; discountReason: string | null; asaasCustomerId: string | null; asaasSubscriptionId: string | null } | undefined;
+  let sub:
+    | {
+        subscriptionId: string;
+        status: string;
+        planId: string;
+        planName: string | null;
+        monthlyValue: string | null;
+        discountValue: string;
+        customValue: string | null;
+        discountReason: string | null;
+        asaasCustomerId: string | null;
+        asaasSubscriptionId: string | null;
+      }
+    | undefined;
   let planos: { id: string; nome: string; valor: number }[] = [];
   let owner: { name: string; email: string } | undefined;
   let openTickets: { id: string; subject: string; priority: string; createdAt: Date }[] = [];
@@ -132,7 +148,9 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
           .where(eq(accountingInvoice.companyId, companyId))
           .orderBy(desc(accountingInvoice.referenceMonth))
           .limit(6),
-        db.execute(sql`SELECT email_contato AS email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`).then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
+        db
+          .execute(sql`SELECT email_contato AS email, telefone FROM nfse_config WHERE company_id = ${companyId} LIMIT 1`)
+          .then((r) => (r as unknown as Record<string, unknown>[]) ?? []),
       ]),
       8000,
     );
@@ -147,9 +165,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
   const st = STATUS_CFG[status] ?? STATUS_CFG.TRIAL;
   try {
     const linhasPlano = await withDbTimeout(db.select().from(plan), 8000);
-    planos = linhasPlano
-      .map((p) => ({ id: p.id, nome: p.name, valor: Number(p.monthlyValue) }))
-      .sort((a, b) => b.valor - a.valor);
+    planos = linhasPlano.map((p) => ({ id: p.id, nome: p.name, valor: Number(p.monthlyValue) })).sort((a, b) => b.valor - a.valor);
   } catch (err) {
     console.error('[cliente] planos:', err);
   }
@@ -166,28 +182,75 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
   const telefone = (fiscalContact?.telefone as string | null) || null;
 
   const totalFaturado = invoices.filter((i) => i.status === 'PAID').reduce((s, i) => s + Number(i.value), 0);
-  const meses = Math.max(
-    0,
-    (new Date().getFullYear() - comp.createdAt.getFullYear()) * 12 + (new Date().getMonth() - comp.createdAt.getMonth()),
-  );
+  const meses = Math.max(0, (new Date().getFullYear() - comp.createdAt.getFullYear()) * 12 + (new Date().getMonth() - comp.createdAt.getMonth()));
 
   const kpis = [
-    { label: 'MRR atual', value: mrr > 0 ? BRL.format(mrr) : '—', sub: sub ? `Plano ${sub.planName}` : 'Sem assinatura', icon: DollarSign, color: 'text-emerald-700 dark:text-emerald-400' },
-    { label: 'Total faturado', value: totalFaturado > 0 ? BRL.format(totalFaturado) : '—', sub: `${invoices.filter((i) => i.status === 'PAID').length} fatura(s) paga(s)`, icon: BarChart3, color: 'text-[#2F4A3C] dark:text-[#DFFFAE]' },
-    { label: 'Cliente desde', value: meses > 0 ? `${meses} ${meses === 1 ? 'mês' : 'meses'}` : '< 1 mês', sub: fmtDate(comp.createdAt), icon: Calendar, color: 'text-purple-700 dark:text-purple-400' },
-    { label: 'Solicitações abertas', value: String(openTickets.length), sub: openTickets.length > 0 ? 'aguardando resposta' : 'tudo em dia', icon: AlertTriangle, color: openTickets.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#6E6A61] dark:text-[#A8A49C]' },
+    {
+      label: 'MRR atual',
+      value: mrr > 0 ? BRL.format(mrr) : '—',
+      sub: sub ? `Plano ${sub.planName}` : 'Sem assinatura',
+      icon: DollarSign,
+      color: 'text-emerald-700 dark:text-emerald-400',
+    },
+    {
+      label: 'Total faturado',
+      value: totalFaturado > 0 ? BRL.format(totalFaturado) : '—',
+      sub: `${invoices.filter((i) => i.status === 'PAID').length} fatura(s) paga(s)`,
+      icon: BarChart3,
+      color: 'text-[#2F4A3C] dark:text-[#DFFFAE]',
+    },
+    {
+      label: 'Cliente desde',
+      value: meses > 0 ? `${meses} ${meses === 1 ? 'mês' : 'meses'}` : '< 1 mês',
+      sub: fmtDate(comp.createdAt),
+      icon: Calendar,
+      color: 'text-purple-700 dark:text-purple-400',
+    },
+    {
+      label: 'Solicitações abertas',
+      value: String(openTickets.length),
+      sub: openTickets.length > 0 ? 'aguardando resposta' : 'tudo em dia',
+      icon: AlertTriangle,
+      color: openTickets.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#6E6A61] dark:text-[#A8A49C]',
+    },
   ];
 
+  // Situação do certificado A1, para o cabeçalho.
+  const [cert] = (await db
+    .execute(sql`SELECT cert_pfx_b64 IS NOT NULL AS tem, to_char(cert_valido_ate, 'YYYY-MM-DD') AS ate FROM nfse_config WHERE company_id = ${companyId}`)
+    .catch(() => [])) as unknown as { tem: boolean; ate: string | null }[];
+  const diasCert = cert?.ate ? Math.round((Date.parse(`${cert.ate}T12:00:00Z`) - Date.parse(`${hojeSP}T12:00:00Z`)) / 86_400_000) : null;
+  const seloCert = !cert?.tem
+    ? { texto: 'Sem certificado digital', cls: 'bg-amber-500/10 text-amber-800 dark:text-amber-300' }
+    : diasCert === null
+      ? { texto: 'Certificado enviado', cls: 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]' }
+      : diasCert < 0
+        ? { texto: `Certificado vencido em ${cert.ate!.split('-').reverse().join('/')}`, cls: 'bg-red-500/10 text-red-700 dark:text-red-400' }
+        : diasCert <= 30
+          ? { texto: `Certificado vence em ${diasCert} dias`, cls: 'bg-amber-500/10 text-amber-800 dark:text-amber-300' }
+          : { texto: `Certificado até ${cert.ate!.split('-').reverse().join('/')}`, cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' };
+
+  const link =
+    'flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors';
+  const grupo = 'px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#6E6A61]/80 dark:text-[#A8A49C]/80';
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
-      {/* Header */}
+    <div className="mx-auto w-full max-w-[1400px] space-y-6 animate-in fade-in">
+      {/* Cabeçalho */}
       <div className="flex items-start gap-4">
-        <Link href="/contador/clientes"
-          className="tap-target pressable focusable mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
+        <Link
+          href="/contador/clientes"
+          className="tap-target pressable focusable mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
+            {comp.numero != null && (
+              <span className="rounded-xl bg-[#2F4A3C] px-2.5 py-1 font-mono text-sm font-bold text-[#DFFFAE]" title="Número da empresa">
+                {String(comp.numero).padStart(3, '0')}
+              </span>
+            )}
             <h1 className="font-serif font-bold text-2xl sm:text-3xl tracking-tight text-[#231F20] dark:text-[#F5F6F4]">{comp.legalName}</h1>
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
@@ -203,97 +266,114 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
             {comp.tradeName || comp.legalName} · CNPJ {comp.cnpj}
             {comp.city && comp.state ? ` · ${comp.city}/${comp.state}` : ''}
           </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <form action={entrarNaAreaDoClienteAction.bind(null, comp.id)}>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] px-4 py-2 text-xs font-bold text-[#DFFFAE] shadow-xs hover:bg-[#2F4A3C]"
-            >
-              <LogIn className="h-3.5 w-3.5" /> Entrar na área do cliente
-            </button>
-          </form>
-          {email && (
-            <a href={`mailto:${email}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs">
-              <Send className="h-3.5 w-3.5" /> E-mail
-            </a>
-          )}
+          <Link href={`/contador/clientes/${comp.id}/fiscal`} className={`mt-2 inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${seloCert.cls}`}>
+            {seloCert.texto}
+          </Link>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">{k.label}</p>
-              <k.icon className={`h-4 w-4 ${k.color}`} />
-            </div>
-            <p className={`font-serif font-bold text-2xl ${k.color}`}>{k.value}</p>
-            <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{k.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left — dados + histórico */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* Dados da empresa */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
-              <Building2 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Dados da empresa
-            </h2>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs sm:text-sm">
-              {[
-                ['Razão social', comp.legalName],
-                ['Nome fantasia', comp.tradeName || '—'],
-                ['CNPJ', comp.cnpj],
-                ['Insc. municipal', comp.municipalRegistration || '—'],
-                ['Regime tributário', REGIME_LABEL[comp.taxRegime] ?? comp.taxRegime],
-                ['Município', comp.city && comp.state ? `${comp.city}/${comp.state}` : '—'],
-                ['Endereço', comp.addressLine1 ? `${comp.addressLine1}, ${comp.addressNumber ?? 's/n'} — ${comp.neighborhood ?? ''}` : '—'],
-                ['CEP', comp.zipcode || '—'],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
-                  <p className="font-bold text-[#231F20] dark:text-[#F5F6F4]">{v}</p>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
+        {/* Principal */}
+        <div className="min-w-0 space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {kpis.map((k) => (
+              <div key={k.label} className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider">{k.label}</p>
+                  <k.icon className={`h-4 w-4 ${k.color}`} />
                 </div>
-              ))}
-            </div>
+                <p className={`font-serif font-bold text-2xl ${k.color}`}>{k.value}</p>
+                <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C] mt-0.5">{k.sub}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Contato */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
-              <User className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Contato responsável
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
-                <User className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
-                <div>
-                  <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Responsável</p>
-                  <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{owner?.name ?? '—'}</p>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Dados da empresa */}
+            <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+              <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
+                <Building2 className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Dados da empresa
+              </h2>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs sm:text-sm">
+                {[
+                  ['Número', '__NUMERO__'],
+                  ['Razão social', comp.legalName],
+                  ['Nome fantasia', comp.tradeName || '—'],
+                  ['CNPJ', comp.cnpj],
+                  ['Insc. municipal', comp.municipalRegistration || '—'],
+                  ['Regime tributário', REGIME_LABEL[comp.taxRegime] ?? comp.taxRegime],
+                  ['Município', comp.city && comp.state ? `${comp.city}/${comp.state}` : '—'],
+                  ['Endereço', comp.addressLine1 ? `${comp.addressLine1}, ${comp.addressNumber ?? 's/n'} — ${comp.neighborhood ?? ''}` : '—'],
+                  ['CEP', comp.zipcode || '—'],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
+                    <div className="font-bold text-[#231F20] dark:text-[#F5F6F4]">
+                      {v === '__NUMERO__' ? <NumeroDaEmpresa companyId={comp.id} numero={comp.numero ?? null} /> : v}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* Contato */}
+              <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 sm:p-8 shadow-sm">
+                <h2 className="mb-4 flex items-center gap-2 font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">
+                  <User className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Contato responsável
+                </h2>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-1 2xl:grid-cols-3">
+                  <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+                    <User className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Responsável</p>
+                      <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{owner?.name ?? '—'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+                    <Mail className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">E-mail</p>
+                      {email ? (
+                        <a href={`mailto:${email}`} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE] break-all">
+                          {email}
+                        </a>
+                      ) : (
+                        <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">—</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
+                    <Phone className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Telefone</p>
+                      <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{telefone || '—'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
-                <Mail className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
-                <div>
-                  <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">E-mail</p>
-                  {email ? (
-                    <a href={`mailto:${email}`} className="text-xs font-bold text-[#2F4A3C] hover:underline dark:text-[#DFFFAE] break-all">{email}</a>
-                  ) : (
-                    <p className="text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C]">—</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-2xl bg-[#F5F6F4] dark:bg-[#121614] border border-black/5 dark:border-white/10 p-3.5">
-                <Phone className="h-4 w-4 text-[#6E6A61] dark:text-[#A8A49C] shrink-0" />
-                <div>
-                  <p className="text-[10px] text-[#6E6A61] dark:text-[#A8A49C] uppercase tracking-wider font-bold">Telefone</p>
-                  <p className="text-xs font-bold text-[#231F20] dark:text-[#F5F6F4]">{telefone || '—'}</p>
-                </div>
+
+              <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
+                <h2 className="mb-3 flex items-center gap-2 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
+                  <CreditCard className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Honorários
+                </h2>
+                <HonorariosEditor
+                  companyId={comp.id}
+                  planos={planos}
+                  atual={{
+                    planId: sub?.planId ?? null,
+                    desconto: Number(sub?.discountValue ?? 0),
+                    motivo: sub?.discountReason ?? null,
+                    status: sub?.status ?? null,
+                    valorCombinado: sub?.customValue != null ? Number(sub.customValue) : null,
+                  }}
+                />
+                {sub?.asaasSubscriptionId && (
+                  <div className="mt-3 flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    Cobrança via Asaas ativa
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -333,9 +413,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                           <td className="px-4 py-3 text-[#6E6A61] dark:text-[#A8A49C]">{fmtDate(inv.dueDate)}</td>
                           <td className="px-4 py-3 text-right font-bold text-[#231F20] dark:text-[#F5F6F4]">{BRL.format(Number(inv.value))}</td>
                           <td className="px-4 py-3 text-right">
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${ist.cls}`}>
-                              {ist.label}
-                            </span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${ist.cls}`}>{ist.label}</span>
                           </td>
                         </tr>
                       );
@@ -353,116 +431,107 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               </div>
             )}
           </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {previa && (
+              <AprovacaoCard
+                companyId={comp.id}
+                noOneflowDesde={comp.oneflowCreatedAt ? comp.oneflowCreatedAt.toLocaleDateString('pt-BR') : null}
+                aprovado={donoAprovado?.ok === true}
+                regimeSugerido={previa.sugestao.regime}
+                competenciaPadrao={competenciaPadrao}
+                faltando={previa.faltando}
+                resumo={{
+                  razao: previa.cadastro.razao,
+                  cnpj: comp.cnpj,
+                  endereco: [
+                    previa.cadastro.endereco.rua,
+                    previa.cadastro.endereco.numero,
+                    previa.cadastro.endereco.bairro,
+                    `${previa.cadastro.endereco.cidade}/${previa.cadastro.endereco.uf}`,
+                  ]
+                    .filter(Boolean)
+                    .join(', '),
+                  responsavel: previa.responsavel,
+                }}
+              />
+            )}
+
+            <EncerramentoCard
+              companyId={comp.id}
+              encerradaEm={comp.closedAt ? comp.closedAt.toLocaleDateString('pt-BR') : null}
+              motivo={comp.closedReason ?? null}
+            />
+          </div>
         </div>
 
-        {/* Right — sidebar */}
-        <div className="space-y-6">
-          {/* Plano */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
-            <h2 className="mb-3 flex items-center gap-2 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">
-              <CreditCard className="h-4 w-4 text-[#2F4A3C] dark:text-[#DFFFAE]" /> Honorários
-            </h2>
-            <HonorariosEditor
-              companyId={comp.id}
-              planos={planos}
-              atual={{
-                planId: sub?.planId ?? null,
-                desconto: Number(sub?.discountValue ?? 0),
-                motivo: sub?.discountReason ?? null,
-                status: sub?.status ?? null,
-                valorCombinado: sub?.customValue != null ? Number(sub.customValue) : null,
-              }}
-            />
-            {sub?.asaasSubscriptionId && (
-              <div className="mt-3 flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                Cobrança via Asaas ativa
-              </div>
-            )}
-          </div>
-
-          {previa && (
-            <AprovacaoCard
-              companyId={comp.id}
-              noOneflowDesde={comp.oneflowCreatedAt ? comp.oneflowCreatedAt.toLocaleDateString('pt-BR') : null}
-              aprovado={donoAprovado?.ok === true}
-              regimeSugerido={previa.sugestao.regime}
-              competenciaPadrao={competenciaPadrao}
-              faltando={previa.faltando}
-              resumo={{
-                razao: previa.cadastro.razao,
-                cnpj: comp.cnpj,
-                endereco: [
-                  previa.cadastro.endereco.rua,
-                  previa.cadastro.endereco.numero,
-                  previa.cadastro.endereco.bairro,
-                  `${previa.cadastro.endereco.cidade}/${previa.cadastro.endereco.uf}`,
-                ]
-                  .filter(Boolean)
-                  .join(', '),
-                responsavel: previa.responsavel,
-              }}
-            />
+        {/* Ações — coluna da direita, fixa ao rolar */}
+        <aside className="space-y-3 xl:sticky xl:top-24 xl:self-start">
+          <form action={entrarNaAreaDoClienteAction.bind(null, comp.id)}>
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1E3328] px-4 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-xs hover:bg-[#2F4A3C]"
+            >
+              <LogIn className="h-3.5 w-3.5" /> Entrar na área do cliente
+            </button>
+          </form>
+          {email && (
+            <a
+              href={`mailto:${email}`}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-4 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 dark:text-[#A8A49C] dark:hover:bg-white/5 transition-colors shadow-xs"
+            >
+              <Send className="h-3.5 w-3.5" /> Enviar e-mail
+            </a>
           )}
 
-          <EncerramentoCard
-            companyId={comp.id}
-            encerradaEm={comp.closedAt ? comp.closedAt.toLocaleDateString('pt-BR') : null}
-            motivo={comp.closedReason ?? null}
-          />
+          <nav className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-3 shadow-sm">
+            <p className={grupo}>Fiscal</p>
+            <Link href={`/contador/clientes/${comp.id}/fiscal`} className={link}>
+              <ShieldCheck className="h-4 w-4 opacity-70" /> Certificado, enquadramento e PGDAS
+            </Link>
+            <Link href={`/contador/clientes/${comp.id}/guias`} className={link}>
+              <Receipt className="h-4 w-4 opacity-70" /> Guias e parcelamentos
+            </Link>
 
-          {/* Ações rápidas */}
-          <div className="rounded-3xl border border-black/5 dark:border-white/10 surface-panel p-6 shadow-sm">
-            <h2 className="mb-3 font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Ações rápidas</h2>
-            <div className="space-y-1.5">
-              <Link href="/contador/solicitacoes"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <Clock className="h-4 w-4 opacity-70" /> Ver solicitações
-              </Link>
-              <Link href="/contador/notas"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <FileText className="h-4 w-4 opacity-70" /> Ver notas fiscais
-              </Link>
-              <Link href="/contador/contratos"
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <FileText className="h-4 w-4 opacity-70" /> Gerar contrato
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/fiscal`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <BarChart3 className="h-4 w-4 opacity-70" /> Gestão fiscal (PGDAS)
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/guias`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <Receipt className="h-4 w-4 opacity-70" /> Guias &amp; parcelamentos
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/acessos`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <User className="h-4 w-4 opacity-70" /> Acessos do cliente
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/abertura`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <Scale className="h-4 w-4 opacity-70" /> Saldos de abertura
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/onboarding`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <CheckCircle2 className="h-4 w-4 opacity-70" /> Ver onboarding
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/operacao`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <Sliders className="h-4 w-4 opacity-70" /> Operação &amp; IA
-              </Link>
-              <Link href={`/contador/clientes/${comp.id}/atividade`}
-                className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors">
-                <Clock className="h-4 w-4 opacity-70" /> Ver atividade
-              </Link>
-              {sub && (status === 'PAST_DUE' || status === 'TRIAL') && (
-                <div className="pt-2">
-                  <ClienteStatusActions subscriptionId={sub.subscriptionId} status={status} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+            <p className={grupo}>Contábil</p>
+            <Link href={`/contador/clientes/${comp.id}/abertura`} className={link}>
+              <Scale className="h-4 w-4 opacity-70" /> Saldos de abertura
+            </Link>
+            <Link href={`/contador/clientes/${comp.id}/operacao`} className={link}>
+              <Sliders className="h-4 w-4 opacity-70" /> Operação e IA
+            </Link>
+            <Link href={"/contador/integracoes/oneflow" as never} className={link}>
+              <Activity className="h-4 w-4 opacity-70" /> Integração OneFlow
+            </Link>
+
+            <p className={grupo}>Cliente</p>
+            <Link href={`/contador/clientes/${comp.id}/acessos`} className={link}>
+              <User className="h-4 w-4 opacity-70" /> Acessos do cliente
+            </Link>
+            <Link href={`/contador/clientes/${comp.id}/onboarding`} className={link}>
+              <CheckCircle2 className="h-4 w-4 opacity-70" /> Onboarding
+            </Link>
+            <Link href={`/contador/clientes/${comp.id}/atividade`} className={link}>
+              <Clock className="h-4 w-4 opacity-70" /> Atividade
+            </Link>
+
+            <p className={grupo}>Escritório</p>
+            <Link href="/contador/solicitacoes" className={link}>
+              <AlertTriangle className="h-4 w-4 opacity-70" /> Solicitações
+            </Link>
+            <Link href="/contador/notas" className={link}>
+              <FileText className="h-4 w-4 opacity-70" /> Notas fiscais
+            </Link>
+            <Link href="/contador/contratos" className={link}>
+              <FileText className="h-4 w-4 opacity-70" /> Gerar contrato
+            </Link>
+            {sub && (status === 'PAST_DUE' || status === 'TRIAL') && (
+              <div className="px-3 pt-3">
+                <ClienteStatusActions subscriptionId={sub.subscriptionId} status={status} />
+              </div>
+            )}
+          </nav>
+        </aside>
       </div>
     </div>
   );

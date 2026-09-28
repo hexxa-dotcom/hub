@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, timestamp, boolean, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, timestamp, boolean, date, smallint } from 'drizzle-orm/pg-core';
 import { companyType, taxRegime, userRole } from './_enums';
 
 /** Tenant raiz. CompanyType separa o fluxo SERVICE do HOLDING. */
@@ -8,6 +8,8 @@ export const company = pgTable('company', {
   tradeName: text('trade_name'),
   useTradeName: boolean('use_trade_name').notNull().default(false),
   cnpj: text('cnpj').notNull().unique(),
+  /** Número da empresa no escritório (001–999): automático no cadastro (trigger), editável pelo contador. */
+  numero: smallint('numero'),
   type: companyType('type').notNull(),
   taxRegime: taxRegime('tax_regime').notNull().default('SIMPLES_NACIONAL'),
   /** Teto de faturamento p/ a Bússola Tributária. */

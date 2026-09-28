@@ -195,3 +195,19 @@ export async function habilitarClienteDoNiboAction(document: string): Promise<{ 
     return { ok: false, message: err instanceof Error ? err.message : 'Não consegui habilitar.' };
   }
 }
+
+/** Troca o número da empresa no escritório (001–999), sem repetir. */
+export async function alterarNumeroDaEmpresaAction(companyId: string, _prev: { ok: boolean; mensagem: string }, formData: FormData): Promise<{ ok: boolean; mensagem: string }> {
+  await requireAdmin();
+  const bruto = String(formData.get('numero') ?? '').trim();
+  if (!/^\d{1,3}$/.test(bruto)) return { ok: false, mensagem: 'Use de 1 a 3 dígitos (001 a 999).' };
+  const numero = Number(bruto);
+  if (numero < 1 || numero > 999) return { ok: false, mensagem: 'O número vai de 001 a 999.' };
+  const db = getDb();
+  const [dono] = await db.select({ id: company.id, nome: company.legalName }).from(company).where(eq(company.numero, numero));
+  if (dono && dono.id !== companyId) return { ok: false, mensagem: `O ${String(numero).padStart(3, '0')} já é de ${dono.nome}.` };
+  await db.update(company).set({ numero }).where(eq(company.id, companyId));
+  revalidatePath(`/contador/clientes/${companyId}`);
+  revalidatePath('/contador/clientes');
+  return { ok: true, mensagem: `Número ${String(numero).padStart(3, '0')} salvo.` };
+}

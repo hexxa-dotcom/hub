@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Building2, Loader2 } from 'lucide-react';
 
-type Result = { id: string; legalName: string; tradeName: string | null; cnpj: string };
+type Result = { id: string; numero: number | null; legalName: string; tradeName: string | null; cnpj: string };
 
 export function ContadorSearch() {
   const [query, setQuery] = useState('');
@@ -23,7 +23,8 @@ export function ContadorSearch() {
   }, []);
 
   useEffect(() => {
-    if (query.trim().length < 2) {
+    // Um dígito já busca pelo número da empresa (001–999).
+    if (query.trim().length < 2 && !/^\d$/.test(query.trim())) {
       setResults([]);
       return;
     }
@@ -56,7 +57,7 @@ export function ContadorSearch() {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => { if (query) setOpen(true); }}
-          placeholder="Buscar cliente por nome ou CNPJ…"
+          placeholder="Buscar cliente por número, nome ou CNPJ…"
           className="w-full bg-transparent text-[#231F20] dark:text-[#F5F6F4] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C] text-xs sm:text-sm"
         />
       </label>
@@ -75,7 +76,10 @@ export function ContadorSearch() {
                 >
                   <Building2 className="h-4 w-4 shrink-0 text-[#2F4A3C] dark:text-[#DFFFAE]" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#231F20] dark:text-[#F5F6F4]">{r.tradeName || r.legalName}</p>
+                    <p className="truncate text-sm font-semibold text-[#231F20] dark:text-[#F5F6F4]">
+                      {r.numero != null && <span className="mr-1.5 font-mono text-xs text-[#6E6A61] dark:text-[#A8A49C]">{String(r.numero).padStart(3, '0')}</span>}
+                      {r.tradeName || r.legalName}
+                    </p>
                     <p className="truncate text-xs text-[#6E6A61] dark:text-[#A8A49C]">{r.cnpj}</p>
                   </div>
                 </button>

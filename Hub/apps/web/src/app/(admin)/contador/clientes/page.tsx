@@ -24,6 +24,7 @@ async function getClientes(): Promise<Cliente[]> {
     db
       .select({
         companyId: company.id,
+        numero: company.numero,
         legalName: company.legalName,
         tradeName: company.tradeName,
         cnpj: company.cnpj,
@@ -69,6 +70,7 @@ async function getClientes(): Promise<Cliente[]> {
       // e é o que as ações da tabela realmente usam.
       id: s.subscriptionId ?? s.companyId,
       companyId: s.companyId,
+      numero: s.numero,
       razao: s.legalName,
       fantasia: s.tradeName || s.legalName,
       cnpj: s.cnpj,

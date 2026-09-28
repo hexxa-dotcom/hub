@@ -42,6 +42,8 @@ type Status = 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'CANCELED' | 'SEM_PLANO' | 'ENCE
 export type Cliente = {
   id: string; // subscription.id, ou company.id quando não há assinatura
   companyId: string;
+  /** Número da empresa no escritório (001–999). */
+  numero?: number | null;
   razao: string;
   fantasia: string;
   cnpj: string;
@@ -93,7 +95,9 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
   const asaasCliente = asaasModal ? clientes.find(c => c.id === asaasModal) ?? null : null;
 
   const filtered = clientes.filter(c => {
-    const match = [c.razao, c.fantasia, c.cnpj, c.email, c.responsavel].some(v => v.toLowerCase().includes(search.toLowerCase()));
+    // Só dígitos (até 3): é o número da empresa — "8" ou "008" acham a 008.
+    const porNumero = /^\d{1,3}$/.test(search.trim()) && c.numero === Number(search.trim());
+    const match = porNumero || [c.razao, c.fantasia, c.cnpj, c.email, c.responsavel].some(v => v.toLowerCase().includes(search.toLowerCase()));
     const statusOk = filterStatus === 'todos' || c.status === filterStatus;
     return match && statusOk;
   });
@@ -190,7 +194,7 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por razão, CNPJ..."
+            placeholder="Número, razão ou CNPJ..."
             className="w-48 sm:w-64 bg-transparent text-xs sm:text-sm text-[#231F20] dark:text-[#F5F6F4] outline-none placeholder:text-[#6E6A61] dark:placeholder:text-[#A8A49C]"
           />
         </div>
@@ -226,8 +230,9 @@ export function ClientesTable({ initial, planos }: { initial: Cliente[]; planos:
                 onClick={() => setExpanded(isExp ? null : c.id)}
                 className="flex w-full items-center gap-4 p-5 sm:p-6 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#2F4A3C] text-xs font-bold text-[#DFFFAE] shadow-sm">
-                  {c.fantasia.slice(0, 2).toUpperCase()}
+                {/* O número da empresa no lugar das iniciais: é por ele que o escritório procura. */}
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#2F4A3C] font-mono text-xs font-bold text-[#DFFFAE] shadow-sm" title="Número da empresa">
+                  {c.numero != null ? String(c.numero).padStart(3, '0') : c.fantasia.slice(0, 2).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
