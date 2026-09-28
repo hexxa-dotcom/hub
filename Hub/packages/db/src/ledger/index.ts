@@ -17,3 +17,5 @@ export * from './cadastro-oneflow';
 export * from './resultado-oneflow';
 export * from './conta-bancaria';
 export * from './aprovacao-cadastro';
+export * from './categorias-padrao';
+export * from './parceiro';

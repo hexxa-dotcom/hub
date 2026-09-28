@@ -1,7 +1,7 @@
 import 'server-only';
 import type { TenantContext } from '@hexxa/core';
 import { fetchDistribuicaoLote } from '@hexxa/integrations';
-import { withTenant, sql } from '@hexxa/db';
+import { withTenant, sql, parceiroPeloDocumento } from '@hexxa/db';
 import { getNfseConfig, getCertForTenant } from './fiscal';
 
 /**
@@ -121,9 +121,14 @@ export async function syncDistribuicaoDfe(ctx: TenantContext): Promise<SyncDfeRe
           const referenceMonth = `${dueDate.slice(0, 7)}-01`;
           const descricao = `NFS-e nº ${nota.numeroNfse ?? '—'} — ${nota.tomadorNome ?? 'Cliente'} (sincronizada do Emissor Nacional)`;
 
+          // O tomador vira o parceiro do recebível: é o CNPJ que casa a nota
+          // com o Pix do extrato e que o OneFlow exige na conta de Clientes.
+          const parceiro = await parceiroPeloDocumento(tx, ctx.companyId, {
+            nome: nota.tomadorNome ?? null, documento: nota.tomadorDocumento ?? null, tipo: 'CLIENT',
+          });
           await tx.execute(sql`
-            INSERT INTO financial_entry (company_id, type, status, description, amount, due_date, reference_month, source, external_id)
-            VALUES (${ctx.companyId}, 'RECEIVABLE', 'PENDING', ${descricao}, ${valor}, ${dueDate}, ${referenceMonth}, 'DFE_SYNC', ${nota.chaveAcesso})
+            INSERT INTO financial_entry (company_id, type, status, description, amount, due_date, reference_month, source, external_id, partner_id)
+            VALUES (${ctx.companyId}, 'RECEIVABLE', 'PENDING', ${descricao}, ${valor}, ${dueDate}, ${referenceMonth}, 'DFE_SYNC', ${nota.chaveAcesso}, ${parceiro})
             ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO NOTHING
           `);
         }

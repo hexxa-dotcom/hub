@@ -51,6 +51,8 @@ export function parentCodeOf(code: string): string | null {
 export const ACCOUNTS = {
   CAIXA: '1.1.01.001',
   BANCOS: '1.1.01.002',
+  /** Aplicações de liquidez imediata (RDB, CDB, poupança) — dinheiro que sai do banco e segue da empresa. */
+  APLICACOES: '1.1.01.003',
   CLIENTES: '1.1.02.001',
   ADIANTAMENTO_FORNECEDOR: '1.1.03.001',
   IMPOSTOS_A_RECUPERAR: '1.1.04.001',
@@ -151,7 +153,7 @@ export const DEFAULT_CHART: AccountSeed[] = [
   { code: '1.1.01', name: 'Caixa e Equivalentes de Caixa', type: 'ATIVO', analytical: false },
   { code: ACCOUNTS.CAIXA, name: 'Caixa', type: 'ATIVO', analytical: true },
   { code: ACCOUNTS.BANCOS, name: 'Bancos Conta Movimento', type: 'ATIVO', analytical: true },
-  { code: '1.1.01.003', name: 'Aplicações de Liquidez Imediata', type: 'ATIVO', analytical: true },
+  { code: ACCOUNTS.APLICACOES, name: 'Aplicações de Liquidez Imediata', type: 'ATIVO', analytical: true },
 
   { code: '1.1.02', name: 'Contas a Receber', type: 'ATIVO', analytical: false },
   { code: ACCOUNTS.CLIENTES, name: 'Clientes', type: 'ATIVO', analytical: true },

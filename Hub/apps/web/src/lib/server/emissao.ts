@@ -1,6 +1,6 @@
 import 'server-only';
 import { revalidatePath } from 'next/cache';
-import { getDb, sql } from '@hexxa/db';
+import { getDb, sql, parceiroPeloDocumento } from '@hexxa/db';
 import { ibsCbsDaNota, type TenantContext } from '@hexxa/core';
 import { makeServiceInvoiceService, nfseMode } from './container';
 import { getNfseConfig, estimateInvoiceTaxRate, listServiceProfiles } from './fiscal';
@@ -194,6 +194,20 @@ export async function emitirNota(ctx: TenantContext, p: PedidoDeEmissao): Promis
          WHERE company_id = ${ctx.companyId} AND regexp_replace(coalesce(document, ''), '[^0-9]', '', 'g') = ${documento} AND endereco IS NULL
       `)
       .catch(() => {});
+  }
+
+  // O tomador vira o parceiro do recebível da nota — é por ele que o Pix do
+  // extrato baixa a nota certa e que o OneFlow aceita a conta de Clientes.
+  if (result.status !== 'ERROR') {
+    const parceiro = await parceiroPeloDocumento(db, ctx.companyId, { nome: cliente.nome, documento, tipo: 'CLIENT' }).catch(() => null);
+    if (parceiro) {
+      await db
+        .execute(sql`
+          UPDATE financial_entry SET partner_id = ${parceiro}::uuid
+           WHERE company_id = ${ctx.companyId} AND source = 'NFSE' AND source_id = ${result.invoiceId}::uuid AND partner_id IS NULL
+        `)
+        .catch((e) => console.error('[emissao] parceiro', e));
+    }
   }
 
   revalidatePath('/meu-negocio/notas');

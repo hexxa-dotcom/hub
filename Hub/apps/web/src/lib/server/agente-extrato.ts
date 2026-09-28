@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento } from '@hexxa/db';
+import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento, garantirCategoriasPadrao } from '@hexxa/db';
 import { ACCOUNTS } from '@hexxa/core';
 import { resolveCredentials } from './ai-insight';
 import { resolverMotor } from './llm-config';
@@ -107,12 +107,37 @@ export interface Conta {
   tipo: 'INCOME' | 'EXPENSE' | 'AMBOS';
 }
 
+/** Movimentos por chamada à IA: cabe folgado na resposta e o erro de um lote não derruba os outros. */
+const LOTE_DA_IA = 40;
+
+/**
+ * Identifica TODA a fila da transitória, em lotes. Um extrato de quatro meses
+ * tem 80+ movimentos; com um lote só, os mais antigos ficavam para "a próxima
+ * vez" e o mês não fechava (visto na Gateway, 28/09/2026). Com `limite`, roda
+ * um lote só — é o que o cron usa para dividir a cota.
+ */
 export async function identificarMovimentos(companyId: string, opts: { limite?: number } = {}): Promise<ResultadoExtrato> {
+  if (opts.limite) return identificarLote(companyId, opts.limite);
+  const total: ResultadoExtrato = { analisados: 0, identificados: 0, paraRevisao: 0, descartados: [], erros: [], disponivel: true };
+  for (let rodada = 0; rodada < 10; rodada++) {
+    const r = await identificarLote(companyId, LOTE_DA_IA);
+    total.analisados += r.analisados;
+    total.identificados += r.identificados;
+    total.paraRevisao += r.paraRevisao;
+    total.descartados.push(...r.descartados);
+    total.erros.push(...r.erros);
+    total.disponivel &&= r.disponivel;
+    if (r.analisados === 0 || r.erros.length || !r.disponivel) break;
+  }
+  return total;
+}
+
+async function identificarLote(companyId: string, limite: number): Promise<ResultadoExtrato> {
   const vazio: ResultadoExtrato = { analisados: 0, identificados: 0, paraRevisao: 0, descartados: [], erros: [], disponivel: true };
   const db = getDb();
 
   // Só o que ainda não virou pergunta — não se pergunta à IA de novo o que já está com o empresário.
-  const naFila = await movimentosNaTransitoria(db, companyId, opts.limite ?? 60);
+  const naFila = await movimentosNaTransitoria(db, companyId, 2000);
   const jaPerguntados = new Set(
     (
       (await db.execute(sql`
@@ -120,9 +145,12 @@ export async function identificarMovimentos(companyId: string, opts: { limite?: 
       `)) as unknown as { id: string }[]
     ).map((r) => r.id),
   );
-  const movimentos = naFila.filter((m) => !jaPerguntados.has(m.bankTransactionId));
+  // Limita DEPOIS de tirar os já perguntados: senão um lote cheio deles volta vazio e a fila para.
+  const movimentos = naFila.filter((m) => !jaPerguntados.has(m.bankTransactionId)).slice(0, limite);
   if (!movimentos.length) return vazio;
 
+  // Empresa cadastrada sem o plano de categorias: sem ele não há onde classificar.
+  await garantirCategoriasPadrao(db, companyId);
   const categorias = (await db.execute(sql`
     SELECT id::text, name AS nome, kind AS tipo, accounting_code AS codigo
       FROM category WHERE company_id = ${companyId} AND accounting_code IS NOT NULL
@@ -185,6 +213,8 @@ export async function identificarMovimentos(companyId: string, opts: { limite?: 
   // ── 1ª passada: classificar ───────────────────────────────────────────────
   const c1 = await chamar<Classificacao[]>(motor, SYSTEM_CLASSIFICAR, `${contexto}\n\nMOVIMENTOS A IDENTIFICAR:\n${lista}`);
   if (!c1.ok) {
+    // Registra a falha: sem isso o extrato vira pergunta sem sugestão e ninguém sabe por quê.
+    await registrar(companyId, 'CLASSIFICAR_LANCAMENTOS', motor.model, { movimentos: movimentos.length }, { erro: c1.erro }, { falhou: true }, c1);
     for (const m of movimentos) await perguntar(m, []);
     return { ...out, erros: [c1.erro] };
   }
@@ -286,7 +316,9 @@ export async function contextoDaEmpresa(companyId: string, contas: Conta[]): Pro
 
 export async function chamar<T>(motor: LlmConfig, system: string, user: string, forma: 'array' | 'objeto' = 'array') {
   try {
-    const r = await callLlmJson<T>(motor, { system, user, maxTokens: 8000, temperature: 0 }, forma);
+    // 60 movimentos com motivo, mais o raciocínio do modelo (que conta como saída), estouram 8 mil
+    // tokens e o JSON chega cortado — medido na Gateway em 28/09/2026. Só se paga o que sai.
+    const r = await callLlmJson<T>(motor, { system, user, maxTokens: 32000, temperature: 0 }, forma);
     if (!r.dados) return { ok: false as const, erro: `Resposta do modelo sem JSON válido: ${r.texto.slice(0, 200)}`, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
     return { ok: true as const, dados: r.dados, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
   } catch (err) {

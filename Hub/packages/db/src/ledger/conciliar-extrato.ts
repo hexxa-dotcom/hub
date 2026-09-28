@@ -4,6 +4,7 @@ import { accrueBankTransaction, ACCOUNTS } from '@hexxa/core';
 import { postJournal, reverseJournal } from './repository';
 import { escriturarLancamento } from './escrituracao';
 import { consultarConhecimento, aprender, normalizarDescricao } from './conhecimento';
+import { cnpjNoHistorico } from './parceiro';
 
 /**
  * CONCILIAÇÃO E ESCRITURAÇÃO DO EXTRATO.
@@ -92,18 +93,62 @@ async function tentarCasar(
   t: { id: string; data: string; valor: number; descricao: string },
 ): Promise<'CASOU' | 'AMBIGUO' | 'SEM_PAR'> {
   const tipo = t.valor > 0 ? 'RECEIVABLE' : 'PAYABLE';
+  const cnpj = cnpjNoHistorico(t.descricao);
 
+  /**
+   * Documento do parceiro do lançamento: o cadastrado ou, na nota do Emissor
+   * Nacional, o tomador (recebível) / prestador (pagável) do próprio documento.
+   */
+  const docDoLancamento = sql`regexp_replace(coalesce(
+      (SELECT bp.document FROM business_partner bp WHERE bp.id = e.partner_id),
+      (SELECT CASE WHEN e.type = 'RECEIVABLE' THEN d.tomador_documento ELSE d.prestador_cnpj END
+         FROM nfse_distribuicao_doc d
+        WHERE d.company_id = e.company_id AND d.chave_acesso = e.external_id LIMIT 1),
+      ''), '[^0-9]', '', 'g')`;
+
+  if (cnpj) {
+    /**
+     * O extrato diz quem pagou: só entram os lançamentos DESSE parceiro, com
+     * valor exato, e casa o de vencimento mais próximo do pagamento. Cliente
+     * que paga todo mês o mesmo valor tem várias notas iguais em aberto — a
+     * mais próxima é a daquele mês. Janela larga porque o parceiro já está
+     * confirmado: é a data que escolhe entre as notas dele, não que valida.
+     *
+     * Achado na Gateway (28/09/2026): pela regra só de valor e data, um Pix da
+     * Revelo Cortinas baixou a nota da Althaia, e um da UP Empreendimentos a
+     * da UP House.
+     */
+    const [c] = (await tx.execute(sql`
+      SELECT e.id::text FROM financial_entry e
+       WHERE e.company_id = ${companyId}
+         AND e.type = ${tipo}
+         AND e.status NOT IN ('PAID', 'CANCELED')
+         AND abs(e.amount::numeric - ${Math.abs(t.valor).toFixed(2)}::numeric) < 0.01
+         AND ${docDoLancamento} = ${cnpj}
+         AND e.due_date BETWEEN ${t.data}::date - ${'60 days'}::interval
+                            AND ${t.data}::date + ${'30 days'}::interval
+       ORDER BY abs(e.due_date - ${t.data}::date), e.due_date
+       LIMIT 1
+    `)) as unknown as { id: string }[];
+    if (!c) return 'SEM_PAR';
+    await casarComLancamento(tx, companyId, t, c.id);
+    return 'CASOU';
+  }
+
+  // Sem CNPJ no histórico: valor exato perto do vencimento, e nunca um
+  // lançamento que já tem parceiro identificado (não dá para saber se é ele).
   const candidatos = (await tx.execute(sql`
-    SELECT id::text FROM financial_entry
-     WHERE company_id = ${companyId}
-       AND type = ${tipo}
-       AND status <> 'PAID'
-       AND abs(amount::numeric - ${Math.abs(t.valor).toFixed(2)}::numeric) < 0.01
+    SELECT e.id::text FROM financial_entry e
+     WHERE e.company_id = ${companyId}
+       AND e.type = ${tipo}
+       AND e.status NOT IN ('PAID', 'CANCELED')
+       AND abs(e.amount::numeric - ${Math.abs(t.valor).toFixed(2)}::numeric) < 0.01
+       AND ${docDoLancamento} = ''
        -- O intervalo vai como TEXTO: este driver recusa número cru em
        -- consulta parametrizada, e o erro sai como "argumento string
        -- esperado" — nada que faça pensar em aritmética de datas.
-       AND due_date BETWEEN ${t.data}::date - ${`${JANELA_DE_DIAS} days`}::interval
-                        AND ${t.data}::date + ${`${JANELA_DE_DIAS} days`}::interval
+       AND e.due_date BETWEEN ${t.data}::date - ${`${JANELA_DE_DIAS} days`}::interval
+                          AND ${t.data}::date + ${`${JANELA_DE_DIAS} days`}::interval
      LIMIT 5
   `)) as unknown as { id: string }[];
 
@@ -197,13 +242,37 @@ export async function casarComLancamento(
  * A IA continua entrando: ela classifica o que a história ainda não conhece,
  * pelo agente que já existe. Aqui fica só o que se pode afirmar.
  */
+/**
+ * Movimentos que se identificam pela forma, igual em todo banco e toda
+ * empresa. Não passam pela IA nem viram pergunta:
+ *
+ * - Aplicação/resgate (RDB, CDB, poupança, renda fixa): o dinheiro não sai da
+ *   empresa, muda de conta — Aplicações de Liquidez Imediata.
+ * - Pagamento do DAS: quita o Simples a Recolher que a apuração provisionou.
+ *   Lançar como despesa de novo dobraria o imposto na DRE (visto na Gateway,
+ *   28/09/2026). Quando a guia está no Hub como conta a pagar, a conciliação
+ *   casa com ela antes de chegar aqui.
+ */
+export function contaPorRegra(descricao: string, valor: number): string | null {
+  const d = descricao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/\b(aplicacao|resgate|investimento|rendimento)\b/.test(d) && /\b(rdb|cdb|lci|lca|poupanca|renda fixa|caixinha|cofrinho)\b/.test(d)) {
+    return ACCOUNTS.APLICACOES;
+  }
+  if (valor < 0 && /\b(das[\s-]*simples|simples nacional|pgdas)\b/.test(d)) return ACCOUNTS.DAS_A_RECOLHER;
+  return null;
+}
+
 async function contaPelaHistoria(
   tx: DbHandle,
   companyId: string,
   descricao: string,
   valor: number,
 ): Promise<string | null> {
-  // Primeiro o que alguém ENSINOU (contador, empresário, IA verificada) — ver
+  // Antes de tudo, o que a própria forma do movimento já diz — sem palpite.
+  const fixa = contaPorRegra(descricao, valor);
+  if (fixa) return fixa;
+
+  // Depois o que alguém ENSINOU (contador, empresário, IA verificada) — ver
   // `conhecimento.ts`. Só depois a dedução pelos lançamentos antigos.
   const conhecido = await consultarConhecimento(tx, companyId, descricao, valor);
   if (conhecido) return conhecido.conta;
@@ -259,6 +328,10 @@ export async function movimentosNaTransitoria(
        AND j.source = 'BANK_TRANSACTION'
        AND j.status = 'POSTED'
        AND j.reversed_by IS NULL
+       -- O estorno também tem linha na transitória e nunca é estornado: sem
+       -- este filtro ele voltava à fila como "pendente", a IA identificava de
+       -- novo e a reclassificação estornava o estorno (Gateway, 28/09/2026).
+       AND j.event = 'SETTLEMENT'
        AND a.code = ${ACCOUNTS.VALORES_A_CLASSIFICAR}
      ORDER BY j.entry_date DESC
      LIMIT ${String(limite)}
@@ -290,13 +363,31 @@ export async function reclassificarMovimento(
        AND b.company_id = ${companyId}
        AND j.status = 'POSTED'
        AND j.reversed_by IS NULL
+       AND j.event = 'SETTLEMENT'
      LIMIT 1
   `)) as unknown as { journal_id: string; data: string; valor: number; descricao: string }[];
 
   if (!mov) return { ok: false, erro: 'Movimento não encontrado ou já reclassificado.' };
 
-  const hoje = new Date().toISOString().slice(0, 10);
-  await reverseJournal(tx, companyId, mov.journal_id, motivo, hoje);
+  // A conta tem que existir ANTES do estorno: estornar e não conseguir lançar
+  // de novo tira o movimento do razão e deixa o banco errado.
+  const [destino] = (await tx.execute(sql`
+    SELECT 1 AS ok FROM chart_of_account
+     WHERE company_id = ${companyId} AND code = ${contaContabil} AND analytical AND active
+  `)) as unknown as { ok: number }[];
+  if (!destino) return { ok: false, erro: `A conta ${contaContabil} não existe no plano de contas desta empresa.` };
+
+  // Mês ainda aberto: o estorno sai na data do movimento e o balancete daquele
+  // mês fica certo. Datar com hoje deixava o valor na transitória de junho até
+  // setembro. Mês já conferido/enviado não se mexe: aí o estorno é de hoje.
+  const [fechado] = (await tx.execute(sql`
+    SELECT 1 AS ok FROM monthly_closure
+     WHERE company_id = ${companyId}
+       AND reference_month = date_trunc('month', ${mov.data}::date)::date
+       AND stage IN ('CONFERIDO', 'ENVIADO')
+  `)) as unknown as { ok: number }[];
+  const dataDoEstorno = fechado ? new Date().toISOString().slice(0, 10) : mov.data;
+  await reverseJournal(tx, companyId, mov.journal_id, motivo, dataDoEstorno);
 
   await postJournal(tx, companyId, accrueBankTransaction({
     id: bankTransactionId,
@@ -316,15 +407,17 @@ export async function saldoDaTransitoria(
   ate: string,
 ): Promise<{ saldo: number; quantidade: number }> {
   const [r] = (await tx.execute(sql`
+    -- Saldo é a soma de TODAS as linhas publicadas: o original estornado e o
+    -- seu estorno se anulam. Tirar só o original (reversed_by IS NULL) deixava
+    -- o estorno sozinho e inflava o saldo que trava o fechamento.
     SELECT COALESCE(SUM(CASE WHEN l.direction = 'DEBIT' THEN l.amount ELSE -l.amount END), 0)::float AS saldo,
-           count(*)::int AS quantidade
+           count(*) FILTER (WHERE j.event = 'SETTLEMENT' AND j.reversed_by IS NULL)::int AS quantidade
       FROM ledger_line l
       JOIN journal_entry j ON j.id = l.journal_entry_id
       JOIN chart_of_account a ON a.id = l.account_id
      WHERE l.company_id = ${companyId}
        AND a.code = ${ACCOUNTS.VALORES_A_CLASSIFICAR}
        AND j.status = 'POSTED'
-       AND j.reversed_by IS NULL
        AND j.entry_date <= ${ate}::date
   `)) as unknown as { saldo: number; quantidade: number }[];
 

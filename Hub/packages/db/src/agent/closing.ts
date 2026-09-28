@@ -157,14 +157,14 @@ export async function coletarDadosDoMes(
    */
   const [transitoria] = (await tx.execute(sql`
     SELECT COALESCE(SUM(CASE WHEN l.direction = 'DEBIT' THEN l.amount ELSE -l.amount END), 0)::float AS saldo,
-           count(*)::int AS quantidade
+           count(*) FILTER (WHERE j.event = 'SETTLEMENT' AND j.reversed_by IS NULL)::int AS quantidade
       FROM ledger_line l
       JOIN journal_entry j ON j.id = l.journal_entry_id
       JOIN chart_of_account a ON a.id = l.account_id
      WHERE l.company_id = ${companyId}
        AND a.code = '1.1.09.001'
        AND j.status = 'POSTED'
-       AND j.reversed_by IS NULL
+       -- Todas as linhas publicadas: original estornado e estorno se anulam.
        AND j.entry_date <= (${referenceMonth}::date + '1 month'::interval - '1 day'::interval)
   `)) as unknown as Record<string, unknown>[];
 
