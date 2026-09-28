@@ -11,6 +11,7 @@ import {
   ORIGEM_ONEFLOW,
   PARADA_NO_ENVIO,
   inicioDoContabil,
+  planoDaEmpresa,
 } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
@@ -148,6 +149,23 @@ export async function GET(request: Request) {
         continue;
       }
 
+      /**
+       * O plano de contas da empresa lá decide o de-para: Dinâmico (192
+       * contas) ou Padrão (766). Sem plano (0 contas), nada entra — não
+       * adianta gastar chamada tentando.
+       */
+      let plano: 'DINAMICO' | 'PADRAO' | null;
+      try {
+        plano = await planoDaEmpresa(db, cliente, empresa.id, appHash);
+      } catch {
+        relatorio.push({ empresa: empresa.nome, erro: 'não foi possível ler o plano de contas no OneFlow' });
+        continue;
+      }
+      if (!plano) {
+        relatorio.push({ empresa: empresa.nome, erro: 'sem plano de contas no OneFlow — configurar o contábil na tela (Padrão ou Dinâmico)' });
+        continue;
+      }
+
 
       for (const { mes } of meses) {
         if (restante <= 0) break;
@@ -156,7 +174,7 @@ export async function GET(request: Request) {
         if (mes.slice(0, 7) < inicioContabil) continue;
 
         const r = await enviarRazao(
-          db, empresa.id, appHash, dados.cnpj, mes, restante, cliente, prazo,
+          db, empresa.id, appHash, dados.cnpj, mes, restante, cliente, prazo, plano,
         );
         // Composto: várias partidas por chamada — a cota desconta chamadas, não partidas.
         restante -= r.chamadas;
@@ -168,6 +186,7 @@ export async function GET(request: Request) {
           relatorio.push({
             empresa: empresa.nome,
             mes: mes.slice(0, 7),
+            plano,
             enviadas: r.enviadas,
             chamadas: r.chamadas,
             erros: r.erros.length,

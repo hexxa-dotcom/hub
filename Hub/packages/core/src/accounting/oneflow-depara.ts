@@ -205,9 +205,115 @@ export const CONTAS_A_CRIAR_NO_ONEFLOW: {
  * Partida retida com o nome da conta faltando é visível; partida na conta
  * errada parece certa.
  */
-export function traduzirConta(codigoDoHub: string): DestinoOneflow | null {
-  return DE_PARA_ONEFLOW[codigoDoHub] ?? null;
+export function traduzirConta(codigoDoHub: string, plano: PlanoOneflow = 'DINAMICO'): DestinoOneflow | null {
+  return (plano === 'PADRAO' ? DE_PARA_ONEFLOW_PADRAO : DE_PARA_ONEFLOW)[codigoDoHub] ?? null;
 }
+
+/** Qual modelo de plano a empresa usa no OneFlow — decide o de-para. */
+export type PlanoOneflow = 'DINAMICO' | 'PADRAO';
+
+/** O modelo pelo nome que o OneFlow devolve em `nomeModelo` ("Plano de Contas Padrão OneFlow"…). */
+export function planoPeloNome(nomeModelo: string | null | undefined): PlanoOneflow | null {
+  if (!nomeModelo) return null;
+  if (/din.mico/i.test(nomeModelo)) return 'DINAMICO';
+  if (/padr.o/i.test(nomeModelo)) return 'PADRAO';
+  return null;
+}
+
+/**
+ * DE-PARA para o PLANO DE CONTAS PADRÃO ONEFLOW (766 contas).
+ *
+ * Analisado em 28/09/2026 contra o plano real da Gateway: o Padrão é mais
+ * completo que o Dinâmico e casa com o Hub (ITG 1000) conta por conta —
+ * tem dedução da receita por tributo, Provisões de IRPJ/CSLL, Pró-labore e
+ * Pró-labore a Pagar, INSS e FGTS a Recolher separados e Dividendos a Pagar,
+ * que no Dinâmico não existem. Mesma regra do outro mapa: só destino exato;
+ * o que não tem par fica retido, nunca "o mais parecido".
+ */
+export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
+  /* ── Ativo ───────────────────────────────────────────────────────────── */
+  '1.1.01.001': { classificacao: '1.1.01.001.001', nota: 'Caixa' },
+  /**
+   * Banco: no Padrão a conta é uma por banco (ex.: "1.1.01.003.001 Unicred"
+   * na Gateway). A sintética com o CNPJ do participante é o mesmo caminho que
+   * funciona no Dinâmico — conferido no primeiro envio real.
+   */
+  '1.1.01.002': { classificacao: '1.1.01.003', exigeParticipante: true, nota: 'Banco Conta Movimento' },
+  '1.1.01.003': { classificacao: '1.1.01.005.007', nota: 'Aplicações - Renda Fixa' },
+  '1.1.02.001': { classificacao: '1.1.02.001', nota: 'Clientes Nacionais' },
+  '1.1.03.001': { classificacao: '1.1.02.007.004', nota: 'Adiantamentos a Fornecedores Nacionais' },
+  '1.1.03.002': { classificacao: '1.1.02.009.006', nota: 'Adiantamentos de Salários' },
+  '1.1.05.001': { classificacao: '1.1.02.013.014', nota: 'Mercadorias para Revenda' },
+  '1.2.03.001': { classificacao: '1.2.05.001.004', nota: 'Imóveis' },
+  '1.2.03.002': { classificacao: '1.2.05.003.010', nota: 'Máquinas e Equipamentos' },
+  '1.2.03.003': { classificacao: '1.2.05.003.002', nota: 'Móveis e Utensílios' },
+  '1.2.03.004': { classificacao: '1.2.05.003.001', nota: 'Veículos' },
+  '1.2.03.005': { classificacao: '1.2.05.003.008', nota: 'Computadores e Periféricos' },
+  '1.2.04.001': { classificacao: '1.2.06.001.003', nota: 'Licença de Uso de Software' },
+  '1.2.04.099': { classificacao: '1.2.06.002.001', nota: '(-) Amortiz. Lic. de Uso de Software' },
+
+  /* ── Passivo ─────────────────────────────────────────────────────────── */
+  '2.1.01.001': { classificacao: '2.1.01.001', nota: 'Fornecedores Nacionais' },
+  '2.1.02.001': { classificacao: '2.1.05.003.005', nota: 'Salários e Ordenados a Pagar' },
+  // No Hub, "Encargos a recolher" recebe o INSS retido da folha (accrueFolha) e a DCTFWeb.
+  '2.1.02.002': { classificacao: '2.1.05.003.010', nota: 'Inss a Recolher' },
+  '2.1.02.003': { classificacao: '2.1.05.003.006', nota: 'Pró Labore a Pagar' },
+  // No Hub, "Impostos a recolher" recebe o IRRF retido da folha e as guias fora do DAS.
+  '2.1.03.001': { classificacao: '2.1.05.001.010', nota: 'Irrf Retido a Recolher' },
+  '2.1.03.002': { classificacao: '2.1.05.001.002', nota: 'Simples a Recolher' },
+  '2.1.04.001': { classificacao: '2.1.09.001', nota: 'Dividendos a Pagar (Obrigações com Sócios)' },
+  '2.1.05.001': { classificacao: '2.1.06.001.002', nota: 'Adiantamentos de Clientes' },
+  '2.1.05.003': { classificacao: '2.1.06.001.006', nota: 'Contas a Pagar' },
+
+  /* ── Patrimônio líquido ──────────────────────────────────────────────── */
+  '2.3.01.001': { classificacao: '2.3.01.001.001', nota: 'Capital Social' },
+  '2.3.01.002': { classificacao: '2.3.01.001.002', nota: '(-) Capital a Integralizar' },
+  '2.3.04.001': { classificacao: '2.3.01.005.002', nota: 'Lucros Acumulados' },
+  '2.3.05.001': { classificacao: '2.3.01.004.003', nota: 'Lucros do Exercício' },
+
+  /* ── Receita e deduções (serviços) ───────────────────────────────────── */
+  '3.1.1.01.01': { classificacao: '3.1.01.007.001.001', nota: 'Serviços Prestados a Terceiros - Mercado Interno' },
+  '3.1.2.01.01': { classificacao: '3.1.01.007.002.004', nota: '(-) Pis sobre serviços' },
+  '3.1.2.01.02': { classificacao: '3.1.01.007.002.003', nota: '(-) Cofins sobre serviços' },
+  '3.1.2.01.03': { classificacao: '3.1.01.007.002.005', nota: '(-) Iss sobre serviços' },
+  '3.1.2.01.05': { classificacao: '3.1.01.007.002.001', nota: '(-) Simples Nacional sobre serviços' },
+
+  /* ── Tributos sobre o lucro ──────────────────────────────────────────── */
+  '3.8.1.01.01': { classificacao: '5.9.01.001.001', nota: 'Provisão IRPJ' },
+  '3.8.1.01.02': { classificacao: '5.9.01.001.002', nota: 'Provisão CSLL' },
+
+  /* ── Pessoal ─────────────────────────────────────────────────────────── */
+  '3.3.2.01.01': { classificacao: '5.1.01.001.001.009', nota: 'Salários e Ordenados' },
+  '3.3.2.01.02': { classificacao: '5.1.01.001.001.008', nota: 'Pró Labore' },
+  '3.3.2.01.05': { classificacao: '5.1.01.001.001.011', nota: 'Inss' },
+
+  /* ── Despesas administrativas ────────────────────────────────────────── */
+  '3.3.2.02.01': { classificacao: '5.1.01.004.001.012', nota: 'Aluguéis de Imóveis' },
+  '3.3.2.02.02': { classificacao: '5.1.01.004.001.011', nota: 'Despesas com Condomínio' },
+  '3.3.2.02.03': { classificacao: '5.1.01.006.001.020', nota: 'Despesas c/ Veículos' },
+  // O Padrão põe depreciação e amortização no grupo de custos (4.9) — é a escolha do plano deles.
+  '3.3.2.02.04': { classificacao: '4.9.01.001.001.003', nota: 'Depreciações' },
+  '3.3.2.02.05': { classificacao: '4.9.01.001.001.002', nota: 'Amortizações' },
+  '3.3.2.02.06': { classificacao: '5.1.01.006.001.008', nota: 'Serviços de Terceiros' },
+  '3.3.2.02.07': { classificacao: '5.1.01.004.001.003', nota: 'Energia Elétrica' },
+  '3.3.2.02.08': { classificacao: '5.1.01.004.001.002', nota: 'Água e Esgoto' },
+  '3.3.2.02.09': { classificacao: '5.1.01.004.001.007', nota: 'Telefonia' },
+  '3.3.2.02.10': { classificacao: '5.1.01.006.001.019', nota: 'Correios' },
+  '3.3.2.02.11': { classificacao: '5.1.01.0002.001.045', nota: 'Seguro de Bens' },
+  '3.3.2.02.12': { classificacao: '5.1.01.007.001.007', nota: 'Multas de Mora' },
+  '3.3.2.02.13': { classificacao: '5.1.01.0002.001.054', nota: 'Bens de Pequeno Valor' },
+  '3.3.2.02.14': { classificacao: '5.1.01.0002.001.015', nota: 'Material de Escritório' },
+  // Software e assinaturas: no Padrão há conta própria de informática — despesa, não custo.
+  '3.3.2.02.15': { classificacao: '5.1.01.0002.001.008', nota: 'Despesas com Informática' },
+  '3.3.2.03.01': { classificacao: '5.1.01.0003.001.007', nota: 'Impostos e Taxas Diversas' },
+
+  /* ── Resultado financeiro ────────────────────────────────────────────── */
+  '3.4.1.01.01': { classificacao: '5.1.01.007.001.001', nota: 'Juros Passivos' },
+  '3.4.1.01.02': { classificacao: '5.1.01.007.001.004', nota: 'Despesas Bancárias Diversas' },
+  '3.4.1.01.04': { classificacao: '5.1.01.007.001.005', nota: 'Descontos Concedidos' },
+  '3.4.1.02.02': { classificacao: '3.1.02.001.001.007', nota: 'Juros Ativos' },
+  '3.4.1.02.03': { classificacao: '3.2.01.001.002.004', nota: 'Descontos Obtidos' },
+};
 
 /**
  * Quais contas de um conjunto ainda não têm destino.
@@ -215,7 +321,7 @@ export function traduzirConta(codigoDoHub: string): DestinoOneflow | null {
  * É o que o ensaio de envio usa para produzir a lista exata do que criar no
  * OneFlow, em vez de descobrir uma conta faltando por vez a cada tentativa.
  */
-export function contasSemDestino(codigosDoHub: string[]): {
+export function contasSemDestino(codigosDoHub: string[], plano: PlanoOneflow = 'DINAMICO'): {
   codigo: string;
   aCriar: (typeof CONTAS_A_CRIAR_NO_ONEFLOW)[number] | null;
 }[] {
@@ -223,7 +329,7 @@ export function contasSemDestino(codigosDoHub: string[]): {
   const out: { codigo: string; aCriar: (typeof CONTAS_A_CRIAR_NO_ONEFLOW)[number] | null }[] = [];
 
   for (const c of codigosDoHub) {
-    if (vistos.has(c) || traduzirConta(c)) continue;
+    if (vistos.has(c) || traduzirConta(c, plano)) continue;
     vistos.add(c);
     out.push({ codigo: c, aCriar: CONTAS_A_CRIAR_NO_ONEFLOW.find((x) => x.contaDoHub === c) ?? null });
   }

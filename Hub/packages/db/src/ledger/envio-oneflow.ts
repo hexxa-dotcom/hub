@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
-import { traduzirConta, contasSemDestino, dataOneflow } from '@hexxa/core';
+import { traduzirConta, contasSemDestino, dataOneflow, type PlanoOneflow } from '@hexxa/core';
 import type { LancamentoOneflow } from '@hexxa/integrations';
 
 /**
@@ -163,6 +163,8 @@ export async function ensaiarEnvio(
   companyId: string,
   referenceMonth: string,
   cnpjDaEmpresa: string,
+  /** O plano da empresa no OneFlow decide o de-para — ver `planoDaEmpresa`. */
+  plano: PlanoOneflow = 'DINAMICO',
 ): Promise<EnsaioResult> {
   const linhas = (await tx.execute(sql`
     SELECT
@@ -231,7 +233,7 @@ export async function ensaiarEnvio(
     for (const l of ls) {
       const conta = String(l.conta);
       todasAsContas.push(conta);
-      const destino = traduzirConta(conta);
+      const destino = traduzirConta(conta, plano);
       if (!destino) { faltando.push(conta); continue; }
 
       const doc = String(l.doc_parceiro ?? '').replace(/\D/g, '');
@@ -282,7 +284,7 @@ export async function ensaiarEnvio(
     mes: referenceMonth,
     prontas,
     bloqueadas,
-    contasACriar: contasSemDestino(todasAsContas),
+    contasACriar: contasSemDestino(todasAsContas, plano),
     jaEnviadas,
   };
 }
@@ -373,6 +375,7 @@ export async function enviarRazao(
   },
   /** Instante (epoch ms) em que esta execução precisa ter terminado. */
   prazo?: number,
+  plano: PlanoOneflow = 'DINAMICO',
 ): Promise<ResultadoEnvioRazao> {
   if (!(await envioAutorizado(tx, companyId, referenceMonth))) {
     return {
@@ -381,7 +384,7 @@ export async function enviarRazao(
     };
   }
 
-  const ensaio = await ensaiarEnvio(tx, companyId, referenceMonth, cnpjDaEmpresa);
+  const ensaio = await ensaiarEnvio(tx, companyId, referenceMonth, cnpjDaEmpresa, plano);
   const out: ResultadoEnvioRazao = {
     mes: referenceMonth,
     enviadas: 0,

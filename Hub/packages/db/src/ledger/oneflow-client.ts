@@ -267,3 +267,33 @@ export async function cotaParaRotina(db: DbHandle, rotina: RotinaDoOneflow): Pro
   const dia = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(8, 10));
   return cotaRestante(db, FOLGA_DA_COTA + reservaParaAsDeCima(rotina, dia));
 }
+
+/**
+ * Qual plano de contas a empresa usa no OneFlow — 'DINAMICO' ou 'PADRAO' —,
+ * pelo `nomeModelo` da primeira página do plano. `null` = sem plano lá (0
+ * contas): nada pode ser lançado até alguém configurar o contábil na tela.
+ *
+ * Guardado por 7 dias em `oneflow_empresa`; `forcar` relê (depois de o
+ * escritório trocar o plano lá, por exemplo).
+ */
+export async function planoDaEmpresa(
+  db: DbHandle,
+  cliente: { planoDeContas: (c: string, a: string, pagina?: number) => Promise<{ nomeModelo?: string | null }[]> },
+  companyId: string,
+  appHash: string,
+  forcar = false,
+): Promise<'DINAMICO' | 'PADRAO' | null> {
+  const [g] = (await db.execute(sql`
+    SELECT plano_modelo, plano_conferido_em > NOW() - interval '7 days' AS fresco
+      FROM oneflow_empresa WHERE company_id = ${companyId}
+  `)) as unknown as { plano_modelo: string | null; fresco: boolean | null }[];
+  if (g?.fresco && !forcar) return (g.plano_modelo as 'DINAMICO' | 'PADRAO' | null) ?? null;
+  const contas = await cliente.planoDeContas(companyId, appHash, 1);
+  const nome = contas[0]?.nomeModelo ?? '';
+  const plano = /din.mico/i.test(nome) ? 'DINAMICO' : /padr.o/i.test(nome) ? 'PADRAO' : null;
+  await db.execute(sql`
+    INSERT INTO oneflow_empresa (company_id, plano_modelo, plano_conferido_em) VALUES (${companyId}, ${plano}, NOW())
+    ON CONFLICT (company_id) DO UPDATE SET plano_modelo = EXCLUDED.plano_modelo, plano_conferido_em = NOW()
+  `);
+  return plano;
+}
