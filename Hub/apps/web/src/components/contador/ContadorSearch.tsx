@@ -49,7 +49,7 @@ export function ContadorSearch() {
   }
 
   return (
-    <div ref={boxRef} className="relative w-64 sm:w-80 md:w-96">
+    <div ref={boxRef} className="relative w-full min-w-0 sm:w-80 md:w-96">
       <label className="flex w-full items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-[#E7EAE5] dark:bg-[#1A201C] px-4 py-2 text-sm text-[#6E6A61] dark:text-[#A8A49C] shadow-sm focus-within:shadow-md focus-within:border-[#2F4A3C] dark:focus-within:border-[#DFFFAE] transition-all">
         {loading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#2F4A3C]" /> : <Search className="h-4 w-4 shrink-0 text-[#6E6A61] dark:text-[#A8A49C]" />}
         <input
@@ -61,7 +61,7 @@ export function ContadorSearch() {
         />
       </label>
       {open && query.trim().length >= 2 && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[320px] rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] shadow-2xl overflow-hidden">
+        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-black/10 dark:border-white/10 bg-[#F5F6F4] dark:bg-[#1A201C] shadow-2xl overflow-hidden">
           <div className="max-h-80 overflow-y-auto p-2">
             {results.length === 0 ? (
               <p className="px-4 py-4 text-center text-xs text-[#6E6A61] dark:text-[#A8A49C]">{loading ? 'Buscando empresas…' : 'Nenhuma empresa encontrada.'}</p>

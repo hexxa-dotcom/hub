@@ -426,12 +426,20 @@ export async function lerCompetencia(
   tx: DbHandle,
   companyId: string,
   competencia: string,
-): Promise<{ fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null } | null> {
+): Promise<{ fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null; leituraCompletaEm: Date | null } | null> {
   const [r] = (await tx.execute(sql`
-    SELECT fiscal_ok AS "fiscalOk", folha_ok AS "folhaOk", folha_status AS "folhaStatus"
+    SELECT fiscal_ok AS "fiscalOk", folha_ok AS "folhaOk", folha_status AS "folhaStatus", leitura_completa_em AS "leituraCompletaEm"
       FROM oneflow_competencia WHERE company_id = ${companyId} AND competencia = ${competencia}
-  `)) as unknown as { fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null }[];
+  `)) as unknown as { fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null; leituraCompletaEm: Date | null }[];
   return r ?? null;
+}
+
+/** Registra a leitura completa da apuração (ver `leitura_completa_em`). */
+export async function marcarLeituraCompleta(tx: DbHandle, companyId: string, competencia: string): Promise<void> {
+  await tx.execute(sql`
+    INSERT INTO oneflow_competencia (company_id, competencia, leitura_completa_em) VALUES (${companyId}, ${competencia}, now())
+    ON CONFLICT (company_id, competencia) DO UPDATE SET leitura_completa_em = now(), atualizado_em = now()
+  `);
 }
 
 async function marcarCompetencia(

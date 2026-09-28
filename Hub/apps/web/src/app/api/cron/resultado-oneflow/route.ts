@@ -4,7 +4,7 @@ import {
   getDb,
   clienteOneflow,
   appHashPorCnpj,
-  cotaRestante,
+  cotaParaRotina,
   mesesParaSincronizar,
   sincronizarResultado,
 } from '@hexxa/db';
@@ -12,21 +12,7 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/**
- * ESPELHO DO RESULTADO OFICIAL.
- *
- * Lê do balancete do OneFlow o lucro acumulado no exercício, para cada mês
- * que acabou de ser ENVIADO. É dele — e só dele — que a distribuição de
- * lucros passa a partir.
- *
- * Custa uma chamada por mês novo enviado, e nada nos outros dias: um mês lido
- * depois do envio não muda lá sem que algo seja enviado de novo. Com 50
- * empresas fechando em dias diferentes, são poucas chamadas por dia.
- *
- * Roda depois do envio (04:00 e 05:30 UTC), que é quem leva os meses a
- * ENVIADO.
- */
-const RESERVA_PARA_A_VOLTA = 120;
+// A cota de cada rotina vem de `cotaParaRotina` (turnos e prioridade — oneflow-client.ts).
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -51,7 +37,7 @@ export async function GET(request: Request) {
       if (Date.now() > prazo) break;
       // A volta das guias é a que o cliente sente; o espelho do resultado
       // espera o dia seguinte antes de disputar a cota com ela.
-      if ((await cotaRestante(db, RESERVA_PARA_A_VOLTA)) <= 0) break;
+      if ((await cotaParaRotina(db, 'resultado')) <= 0) break;
 
       const meses = await mesesParaSincronizar(db, e.id);
       if (!meses.length) continue;

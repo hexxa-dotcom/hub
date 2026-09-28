@@ -101,13 +101,38 @@ export function clienteOneflow(db: DbHandle): OneflowAdapter {
 /** Dia corrente no fuso de São Paulo — é nele que a cota do OneFlow vira. */
 const DIA_SP = sql`(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
 
-/** Soma uma chamada ao contador do dia. */
+/**
+ * Teto por minuto somando todos os processos. O OneFlow aceita 60; ficamos
+ * em 55 para a latência não empurrar a 61ª para dentro do minuto errado.
+ */
+const TETO_POR_MINUTO = 55;
+
+/**
+ * Soma uma chamada ao contador do dia — e, antes, garante a vez no minuto.
+ *
+ * O espaçamento de 1,1s do adaptador vale dentro de UM processo; uma ação na
+ * tela rodando junto com uma rotina somaria as duas. Aqui a conta é no banco,
+ * para todo mundo: se o minuto já tem 55 chamadas, espera o próximo.
+ */
 async function registrarChamada(db: DbHandle): Promise<void> {
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    const [m] = (await db.execute(sql`
+      INSERT INTO oneflow_uso_minuto (minuto, chamadas) VALUES (date_trunc('minute', NOW()), 1)
+      ON CONFLICT (minuto) DO UPDATE SET chamadas = oneflow_uso_minuto.chamadas + 1
+      RETURNING chamadas, EXTRACT(SECOND FROM NOW())::float AS segundo
+    `)) as unknown as { chamadas: number; segundo: number }[];
+    if (!m || m.chamadas <= TETO_POR_MINUTO) break;
+    // Passou do teto: devolve a vaga e espera virar o minuto.
+    await db.execute(sql`UPDATE oneflow_uso_minuto SET chamadas = chamadas - 1 WHERE minuto = date_trunc('minute', NOW())`);
+    await new Promise((r) => setTimeout(r, Math.max(500, (60 - m.segundo) * 1000 + 250)));
+  }
   await db.execute(sql`
     INSERT INTO oneflow_uso_diario (dia, chamadas) VALUES (${DIA_SP}, 1)
     ON CONFLICT (dia) DO UPDATE
       SET chamadas = oneflow_uso_diario.chamadas + 1, atualizado_em = NOW()
   `);
+  // Limpeza: minutos de ontem para trás não servem para nada.
+  if (Math.random() < 0.02) await db.execute(sql`DELETE FROM oneflow_uso_minuto WHERE minuto < NOW() - interval '1 day'`);
 }
 
 /** Teto diário da API do OneFlow, para o escritório inteiro. */
@@ -166,4 +191,79 @@ export async function appHashPorCnpj(
     if (achou) return achou.appHash || null;
   }
   return null;
+}
+
+/**
+ * Desde quando o contábil da empresa existe no OneFlow ('AAAA-MM'), ou `null`
+ * se não foi implantado lá.
+ *
+ * Guardado por 7 dias em `oneflow_empresa`: o envio perguntava toda noite,
+ * duas vezes, para cada empresa — com 150 empresas seriam 300 chamadas por
+ * noite para ouvir a mesma resposta. Lança se o OneFlow não responder e não
+ * houver valor guardado (seguir sem a data arriscaria recusas em lote).
+ */
+export async function inicioDoContabil(
+  db: DbHandle,
+  cliente: { competenciaInicialDosModulos: (c: string, a: string) => Promise<Record<string, string>> },
+  companyId: string,
+  appHash: string,
+): Promise<string | null> {
+  const [g] = (await db.execute(sql`
+    SELECT inicio_contabil, conferido_em > NOW() - interval '7 days' AS fresco
+      FROM oneflow_empresa WHERE company_id = ${companyId}
+  `)) as unknown as { inicio_contabil: string | null; fresco: boolean }[];
+  if (g?.fresco) return g.inicio_contabil;
+  try {
+    const modulos = await cliente.competenciaInicialDosModulos(companyId, appHash);
+    const inicio = modulos['Contábil'] ?? modulos['Contabil'] ?? null;
+    await db.execute(sql`
+      INSERT INTO oneflow_empresa (company_id, inicio_contabil) VALUES (${companyId}, ${inicio})
+      ON CONFLICT (company_id) DO UPDATE SET inicio_contabil = EXCLUDED.inicio_contabil, conferido_em = NOW()
+    `);
+    return inicio;
+  } catch (err) {
+    if (g) return g.inicio_contabil; // velho, mas melhor que parar
+    throw err;
+  }
+}
+
+/**
+ * TURNOS E PRIORIDADE DA COTA — quanto cada rotina pode gastar hoje.
+ *
+ * Dimensionado para 150 empresas (decisão de 28/09/2026). A cota de 500/dia
+ * tem 20% de folga que NENHUMA rotina automática toca — é para imprevisto e
+ * para ação manual do escritório. Os 400 restantes seguem a prioridade:
+ *
+ *   1. retorno   — guias para o cliente pagar: pode usar tudo que houver.
+ *   2. nfse      — notas do mês ao fiscal de lá (dias 1 a 5).
+ *   3. envio     — lançamentos dos meses liberados.
+ *   4. resultado — o balancete oficial, só para exibir.
+ *
+ * Quem tem prioridade menor deixa guardado o que as de cima ainda vão
+ * precisar hoje. Nos dias 1 a 10 — quando as guias saem — a volta tem
+ * reserva grande; depois, pequena (sobram folha atrasada e retrasada).
+ */
+export const FOLGA_DA_COTA = Math.round(COTA_DIARIA * 0.2);
+export type RotinaDoOneflow = 'retorno' | 'nfse' | 'envio' | 'resultado';
+
+export function reservaParaAsDeCima(rotina: RotinaDoOneflow, diaDoMes: number): number {
+  const diasDeGuia = diaDoMes <= 10;
+  const volta = diasDeGuia ? 200 : 60;
+  const notas = diaDoMes <= 5 ? 60 : 0;
+  switch (rotina) {
+    case 'retorno':
+      return 0;
+    case 'nfse':
+      return volta;
+    case 'envio':
+      return volta + notas;
+    case 'resultado':
+      return volta + notas + (diasDeGuia ? 80 : 40);
+  }
+}
+
+/** Chamadas que a rotina pode gastar agora, respeitando folga e prioridade. */
+export async function cotaParaRotina(db: DbHandle, rotina: RotinaDoOneflow): Promise<number> {
+  const dia = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(8, 10));
+  return cotaRestante(db, FOLGA_DA_COTA + reservaParaAsDeCima(rotina, dia));
 }

@@ -5,10 +5,12 @@ import {
   enviarRazao,
   clienteOneflow,
   appHashPorCnpj,
-  cotaRestante,
+  cotaParaRotina,
   empresasComAgenteLigado,
   concluirEnviados,
   ORIGEM_ONEFLOW,
+  PARADA_NO_ENVIO,
+  inicioDoContabil,
 } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
@@ -34,17 +36,7 @@ export const maxDuration = 300;
  * liberado hoje sai de madrugada, e o que não coube continua amanhã.
  */
 
-/**
- * Chamadas guardadas para a volta das guias.
- *
- * A volta roda de manhã e o envio de madrugada, mas os dois sacam da MESMA
- * cota de 500. Com 50 empresas, um envio guloso deixaria a volta sem nada — e
- * a volta é a que o cliente sente, porque é dela que vem a guia para pagar.
- *
- * 120 cobre a sondagem de 50 empresas mais a importação completa de algumas
- * dezenas no dia em que as guias saem.
- */
-const RESERVA_PARA_A_VOLTA = 120;
+// A cota de cada rotina vem de `cotaParaRotina` (turnos e prioridade — oneflow-client.ts).
 
 /**
  * Teto por execução imposto pelo RELÓGIO, não pela cota.
@@ -73,7 +65,7 @@ export async function GET(request: Request) {
     const pedido = url.searchParams.get('limite');
     const prazo = Date.now() + 300_000 - MARGEM_DE_SEGURANCA_MS;
     const orcamento = Math.min(
-      pedido ? Number(pedido) : await cotaRestante(db, RESERVA_PARA_A_VOLTA),
+      pedido ? Number(pedido) : await cotaParaRotina(db, 'envio'),
       TETO_POR_EXECUCAO,
     );
 
@@ -103,28 +95,6 @@ export async function GET(request: Request) {
       if (!appHash) continue;
 
       /**
-       * Desde quando o contábil existe lá.
-       *
-       * Sem isto, o envio tenta meses anteriores à implantação, toma recusa em
-       * todos e os marca como ERRO — que depois precisam ser destravados à
-       * mão. Aconteceu no primeiro teste: 22 partidas de dezembro/2025 de uma
-       * empresa cujo contábil começa em janeiro/2026.
-       */
-      let inicioContabil: string | null = null;
-      try {
-        const modulos = await cliente.competenciaInicialDosModulos(empresa.id, appHash);
-        inicioContabil = modulos['Contábil'] ?? modulos['Contabil'] ?? null;
-      } catch {
-        // Sem a data, seguir seria arriscar o lote de erros que ela evita.
-        relatorio.push({ empresa: empresa.nome, erro: 'não foi possível ler a implantação do contábil' });
-        continue;
-      }
-      if (!inicioContabil) {
-        relatorio.push({ empresa: empresa.nome, erro: 'módulo contábil não implantado no OneFlow' });
-        continue;
-      }
-
-      /**
        * Meses com partida ainda não enviada, do mais antigo para o mais novo.
        *
        * A ordem importa: a contabilidade de lá recusa lançamento anterior ao
@@ -147,12 +117,34 @@ export async function GET(request: Request) {
            AND j.reversed_by IS NULL
            AND j.source <> 'CLOSING'
            AND NOT ${ORIGEM_ONEFLOW}
-           AND NOT EXISTS (
-             SELECT 1 FROM oneflow_envio e
-              WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO'
-           )
+           -- Enviada, saindo, incerta ou recusada demais não conta como pendente.
+           AND NOT ${PARADA_NO_ENVIO}
          ORDER BY 1
       `)) as unknown as { mes: string }[];
+
+      // Nada a enviar: nenhuma chamada ao OneFlow para esta empresa.
+      if (!meses.length) continue;
+
+      /**
+       * Desde quando o contábil existe lá — guardado por 7 dias (ver
+       * `inicioDoContabil`). Sem isto, o envio tenta meses anteriores à
+       * implantação, toma recusa em todos e os marca como ERRO. Aconteceu no
+       * primeiro teste: 22 partidas de dezembro/2025 de uma empresa cujo
+       * contábil começa em janeiro/2026.
+       */
+      let inicioContabil: string | null = null;
+      try {
+        inicioContabil = await inicioDoContabil(db, cliente, empresa.id, appHash);
+      } catch {
+        // Sem a data, seguir seria arriscar o lote de erros que ela evita.
+        relatorio.push({ empresa: empresa.nome, erro: 'não foi possível ler a implantação do contábil' });
+        continue;
+      }
+      if (!inicioContabil) {
+        relatorio.push({ empresa: empresa.nome, erro: 'módulo contábil não implantado no OneFlow' });
+        continue;
+      }
+
 
       for (const { mes } of meses) {
         if (restante <= 0) break;
@@ -163,7 +155,8 @@ export async function GET(request: Request) {
         const r = await enviarRazao(
           db, empresa.id, appHash, dados.cnpj, mes, restante, cliente, prazo,
         );
-        restante -= r.enviadas;
+        // Composto: várias partidas por chamada — a cota desconta chamadas, não partidas.
+        restante -= r.chamadas;
         if (r.tempoAcabou) { interrompido = `${empresa.nome} (tempo da execução)`; break; }
 
         if (r.enviadas || r.erros.length || r.bloqueadas) {
@@ -171,7 +164,9 @@ export async function GET(request: Request) {
             empresa: empresa.nome,
             mes: mes.slice(0, 7),
             enviadas: r.enviadas,
+            chamadas: r.chamadas,
             erros: r.erros.length,
+            incertas: r.incertas,
             bloqueadas: r.bloqueadas,
             restantes: r.restantes,
           });

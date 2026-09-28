@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, KeyRound, Gauge, Send, XCircle, Clock } from 'lucide-react';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { saudeDoOneflow, type SaudeOneflow } from '@/lib/server/saude-oneflow';
+import { EnviosIncertos, EnviosEsgotados } from './DecisoesDeEnvio';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Integração OneFlow | Hexx Digital' };
@@ -18,8 +19,10 @@ export const metadata = { title: 'Integração OneFlow | Hexx Digital' };
 const painel =
   'rounded-[28px] border border-white/60 bg-white/55 p-6 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5';
 const rotulo = 'rotulo text-ink-soft';
-const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-const duracao = (ms: number | null) => (ms == null ? '—' : ms < 60_000 ? `${Math.round(ms / 1000)}s` : `${Math.floor(ms / 60_000)}min ${Math.round((ms % 60_000) / 1000)}s`);
+const quando = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+const duracao = (ms: number | null) =>
+  ms == null ? '—' : ms < 60_000 ? `${Math.round(ms / 1000)}s` : `${Math.floor(ms / 60_000)}min ${Math.round((ms % 60_000) / 1000)}s`;
 const comp = (c: string) => `${c.slice(4, 6)}/${c.slice(0, 4)}`;
 
 export default async function Page() {
@@ -74,13 +77,26 @@ export default async function Page() {
         </div>
       </div>
 
+      {s.envio.incertos.length > 0 && (
+        <section className="rounded-[28px] border border-rose-500/25 bg-rose-500/[0.03] p-6">
+          <p className="rotulo text-rose-700 dark:text-rose-400">Envios incertos — conferir no OneFlow</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            O OneFlow não respondeu a estes envios. Eles podem ter entrado lá. Procure pelo documento no razão do OneFlow e diga o que achou — o sistema nunca
+            os reenvia sozinho, para não lançar em dobro.
+          </p>
+          <div className="mt-3">
+            <EnviosIncertos itens={s.envio.incertos} />
+          </div>
+        </section>
+      )}
+
       <UsoDaCota s={s} util={util} />
 
       <section className="space-y-3">
         <p className={rotulo}>Rotinas</p>
         <div className="overflow-hidden rounded-[28px] border border-white/60 bg-white/55 ring-1 ring-inset ring-white/40 backdrop-blur-2xl dark:border-white/10 dark:bg-[#151916]/75 dark:ring-white/5">
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_9rem_6rem_6rem_6rem] gap-4 border-b border-black/[0.08] px-6 py-3 sm:grid dark:border-white/[0.12]">
-            {['Rotina', 'Última execução', 'Duração', 'Chamadas', 'Falhas 7d'].map((c) => (
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_9rem_5rem_7rem_5rem_5rem] gap-4 border-b border-black/[0.08] px-6 py-3 sm:grid dark:border-white/[0.12]">
+            {['Rotina', 'Última execução', 'Duração', 'Chamadas', 'Teto hoje', 'Falhas 7d'].map((c) => (
               <span key={c} className={rotulo}>
                 {c}
               </span>
@@ -88,14 +104,14 @@ export default async function Page() {
           </div>
           <ul className="divide-y divide-black/[0.08] dark:divide-white/[0.12]">
             {s.rotinas.map((r) => (
-              <li key={r.caminho} className="grid gap-x-4 gap-y-1 px-6 py-4 sm:grid-cols-[minmax(0,1.4fr)_9rem_6rem_6rem_6rem] sm:items-center">
+              <li key={r.caminho} className="grid gap-x-4 gap-y-1 px-6 py-4 sm:grid-cols-[minmax(0,1.4fr)_9rem_5rem_7rem_5rem_5rem] sm:items-center">
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-ink">{r.nome}</span>
                   <span className="block text-xs text-ink-soft">
                     {r.papel} Turno da {r.turno}.
                   </span>
                   {r.ultima?.status === 'FALHOU' && r.ultima.erro && (
-                    <span className="mt-1 block break-words text-xs text-rose-600 dark:text-rose-400">{r.ultima.erro.slice(0, 240)}</span>
+                    <span className="mt-1 block text-xs text-rose-600 [overflow-wrap:anywhere] dark:text-rose-400">{r.ultima.erro.slice(0, 240)}</span>
                   )}
                 </span>
                 <span className="flex items-center gap-1.5 text-xs text-ink">
@@ -119,35 +135,46 @@ export default async function Page() {
                   {r.ultima?.chamadas ?? '—'}
                   {r.mediaChamadas != null && <span className="text-ink-soft"> · média {r.mediaChamadas}</span>}
                 </span>
+                <span className="text-xs tabular text-ink-soft">até {r.tetoHoje}</span>
                 <span className={`text-xs tabular ${r.falhas7 ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-ink-soft'}`}>{r.falhas7}</span>
               </li>
             ))}
           </ul>
         </div>
-        <p className="text-[11px] text-ink-soft">O registro das execuções começou em 28/09/2026 — antes disso as rotinas rodavam sem deixar histórico aqui.</p>
+        <p className="text-[11px] text-ink-soft">
+          Em ordem de prioridade: as guias podem usar tudo o que houver; cada rotina abaixo deixa guardado o que as de cima ainda vão precisar no dia (mais nos
+          dias 1 a 10, quando as guias saem). Os 20% de folga nenhuma rotina automática usa. Dimensionado para 150 empresas. O registro das execuções começou em
+          28/09/2026.
+        </p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className={painel}>
+        <section className={`${painel} min-w-0`}>
           <p className={rotulo}>Lançamentos recusados, por motivo</p>
           {s.envio.errosPorMotivo.length === 0 ? (
             <p className="mt-3 text-sm text-ink">Nenhum lançamento recusado.</p>
           ) : (
-            <ul className="mt-3 divide-y divide-black/[0.06] dark:divide-white/[0.08]">
-              {s.envio.errosPorMotivo.map((e) => (
-                <li key={`${e.empresa}${e.motivo}`} className="flex items-start justify-between gap-4 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block text-sm text-ink">{e.empresa}</span>
-                    <span className="block break-words text-xs text-ink-soft">{e.motivo}</span>
-                  </span>
-                  <span className="shrink-0 font-serif text-sm tabular text-rose-600 dark:text-rose-400">{e.qtd}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="mt-3 divide-y divide-black/[0.06] dark:divide-white/[0.08]">
+                {s.envio.errosPorMotivo.map((e) => (
+                  <li key={`${e.empresa}${e.motivo}`} className="flex items-start justify-between gap-4 py-2.5">
+                    <span className="min-w-0">
+                      <span className="block text-sm text-ink">{e.empresa}</span>
+                      <span className="block text-xs text-ink-soft [overflow-wrap:anywhere]">{e.motivo}</span>
+                    </span>
+                    <span className="shrink-0 font-serif text-sm tabular text-rose-600 dark:text-rose-400">{e.qtd}</span>
+                  </li>
+                ))}
+              </ul>
+              {s.envio.esgotadas.length > 0 && <EnviosEsgotados itens={s.envio.esgotadas} />}
+              <p className="mt-3 text-[11px] text-ink-soft">
+                Cada recusa é tentada de novo por até 3 madrugadas; depois para, para não gastar cota com o mesmo erro.
+              </p>
+            </>
           )}
         </section>
 
-        <section className={painel}>
+        <section className={`${painel} min-w-0`}>
           <p className={rotulo}>O que voltou da competência {comp(s.volta.competencia)}</p>
           {s.volta.empresas.length === 0 ? (
             <p className="mt-3 text-sm text-ink">Nenhuma empresa ligada ao OneFlow.</p>
@@ -158,13 +185,19 @@ export default async function Page() {
                   <span className="min-w-0 truncate text-ink">{v.nome}</span>
                   <span className="flex shrink-0 items-center gap-3 text-xs">
                     <Selo ok={v.fiscalOk} texto="DAS" />
-                    <Selo ok={v.folhaOk} texto={v.folhaOk && v.folhaStatus === 'SEM_MODULO' ? 'sem folha' : 'Folha'} detalhe={!v.folhaOk ? v.folhaStatus : null} />
+                    <Selo
+                      ok={v.folhaOk}
+                      texto={v.folhaOk && v.folhaStatus === 'SEM_MODULO' ? 'sem folha' : 'Folha'}
+                      detalhe={!v.folhaOk ? v.folhaStatus : null}
+                    />
                   </span>
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-3 text-[11px] text-ink-soft">DAS e folha têm marcação própria: a primeira guia não encerra mais o mês. Até o dia 20, o que faltar é buscado de novo todo dia.</p>
+          <p className="mt-3 text-[11px] text-ink-soft">
+            DAS e folha têm marcação própria: a primeira guia não encerra mais o mês. Até o dia 20, o que faltar é buscado de novo todo dia.
+          </p>
         </section>
       </div>
     </div>
@@ -191,9 +224,7 @@ function Problemas({ problemas }: { problemas: SaudeOneflow['problemas'] }) {
   }
   return (
     <section className="space-y-2">
-      <p className="rotulo text-rose-700 dark:text-rose-400">
-        {problemas.length === 1 ? '1 ponto pede atenção' : `${problemas.length} pontos pedem atenção`}
-      </p>
+      <p className="rotulo text-rose-700 dark:text-rose-400">{problemas.length === 1 ? '1 ponto pede atenção' : `${problemas.length} pontos pedem atenção`}</p>
       <ul className="space-y-2">
         {problemas.map((p, i) => (
           <li
@@ -202,7 +233,9 @@ function Problemas({ problemas }: { problemas: SaudeOneflow['problemas'] }) {
               p.nivel === 'critico' ? 'border-rose-500/30 bg-rose-500/[0.05]' : 'border-amber-500/30 bg-amber-500/[0.05]'
             }`}
           >
-            <p className={`flex items-center gap-2 text-sm font-semibold ${p.nivel === 'critico' ? 'text-rose-700 dark:text-rose-300' : 'text-amber-800 dark:text-amber-300'}`}>
+            <p
+              className={`flex items-center gap-2 text-sm font-semibold ${p.nivel === 'critico' ? 'text-rose-700 dark:text-rose-300' : 'text-amber-800 dark:text-amber-300'}`}
+            >
               <AlertTriangle className="h-4 w-4 shrink-0" /> {p.titulo}
             </p>
             <p className="mt-1 pl-6 text-xs text-ink">{p.detalhe}</p>
@@ -250,7 +283,7 @@ function UsoDaCota({ s, util }: { s: SaudeOneflow; util: number }) {
   const y = (v: number) => H - (v / topo) * H;
   const bw = W / s.cota.serie.length;
   return (
-    <section className={painel}>
+    <section className={`${painel} min-w-0`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="rotulo text-ink-soft">Uso da cota — últimos 30 dias</p>
         <p className="text-[11px] text-ink-soft">

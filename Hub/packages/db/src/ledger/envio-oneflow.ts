@@ -67,6 +67,30 @@ export const ORIGEM_ONEFLOW = sql.raw(
 );
 
 /**
+ * Partida que o envio automático NÃO manda — fragmento SQL sobre `j`.
+ *
+ *   ENVIADO  — já está lá.
+ *   ENVIANDO — saiu e a rotina morreu antes da resposta: pode estar lá.
+ *   INCERTO  — o OneFlow não respondeu (rede, tempo, 5xx): pode estar lá.
+ *   ERRO ×3  — recusada três vezes: tentar de novo sem mudar nada só gasta cota.
+ *
+ * ENVIANDO e INCERTO nunca voltam sozinhos: reenviar o que talvez já exista
+ * duplica o lançamento nos livros oficiais, e lá ele só sai à mão. Quem
+ * decide é o escritório, pela tela "Integração OneFlow" (conferir pelo
+ * documento HUB-… e marcar "está lá" ou "reenviar").
+ *
+ * Usado em todo lugar que decide o que falta enviar (ensaio, cron, painel),
+ * para os três nunca discordarem.
+ */
+export const MAXIMO_DE_TENTATIVAS = 3;
+export const PARADA_NO_ENVIO = sql.raw(
+  `(
+    EXISTS (SELECT 1 FROM oneflow_envio pe WHERE pe.journal_entry_id = j.id AND pe.status IN ('ENVIADO', 'ENVIANDO', 'INCERTO'))
+    OR (SELECT count(*) FROM oneflow_envio pe WHERE pe.journal_entry_id = j.id AND pe.status = 'ERRO') >= ${MAXIMO_DE_TENTATIVAS}
+  )`,
+);
+
+/**
  * ENSAIO E ENVIO DO RAZÃO AO ONEFLOW.
  *
  * O ensaio (`ensaiarEnvio`) monta os lançamentos e NÃO manda nada. Existe
@@ -79,6 +103,8 @@ export const ORIGEM_ONEFLOW = sql.raw(
 export interface PartidaParaEnvio {
   journalEntryId: string;
   data: string;
+  /** Recusas anteriores — quem já foi recusado vai sozinho, nunca em composto. */
+  tentativas?: number;
   valor: number;
   documento: string | null;
   partidas: {
@@ -150,7 +176,9 @@ export async function ensaiarEnvio(
       bp.document AS doc_parceiro,
       bp.name AS nome_parceiro,
       EXISTS (SELECT 1 FROM oneflow_envio e
-              WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO') AS ja_enviada
+              WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO') AS ja_enviada,
+      ${PARADA_NO_ENVIO} AS parada,
+      (SELECT count(*) FROM oneflow_envio te WHERE te.journal_entry_id = j.id AND te.status = 'ERRO')::int AS tentativas
     FROM ledger_line l
     JOIN journal_entry j ON j.id = l.journal_entry_id
     JOIN chart_of_account a ON a.id = l.account_id
@@ -185,6 +213,8 @@ export async function ensaiarEnvio(
       if (!enviadasVistas.has(id)) { enviadasVistas.add(id); jaEnviadas++; }
       continue;
     }
+    // Incerta, em envio ou recusada demais: não vai sozinha — ver PARADA_NO_ENVIO.
+    if (l.parada) continue;
     const atual = porPartida.get(id) ?? [];
     atual.push(l);
     porPartida.set(id, atual);
@@ -240,6 +270,7 @@ export async function ensaiarEnvio(
 
     prontas.push({
       journalEntryId: id,
+      tentativas: Number(ls[0]!.tentativas ?? 0),
       data: dataOneflow(String(ls[0]!.entry_date)),
       valor: total / 100,
       documento: `HUB-${id.slice(0, 8)}`,
@@ -268,6 +299,10 @@ export interface ResultadoEnvioRazao {
   tempoAcabou: boolean;
   /** O mês não tem envio autorizado — nada foi mandado, e isso não é erro. */
   naoAutorizado: boolean;
+  /** Saíram sem resposta do OneFlow: ficam para o escritório conferir, nunca reenviadas sozinhas. */
+  incertas: number;
+  /** Chamadas à API gastas — menos que `enviadas` quando há lançamento composto. */
+  chamadas: number;
 }
 
 /**
@@ -337,7 +372,7 @@ export async function enviarRazao(
   if (!(await envioAutorizado(tx, companyId, referenceMonth))) {
     return {
       mes: referenceMonth, enviadas: 0, erros: [], restantes: 0, bloqueadas: 0,
-      cotaAcabou: false, tempoAcabou: false, naoAutorizado: true,
+      cotaAcabou: false, tempoAcabou: false, naoAutorizado: true, incertas: 0, chamadas: 0,
     };
   }
 
@@ -351,67 +386,104 @@ export async function enviarRazao(
     cotaAcabou: false,
     tempoAcabou: false,
     naoAutorizado: false,
+    incertas: 0,
+    chamadas: 0,
   };
 
-  for (const [i, p] of ensaio.prontas.entries()) {
-    if (out.enviadas >= limite) {
-      out.restantes = ensaio.prontas.length - i;
+  /**
+   * LANÇAMENTOS COMPOSTOS — a alavanca da cota.
+   *
+   * A API aceita UM lançamento por chamada, mas um lançamento aceita várias
+   * partidas. As partidas do mesmo dia vão juntas num lançamento só (até
+   * `LANCAMENTOS_POR_COMPOSTO`), cada linha com o seu histórico: o livro de
+   * lá fica igual, e o custo cai de uma chamada por lançamento para uma por
+   * dia. É o que faz 150 empresas caberem nas 500 chamadas diárias.
+   *
+   * Quem já foi recusado antes vai SOZINHO: um composto recusado não diz
+   * qual das partidas tem o problema, e mandando uma a uma o erro fica com
+   * quem é dele.
+   */
+  const lotes = montarLotes(ensaio.prontas);
+  const total = ensaio.prontas.length;
+  let feitas = 0;
+
+  for (const lote of lotes) {
+    if (out.chamadas >= limite) {
+      out.restantes = total - feitas;
       break;
     }
 
     /**
-     * Para ANTES do prazo, não quando ele chega.
-     *
-     * O espaçamento obrigatório de 1,1s entre chamadas impõe um teto de ~272
-     * chamadas numa função de 300s. Ser morto no meio não seria só perder o
-     * resto do lote: se a execução terminar ENTRE o OneFlow aceitar o
-     * lançamento e nós registrarmos o envio, a partida existe lá e não consta
-     * aqui — e amanhã ela vai de novo, duplicada na contabilidade oficial.
-     *
-     * Duplicata lá não tem desfazer automático: some só por exclusão manual,
-     * e a listagem do razão deles não devolve ids. Por isso a margem é
-     * generosa: parar cedo custa um dia; parar tarde custa uma correção à mão.
+     * Para ANTES do prazo, não quando ele chega. Ser morto no meio arriscaria
+     * o OneFlow aceitar e nós não registrarmos — por isso também a marca
+     * ENVIANDO abaixo, que segura a partida mesmo se a rotina morrer.
      */
     if (prazo && Date.now() > prazo) {
-      out.restantes = ensaio.prontas.length - i;
+      out.restantes = total - feitas;
       out.tempoAcabou = true;
       break;
     }
+
+    // Marca ANTES de mandar — ver PARADA_NO_ENVIO: ENVIANDO nunca sai de novo sozinho.
+    const marcas: string[] = [];
+    for (const p of lote) marcas.push(await marcarEnviando(tx, companyId, p.journalEntryId));
+    const composto = lote.length > 1;
+
     try {
-      const r = await cliente.enviarLancamento(companyId, appHash, {
-        data: p.data,
-        valor: p.valor,
-        ...(p.documento ? { documento: p.documento } : {}),
-        partidas: p.partidas,
-      });
-      await registrarEnvio(tx, companyId, p.journalEntryId, r.id);
-      out.enviadas++;
+      const r = await cliente.enviarLancamento(companyId, appHash, juntarLote(lote));
+      out.chamadas++;
+      for (const m of marcas) await concluirMarca(tx, m, 'ENVIADO', r.id);
+      out.enviadas += lote.length;
+      feitas += lote.length;
       /**
-       * Aceito, mas sem id: fica registrado como ENVIADO — ele existe lá, e
-       * reenviar duplicaria —, e o lote para. Sem id não dá para excluir
-       * pela API, e seguir enviando multiplicaria lançamentos que só saem
-       * à mão. Ver `idDoLancamento`.
+       * Aceito, mas sem id: fica ENVIADO — ele existe lá, e reenviar
+       * duplicaria —, e o lote para. Sem id não dá para excluir pela API.
        */
       if (!r.id) {
-        out.restantes = ensaio.prontas.length - i - 1;
+        out.restantes = total - feitas;
         out.erros.push({
-          journalEntryId: p.journalEntryId,
+          journalEntryId: lote[0]!.journalEntryId,
           motivo: 'O OneFlow aceitou o lançamento sem devolver o id. Envio interrompido — confira a resposta da API antes de continuar.',
         });
         break;
       }
     } catch (err) {
       const motivo = err instanceof Error ? err.message : String(err);
-      // Cota diária: parar o lote INTEIRO. Continuar só geraria uma lista de
-      // erros idênticos e marcaria como ERRO partidas que não têm defeito
-      // nenhum — e elas precisariam ser destravadas à mão depois.
-      if (/requisi..es por dia/i.test(motivo)) {
-        out.cotaAcabou = true;
-        out.restantes = ensaio.prontas.length - i;
+      const status = (err as { status?: number | null }).status;
+      const desfazerMarcas = async () => {
+        for (const m of marcas) await tx.execute(sql`DELETE FROM oneflow_envio WHERE id = ${m}::uuid`);
+      };
+      // Limite por minuto (429): não processou. Marca sai, lote para, sem contar tentativa.
+      if (status === 429) {
+        await desfazerMarcas();
+        out.restantes = total - feitas;
         break;
       }
-      await registrarEnvio(tx, companyId, p.journalEntryId, null, motivo);
-      out.erros.push({ journalEntryId: p.journalEntryId, motivo });
+      // Cota diária: parar o lote INTEIRO — seguir só marcaria como ERRO
+      // partidas sem defeito nenhum, e as tentativas contariam na cota de amanhã.
+      if (/requisi..es por dia/i.test(motivo)) {
+        await desfazerMarcas();
+        out.cotaAcabou = true;
+        out.restantes = total - feitas;
+        break;
+      }
+      out.chamadas++;
+      // Sem resposta: pode ter entrado lá. INCERTO, e o lote para — se a rede
+      // caiu, as próximas cairiam também, e cada uma seria mais uma dúvida.
+      if ((err as { incerto?: boolean }).incerto) {
+        for (const m of marcas) await concluirMarca(tx, m, 'INCERTO', null, motivo);
+        out.incertas += lote.length;
+        for (const p of lote) out.erros.push({ journalEntryId: p.journalEntryId, motivo: `Incerto — ${motivo}` });
+        feitas += lote.length;
+        out.restantes = total - feitas;
+        break;
+      }
+      // Recusa clara. No composto, cada partida conta uma tentativa e da
+      // próxima vez vai sozinha — o erro fica com quem é dele.
+      const motivoGravado = composto ? `Composto de ${lote.length} recusado — vai sozinho da próxima vez: ${motivo}` : motivo;
+      for (const m of marcas) await concluirMarca(tx, m, 'ERRO', null, motivoGravado);
+      for (const p of lote) out.erros.push({ journalEntryId: p.journalEntryId, motivo: motivoGravado });
+      feitas += lote.length;
     }
   }
 
@@ -433,6 +505,67 @@ export async function enviarRazao(
   }
 
   return out;
+}
+
+/** Até quantos lançamentos vão num composto. A API não documenta limite de partidas; 20 lançamentos (~40–60 partidas) é conservador. */
+export const LANCAMENTOS_POR_COMPOSTO = 20;
+
+/** Agrupa as prontas (já em ordem de data) em lotes do mesmo dia; recusadas antes vão sozinhas. */
+export function montarLotes(prontas: PartidaParaEnvio[]): PartidaParaEnvio[][] {
+  const lotes: PartidaParaEnvio[][] = [];
+  let atual: PartidaParaEnvio[] = [];
+  for (const p of prontas) {
+    if ((p.tentativas ?? 0) > 0) {
+      lotes.push([p]);
+      continue;
+    }
+    if (atual.length && (atual[0]!.data !== p.data || atual.length >= LANCAMENTOS_POR_COMPOSTO)) {
+      lotes.push(atual);
+      atual = [];
+    }
+    atual.push(p);
+  }
+  if (atual.length) lotes.push(atual);
+  return lotes;
+}
+
+/** O lançamento que vai ao OneFlow: sozinho, como sempre; composto, com todas as partidas do dia. */
+export function juntarLote(lote: PartidaParaEnvio[]): LancamentoOneflow {
+  const primeiro = lote[0]!;
+  if (lote.length === 1) {
+    return { data: primeiro.data, valor: primeiro.valor, ...(primeiro.documento ? { documento: primeiro.documento } : {}), partidas: primeiro.partidas };
+  }
+  const centavos = lote.reduce((s, p) => s + Math.round(p.valor * 100), 0);
+  return {
+    data: primeiro.data,
+    valor: centavos / 100,
+    // Identifica o composto pelo primeiro lançamento e quantos vão juntos.
+    documento: `HUB-${primeiro.journalEntryId.slice(0, 8)}+${lote.length - 1}`,
+    partidas: lote.flatMap((p) => p.partidas),
+  };
+}
+
+/** A marca de "saindo agora" — ver `enviarRazao`. Devolve o id da linha. */
+async function marcarEnviando(tx: DbHandle, companyId: string, journalEntryId: string): Promise<string> {
+  const [r] = (await tx.execute(sql`
+    INSERT INTO oneflow_envio (company_id, journal_entry_id, status)
+    VALUES (${companyId}, ${journalEntryId}, 'ENVIANDO')
+    RETURNING id::text
+  `)) as unknown as { id: string }[];
+  return r!.id;
+}
+
+async function concluirMarca(
+  tx: DbHandle,
+  marca: string,
+  status: 'ENVIADO' | 'ERRO' | 'INCERTO',
+  oneflowId: string | null,
+  erro?: string,
+): Promise<void> {
+  await tx.execute(sql`
+    UPDATE oneflow_envio SET status = ${status}, oneflow_id = ${oneflowId}, erro = ${erro ?? null}, enviado_em = NOW()
+     WHERE id = ${marca}::uuid
+  `);
 }
 
 /** Registra que uma partida foi enviada, para não mandar de novo. */
@@ -562,7 +695,12 @@ async function excluirDoOneflow(
   motivoDaRetirada: string,
 ): Promise<ResultadoRetirada> {
   const out: ResultadoRetirada = { retiradas: 0, falhas: [], interrompida: null };
+  // Lançamento composto: vários registros com o MESMO id de lá. Exclui uma
+  // vez só — a segunda chamada falharia (já não existe) e pararia o lote.
+  const vistos = new Set<string>();
   for (const a of alvos) {
+    if (vistos.has(a.oneflow_id)) continue;
+    vistos.add(a.oneflow_id);
     try {
       await cliente.excluirLancamento(companyId, appHash, a.oneflow_id);
     } catch (err) {
@@ -575,7 +713,7 @@ async function excluirDoOneflow(
       UPDATE oneflow_envio
          SET status = 'RETIRADO',
              erro = ${'Excluído do OneFlow em ' + new Date().toISOString().slice(0, 10) + ': ' + motivoDaRetirada}
-       WHERE id = ${a.envio_id}
+       WHERE company_id = ${companyId} AND status = 'ENVIADO' AND oneflow_id = ${a.oneflow_id}
     `);
     out.retiradas++;
   }

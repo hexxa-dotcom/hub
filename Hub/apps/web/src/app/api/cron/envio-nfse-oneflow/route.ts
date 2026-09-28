@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import {
   getDb,
   appHashPorCnpj,
-  cotaRestante,
+  cotaParaRotina,
   empresasComAgenteLigado,
   ensaiarEnvioNfse,
   enviarNfseParaOneflow,
@@ -12,30 +12,7 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/**
- * NOTAS DO MÊS QUE ACABOU → FISCAL DO ONEFLOW.
- *
- * O elo que faltava. O envio existia e era testado pela linha de comando,
- * mas nenhum cron o chamava — e para quem emite nota pela Hexx, o fiscal do
- * OneFlow recebia zero notas: a apuração da HEXX voltava zerada em toda
- * competência, e nunca haveria DAS oficial para ela.
- *
- * ── Quando ──────────────────────────────────────────────────────────────
- *
- * Dias 1 a 5, para o mês que acabou. A nota do mês já está final (cancelar
- * depois de enviada deixaria receita que não existe na apuração) e o
- * OneFlow ainda não apurou — as guias saem entre os dias 1 e 15. Os cinco
- * dias cobrem falha de um dia: a nota que não foi hoje vai amanhã.
- *
- * ── Quem ────────────────────────────────────────────────────────────────
- *
- * Empresas com "Enviar ao OneFlow" ligado. O ensaio roda antes, sem falar
- * com o OneFlow: quem não tem nota pendente não gasta chamada nenhuma. Quem
- * tem gasta duas — a conferência do que já está lá (a busca automática da
- * prefeitura às vezes funciona, e mandar de novo dobraria a receita) e a
- * remessa.
- */
-const RESERVA_PARA_A_VOLTA = 120;
+// A cota de cada rotina vem de `cotaParaRotina` (turnos e prioridade — oneflow-client.ts).
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -75,7 +52,7 @@ export async function GET(request: Request) {
         continue;
       }
 
-      if ((await cotaRestante(db, RESERVA_PARA_A_VOLTA)) < 2) {
+      if ((await cotaParaRotina(db, 'nfse')) < 2) {
         relatorio.push({ empresa: e.nome, adiado: 'cota do dia reservada para a volta das guias' });
         break;
       }

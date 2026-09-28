@@ -1,5 +1,15 @@
 import 'server-only';
-import { getDb, sql, COTA_DIARIA, ORIGEM_ONEFLOW } from '@hexxa/db';
+import {
+  getDb,
+  sql,
+  COTA_DIARIA,
+  ORIGEM_ONEFLOW,
+  PARADA_NO_ENVIO,
+  MAXIMO_DE_TENTATIVAS,
+  FOLGA_DA_COTA,
+  reservaParaAsDeCima,
+  type RotinaDoOneflow,
+} from '@hexxa/db';
 
 /**
  * SAÚDE DA INTEGRAÇÃO COM O ONEFLOW — o que a tela do escritório mostra.
@@ -12,20 +22,49 @@ import { getDb, sql, COTA_DIARIA, ORIGEM_ONEFLOW } from '@hexxa/db';
  */
 
 /** 20% da cota fica sempre livre para sobrecarga (decisão de 28/09/2026). */
-export const RESERVA = Math.round(COTA_DIARIA * 0.2);
+export const RESERVA = FOLGA_DA_COTA;
 
-/** As rotinas que falam com o OneFlow, na ordem em que rodam. */
-export const ROTINAS_ONEFLOW: { caminho: string; nome: string; turno: string; papel: string }[] = [
+/** As rotinas que falam com o OneFlow, na ordem de prioridade da cota. */
+export const ROTINAS_ONEFLOW: { caminho: string; chave: RotinaDoOneflow; nome: string; turno: string; papel: string }[] = [
+  {
+    caminho: 'retorno-oneflow',
+    chave: 'retorno',
+    nome: 'Guias e folha ← OneFlow',
+    turno: 'meia-noite e manhã (2×)',
+    papel: 'Traz DAS, DCTFWeb, FGTS e a folha para a área do cliente.',
+  },
   {
     caminho: 'envio-nfse-oneflow',
+    chave: 'nfse',
     nome: 'Notas fiscais → OneFlow',
-    turno: 'madrugada',
+    turno: 'meia-noite',
     papel: 'Manda as notas do mês que fechou para o fiscal de lá (dias 1 a 5).',
   },
-  { caminho: 'envio-oneflow', nome: 'Lançamentos → OneFlow', turno: 'madrugada', papel: 'Manda os lançamentos dos meses liberados no fechamento.' },
-  { caminho: 'resultado-oneflow', nome: 'Resultado oficial ← OneFlow', turno: 'manhã', papel: 'Lê o balancete de lá para mostrar o lucro oficial.' },
-  { caminho: 'retorno-oneflow', nome: 'Guias e folha ← OneFlow', turno: 'manhã', papel: 'Traz DAS, DCTFWeb, FGTS e a folha para a área do cliente.' },
+  {
+    caminho: 'envio-oneflow',
+    chave: 'envio',
+    nome: 'Lançamentos → OneFlow',
+    turno: 'meia-noite (2×)',
+    papel: 'Manda os lançamentos dos meses liberados, em lotes compostos por dia.',
+  },
+  {
+    caminho: 'resultado-oneflow',
+    chave: 'resultado',
+    nome: 'Resultado oficial ← OneFlow',
+    turno: 'manhã',
+    papel: 'Lê o balancete de lá para mostrar o lucro oficial.',
+  },
 ];
+
+export interface EnvioIncerto {
+  id: string;
+  empresa: string;
+  memo: string;
+  data: string;
+  documento: string;
+  valor: number;
+  erro: string | null;
+}
 
 export interface Problema {
   nivel: 'critico' | 'atencao';
@@ -46,8 +85,20 @@ export interface SaudeOneflow {
     ultima: { inicio: string; status: string; duracaoMs: number | null; chamadas: number | null; erro: string | null } | null;
     falhas7: number;
     mediaChamadas: number | null;
+    /** Até quantas chamadas a rotina pode gastar hoje (prioridade e folga — cotaParaRotina). */
+    tetoHoje: number;
   }[];
-  envio: { enviados: number; erros: number; retirados: number; pendentesLiberados: number; errosPorMotivo: { empresa: string; motivo: string; qtd: number }[] };
+  envio: {
+    enviados: number;
+    erros: number;
+    retirados: number;
+    pendentesLiberados: number;
+    errosPorMotivo: { empresa: string; motivo: string; qtd: number }[];
+    /** Talvez estejam lá — o escritório confere e decide. */
+    incertos: EnvioIncerto[];
+    /** Recusadas no máximo de tentativas, por empresa. */
+    esgotadas: { companyId: string; empresa: string; partidas: number }[];
+  };
   volta: { competencia: string; empresas: { nome: string; fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null }[] };
   problemas: Problema[];
 }
@@ -94,19 +145,26 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
       db.execute(sql`
       SELECT rotina, round(avg(chamadas))::int AS media FROM rotina_execucao
        WHERE chamadas IS NOT NULL AND status <> 'PULADA' AND inicio > NOW() - interval '30 days' GROUP BY rotina`),
-    () => db.execute(sql`SELECT status, count(*)::int AS n FROM oneflow_envio GROUP BY status`),
+    // Recusada conta por PARTIDA e só enquanto não foi resolvida (cada tentativa grava uma linha).
     () =>
       db.execute(sql`
-      SELECT coalesce(c.trade_name, c.legal_name) AS empresa, left(regexp_replace(coalesce(e.erro, 'sem motivo'), '\\s+', ' ', 'g'), 180) AS motivo, count(*)::int AS qtd
+      SELECT 'ERRO' AS status, count(DISTINCT e.journal_entry_id)::int AS n FROM oneflow_envio e
+       WHERE e.status = 'ERRO' AND NOT EXISTS (SELECT 1 FROM oneflow_envio o WHERE o.journal_entry_id = e.journal_entry_id AND o.status IN ('ENVIADO', 'ENVIANDO', 'INCERTO'))
+      UNION ALL
+      SELECT status, count(*)::int FROM oneflow_envio WHERE status <> 'ERRO' GROUP BY status`),
+    () =>
+      db.execute(sql`
+      SELECT coalesce(c.trade_name, c.legal_name) AS empresa, left(regexp_replace(regexp_replace(coalesce(e.erro, 'sem motivo'), '^\\[oneflow [^]]*\\] \\S+: ', ''), '\\s+', ' ', 'g'), 220) AS motivo, count(DISTINCT e.journal_entry_id)::int AS qtd
         FROM oneflow_envio e JOIN company c ON c.id = e.company_id
-       WHERE e.status = 'ERRO' GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 8`),
+       WHERE e.status = 'ERRO' AND NOT EXISTS (SELECT 1 FROM oneflow_envio o WHERE o.journal_entry_id = e.journal_entry_id AND o.status IN ('ENVIADO', 'ENVIANDO', 'INCERTO'))
+       GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 8`),
     () =>
       db.execute(sql`
       SELECT count(*)::int AS n
         FROM journal_entry j
         JOIN monthly_closure mc ON mc.company_id = j.company_id AND mc.reference_month = j.reference_month AND mc.send_authorized_at IS NOT NULL
        WHERE j.status = 'POSTED' AND j.reversed_by IS NULL AND j.source <> 'CLOSING' AND NOT ${ORIGEM_ONEFLOW}
-         AND NOT EXISTS (SELECT 1 FROM oneflow_envio e WHERE e.journal_entry_id = j.id AND e.status IN ('ENVIADO', 'ERRO'))`),
+         AND NOT ${PARADA_NO_ENVIO}`),
     () =>
       ids.length
         ? db.execute(sql`
@@ -123,9 +181,31 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
     () =>
       db.execute(sql`
       SELECT resumo FROM rotina_execucao WHERE rotina = 'retorno-oneflow' AND status = 'OK' ORDER BY inicio DESC LIMIT 1`),
+    // Envios que talvez tenham entrado lá: INCERTO, ou ENVIANDO há mais de 15
+    // minutos (a rotina morreu no meio). Nunca reenviados sozinhos.
+    () =>
+      db.execute(sql`
+      SELECT e.id::text AS id, coalesce(nullif(c.trade_name, ''), c.legal_name) AS empresa, j.memo,
+             to_char(j.entry_date, 'DD/MM/YYYY') AS data, 'HUB-' || left(j.id::text, 8) AS documento,
+             (SELECT sum(l.amount) FROM ledger_line l WHERE l.journal_entry_id = j.id AND l.direction = 'DEBIT')::float AS valor,
+             e.erro, e.enviado_em
+        FROM oneflow_envio e
+        JOIN journal_entry j ON j.id = e.journal_entry_id
+        JOIN company c ON c.id = e.company_id
+       WHERE e.status = 'INCERTO' OR (e.status = 'ENVIANDO' AND e.enviado_em < NOW() - interval '15 minutes')
+       ORDER BY e.enviado_em DESC LIMIT 50`),
+    // Recusadas no máximo de tentativas, por empresa: só voltam com "Tentar de novo".
+    () =>
+      db.execute(sql`
+      SELECT e.company_id::text AS "companyId", coalesce(nullif(c.trade_name, ''), c.legal_name) AS empresa, count(DISTINCT e.journal_entry_id)::int AS partidas
+        FROM oneflow_envio e JOIN company c ON c.id = e.company_id
+       WHERE e.status = 'ERRO'
+         AND NOT EXISTS (SELECT 1 FROM oneflow_envio o WHERE o.journal_entry_id = e.journal_entry_id AND o.status IN ('ENVIADO', 'ENVIANDO', 'INCERTO'))
+         AND (SELECT count(*) FROM oneflow_envio x WHERE x.journal_entry_id = e.journal_entry_id AND x.status = 'ERRO') >= ${MAXIMO_DE_TENTATIVAS}
+       GROUP BY 1, 2 ORDER BY 3 DESC`),
   ])
     lista.push(await consulta());
-  const [serie, tokens, ultimas, falhas, medias, envio, errosMotivo, pendentes, volta, razao] = lista as unknown as [
+  const [serie, tokens, ultimas, falhas, medias, envio, errosMotivo, pendentes, volta, razao, incertos, esgotadas] = lista as unknown as [
     { dia: string; chamadas: number }[],
     { expires_at: Date | null; last_used_at: Date | null; renova: boolean }[],
     { rotina: string; inicio: Date; status: string; duracao_ms: number | null; chamadas: number | null; erro: string | null }[],
@@ -136,6 +216,8 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
     { n: number }[],
     { nome: string; fiscalOk: boolean; folhaOk: boolean; folhaStatus: string | null }[],
     { resumo: { empresas?: { empresa: string; razaoFecha?: boolean; diferenca?: number }[] } | null }[],
+    EnvioIncerto[],
+    { companyId: string; empresa: string; partidas: number }[],
   ];
 
   const hoje = serie.at(-1)?.chamadas ?? 0;
@@ -156,6 +238,7 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
       ...r,
       ultima: u ? { inicio: new Date(u.inicio).toISOString(), status: u.status, duracaoMs: u.duracao_ms, chamadas: u.chamadas, erro: u.erro } : null,
       falhas7: falhas.find((f) => f.rotina === r.caminho)?.n ?? 0,
+      tetoHoje: Math.max(0, COTA_DIARIA - FOLGA_DA_COTA - reservaParaAsDeCima(r.chave, Number(hojeSP().slice(8, 10)))),
       mediaChamadas: medias.find((m) => m.rotina === r.caminho)?.media ?? null,
     };
   });
@@ -213,7 +296,23 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
       });
     }
   }
-  if (nEnvio('ERRO') > 0) {
+  if (incertos.length) {
+    problemas.push({
+      nivel: 'critico',
+      titulo: `${incertos.length} ${incertos.length === 1 ? 'lançamento com envio incerto' : 'lançamentos com envio incerto'}`,
+      detalhe: 'O OneFlow não respondeu (ou a rotina parou no meio). Eles podem ter entrado lá — por isso não são reenviados sozinhos.',
+      acao: 'Procurar no OneFlow pelo documento HUB-… de cada um (lista abaixo) e marcar "Está no OneFlow" ou "Não está — reenviar".',
+    });
+  }
+  if (esgotadas.length) {
+    problemas.push({
+      nivel: 'atencao',
+      titulo: `Envio parado em ${esgotadas.map((e) => e.empresa).join(', ')}`,
+      detalhe: `Lançamentos recusados ${MAXIMO_DE_TENTATIVAS} vezes pelo mesmo motivo — tentar de novo sem mudar nada só gastaria cota.`,
+      acao: 'Corrigir a causa (motivos abaixo) e clicar em "Tentar de novo" na empresa.',
+    });
+  }
+  if (nEnvio('ERRO') > 0 && !esgotadas.length) {
     problemas.push({
       nivel: 'atencao',
       titulo: `${nEnvio('ERRO')} lançamentos recusados pelo OneFlow`,
@@ -258,6 +357,8 @@ export async function saudeDoOneflow(): Promise<SaudeOneflow> {
       retirados: nEnvio('RETIRADO'),
       pendentesLiberados: pendentes[0]?.n ?? 0,
       errosPorMotivo: errosMotivo,
+      incertos: incertos.map((i) => ({ ...i, valor: Number(i.valor ?? 0) })),
+      esgotadas,
     },
     volta: { competencia, empresas: volta },
     problemas,

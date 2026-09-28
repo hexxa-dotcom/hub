@@ -211,15 +211,16 @@ export function ContadorShell({
       {/* Main container */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-black/5 dark:border-white/10 bg-[#F5F6F4]/85 dark:bg-[#121614]/85 px-6 lg:px-8 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-black/5 dark:border-white/10 bg-[#F5F6F4]/85 dark:bg-[#121614]/85 px-4 sm:gap-4 sm:px-6 lg:px-8 backdrop-blur-xl">
+          {/* min-w-0: a busca encolhe no celular em vez de empurrar os ícones para fora da tela. */}
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none sm:gap-3">
             <button onClick={() => setMobileOpen(true)} className="rounded-xl p-2 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10 lg:hidden">
               <Menu className="h-5 w-5" />
             </button>
             <ContadorSearch />
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-3.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
             <ThemeToggle collapsed />
             
             <Link

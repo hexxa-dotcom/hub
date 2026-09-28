@@ -4,9 +4,10 @@ import {
   importarDoOneflow,
   importarSoFolha,
   lerCompetencia,
+  marcarLeituraCompleta,
   cotaDiariaEsgotada,
   guiaDisponivel,
-  cotaRestante,
+  cotaParaRotina,
   appHashPorCnpj,
   assertLedgerBalances,
   empresasComAgenteLigado,
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
      * atrasa a guia do cliente. O envio do razão roda depois, com o que
      * sobrar, porque ele retoma no dia seguinte sem prejuízo nenhum.
      */
-    let orcamento = await cotaRestante(db);
+    let orcamento = await cotaParaRotina(db, 'retorno');
 
     /**
      * O relógio limita antes da cota.
@@ -92,12 +93,12 @@ export async function GET(request: Request) {
        * folha (recibos e guias DCTFWeb/FGTS) têm marcação própria — a
        * primeira guia que chega não encerra mais o mês, como antes.
        */
-      const alvos: { comp: string; fiscal: boolean; folha: boolean }[] = [];
+      const alvos: { comp: string; fiscal: boolean; folha: boolean; leituraCompletaEm: Date | null }[] = [];
       for (const comp of [competencia, ...(retrasada ? [retrasada] : [])]) {
         const m = await lerCompetencia(db, empresa.id, comp);
         if (comp === retrasada && !m) continue; // a retrasada só se já começou e ficou faltando
         if (m?.fiscalOk && m.folhaOk) continue;
-        alvos.push({ comp, fiscal: !m?.fiscalOk, folha: !m?.folhaOk });
+        alvos.push({ comp, fiscal: !m?.fiscalOk, folha: !m?.folhaOk, leituraCompletaEm: m?.leituraCompletaEm ?? null });
       }
       if (!alvos.length) continue;
 
@@ -129,13 +130,23 @@ export async function GET(request: Request) {
           sondagens++;
           orcamento -= 1;
           const codigo = dados.regime === 'MEI' ? 'GMEIGUIA' : 'GPGDAS';
-          if (!(await guiaDisponivel(db, empresa.id, appHash, alvo.comp, codigo))) continue;
+          if (!(await guiaDisponivel(db, empresa.id, appHash, alvo.comp, codigo))) {
+            /**
+             * Sem guia ainda. Empresa sem faturamento no mês NUNCA terá DAS —
+             * só a apuração (zerada) encerra o fiscal dela. A partir do dia 10,
+             * lê a apuração inteira, no máximo a cada 5 dias; antes disso a
+             * sondagem basta (a maioria das guias sai entre os dias 1 e 3).
+             */
+            const ultima = alvo.leituraCompletaEm ? new Date(alvo.leituraCompletaEm).getTime() : 0;
+            if (diaSP() < 10 || Date.now() - ultima < 5 * 86_400_000) continue;
+            await marcarLeituraCompleta(db, empresa.id, alvo.comp);
+          }
           r = await importarDoOneflow(db, empresa.id, appHash, alvo.comp);
         } else {
           // Fiscal já voltou; só a folha falta: 1 chamada de status, e o resto só se ela fechou.
           r = await importarSoFolha(db, empresa.id, appHash, alvo.comp);
         }
-        orcamento = await cotaRestante(db);
+        orcamento = await cotaParaRotina(db, 'retorno');
 
         // Conferir depois de escrever. Vale aqui ainda mais que na escrituração
         // comum: o valor veio de fora, e um razão que ninguém verifica é só uma

@@ -50,6 +50,15 @@ export class OneflowError extends Error {
   /** Cota de 500/dia estourada — só reinicia à meia-noite, retry não ajuda. */
   cotaDiariaEsgotada = false;
 
+  /**
+   * Sem resposta que diga o que aconteceu: rede caiu, estourou o tempo, ou o
+   * OneFlow respondeu 5xx. O pedido PODE ter sido processado lá — para
+   * lançamento, isso quer dizer "não reenviar sozinho" (ver `enviarRazao`).
+   */
+  get incerto(): boolean {
+    return this.status === null || this.status >= 500;
+  }
+
   constructor(
     public readonly status: number | null,
     public readonly endpoint: string,
@@ -236,14 +245,23 @@ export class OneflowAdapter {
     await this.aguardarVez();
     if (this.aoChamar) await this.aoChamar();
 
-    const res = await fetch(url, {
-      method: opts.method ?? 'GET',
-      headers: {
-        'content-type': 'application/json',
-        ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
-      },
-      ...(opts.body ? { body: JSON.stringify(opts.body) } : {}),
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: opts.method ?? 'GET',
+        headers: {
+          'content-type': 'application/json',
+          ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
+        },
+        ...(opts.body ? { body: JSON.stringify(opts.body) } : {}),
+        // Sem teto, uma chamada pendurada levaria a rotina inteira aos 300s e
+        // ela morreria no meio de um lote. 60s é folga de sobra para o OneFlow.
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (err) {
+      // Não houve resposta: o pedido pode ou não ter chegado. `status: null` = incerto.
+      throw new OneflowError(null, url, `sem resposta do OneFlow (${err instanceof Error ? err.message : String(err)})`);
+    }
 
     if (!res.ok) {
       throw new OneflowError(res.status, url, (await res.text()).slice(0, 400));

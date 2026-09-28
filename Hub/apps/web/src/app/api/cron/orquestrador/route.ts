@@ -62,20 +62,29 @@ const TURNOS: Record<string, Onda[]> = {
       { caminho: 'cobranca' },
     ],
     [{ caminho: 'escrituracao' }],
+    // Prioridade 1 da cota: as guias. Este turno roda à meia-noite de SP,
+    // com a cota recém-renovada — pega o que o OneFlow gerou durante o dia
+    // (folha fechada à tarde, guia atrasada) antes de o envio gastar a cota.
+    // O que ele gerar de madrugada (visto: 01:34) chega no turno das 6h.
+    [{ caminho: 'retorno-oneflow' }],
+    // Lançamentos em lote composto; duas passadas porque o envio para pelo
+    // relógio antes dos 300s e retoma de onde parou.
     [{ caminho: 'envio-oneflow' }],
-    // Segunda passada: o envio para pelo relógio antes dos 300s e retoma
-    // de onde parou — o agendamento antigo também rodava duas vezes.
     [{ caminho: 'envio-oneflow' }],
   ],
   manha: [
     // As notas agendadas saem de manhã, no horário comercial do cliente.
-    [{ caminho: 'resultado-oneflow' }, { caminho: 'nibo-sync' }, { caminho: 'cobrancas-asaas' }, { caminho: 'emissoes-agendadas' }],
+    [{ caminho: 'retorno-oneflow' }, { caminho: 'nibo-sync' }, { caminho: 'cobrancas-asaas' }, { caminho: 'emissoes-agendadas' }],
     [{ caminho: 'classificacao' }, { caminho: 'nfse-status' }, { caminho: 'documentos-vencendo' }],
     [
+      // Segunda passada da volta: com 150 empresas, uma passada de 300s não
+      // cobre todas nos dias em que as guias saem juntas.
       { caminho: 'retorno-oneflow' },
       // A rota de honorários não olha o dia: fatura sempre que chamada.
       { caminho: 'honorarios', quando: () => diaEmSaoPaulo() === 1 },
     ],
+    // Por último na cota: o balancete oficial é só para exibir.
+    [{ caminho: 'resultado-oneflow' }],
     [{ caminho: 'fechamento' }],
   ],
 };
@@ -159,7 +168,8 @@ export async function GET(request: Request) {
   // Encadeia a próxima onda numa invocação nova. Uma rotina que falhou não
   // segura as outras: cada uma decide sozinha se tem o que fazer.
   let proxima: number | null = null;
-  if (indice + 1 < ondas.length) {
+  // `?sozinha=1`: roda só esta onda, sem encadear — para testar uma rotina à mão.
+  if (indice + 1 < ondas.length && url.searchParams.get('sozinha') !== '1') {
     const seguinte = new URL(url);
     seguinte.searchParams.set('onda', String(indice + 1));
     try {
