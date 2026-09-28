@@ -10,6 +10,7 @@ import {
   alterarAgendadaAction,
   definirPerfilPadraoAction,
   contratoAtivoAction,
+  conferirServicoAction,
   type ContratoDoCliente,
 } from './emissao-actions';
 import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto } from '@/components/ui/ListaEmColunas';
@@ -121,6 +122,8 @@ export function EmissaoFacil({
   const [perfilId, setPerfilId] = useState(perfilInicial?.id ?? '');
   const [padraoId, setPadraoId] = useState(profiles.find((p) => p.padrao)?.id ?? null);
   const [contrato, setContrato] = useState<ContratoDoCliente | null>(null);
+  // Conferência do serviço com o CNAE, feita quando a confirmação abre.
+  const [conferencia, setConferencia] = useState<Awaited<ReturnType<typeof conferirServicoAction>> | 'conferindo' | null>(null);
   const [competencia, setCompetencia] = useState(hoje);
   const [reterIss, setReterIss] = useState(false);
   const [informacoes, setInformacoes] = useState('');
@@ -228,6 +231,18 @@ export function EmissaoFacil({
   useEffect(() => {
     if (state.ok) setPrevia(false);
   }, [state]);
+
+  useEffect(() => {
+    if (!previa) return;
+    let vivo = true;
+    setConferencia('conferindo');
+    conferirServicoAction(descricao, perfilId)
+      .then((r) => vivo && setConferencia(r))
+      .catch(() => vivo && setConferencia(null));
+    return () => {
+      vivo = false;
+    };
+  }, [previa, descricao, perfilId]);
 
   useEffect(() => {
     if (!previa) return;
@@ -661,11 +676,64 @@ export function EmissaoFacil({
                   </div>
                 }
               />
+              <ConferenciaDoCnae conferencia={conferencia} aoUsar={setDescricao} />
               {aviso}
             </div>
           </div>
         )}
       </form>
+    </div>
+  );
+}
+
+/** O resultado da conferência do serviço com o CNAE — nunca bloqueia a nota. */
+function ConferenciaDoCnae({
+  conferencia,
+  aoUsar,
+}: {
+  conferencia: Awaited<ReturnType<typeof conferirServicoAction>> | 'conferindo' | null;
+  aoUsar: (descricao: string) => void;
+}) {
+  if (!conferencia) return null;
+  if (conferencia === 'conferindo') {
+    return (
+      <p className="mt-4 flex items-center gap-2 text-xs text-ink-soft">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Conferindo o serviço com o CNAE da empresa…
+      </p>
+    );
+  }
+  if (conferencia.situacao === 'SEM_BASE') return <p className="mt-4 text-xs text-ink-soft">{conferencia.mensagem}</p>;
+  const cor =
+    conferencia.situacao === 'CONFERE'
+      ? 'border-emerald-500/25 text-emerald-800 dark:text-emerald-300'
+      : conferencia.situacao === 'NAO_CONFERE'
+        ? 'border-rose-500/30 text-rose-700 dark:text-rose-300'
+        : 'border-amber-500/30 text-amber-800 dark:text-amber-300';
+  return (
+    <div className={`mt-4 rounded-2xl border px-4 py-3 text-xs ${cor}`}>
+      <p className="flex items-start gap-2">
+        {conferencia.situacao === 'CONFERE' ? (
+          <CheckCircle2 className="mt-px h-3.5 w-3.5 shrink-0" />
+        ) : (
+          <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+        )}
+        <span>
+          <strong className="font-semibold">CNAE: </strong>
+          {conferencia.mensagem}
+        </span>
+      </p>
+      {conferencia.sugestao && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 pl-5 text-ink">
+          <span className="text-ink-soft">Descrição mais clara:</span> “{conferencia.sugestao}”
+          <button
+            type="button"
+            onClick={() => aoUsar(conferencia.sugestao!)}
+            className="rounded-full border border-black/15 px-3 py-1 font-semibold hover:bg-black/[0.04] dark:border-white/20"
+          >
+            Usar esta
+          </button>
+        </div>
+      )}
     </div>
   );
 }

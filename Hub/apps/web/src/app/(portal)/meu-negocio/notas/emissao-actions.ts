@@ -127,3 +127,10 @@ export async function contratoAtivoAction(documento: string): Promise<ContratoDo
   `)) as unknown as ContratoDoCliente[];
   return c ?? null;
 }
+
+/** A descrição do serviço bate com o CNAE da empresa? — ver `conferencia-servico.ts`. */
+export async function conferirServicoAction(descricao: string, perfilId?: string) {
+  const ctx = await getTenantContext();
+  const { conferirServico } = await import('@/lib/server/conferencia-servico');
+  return conferirServico(ctx.companyId, { descricao, perfilId });
+}

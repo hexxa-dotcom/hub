@@ -27,6 +27,8 @@ export interface DadosDoCnpj {
   telefone: string | null;
   situacao: string | null;
   endereco: EnderecoDaNota | null;
+  /** CNAE principal e secundários, como a Receita registra. */
+  atividades: { codigo: string; descricao: string; principal: boolean }[];
 }
 
 /** Dígitos verificadores de CPF ou CNPJ — a primeira trava antes de mandar ao governo. */
@@ -76,6 +78,12 @@ export async function consultarCnpj(cnpj: string): Promise<DadosDoCnpj | null> {
       email: t('email') || null,
       telefone: t('ddd_telefone_1') || null,
       situacao: t('descricao_situacao_cadastral') || null,
+      atividades: [
+        ...(t('cnae_fiscal') ? [{ codigo: t('cnae_fiscal'), descricao: t('cnae_fiscal_descricao'), principal: true }] : []),
+        ...(Array.isArray(j.cnaes_secundarios) ? (j.cnaes_secundarios as { codigo?: unknown; descricao?: unknown }[]) : [])
+          .filter((c) => c.codigo && Number(c.codigo) > 0)
+          .map((c) => ({ codigo: String(c.codigo), descricao: String(c.descricao ?? ''), principal: false })),
+      ],
       endereco:
         cMun.length === 7 && t('cep')
           ? {
