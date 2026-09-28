@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { DrizzleTaxGuideRepository } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 import { HubGuias } from './HubGuias';
+import { explicarGuias } from '@/lib/server/explicacao-guias';
+import { getDb, sql } from '@hexxa/db';
 import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { withTenant, eq } from '@hexxa/db';
@@ -49,6 +51,13 @@ export default async function Page() {
     getHonorarios(ctx.companyId).catch(() => ({ cobrancas: [], semCobranca: true })),
   ]);
   const guias = await getGuias();
+  const [explicacoes, regime] = await Promise.all([
+    explicarGuias(ctx, guias).catch(() => ({})),
+    getDb()
+      .execute(sql`SELECT tax_regime FROM company WHERE id = ${ctx.companyId}`)
+      .then((r) => (r[0] as { tax_regime: string | null } | undefined)?.tax_regime ?? null)
+      .catch(() => null),
+  ]);
 
   const hoje = new Date().toISOString().slice(0, 10);
   const vencidas = guias.filter((g) => g.status !== 'PAID' && g.dueDate < hoje);
@@ -67,6 +76,8 @@ export default async function Page() {
         entregaDaGuia={Object.fromEntries(entregas.filter((e) => e.taxGuideId).map((e) => [e.taxGuideId!, e.id]))}
         documentos={entregas.filter((e) => !e.taxGuideId)}
         honorarios={honorarios.cobrancas}
+        explicacoes={explicacoes}
+        ehMei={regime === 'MEI'}
         insightSlot={
           <Suspense fallback={null}>
             <GuiasInsight companyId={ctx.companyId} insightContext={insightContext} />

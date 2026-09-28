@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Layers,
   EyeOff,
+  Eye,
   ArrowUpRight,
 } from 'lucide-react';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
@@ -38,6 +39,8 @@ import type { AsaasPayment } from '@/lib/asaas';
 import { LinhaDocumento, LinhaHonorario, situacaoDoHonorario } from './ItensDaCentral';
 import { AgendaDaCentral, type ItemDaAgenda } from './AgendaDaCentral';
 import { FiltrosEmTexto } from '@/components/ui/FiltrosEmTexto';
+import { VisualizadorDeArquivo } from '@/components/ui/VisualizadorDeArquivo';
+import type { ExplicacaoDaGuia } from '@/lib/server/explicacao-guias';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -301,6 +304,8 @@ export function HubGuias({
   entregaDaGuia = {},
   documentos = [],
   honorarios = [],
+  explicacoes = {},
+  ehMei = false,
 }: {
   initial: Guia[];
   insightSlot?: React.ReactNode;
@@ -310,9 +315,16 @@ export function HubGuias({
   honorarios?: AsaasPayment[];
   /** Guia → entrega com protocolo. Abrir por ela deixa a abertura registrada. */
   entregaDaGuia?: Record<string, string>;
+  /** De onde veio cada guia — ver lib/server/explicacao-guias.ts. */
+  explicacoes?: Record<string, ExplicacaoDaGuia>;
+  /** Só o MEI emite o próprio DAS (PGMEI): o atalho de CNPJ é só para ele. */
+  ehMei?: boolean;
 }) {
-  const linkDoArquivo = (guiaId: string, arquivo: string) =>
-    entregaDaGuia[guiaId] ? `/api/documentos/${entregaDaGuia[guiaId]}` : arquivo;
+  // Abre dentro do Hub (a entrega protocolada registra a abertura); `?modo=baixar` baixa.
+  const linkDoArquivo = (guiaId: string, _arquivo?: string) =>
+    entregaDaGuia[guiaId] ? `/api/documentos/${entregaDaGuia[guiaId]}` : `/api/guias/${guiaId}/arquivo`;
+  const linkParaBaixar = (guiaId: string) => `${linkDoArquivo(guiaId)}?modo=baixar`;
+  const [vendoGuia, setVendoGuia] = useState<Guia | null>(null);
   const currentMonthStr = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [guias, setGuias] = useState<Guia[]>(initial);
@@ -513,9 +525,18 @@ export function HubGuias({
     const competencia = fmtCompetencia(g.referenceMonth);
     return (
       <div key={g.id}>
-        <button
-          type="button"
+        {/* A linha abre o detalhe; é um div clicável (não <button>) porque leva botões dentro — Pix, ver, baixar. */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExp}
           onClick={() => setExpanded(isExp ? null : g.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setExpanded(isExp ? null : g.id);
+            }
+          }}
           className="group flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
         >
           <span className="rotulo w-24 shrink-0 text-ink-soft">{grupoDaGuia(categoria)}</span>
@@ -561,10 +582,21 @@ export function HubGuias({
               </button>
             )}
             {g.fileUrl && (
+              <button
+                type="button"
+                title="Ver a guia"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVendoGuia(g);
+                }}
+                className="tap-target pressable focusable inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/5 dark:border-white/10 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {g.fileUrl && (
               <a
-                href={linkDoArquivo(g.id, g.fileUrl)}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={linkParaBaixar(g.id)}
                 title="Baixar Guia (PDF)"
                 onClick={(e) => e.stopPropagation()}
                 className="tap-target pressable focusable inline-flex h-8 w-8 items-center justify-center rounded-full border border-black/5 dark:border-white/10 bg-surface-card text-ink-soft hover:text-ink shadow-(--elev-1) transition-all"
@@ -581,7 +613,7 @@ export function HubGuias({
               <ChevronDown className="h-4 w-4" />
             )}
           </div>
-        </button>
+        </div>
 
         {isExp && (
           <div className="mx-5 mb-4 space-y-4 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-5">
@@ -594,7 +626,28 @@ export function HubGuias({
                 <p className={lbl}>Vencimento</p>
                 <p className={`font-bold ${vencClass(g.dueDate, g.status)}`}>{fmtDate(g.dueDate)}</p>
               </div>
+              <div>
+                <p className={lbl}>Competência</p>
+                <p className="font-bold text-ink">{competencia}</p>
+              </div>
             </div>
+            {/* De onde veio a guia, com os números da própria empresa. */}
+            {explicacoes[g.id] && (
+              <div className="rounded-xl border border-black/[0.06] px-4 py-3 dark:border-white/[0.08]">
+                <p className={lbl}>O que é esta guia</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink">{explicacoes[g.id]!.resumo}</p>
+                {explicacoes[g.id]!.linhas.length > 0 && (
+                  <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-[auto_1fr]">
+                    {explicacoes[g.id]!.linhas.map((l) => (
+                      <div key={l.rotulo} className="contents">
+                        <dt className="text-ink-soft">{l.rotulo}</dt>
+                        <dd className="font-semibold tabular text-ink">{l.valor}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               {/*
                 Guia sem Pix e sem arquivo existe de verdade: a
@@ -613,10 +666,17 @@ export function HubGuias({
               <div className="flex flex-wrap gap-2">
                 {g.pixCode && <CopyBtn text={g.pixCode} />}
                 {g.fileUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setVendoGuia(g)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-3.5 py-1.5 text-xs font-bold text-ink transition-colors hover:bg-black/[0.04] dark:border-white/20 dark:hover:bg-white/[0.06]"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Ver guia
+                  </button>
+                )}
+                {g.fileUrl && (
                   <a
-                    href={linkDoArquivo(g.id, g.fileUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={linkParaBaixar(g.id)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Baixar Guia
@@ -633,6 +693,7 @@ export function HubGuias({
                 )}
               </div>
               {categoria === 'DAS' &&
+                ehMei &&
                 (cnpjMei ? (
                   <EmitirDasBtn competencia={competencia} cnpj={cnpjMei} />
                 ) : (
@@ -648,6 +709,13 @@ export function HubGuias({
   };
   return (
     <div className="space-y-16">
+      {vendoGuia && (
+        <VisualizadorDeArquivo
+          src={linkDoArquivo(vendoGuia.id)}
+          titulo={`${nomeDaGuia(vendoGuia.taxName)} · competência ${fmtCompetencia(vendoGuia.referenceMonth)}`}
+          onClose={() => setVendoGuia(null)}
+        />
+      )}
       {/* Hero Card da Central de Guias com Título e Seletor Harmônico de Mês */}
       <GuiasHero
         selectedMonth={selectedMonth}
@@ -965,8 +1033,8 @@ export function HubGuias({
           </div>
 
 
-          {/* CNPJ MEI para emissão de DAS */}
-          {!showCnpjConfig ? (
+          {/* CNPJ MEI para emissão de DAS — só o MEI emite o próprio DAS (PGMEI). */}
+          {!ehMei ? null : !showCnpjConfig ? (
             <button
               type="button"
               onClick={() => {
