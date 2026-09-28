@@ -142,7 +142,7 @@ export default async function FechamentoReportPage({ searchParams }: { searchPar
               {closure.defaultsCount > 0 && (
                 <span className="text-ink-soft">
                   {' '}— veja em{' '}
-                  <Link href="/meu-negocio/hub-financeiro" className="font-semibold text-ink underline-offset-4 hover:underline">Meu mês</Link>
+                  <Link href="/meu-negocio/hub-financeiro" className="font-semibold text-ink underline-offset-4 hover:underline">Este mês</Link>
                 </span>
               )}
             </span>

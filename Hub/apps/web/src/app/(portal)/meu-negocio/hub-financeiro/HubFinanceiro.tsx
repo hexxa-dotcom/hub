@@ -1581,8 +1581,8 @@ export function HubFinanceiro({
     <div className="space-y-16">
       {/* Hero Card do Financeiro */}
       <SectionHero
-        title="Meu mês"
-        infoTitle="Sobre o Meu mês"
+        title="Este mês"
+        infoTitle="Sobre o Este mês"
         infoDescription="Contas a pagar, a receber, conciliação bancária e fluxo de caixa — tudo integrado com a sua contabilidade. O Balanço e o DRE ficam na aba Contabilidade."
       />
 

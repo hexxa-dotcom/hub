@@ -53,10 +53,10 @@ export const NAV: NavSection[] = [
       // resolvem a navegação entre pagar/receber. As rotas /contas-a-pagar
       // e /contas-a-receber continuam existindo (usadas como link direto
       // pelos cards do Início), só saíram do menu lateral.
-      { label: 'Meu mês', href: '/meu-negocio/hub-financeiro' },
+      { label: 'Este mês', href: '/meu-negocio/hub-financeiro' },
       { label: 'Notas', href: '/meu-negocio/notas' },
       // Open Finance saiu do menu (2026-09-24): não há provedor contratado. O
-      // aviso "conexão com o banco em breve" fica na aba Extrato do Meu mês,
+      // aviso "conexão com o banco em breve" fica na aba Extrato do Este mês,
       // ao lado do subir extrato, que é o caminho que funciona hoje. A página
       // /meu-negocio/open-finance continua existindo para quando voltar.
       { label: 'Relatórios', href: '/meu-negocio/relatorios' },
