@@ -772,6 +772,26 @@ export class OneflowAdapter {
     return this.pedir(`${API}/oneflow/empresa/moduloprocessostatus?competencia=${competencia}&modulo=${modulo}`, { token });
   }
 
+  /**
+   * Lançamentos de uma conta no período (AAAAMM a AAAAMM). Cada linha traz
+   * `data`, `debito`, `credito`, `historico` e o `documento` que mandamos
+   * (HUB-…) — é por ele que o Hub reconhece o que é seu lá.
+   */
+  async razao(
+    companyId: string,
+    appHash: string,
+    conta: string,
+    competenciaInicial: string,
+    competenciaFinal: string,
+  ): Promise<{ data?: string; documento?: string; debito?: number; credito?: number; historico?: string }[]> {
+    const token = await this.tokenDaEmpresa(companyId, appHash);
+    const r = await this.pedir<{ result?: { lancamentos?: unknown[] } }>(
+      `${API}/oneflow/empresa/contabil/razao?conta=${encodeURIComponent(conta)}&competenciaInicial=${competenciaInicial}&competenciaFinal=${competenciaFinal}`,
+      { token },
+    );
+    return (r?.result?.lancamentos ?? []) as { data?: string; documento?: string; debito?: number; credito?: number; historico?: string }[];
+  }
+
   async statusDaFolha(companyId: string, appHash: string, competencia: string): Promise<unknown> {
     const token = await this.tokenDaEmpresa(companyId, appHash);
     return this.pedir(

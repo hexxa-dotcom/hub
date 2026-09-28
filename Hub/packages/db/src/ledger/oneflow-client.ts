@@ -297,3 +297,41 @@ export async function planoDaEmpresa(
   `);
   return plano;
 }
+
+/**
+ * O fiscal/folha do OneFlow já lançam sozinhos no contábil de lá nestes
+ * meses? Conferido pelo razão: lançamento em Simples a Recolher ou na receita
+ * de serviços que NÃO veio do Hub (documento sem "HUB-") = integração ativa lá.
+ *
+ * Grava `oneflow_competencia.contabil_integrado` por mês — é o que decide se
+ * o Hub manda receita (da nota), DAS e folha (ver ORIGEM_ONEFLOW). Uma
+ * chamada por conta cobre todos os meses pedidos.
+ */
+export async function conferirIntegracaoContabil(
+  db: DbHandle,
+  cliente: { razao: (c: string, a: string, conta: string, ini: string, fim: string) => Promise<{ data?: string; documento?: string }[]> },
+  companyId: string,
+  appHash: string,
+  plano: 'DINAMICO' | 'PADRAO',
+  competencias: string[], // AAAAMM
+): Promise<Record<string, boolean>> {
+  if (!competencias.length) return {};
+  const contas = plano === 'PADRAO' ? ['2.1.05.001.002', '3.1.01.007.001.001'] : ['2.1.2.01.00001', '3.1.1.01.00002'];
+  const ordenadas = [...competencias].sort();
+  const integrado: Record<string, boolean> = Object.fromEntries(competencias.map((c) => [c, false]));
+  for (const conta of contas) {
+    for (const l of await cliente.razao(companyId, appHash, conta, ordenadas[0]!, ordenadas.at(-1)!)) {
+      if (String(l.documento ?? '').startsWith('HUB-')) continue;
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(l.data ?? ''));
+      if (m) integrado[`${m[3]}${m[2]}`] = true;
+    }
+  }
+  for (const c of competencias) {
+    await db.execute(sql`
+      INSERT INTO oneflow_competencia (company_id, competencia, contabil_integrado, contabil_conferido_em)
+      VALUES (${companyId}, ${c}, ${integrado[c] ?? false}, NOW())
+      ON CONFLICT (company_id, competencia) DO UPDATE SET contabil_integrado = EXCLUDED.contabil_integrado, contabil_conferido_em = NOW()
+    `);
+  }
+  return integrado;
+}

@@ -8,10 +8,11 @@ import {
   cotaParaRotina,
   empresasComAgenteLigado,
   concluirEnviados,
-  ORIGEM_ONEFLOW,
+  NUNCA_VAI_AO_ONEFLOW,
   PARADA_NO_ENVIO,
   inicioDoContabil,
   planoDaEmpresa,
+  conferirIntegracaoContabil,
 } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
@@ -120,7 +121,9 @@ export async function GET(request: Request) {
            AND j.status = 'POSTED'
            AND j.reversed_by IS NULL
            AND j.source <> 'CLOSING'
-           AND NOT ${ORIGEM_ONEFLOW}
+           -- Meses com o que enviar: tudo menos o que NUNCA vai. Receita/DAS/folha
+           -- dependem da conferência logo abaixo, e sem o mês aqui ela nunca rodaria.
+           AND NOT ${NUNCA_VAI_AO_ONEFLOW}
            -- Enviada, saindo, incerta ou recusada demais não conta como pendente.
            AND NOT ${PARADA_NO_ENVIO}
          ORDER BY 1
@@ -164,6 +167,29 @@ export async function GET(request: Request) {
       if (!plano) {
         relatorio.push({ empresa: empresa.nome, erro: 'sem plano de contas no OneFlow — configurar o contábil na tela (Padrão ou Dinâmico)' });
         continue;
+      }
+
+      /**
+       * O OneFlow já lança receita/DAS/folha sozinho nesses meses? Conferido
+       * uma vez por mês, pelo razão (2 chamadas cobrem todos os meses). Sem
+       * a conferência esses lançamentos não saem — ver ORIGEM_ONEFLOW.
+       */
+      const semConferencia = (
+        (await db.execute(sql`
+          SELECT to_char(m.mes::date, 'YYYYMM') AS comp FROM unnest(${`{${meses.map((x) => x.mes).join(',')}}`}::text[]) AS m(mes)
+           WHERE NOT EXISTS (SELECT 1 FROM oneflow_competencia oc WHERE oc.company_id = ${empresa.id}
+                              AND oc.competencia = to_char(m.mes::date, 'YYYYMM') AND oc.contabil_conferido_em IS NOT NULL)
+        `)) as unknown as { comp: string }[]
+      ).map((r) => r.comp);
+      if (semConferencia.length) {
+        try {
+          const r = await conferirIntegracaoContabil(db, cliente, empresa.id, appHash, plano, semConferencia);
+          const integrados = Object.entries(r).filter(([, v]) => v).map(([k]) => k);
+          if (integrados.length) relatorio.push({ empresa: empresa.nome, oneflowJaLanca: integrados });
+        } catch {
+          // Sem conferir, receita/DAS/folha ficam para a próxima rodada; o resto segue.
+          relatorio.push({ empresa: empresa.nome, aviso: 'não deu para conferir a integração contábil do OneFlow — receita, DAS e folha ficam para a próxima rodada' });
+        }
       }
 
 

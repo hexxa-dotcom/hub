@@ -11,56 +11,73 @@ import type { LancamentoOneflow } from '@hexxa/integrations';
  * divergisse, o mês ficaria esperando para sempre uma partida que o envio
  * nunca manda.
  *
- * Confirmado com o escritório: no OneFlow os módulos fiscal e de folha são
- * integrados ao contábil — gerar a apuração ou a folha lá já lança no
- * contábil de lá. Devolver esses reconhecimentos daqui duplicaria imposto e
- * folha nos livros oficiais. O que a Hexx manda é o que só ele vê: o banco,
- * as despesas, o pagamento das guias.
+ * ── Receita, DAS e folha: quem lança é o Hub (decisão de 28/09/2026) ────
  *
- * A RECEITA segue a mesma regra, sem exceção. Definido pelo escritório: a
- * única receita que vale — para imposto e para os livros — é a da nota
- * fiscal emitida. A nota vai ao fiscal do OneFlow, e o fiscal lança lá
- * "cliente a receber contra receita" no mês de competência. Daqui vai só o
- * recebimento — banco contra cliente a receber —, que baixa o que o fiscal
- * lançou. A receita que a Hexx reconhece por outra via (boleto, entrada do
- * extrato) é visão interna e nunca sai daqui: mandá-la criaria nos livros
- * oficiais faturamento sem nota, ou dobraria o que tem nota.
+ * A primeira versão partia do princípio de que o fiscal e a folha do
+ * OneFlow lançam sozinhos no contábil de lá. Conferido em 28/09/2026 pelo
+ * razão e pelo balancete: BM3 e Nathalia, com apuração e folha FECHADAS lá,
+ * tinham o contábil vazio de janeiro a agosto. Então o Hub passou a mandar
+ * também a receita (sempre a da NOTA), a provisão do DAS (a oficial,
+ * importada da apuração de lá) e a folha (os recibos de lá) — o balanço lá
+ * só fecha com as duas pontas: provisão e pagamento.
  *
- * E o RECEBIMENTO de um a receber sem nota também fica: sem a receita lá, ele
- * baixaria um "cliente a receber" que o fiscal nunca lançou, e a conta
- * ficaria negativa no balanço oficial. Decisão do escritório: isso é
- * informação interna. "Tem nota" usa o mesmo critério do fechamento
- * (`receita_sem_nota`): origem NFSE/DFE_SYNC, ou nota emitida no mesmo mês e
- * valor — se os dois divergissem, o mês fecharia com uma coisa e mandaria
- * outra.
+ * Mas sem nunca duplicar: se o OneFlow passar a integrar (configuração lá),
+ * o Hub percebe pelo razão e para de mandar esses lançamentos naquele mês —
+ * `oneflow_competencia.contabil_integrado`. Enquanto o mês não foi conferido
+ * (NULL), eles NÃO vão: melhor esperar um dia que lançar em dobro.
+ *
+ * ── O que nunca vai ─────────────────────────────────────────────────────
+ *
+ * Receita SEM nota (boleto, entrada do extrato): a única receita que vale,
+ * para imposto e para os livros, é a da nota fiscal. É visão interna.
+ * Recebimento de a receber sem nota: sem a receita lá, baixaria um "cliente a
+ * receber" que não existe. E a guia PROVISÓRIA (estimativa do fechamento):
+ * lá só vai o DAS apurado. "Tem nota" usa o mesmo critério do fechamento:
+ * origem NFSE/DFE_SYNC, ou nota emitida no mesmo mês e valor.
+ */
+const TEM_NOTA = `(
+  COALESCE(fe.source, '') IN ('NFSE', 'DFE_SYNC')
+  OR EXISTS (
+    SELECT 1 FROM service_invoice si
+     WHERE si.company_id = fe.company_id AND si.status = 'ISSUED'
+       AND abs(si.amount - fe.amount) < 0.01 AND si.reference_month = fe.reference_month
+  )
+)`;
+const E_RECEITA = `EXISTS (
+  SELECT 1 FROM ledger_line rl JOIN chart_of_account ra ON ra.id = rl.account_id
+   WHERE rl.journal_entry_id = j.id AND ra.code LIKE '3.1.1%'
+)`;
+const NUNCA_VAI_SQL = `(
+    -- Guia provisória (estimativa nossa).
+    (j.event = 'ACCRUAL' AND j.source = 'TAX_GUIDE'
+      AND EXISTS (SELECT 1 FROM tax_guide tg WHERE tg.id = j.source_id AND tg.provisional))
+    -- Receita sem nota.
+    OR (j.event = 'ACCRUAL' AND j.source = 'FINANCIAL_ENTRY' AND ${E_RECEITA}
+      AND EXISTS (SELECT 1 FROM financial_entry fe WHERE fe.id = j.source_id AND NOT ${TEM_NOTA}))
+    -- Recebimento de a receber sem nota.
+    OR (j.event = 'SETTLEMENT' AND j.source = 'FINANCIAL_ENTRY'
+      AND EXISTS (SELECT 1 FROM financial_entry fe WHERE fe.id = j.source_id AND fe.type = 'RECEIVABLE' AND NOT ${TEM_NOTA}))
+  )`;
+
+/** O que nunca vai ao OneFlow, conferido ou não. É o que decide quais meses têm o que enviar. */
+export const NUNCA_VAI_AO_ONEFLOW = sql.raw(NUNCA_VAI_SQL);
+
+/**
+ * O que não vai AGORA: o que nunca vai, mais receita da nota/DAS/folha quando
+ * o OneFlow já lança sozinho no mês — ou o mês ainda não foi conferido.
  */
 export const ORIGEM_ONEFLOW = sql.raw(
   `(
-    (j.event = 'ACCRUAL' AND j.source IN ('TAX_GUIDE', 'PAYSLIP'))
+    ${NUNCA_VAI_SQL}
     OR (
-      j.event = 'ACCRUAL'
-      AND j.source = 'FINANCIAL_ENTRY'
-      AND EXISTS (
-        SELECT 1 FROM ledger_line rl
-          JOIN chart_of_account ra ON ra.id = rl.account_id
-         WHERE rl.journal_entry_id = j.id AND ra.code LIKE '3.1.1%'
+      NOT EXISTS (
+        SELECT 1 FROM oneflow_competencia oc
+         WHERE oc.company_id = j.company_id AND oc.competencia = to_char(j.reference_month, 'YYYYMM')
+           AND oc.contabil_integrado = false
       )
-    )
-    OR (
-      j.event = 'SETTLEMENT'
-      AND j.source = 'FINANCIAL_ENTRY'
-      AND EXISTS (
-        SELECT 1 FROM financial_entry fe
-         WHERE fe.id = j.source_id
-           AND fe.type = 'RECEIVABLE'
-           AND COALESCE(fe.source, '') NOT IN ('NFSE', 'DFE_SYNC')
-           AND NOT EXISTS (
-             SELECT 1 FROM service_invoice si
-              WHERE si.company_id = fe.company_id
-                AND si.status = 'ISSUED'
-                AND abs(si.amount - fe.amount) < 0.01
-                AND si.reference_month = fe.reference_month
-           )
+      AND (
+        (j.event = 'ACCRUAL' AND j.source IN ('TAX_GUIDE', 'PAYSLIP'))
+        OR (j.event = 'ACCRUAL' AND j.source = 'FINANCIAL_ENTRY' AND ${E_RECEITA})
       )
     )
   )`,
