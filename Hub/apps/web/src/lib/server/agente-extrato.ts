@@ -3,6 +3,7 @@ import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, 
 import { ACCOUNTS } from '@hexxa/core';
 import { resolveCredentials } from './ai-insight';
 import { resolverMotor } from './llm-config';
+import { escolherComJev, jevDisponivel, CONFIANCA_PARA_LANCAR, type EscolhaDoJev } from './jev';
 import { callLlmJson, type LlmConfig } from '@hexxa/integrations';
 
 /**
@@ -146,7 +147,7 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     ).map((r) => r.id),
   );
   // Limita DEPOIS de tirar os já perguntados: senão um lote cheio deles volta vazio e a fila para.
-  const movimentos = naFila.filter((m) => !jaPerguntados.has(m.bankTransactionId)).slice(0, limite);
+  let movimentos = naFila.filter((m) => !jaPerguntados.has(m.bankTransactionId)).slice(0, limite);
   if (!movimentos.length) return vazio;
 
   // Empresa cadastrada sem o plano de categorias: sem ele não há onde classificar.
@@ -198,6 +199,80 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     `);
     out.paraRevisao++;
   };
+
+  // ── Regra: saída para sócio, em empresa sem folha, é distribuição de lucro ──
+  // Sem folha não existe pró-labore; o que sai para o sócio é lucro. É fato do
+  // cadastro, não palpite — e era onde a IA mais errava (Gateway, 28/09/2026).
+  // Folha do Hub (holerite do funcionário) ou a que volta do OneFlow (partida PAYSLIP).
+  const [comFolha] = (await db.execute(sql`
+    SELECT 1 AS ok WHERE
+      EXISTS (SELECT 1 FROM payslip p JOIN employee e ON e.id = p.employee_id WHERE e.company_id = ${companyId})
+      OR EXISTS (SELECT 1 FROM journal_entry WHERE company_id = ${companyId} AND source = 'PAYSLIP')
+  `)) as unknown as { ok: number }[];
+  if (!comFolha) {
+    const socios = ((await db.execute(sql`SELECT name FROM partner WHERE company_id = ${companyId}`)) as unknown as { name: string }[])
+      .map((s) => palavrasDoNome(s.name))
+      .filter((p) => p.length >= 2);
+    const restantes: typeof movimentos = [];
+    for (const m of movimentos) {
+      const d = palavrasDoNome(m.descricao);
+      const ehSocio = m.valor < 0 && socios.some((p) => p.every((w) => d.includes(w)));
+      if (!ehSocio) { restantes.push(m); continue; }
+      const r = await reclassificarMovimento(db, companyId, m.bankTransactionId, ACCOUNTS.LUCROS_A_PAGAR, 'Saída para sócio em empresa sem folha: distribuição de lucros');
+      if (r.ok) out.identificados++;
+      else restantes.push(m);
+    }
+    movimentos = restantes;
+  }
+
+  // ── Jev: decide com confiança; na dúvida, pergunta ────────────────────────
+  // A confiança só decide aqui (lançar ou perguntar); nunca vai para a tela.
+  if (movimentos.length && jevDisponivel()) {
+    const contextoJev = await contextoDaEmpresa(companyId, contas);
+    const decisoes = new Map<string, EscolhaDoJev>();
+    await Promise.all(
+      movimentos.map(async (m) => {
+        const opcoes = Object.fromEntries(contas.filter((c) => combina(m.valor, c)).map((c) => [c.id, c.nome]));
+        const j = await escolherComJev(
+          {
+            empresa: contextoJev,
+            movimento: {
+              data: m.data,
+              sentido: m.valor < 0 ? 'SAÍDA de dinheiro (pagamento)' : 'ENTRADA de dinheiro (recebimento)',
+              valor_reais: Math.abs(m.valor),
+              historico_do_banco: m.descricao,
+            },
+          },
+          'Em qual conta contábil (plano de contas brasileiro, ITG 1000) este movimento bancário da empresa deve ser lançado? Use o histórico do banco e quem é a outra parte (sócio, cliente, fornecedor, órgão público).',
+          opcoes,
+        );
+        if (j) decisoes.set(m.bankTransactionId, j);
+      }),
+    );
+    // Aplicar em sequência: cada reclassificação estorna e lança no razão.
+    const resultadoJev: Record<string, string> = {};
+    for (const m of movimentos) {
+      const j = decisoes.get(m.bankTransactionId);
+      if (!j) continue;
+      const conta = porId.get(j.escolha)!;
+      if (j.confianca >= CONFIANCA_PARA_LANCAR && Math.abs(m.valor) <= LIMITE_AUTOMATICO) {
+        const ok = await reclassificarMovimento(db, companyId, m.bankTransactionId, conta.codigo, `Identificado pela IA como "${conta.nome}"`);
+        if (ok.ok) {
+          await aprender(db, companyId, { descricao: m.descricao, valor: m.valor, conta: conta.codigo, categoriaNome: conta.nome, origem: 'IA_VERIFICADA' });
+          out.identificados++;
+          resultadoJev[m.bankTransactionId] = `aplicado:${conta.codigo}`;
+          continue;
+        }
+        out.descartados.push({ id: m.bankTransactionId, motivo: ok.erro ?? 'falha ao reclassificar' });
+      }
+      await perguntar(m, j.ranking.slice(0, 3).map((id) => ({ id })));
+      resultadoJev[m.bankTransactionId] = `pergunta:${j.escolha}`;
+    }
+    await registrar(companyId, 'CONCILIACAO_JEV', process.env.JEV_MODEL || 'jev-latest', { movimentos: movimentos.length }, Object.fromEntries(decisoes), resultadoJev, null);
+    // O que o Jev não respondeu (falha, fora do ar) segue para a reserva abaixo.
+    movimentos = movimentos.filter((m) => !decisoes.has(m.bankTransactionId));
+  }
+  if (!movimentos.length) return out;
 
   const creds = await resolveCredentials();
   if (!creds) {
@@ -271,6 +346,11 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
 }
 
 /** O que o modelo precisa saber da empresa para identificar sem chutar. */
+/** Palavras de um nome, sem acento e em minúsculas — para achar o sócio no histórico do banco. */
+function palavrasDoNome(s: string): string[] {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2);
+}
+
 export async function contextoDaEmpresa(companyId: string, contas: Conta[]): Promise<string> {
   const db = getDb();
   const q = <T,>(p: Promise<unknown>) => (p as Promise<T>).catch(() => [] as unknown as T);

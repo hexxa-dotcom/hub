@@ -57,7 +57,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3300)",
       "Bash(kill 50673)",
       "Bash(grep -rhoE '\\(href=|href: |push\\\\\\(|redirect\\\\\\(|replace\\\\\\(\\)[\"'\"'\"'`]/[a-z][a-zA-Z0-9/_-]*' --include=\"*.tsx\" --include=\"*.ts\" .)",
-      "Bash(grep -rn '\"/login\"\\\\|'\"'\"'/login'\"'\"'\\\\|`/login`\\\\|hub-financeiro/integracoes' --include=\"*.tsx\" --include=\"*.ts\" .)"
+      "Bash(grep -rn '\"/login\"\\\\|'\"'\"'/login'\"'\"'\\\\|`/login`\\\\|hub-financeiro/integracoes' --include=\"*.tsx\" --include=\"*.ts\" .)",
+      "Bash(sed -i '' \"/passo\\('importar'/d; /passo\\('conciliar'/d; s/conciliacao: conc, //\" _id.ts)",
+      "Bash(mkdir -p node_modules/server-only)",
+      "Bash(npx tsx *)"
     ]
   }
 }
