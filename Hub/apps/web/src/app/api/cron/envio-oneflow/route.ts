@@ -81,6 +81,9 @@ export async function GET(request: Request) {
     const relatorio: Record<string, unknown>[] = [];
 
     let restante = orcamento;
+    // Lançamentos aceitos lá — num composto, vários por chamada.
+    let aceitas = 0;
+    let recusadas = 0;
     let interrompido: string | null = null;
 
     for (const empresa of ligadas) {
@@ -157,6 +160,8 @@ export async function GET(request: Request) {
         );
         // Composto: várias partidas por chamada — a cota desconta chamadas, não partidas.
         restante -= r.chamadas;
+        aceitas += r.enviadas;
+        recusadas += r.erros.length;
         if (r.tempoAcabou) { interrompido = `${empresa.nome} (tempo da execução)`; break; }
 
         if (r.enviadas || r.erros.length || r.bloqueadas) {
@@ -167,6 +172,7 @@ export async function GET(request: Request) {
             chamadas: r.chamadas,
             erros: r.erros.length,
             incertas: r.incertas,
+            ...(r.empresaBloqueada ? { empresaBloqueada: r.empresaBloqueada } : {}),
             bloqueadas: r.bloqueadas,
             restantes: r.restantes,
           });
@@ -175,6 +181,12 @@ export async function GET(request: Request) {
           console.error(`[cron/envio-oneflow] ${empresa.nome} ${mes}:`, r.erros.slice(0, 5));
         }
         if (r.cotaAcabou) { interrompido = empresa.nome; break; }
+        // Recusa da empresa inteira (contábil não configurado lá): os outros
+        // meses dela também seriam recusados — segue para a próxima empresa.
+        if (r.empresaBloqueada) {
+          relatorio.push({ empresa: empresa.nome, parada: r.empresaBloqueada });
+          break;
+        }
       }
 
       // Mês autorizado que não tem mais nada pendente chega a ENVIADO.
@@ -187,7 +199,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       message: interrompido
         ? `Interrompido em "${interrompido}": cota diária do OneFlow esgotada.`
-        : `Enviadas ${orcamento - restante} partida(s) de ${relatorio.length} mês/empresa.`,
+        : `${aceitas} lançamento(s) aceito(s) e ${recusadas} recusado(s) pelo OneFlow, em ${orcamento - restante} chamada(s).`,
       orcamento,
       gasto: orcamento - restante,
       empresas: relatorio,

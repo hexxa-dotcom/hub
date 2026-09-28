@@ -303,6 +303,11 @@ export interface ResultadoEnvioRazao {
   incertas: number;
   /** Chamadas à API gastas — menos que `enviadas` quando há lançamento composto. */
   chamadas: number;
+  /**
+   * A recusa é da EMPRESA, não do lançamento (ex.: contábil não configurado
+   * lá, 5145): nada dela vai passar até alguém resolver no OneFlow.
+   */
+  empresaBloqueada: string | null;
 }
 
 /**
@@ -372,7 +377,7 @@ export async function enviarRazao(
   if (!(await envioAutorizado(tx, companyId, referenceMonth))) {
     return {
       mes: referenceMonth, enviadas: 0, erros: [], restantes: 0, bloqueadas: 0,
-      cotaAcabou: false, tempoAcabou: false, naoAutorizado: true, incertas: 0, chamadas: 0,
+      cotaAcabou: false, tempoAcabou: false, naoAutorizado: true, incertas: 0, chamadas: 0, empresaBloqueada: null,
     };
   }
 
@@ -388,6 +393,7 @@ export async function enviarRazao(
     naoAutorizado: false,
     incertas: 0,
     chamadas: 0,
+    empresaBloqueada: null,
   };
 
   /**
@@ -484,6 +490,17 @@ export async function enviarRazao(
       for (const m of marcas) await concluirMarca(tx, m, 'ERRO', null, motivoGravado);
       for (const p of lote) out.erros.push({ journalEntryId: p.journalEntryId, motivo: motivoGravado });
       feitas += lote.length;
+      /**
+       * Recusa que é da empresa, não do lançamento: nenhum outro vai passar.
+       * Visto na HEXX (28/09/2026): "o módulo contábil do app … não está
+       * configurado (5145)" — seguir tentaria todos os lançamentos dela, cada
+       * um gastando uma chamada para ouvir a mesma coisa.
+       */
+      if (RECUSA_DA_EMPRESA.test(motivo)) {
+        out.empresaBloqueada = motivo.replace(/^\[oneflow [^\]]*\] \S+: /, '');
+        out.restantes = total - feitas;
+        break;
+      }
     }
   }
 
@@ -506,6 +523,9 @@ export async function enviarRazao(
 
   return out;
 }
+
+/** Recusas que valem para a empresa inteira — ver `empresaBloqueada`. */
+export const RECUSA_DA_EMPRESA = /n.o est. configurado|\(5145\)|m.dulo cont.bil .* n.o/i;
 
 /** Até quantos lançamentos vão num composto. A API não documenta limite de partidas; 20 lançamentos (~40–60 partidas) é conservador. */
 export const LANCAMENTOS_POR_COMPOSTO = 20;
