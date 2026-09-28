@@ -5,6 +5,7 @@ import { ticket } from '@hexxa/db/schema';
 import { ContadorShell } from '@/components/contador/ContadorShell';
 import { isAdminUser } from '@/lib/server/admin-guard';
 import { createClient } from '@/lib/supabase/server';
+import { problemasDoOneflow } from '@/lib/server/saude-oneflow';
 
 /** Área do contador: exige login (Supabase, via proxy) + e-mail na allowlist. */
 export default async function ContadorLayout({ children }: { children: React.ReactNode }) {
@@ -26,13 +27,20 @@ export default async function ContadorLayout({ children }: { children: React.Rea
     console.error('[ContadorLayout] falha ao contar solicitações abertas:', err);
   }
 
+  // Os pontos da integração OneFlow que pedem atenção viram o número vermelho
+  // no menu. Com teto de tempo: nunca segura a navegação do escritório.
+  const problemasOneflow = await Promise.race([
+    problemasDoOneflow(),
+    new Promise<number>((r) => setTimeout(() => r(0), 3000)),
+  ]);
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   return (
-    <ContadorShell openTicketsCount={openTicketsCount} userEmail={user?.email}>
+    <ContadorShell openTicketsCount={openTicketsCount} problemasOneflow={problemasOneflow} userEmail={user?.email}>
       {children}
     </ContadorShell>
   );

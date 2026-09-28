@@ -28,6 +28,7 @@ import {
   Calculator,
   FolderOpen,
   Tags,
+  Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ContadorSearch } from './ContadorSearch';
@@ -35,7 +36,7 @@ import { ThemeToggle } from '@/components/theme/ThemeControls';
 
 type NavItemDef = { label: string; href: string; icon: LucideIcon; badge?: number };
 
-function buildNavGroups(openTicketsCount: number): { label: string; items: NavItemDef[] }[] {
+function buildNavGroups(openTicketsCount: number, problemasOneflow = 0): { label: string; items: NavItemDef[] }[] {
   return [
     {
       label: 'Meu dia',
@@ -65,6 +66,7 @@ function buildNavGroups(openTicketsCount: number): { label: string; items: NavIt
       items: [
         { label: 'Usuários & acesso', href: '/contador/usuarios', icon: Shield },
         { label: 'Regras Tributárias', href: '/contador/regras-tributarias', icon: Calculator },
+        { label: 'Integração OneFlow', href: '/contador/integracoes/oneflow', icon: Activity, badge: problemasOneflow || undefined },
         { label: 'Integrações', href: '/contador/integracoes', icon: Layers },
         { label: 'Configurações', href: '/contador/configuracoes', icon: Settings },
       ],
@@ -113,11 +115,14 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
 export function ContadorShell({
   children,
   openTicketsCount,
+  problemasOneflow = 0,
   userName,
   userEmail,
 }: {
   children: React.ReactNode;
   openTicketsCount: number;
+  /** Pontos da integração com o OneFlow que pedem atenção — ver saude-oneflow.ts. */
+  problemasOneflow?: number;
   userName?: string | null;
   userEmail?: string | null;
 }) {
@@ -128,7 +133,7 @@ export function ContadorShell({
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
-  const navGroups = buildNavGroups(openTicketsCount);
+  const navGroups = buildNavGroups(openTicketsCount, problemasOneflow);
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={`flex h-full flex-col bg-[#1E3328]/95 dark:bg-[#141A16]/95 backdrop-blur-2xl text-[#F5F6F4] border border-[#2F4A3C]/60 ${mobile ? 'p-4 border-r' : 'py-5 px-3 rounded-[26px] shadow-[0_16px_40px_rgba(0,0,0,0.22)]'}`}>

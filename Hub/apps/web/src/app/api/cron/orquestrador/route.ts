@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getDb, sql } from '@hexxa/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -79,10 +80,40 @@ const TURNOS: Record<string, Onda[]> = {
   ],
 };
 
-type Resultado = { rotina: string; status: number | 'erro' | 'pulada'; corpo?: unknown };
+type Resultado = { rotina: string; status: number | 'erro' | 'pulada'; corpo?: unknown; ms?: number };
+
+/** As rotinas que falam com o OneFlow — nunca duas na mesma onda (ver acima). */
+const DO_ONEFLOW = new Set(['envio-nfse-oneflow', 'envio-oneflow', 'resultado-oneflow', 'retorno-oneflow']);
+
+/** Chamadas ao OneFlow já feitas hoje (fuso de São Paulo) — o contador da cota. */
+async function chamadasDeHoje(): Promise<number> {
+  const [r] = (await getDb()
+    .execute(sql`SELECT chamadas FROM oneflow_uso_diario WHERE dia = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date`)
+    .catch(() => [])) as unknown as { chamadas: number }[];
+  return r?.chamadas ?? 0;
+}
+
+/**
+ * Registra a execução para a tela "Integração OneFlow" do escritório. Uma
+ * falha aqui nunca derruba a rotina — é só o registro.
+ */
+async function registrar(turno: string, onda: number, r: Resultado, chamadas: number | null): Promise<void> {
+  const corpo = (r.corpo ?? null) as Record<string, unknown> | null;
+  const falhou = r.status === 'erro' || (typeof r.status === 'number' && r.status !== 200) || Boolean(corpo && typeof corpo === 'object' && corpo.error);
+  const status = r.status === 'pulada' ? 'PULADA' : falhou ? 'FALHOU' : 'OK';
+  const erro = falhou ? String((corpo && typeof corpo === 'object' ? corpo.error : null) ?? corpo ?? r.status).slice(0, 2000) : null;
+  const resumo = corpo && typeof corpo === 'object' ? JSON.stringify(corpo).slice(0, 20_000) : null;
+  await getDb()
+    .execute(sql`
+      INSERT INTO rotina_execucao (rotina, turno, onda, inicio, duracao_ms, status, http, chamadas, resumo, erro)
+      VALUES (${r.rotina}, ${turno}, ${onda}, NOW() - make_interval(secs => ${(r.ms ?? 0) / 1000}), ${r.ms ?? null}, ${status},
+              ${typeof r.status === 'number' ? r.status : null}, ${chamadas}, ${resumo}::jsonb, ${erro})`)
+    .catch((e) => console.error('[orquestrador] não registrou a execução:', e));
+}
 
 async function chamar(origem: string, auth: string, rotina: Rotina): Promise<Resultado> {
   if (rotina.quando && !rotina.quando()) return { rotina: rotina.caminho, status: 'pulada' };
+  const t0 = Date.now();
   try {
     const res = await fetch(`${origem}/api/cron/${rotina.caminho}`, {
       headers: { authorization: auth },
@@ -90,9 +121,9 @@ async function chamar(origem: string, auth: string, rotina: Rotina): Promise<Res
       signal: AbortSignal.timeout(295_000),
     });
     const corpo = await res.json().catch(() => null);
-    return { rotina: rotina.caminho, status: res.status, corpo };
+    return { rotina: rotina.caminho, status: res.status, corpo, ms: Date.now() - t0 };
   } catch (error: any) {
-    return { rotina: rotina.caminho, status: 'erro', corpo: error?.message };
+    return { rotina: rotina.caminho, status: 'erro', corpo: error?.message, ms: Date.now() - t0 };
   }
 }
 
@@ -112,7 +143,13 @@ export async function GET(request: Request) {
   const onda = ondas[indice];
   if (!onda) return NextResponse.json({ error: `Onda ${indice} não existe` }, { status: 400 });
 
+  // As chamadas gastas na onda são da única rotina do OneFlow dela.
+  const antes = await chamadasDeHoje();
   const resultados = await Promise.all(onda.map((r) => chamar(url.origin, authHeader, r)));
+  const gastas = Math.max(0, (await chamadasDeHoje()) - antes);
+  for (const r of resultados) await registrar(turno, indice, r, DO_ONEFLOW.has(r.rotina) ? gastas : null);
+  // 60 dias de histórico bastam para ver tendência; o resto é peso morto.
+  if (indice === 0) await getDb().execute(sql`DELETE FROM rotina_execucao WHERE inicio < NOW() - interval '60 days'`).catch(() => {});
   for (const r of resultados) {
     if (r.status !== 200 && r.status !== 'pulada') {
       console.error(`[orquestrador] ${turno}/${indice} ${r.rotina} falhou:`, r.status, r.corpo);
