@@ -237,7 +237,9 @@ async function reparticaoDoDas(
     FROM tax_history h
     JOIN tax_annex_bracket b
       ON b.annex = split_part(split_part(h.tax_bracket, ' - ', 1), ' ', 2)
-     AND b.bracket = (split_part(h.tax_bracket, 'Faixa ', 2))::int
+     -- O OneFlow às vezes manda só "Anexo III", sem a faixa: aí não casa e a
+     -- guia cai na linha única, em vez de derrubar o fechamento (Gateway, ago/2026).
+     AND b.bracket = NULLIF(split_part(h.tax_bracket, 'Faixa ', 2), '')::int
     WHERE h.company_id = ${companyId}
       AND h.reference_month = ${referenceMonth.slice(0, 7)}
     LIMIT 1

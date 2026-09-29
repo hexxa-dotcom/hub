@@ -51,10 +51,26 @@ export async function coletarDadosDoMes(
     JOIN journal_entry j ON j.id = l.journal_entry_id
     JOIN chart_of_account a ON a.id = l.account_id
     WHERE l.company_id = ${companyId}
-      AND j.status = 'POSTED' AND j.reversed_by IS NULL
+      AND j.status = 'POSTED' AND j.reversed_by IS NULL AND j.event = 'SETTLEMENT'
       AND j.reference_month = ${referenceMonth}::date
       AND l.direction = 'DEBIT'
+      -- Só o que está de fato sem conta: a transitória. Sem este filtro a
+      -- consulta somava TODO débito do mês e todo mês parecia 100% sem
+      -- classificação (visto no fechamento da Gateway, 29/09/2026).
+      AND a.code = ${ACCOUNTS.VALORES_A_CLASSIFICAR}
   `)) as unknown as Record<string, unknown>[];
+
+  // Despesa do mês pelo razão (contas de resultado devedoras): a que veio do
+  // extrato não passa por contas a pagar e ficava fora da proporção.
+  const [despesaDoRazao] = (await tx.execute(sql`
+    SELECT COALESCE(SUM(CASE WHEN l.direction = 'DEBIT' THEN l.amount ELSE -l.amount END), 0)::float AS valor
+      FROM ledger_line l
+      JOIN journal_entry j ON j.id = l.journal_entry_id
+      JOIN chart_of_account a ON a.id = l.account_id
+     WHERE l.company_id = ${companyId} AND j.status = 'POSTED'
+       AND j.reference_month = ${referenceMonth}::date
+       AND a.code LIKE '3.%' AND a.type = 'DESPESA'
+  `)) as unknown as { valor: number }[];
 
   const [extrato] = (await tx.execute(sql`
     SELECT count(*)::int AS quantidade, COALESCE(SUM(abs(amount)), 0) AS valor
@@ -142,10 +158,12 @@ export async function coletarDadosDoMes(
     SELECT
       SUM(b.current_balance) AS saldo,
       count(*)::int AS n,
-      bool_or(
-        b.open_finance_item_id IS NOT NULL
-        OR EXISTS (SELECT 1 FROM bank_transaction t WHERE t.bank_account_id = b.id)
-      ) AS tem_feed
+      -- Só o Open Finance mantém current_balance em dia. Extrato em CSV/OFX
+      -- não atualiza o campo, e comparar o razão de um mês passado com o saldo
+      -- "de hoje" acusava divergência em todo mês. Para quem sobe extrato, a
+      -- amarração com o banco é a transitória zerada.
+      bool_or(b.open_finance_item_id IS NOT NULL)
+        AND date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo')::date = ${referenceMonth}::date AS tem_feed
     FROM bank_account b WHERE b.company_id = ${companyId}
   `)) as unknown as Record<string, unknown>[];
 
@@ -208,7 +226,7 @@ export async function coletarDadosDoMes(
       temFeed: Boolean(saldoCadastro?.tem_feed),
     },
     totalLancamentos: Number(totais?.total ?? 0),
-    despesaTotal: Number(totais?.despesa ?? 0),
+    despesaTotal: Math.max(Number(totais?.despesa ?? 0), Number(despesaDoRazao?.valor ?? 0)),
   };
 }
 
