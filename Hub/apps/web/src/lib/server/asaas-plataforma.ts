@@ -134,11 +134,11 @@ export async function cartaoDaFatura(faturaId: string, companyId: string): Promi
 }
 
 /** Desconto do anual para quem tem valor combinado ou desconto (não usa a tabela). */
-const DESCONTO_ANUAL_COMBINADO = 0.15;
+const DESCONTO_ANUAL_COMBINADO = 0.10;
 
 /**
  * Valor mensal no anual: o da tabela do plano (`valorAnualMensal`); para quem
- * paga valor combinado ou tem desconto, 15% sobre o que já paga — a tabela
+ * paga valor combinado ou tem desconto, 10% sobre o que já paga — a tabela
  * anual não se aplica a um preço que já não é o da tabela.
  */
 export function valorAnualMensal(p: {
