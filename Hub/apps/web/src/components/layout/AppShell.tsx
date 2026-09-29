@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Menu, PanelLeft, PanelLeftClose, PanelLeftOpen, X, Bell, BellOff, MessageCircle, Search, LogOut, ArrowUpRight } from 'lucide-react';
+import { ChevronDown, Menu, PanelLeft, X, Bell, BellOff, MessageCircle, Search, LogOut, ArrowUpRight } from 'lucide-react';
 import {
   SquaresFour,
   Notebook,
@@ -13,6 +13,7 @@ import {
   IdentificationBadge,
   Buildings,
   ChatCircleDots,
+  SidebarSimple,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import type { NavSection } from '@/lib/nav';
@@ -510,11 +511,10 @@ function AppShellInner({
                   }}
                   title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
                   aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-(--sidebar-ink-soft) transition-colors hover:bg-black/5 hover:text-(--sidebar-ink) dark:hover:bg-white/10 ${
-                    isCollapsed ? 'ml-[3px]' : ''
-                  }`}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-(--sidebar-ink-soft) transition-colors hover:bg-black/5 hover:text-(--sidebar-ink) dark:hover:bg-white/10"
                 >
-                  {isCollapsed ? <PanelLeftOpen className="h-5 w-5" strokeWidth={1.6} /> : <PanelLeftClose className="h-5 w-5" strokeWidth={1.6} />}
+                  {/* Mesmo centro (36px) e mesmo traço/tamanho dos ícones das seções logo abaixo. */}
+                  <SidebarSimple weight="light" className={`h-7 w-7 transition-transform duration-200 ${isCollapsed ? '' : '-scale-x-100'}`} />
                 </button>
               </div>
             </div>
