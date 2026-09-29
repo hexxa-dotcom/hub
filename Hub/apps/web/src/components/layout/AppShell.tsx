@@ -511,10 +511,14 @@ function AppShellInner({
                   }}
                   title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
                   aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-(--sidebar-ink-soft) transition-colors hover:bg-black/5 hover:text-(--sidebar-ink) dark:hover:bg-white/10"
+                  className={`flex w-9 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl text-(--sidebar-ink-soft) transition-colors hover:text-(--sidebar-ink) ${
+                    isCollapsed ? 'py-1' : 'h-9 hover:bg-black/5 dark:hover:bg-white/10'
+                  }`}
                 >
                   {/* Mesmo centro (36px) e mesmo traço/tamanho dos ícones das seções logo abaixo. */}
-                  <SidebarSimple weight="light" className={`h-7 w-7 transition-transform duration-200 ${isCollapsed ? '' : '-scale-x-100'}`} />
+                  <SidebarSimple weight="light" className={`h-7 w-7 shrink-0 transition-transform duration-200 ${isCollapsed ? '' : '-scale-x-100'}`} />
+                  {/* Para quem não reconhece o ícone: a palavra, bem pequena, só com a barra recolhida. */}
+                  {isCollapsed && <span className="whitespace-nowrap text-[9px] font-medium leading-none tracking-wide">Expandir</span>}
                 </button>
               </div>
             </div>

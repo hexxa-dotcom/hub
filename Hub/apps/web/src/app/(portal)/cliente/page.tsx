@@ -11,7 +11,6 @@ import { blocosDoPerfil, ehPerfil, type BlocoId } from './blocos';
 import { getDb, sql } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 import { pendenciasDoDia } from '@/lib/server/inicio';
-import { climaDaEmpresa } from '@/lib/server/clima';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +21,7 @@ function isViewId(v: string | undefined): v is ViewId {
 /**
  * INÍCIO — a tela de entrada, de propósito diferente das outras.
  *
- * A saudação de um lado e, do outro, só hoje, a temperatura e a data; logo abaixo os
+ * A saudação de um lado e, do outro, o dia da semana e a data; logo abaixo os
  * números principais da empresa; e, descendo, o Resumo (o que pede você hoje
  * e cada área em mosaico) ou os Detalhes, pelo `?v=`.
  */
@@ -41,11 +40,11 @@ export default async function ClientePage({
 
   const agora = new Date();
   const diaDoMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
+  const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
 
   const ctx = await getTenantContext();
-  const [pendencias, clima, preferencia] = await Promise.all([
+  const [pendencias, preferencia] = await Promise.all([
     pendenciasDoDia(ctx).catch(() => []),
-    climaDaEmpresa(ctx),
     getDb()
       .execute(sql`SELECT inicio_perfil AS perfil, inicio_blocos AS blocos FROM company WHERE id = ${ctx.companyId}`)
       .then((r) => (r as unknown as { perfil: string; blocos: string[] | null }[])[0])
@@ -77,13 +76,8 @@ export default async function ClientePage({
           </p>
         </div>
         <div className="entrada-subtitulo shrink-0 self-start sm:text-right">
-          {/* Só o essencial: hoje, a temperatura e a data. Cidade e condição ficam no título, ao passar o mouse. */}
-          <p className="text-xs font-medium text-ink-soft sm:text-sm">
-            Hoje
-            {clima && (
-              <span title={`${clima.cidade}${clima.descricao ? `, ${clima.descricao}` : ''}`}> · {clima.temperatura}°</span>
-            )}
-          </p>
+          {/* O dia da semana discreto em cima e a data embaixo — sem temperatura. */}
+          <p className="text-xs font-medium text-ink-soft sm:text-sm">{diaDaSemana.charAt(0).toUpperCase() + diaDaSemana.slice(1)}</p>
           <p className="mt-0.5 text-2xl font-bold tracking-tight text-ink sm:text-3xl">{diaDoMes}</p>
         </div>
       </header>
