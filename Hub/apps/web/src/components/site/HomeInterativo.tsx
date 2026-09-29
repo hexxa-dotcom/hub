@@ -75,7 +75,7 @@ export function Produto() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}><Rotulo>01 — A Hexx por dentro</Rotulo><h2 className="h2">Tudo o que sua empresa de serviço precisa. Em uma só tela.</h2></div>
           <p className="corpo" style={{ color: cor.c7 }}>Chega de colcha de retalhos com vários softwares avulsos. Na Hexx você gerencia o negócio com autonomia, e a contabilidade opera em tempo real nos bastidores.</p>
         </div>
-        <div role="tablist" style={{ display: 'flex', flexWrap: 'wrap', borderBottom: `1px solid ${cor.g}` }}>
+        <div role="tablist" className="abas-produto" style={{ display: 'flex', flexWrap: 'wrap', borderBottom: `1px solid ${cor.g}` }}>
           {ABAS.map((x, i) => {
             const ativa = i === aba;
             return (
@@ -99,7 +99,7 @@ export function Produto() {
             {a.linhas.map(([k, v, hi]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '18px 22px', borderBottom: `1px solid ${cor.g2}` }}>
                 <div style={{ fontSize: 14, color: cor.c4 }}>{k}</div>
-                <div className="m" style={{ fontSize: 15, color: hi ? cor.s : cor.p, textAlign: 'right' }}>{v}</div>
+                <div className="m" style={{ fontSize: 15, color: hi ? cor.s : cor.p, textAlign: 'right', whiteSpace: 'nowrap' }}>{v}</div>
               </div>
             ))}
           </div>

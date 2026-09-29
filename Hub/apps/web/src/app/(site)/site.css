@@ -56,3 +56,22 @@
   .hx .tabela-topo { position: static; }
   .hx .col-fixa { position: sticky; left: 0; z-index: 2; background: var(--p); }
 }
+
+/* Topo no celular: uma linha só (logo + Entrar + Planos). */
+.hx .so-estreito { display: none; }
+@media (max-width: 760px) {
+  .hx .nav-site { display: none !important; }
+  .hx .so-largo { display: none; }
+  .hx .so-estreito { display: inline; }
+  .hx .topo-btn { padding: 10px 14px !important; font-size: 13px !important; }
+}
+/* Rodapé: a marca ocupa duas colunas só quando há espaço. */
+@media (min-width: 760px) { .hx .rodape-marca { grid-column: span 2; } }
+/* Abas de "A Hexx por dentro": no celular, uma linha que rola de lado. */
+@media (max-width: 760px) {
+  .hx .abas-produto { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; margin-right: -16px; }
+  .hx .abas-produto::-webkit-scrollbar { display: none; }
+  .hx .abas-produto button { flex-shrink: 0; white-space: nowrap; padding: 14px 16px !important; }
+}
+.hx .so-celular { display: none; }
+@media (max-width: 920px) { .hx .so-celular { display: block; } }

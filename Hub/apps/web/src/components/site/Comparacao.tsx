@@ -65,6 +65,7 @@ export function Comparacao({ inicial }: { inicial: Cobranca }) {
         </div>
       </section>
 
+      <div className="so-celular m" style={{ background: P, color: C6, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', padding: '14px 16px 0' }}>Arraste a tabela para o lado →</div>
       <div className="tabela-rola" style={{ background: P, color: G }} data-sem-reveal>
         <div style={{ minWidth: 880 }}>
           <div className="tabela-topo" style={{ background: P, borderBottom: `1px solid ${G}` }}>

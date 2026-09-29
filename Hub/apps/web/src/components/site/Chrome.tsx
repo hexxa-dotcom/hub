@@ -7,18 +7,18 @@ export function Cabecalho({ naHome = false }: { naHome?: boolean }) {
   const h = (a: string) => (naHome ? a : `/${a}`);
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(14,14,16,.92)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid #1C1C20' }}>
-      <div className="wrap" style={{ paddingTop: 18, paddingBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+      <div className="wrap" style={{ paddingTop: 18, paddingBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'nowrap' }}>
         <Link href="/" style={{ display: 'flex' }} aria-label="Hexx Digital — início">
           <Image src="/brand/hexx-horizontal-negativo.svg" alt="hexx" width={114} height={26} priority style={{ height: 26, width: 'auto', display: 'block' }} />
         </Link>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 14, color: '#B8B8B4', flexWrap: 'wrap' }}>
+        <nav className="nav-site" style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 14, color: '#B8B8B4', flexWrap: 'wrap' }}>
           <a href={h('#produto')}>A Hexx</a>
           <Link href="/planos">Planos</Link>
           <a href={h('#faq')}>Perguntas</a>
         </nav>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link href={'/auth/login' as never} className="btn-o" style={{ fontSize: 14, padding: '11px 16px' }}>Entrar</Link>
-          <a href={h('#planos')} className="btn-s" style={{ fontSize: 14, padding: '12px 18px' }}>Experimentar a Hexx</a>
+          <Link href={'/auth/login' as never} className="btn-o topo-btn" style={{ fontSize: 14, padding: '11px 16px' }}>Entrar</Link>
+          <a href={h('#planos')} className="btn-s topo-btn" style={{ fontSize: 14, padding: '12px 18px' }}><span className="so-largo">Experimentar a Hexx</span><span className="so-estreito">Planos</span></a>
         </div>
       </div>
     </header>
@@ -32,7 +32,7 @@ export function Rodape() {
     <footer style={{ background: '#0E0E10', borderTop: '1px solid #1C1C20' }}>
       <div className="wrap" style={{ paddingTop: 72, paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 56 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 40 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, gridColumn: 'span 2' }}>
+          <div className="rodape-marca" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <Image src="/brand/hexx-vertical-negativo.svg" alt="hexx" width={143} height={72} style={{ height: 72, width: 'auto', alignSelf: 'flex-start' }} />
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.5, color: '#B8B8B4' }}>Clareza pra decidir.<br />Liberdade pra crescer.</p>
           </div>
