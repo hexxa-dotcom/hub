@@ -2,6 +2,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { getDb, sql } from '@hexxa/db';
 import { valorDosHonorarios } from '@hexxa/core';
+import { completarEnderecoPeloCnpj } from './cnpj';
 import { CONTRATO, TERMOS, VERSAO_CONTRATO, VERSAO_TERMOS, textoCorrido } from '@/lib/contratos/textos';
 
 /**
@@ -43,6 +44,9 @@ const endereco = (c: Record<string, string | null>) =>
 
 export async function dadosDaAdesao(companyId: string): Promise<DadosDaAdesao | null> {
   const db = getDb();
+  // Contrato com endereço incompleto não identifica a parte (CFC 1.590, art. 2º, a).
+  const [idHexx] = (await db.execute(sql`SELECT id::text FROM company WHERE numero = 0 LIMIT 1`)) as unknown as { id: string }[];
+  await Promise.all([idHexx?.id, companyId].filter(Boolean).map((id) => completarEnderecoPeloCnpj(id!).catch(() => false)));
   const [hexx] = (await db.execute(sql`SELECT * FROM company WHERE numero = 0 LIMIT 1`)) as unknown as Record<string, string | null>[];
   const [c] = (await db.execute(sql`SELECT * FROM company WHERE id = ${companyId}`)) as unknown as Record<string, string | null>[];
   const [s] = (await db.execute(sql`

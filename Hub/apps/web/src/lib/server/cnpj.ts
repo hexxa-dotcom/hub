@@ -107,3 +107,29 @@ export async function consultarCnpj(cnpj: string): Promise<DadosDoCnpj | null> {
 export function enderecoEmTexto(e: EnderecoDaNota): string {
   return `${e.logradouro}, ${e.numero}${e.complemento ? ` ${e.complemento}` : ''} — ${e.bairro}, ${e.municipio}/${e.uf} — CEP ${e.cep}`;
 }
+
+/**
+ * Completa o endereço da empresa pelo cartão do CNPJ quando o cadastro está
+ * sem rua — empresa criada fora do cadastro normal (a própria HEXX estava
+ * assim). Só preenche o que está vazio; nunca sobrescreve o que alguém digitou.
+ */
+export async function completarEnderecoPeloCnpj(companyId: string): Promise<boolean> {
+  const { getDb, sql } = await import('@hexxa/db');
+  const db = getDb();
+  const [c] = (await db.execute(sql`SELECT cnpj, address_line1 FROM company WHERE id = ${companyId}`)) as unknown as { cnpj: string | null; address_line1: string | null }[];
+  if (!c?.cnpj || c.address_line1) return false;
+  const dados = await consultarCnpj(c.cnpj);
+  const e = dados?.endereco;
+  if (!e) return false;
+  await db.execute(sql`
+    UPDATE company SET
+      address_line1 = COALESCE(address_line1, ${e.logradouro}),
+      address_number = COALESCE(address_number, ${e.complemento ? `${e.numero}, ${e.complemento}` : e.numero}),
+      neighborhood = COALESCE(neighborhood, ${e.bairro}),
+      city = COALESCE(city, ${e.municipio}),
+      state = COALESCE(state, ${e.uf}),
+      zipcode = COALESCE(zipcode, ${e.cep})
+    WHERE id = ${companyId}
+  `);
+  return true;
+}
