@@ -160,6 +160,17 @@ async function tentarCasar(
 }
 
 /**
+ * Dinheiro que entra no banco SEM nota não é receita nos livros: vai para
+ * Adiantamento de Clientes até a nota sair (decisão do contador, 29/09/2026 —
+ * o PGDAS é apurado pelas notas, e o contábil acompanha). Quando a nota do
+ * cliente sai, `compensarAdiantamentos` baixa o adiantamento contra ela.
+ * Vale para qualquer caminho: IA, base de conhecimento, resposta de pessoa.
+ */
+export function contaDaEntrada(conta: string | null, valor: number): string | null {
+  return valor > 0 && conta?.startsWith('3.1.1') ? ACCOUNTS.ADIANTAMENTO_CLIENTE : conta;
+}
+
+/**
  * Movimento sem lançamento correspondente: escritura pela base de
  * conhecimento ou, sem ela, na transitória. Devolve a conta usada (null =
  * transitória, esperando identificação).
@@ -169,7 +180,7 @@ export async function escriturarSemPar(
   companyId: string,
   t: { id: string; data: string; valor: number; descricao: string },
 ): Promise<string | null> {
-  const conta = await contaPelaHistoria(tx, companyId, t.descricao, t.valor);
+  const conta = contaDaEntrada(await contaPelaHistoria(tx, companyId, t.descricao, t.valor), t.valor);
   await postJournal(tx, companyId, accrueBankTransaction({
     id: t.id, data: t.data, valor: t.valor,
     descricao: t.descricao, resultAccountCode: conta,
@@ -369,6 +380,7 @@ export async function reclassificarMovimento(
   `)) as unknown as { journal_id: string; data: string; valor: number; descricao: string }[];
 
   if (!mov) return { ok: false, erro: 'Movimento não encontrado ou já reclassificado.' };
+  contaContabil = contaDaEntrada(contaContabil, mov.valor)!;
 
   // "Transferência entre contas próprias" lançada contra a MESMA conta do banco
   // vira banco-contra-banco: não move nada e o dinheiro some do razão (Pix de

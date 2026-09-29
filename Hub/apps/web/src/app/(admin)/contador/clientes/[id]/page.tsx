@@ -25,7 +25,7 @@ import {
   ShieldCheck,
   Activity,
 } from 'lucide-react';
-import { getDb, eq, and, desc, sql, withDbTimeout } from '@hexxa/db';
+import { getDb, eq, and, desc, sql, withDbTimeout, adiantamentosDeClientes } from '@hexxa/db';
 import { company, appUser, membership, subscription, plan, ticket, accountingInvoice } from '@hexxa/db/schema';
 import { valorDosHonorarios } from '@hexxa/core';
 import { ClienteStatusActions } from './ClienteStatusActions';
@@ -35,6 +35,7 @@ import { AprovacaoCard } from './AprovacaoCard';
 import { entrarNaAreaDoClienteAction } from '../actions';
 import { NumeroDaEmpresa } from './NumeroDaEmpresa';
 import { PerfilDoInicioDoCliente } from './PerfilDoInicioDoCliente';
+import { AdiantamentosSemNota } from './AdiantamentosSemNota';
 import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -242,6 +243,7 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     .execute(sql`SELECT inicio_perfil AS perfil FROM company WHERE id = ${companyId}`)
     .catch(() => [])) as unknown as { perfil: string }[];
   const perfilDoInicio = preferencia?.perfil ?? 'BASICO';
+  const adiantamentos = await adiantamentosDeClientes(getDb(), companyId).catch(() => []);
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6 animate-in fade-in">
@@ -296,6 +298,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               </div>
             ))}
           </div>
+
+          <AdiantamentosSemNota itens={adiantamentos} />
 
           {aceites.length ? (
             <ContratoComAHexx aceites={aceites} />

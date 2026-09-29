@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, sql, declararDistribuicaoDoMes } from '@hexxa/db';
+import { getDb, sql, declararDistribuicaoDoMes, compensarAdiantamentos } from '@hexxa/db';
 import {
   fecharMesComConferencia,
   coletarDadosDoMes,
@@ -150,6 +150,12 @@ export async function fecharMesResolvendo(
     return 0;
   });
   if (declarado > 0) resolvido.push({ pendencia: 'distribuicao_nao_declarada', acao: `Distribuição de lucros de R$ ${declarado.toFixed(2)} declarada no último dia do mês.` });
+  // Nota que saiu para cliente com adiantamento (recebido sem nota) baixa o adiantamento.
+  const compensadas = await compensarAdiantamentos(db, companyId).catch((e) => {
+    console.error('[fechamento] compensação de adiantamentos', e);
+    return 0;
+  });
+  if (compensadas > 0) resolvido.push({ pendencia: 'adiantamento_compensado', acao: `${compensadas} nota(s) baixada(s) contra adiantamento de cliente.` });
   const dados = await coletarDadosDoMes(db, companyId, referenceMonth);
   const antes = verificarFechamento(dados);
 

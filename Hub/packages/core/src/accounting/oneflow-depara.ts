@@ -314,6 +314,9 @@ export const DE_PARA_ONEFLOW_PADRAO: Record<string, DestinoOneflow> = {
   '3.3.2.02.14': { classificacao: '5.1.01.0002.001.015', nota: 'Material de Escritório' },
   // Software e assinaturas: no Padrão há conta própria de informática — despesa, não custo.
   '3.3.2.02.15': { classificacao: '5.1.01.0002.001.008', nota: 'Despesas com Informática' },
+  '3.3.1.02.01': { classificacao: '5.1.01.006.001.018', nota: 'Comissões s/Vendas - PJ' },
+  '3.3.1.02.02': { classificacao: '5.1.01.0002.001.038', nota: 'Propaganda e Publicidade' },
+  '3.3.1.02.03': { classificacao: '5.1.01.006.001.014', nota: 'Serviços Gráficos (material promocional impresso)' },
   '3.3.2.02.16': { classificacao: '5.1.01.0002.001.043', nota: 'Lanches, Refeições' },
   '3.3.2.02.17': { classificacao: '5.1.01.0002.001.033', nota: 'Material de Consumo' },
   '3.3.2.02.18': { classificacao: '5.1.01.0002.001.050', nota: 'Viagens e Estadias' },

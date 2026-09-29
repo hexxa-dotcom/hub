@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
+import { cnpjNoHistorico } from './parceiro';
 import { traduzirConta, contasSemDestino, dataOneflow, type PlanoOneflow } from '@hexxa/core';
 import type { LancamentoOneflow } from '@hexxa/integrations';
 
@@ -213,6 +214,10 @@ export async function ensaiarEnvio(
         WHERE j.source = 'FINANCIAL_ENTRY' AND fe3.id = j.source_id AND coalesce(bp3.document, '') <> '') AS doc_do_documento,
       (SELECT bp3.name FROM financial_entry fe3 JOIN business_partner bp3 ON bp3.id = fe3.partner_id
         WHERE j.source = 'FINANCIAL_ENTRY' AND fe3.id = j.source_id AND coalesce(bp3.document, '') <> '') AS nome_do_documento,
+      -- Movimento do extrato: o cliente/fornecedor só está no histórico do banco
+      -- (Pix traz o CNPJ). É o que identifica o participante do adiantamento.
+      (SELECT bt.description FROM bank_transaction bt
+        WHERE j.source = 'BANK_TRANSACTION' AND bt.id = j.source_id) AS historico_do_extrato,
       EXISTS (SELECT 1 FROM oneflow_envio e
               WHERE e.journal_entry_id = j.id AND e.status = 'ENVIADO') AS ja_enviada,
       ${PARADA_NO_ENVIO} AS parada,
@@ -272,7 +277,7 @@ export async function ensaiarEnvio(
       const destino = traduzirConta(conta, plano);
       if (!destino) { faltando.push(conta); continue; }
 
-      const doc = String(l.doc_parceiro || l.doc_da_partida || l.doc_do_documento || '').replace(/\D/g, '');
+      const doc = String(l.doc_parceiro || l.doc_da_partida || l.doc_do_documento || (l.historico_do_extrato ? cnpjNoHistorico(String(l.historico_do_extrato)) : '') || '').replace(/\D/g, '');
       const nomeParceiro = l.nome_parceiro || (l.doc_parceiro ? null : l.nome_da_partida || l.nome_do_documento);
       const ehDebito = String(l.direction) === 'DEBIT';
 
