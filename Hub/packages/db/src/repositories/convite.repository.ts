@@ -79,14 +79,28 @@ export async function convidarParaEmpresa(
   emailBruto: string,
   papel: PapelDeConvite,
   nomeSugerido?: string,
+  cpfBruto?: string,
 ): Promise<ResultadoConvite> {
   const email = normalizarEmail(emailBruto);
   if (!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) throw new EmailInvalidoError(emailBruto);
 
-  const [existente] = await tx
-    .select({ id: appUser.id, authUid: appUser.authUid })
-    .from(appUser)
-    .where(eq(appUser.email, email));
+  // O acesso é da pessoa física: o CPF junta todos os CNPJs dela numa conta
+  // só, mesmo que o convite de outra empresa tenha usado outro e-mail.
+  const cpf = (cpfBruto ?? '').replace(/\D/g, '');
+  if (cpf && cpf.length !== 11) throw new EmailInvalidoError(`CPF ${cpfBruto}`);
+  const porCpf = cpf
+    ? await tx
+        .select({ id: appUser.id, authUid: appUser.authUid, email: appUser.email })
+        .from(appUser)
+        .where(sql`regexp_replace(coalesce(${appUser.cpf}, ''), '\\D', '', 'g') = ${cpf}`)
+        .limit(1)
+    : [];
+  const [existente] = porCpf.length
+    ? porCpf
+    : await tx
+        .select({ id: appUser.id, authUid: appUser.authUid, email: appUser.email })
+        .from(appUser)
+        .where(eq(appUser.email, email));
 
   let userId: string;
   let jaTinhaConta = false;
@@ -94,6 +108,7 @@ export async function convidarParaEmpresa(
   if (existente) {
     userId = existente.id;
     jaTinhaConta = !existente.authUid.startsWith('PENDING-');
+    if (cpf) await tx.update(appUser).set({ cpf }).where(and(eq(appUser.id, userId), sql`${appUser.cpf} IS NULL`));
   } else {
     const [criado] = await tx
       .insert(appUser)
@@ -101,6 +116,7 @@ export async function convidarParaEmpresa(
         authUid: `PENDING-${email}`,
         name: nomeSugerido?.trim() || email.split('@')[0]!,
         email,
+        cpf: cpf || null,
       })
       .returning({ id: appUser.id });
     userId = criado!.id;
@@ -115,7 +131,7 @@ export async function convidarParaEmpresa(
     // Reconvite não é erro: costuma ser correção de papel, ou alguém
     // conferindo se o convite foi feito. Atualiza o papel e segue.
     await tx.update(membership).set({ role: papel, authorized: true }).where(eq(membership.id, vinculo.id));
-    return { userId, email, jaTinhaConta, jaEraMembro: true };
+    return { userId, email: existente?.email ?? email, jaTinhaConta, jaEraMembro: true };
   }
 
   /**
@@ -128,7 +144,7 @@ export async function convidarParaEmpresa(
    */
   await tx.insert(membership).values({ companyId, userId, role: papel, authorized: true });
 
-  return { userId, email, jaTinhaConta, jaEraMembro: false };
+  return { userId, email: existente?.email ?? email, jaTinhaConta, jaEraMembro: false };
 }
 
 /** Quem tem acesso a esta empresa, e quem ainda não entrou. */

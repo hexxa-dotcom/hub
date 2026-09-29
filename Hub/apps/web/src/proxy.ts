@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { TRAVA_COOKIE, LOGIN_COMPLETO_VALE_MS, lerTrava } from '@/lib/auth/trava';
 
 function isPublicRoute(pathname: string): boolean {
   const publicPrefixes = [
@@ -66,6 +67,22 @@ export default async function middleware(req: NextRequest) {
   if (!user) {
     const area: 'cliente' | 'contador' = req.nextUrl.pathname.startsWith('/contador') ? 'contador' : 'cliente';
     const url = new URL(area === 'contador' ? '/auth/login/contador' : '/auth/login', req.url);
+    url.searchParams.set('next', req.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Login completo a cada 30 dias por aparelho; no meio, o código rápido
+  // quando o desbloqueio de 12 h vence. Ver lib/auth/trava.ts.
+  const trava = await lerTrava(req.cookies.get(TRAVA_COOKIE)?.value);
+  const agora = Date.now();
+  if (!trava || trava.u !== user.id || agora - trava.f > LOGIN_COMPLETO_VALE_MS) {
+    const area = req.nextUrl.pathname.startsWith('/contador') ? 'contador' : 'cliente';
+    const url = new URL(area === 'contador' ? '/auth/login/contador' : '/auth/login', req.url);
+    url.searchParams.set('next', req.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+  if (trava.p && agora > trava.d) {
+    const url = new URL('/auth/rapido', req.url);
     url.searchParams.set('next', req.nextUrl.pathname);
     return NextResponse.redirect(url);
   }

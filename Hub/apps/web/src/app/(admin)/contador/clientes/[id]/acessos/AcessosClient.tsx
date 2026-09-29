@@ -79,7 +79,7 @@ export function AcessosClient({
         <form action={convidar} className="mt-4 space-y-3">
           <input type="hidden" name="companyId" value={companyId} />
 
-          <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <label className="text-xs">
               <span className="block font-bold text-[#231F20] dark:text-[#F5F6F4]">E-mail</span>
               <input
@@ -97,6 +97,17 @@ export function AcessosClient({
                 type="text"
                 name="nome"
                 placeholder="como chamá-la"
+                className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]"
+              />
+            </label>
+
+            <label className="text-xs">
+              <span className="block font-bold text-[#231F20] dark:text-[#F5F6F4]">CPF</span>
+              <input
+                type="text"
+                name="cpf"
+                inputMode="numeric"
+                placeholder="junta as empresas da pessoa"
                 className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#231F20] dark:text-[#F5F6F4]"
               />
             </label>

@@ -37,6 +37,7 @@ export async function convidarAction(
   const companyId = String(formData.get('companyId') ?? '');
   const email = String(formData.get('email') ?? '');
   const nome = String(formData.get('nome') ?? '');
+  const cpf = String(formData.get('cpf') ?? '');
   const papelBruto = String(formData.get('papel') ?? 'OWNER');
 
   if (!companyId) return { ok: false, mensagem: 'Empresa não identificada.' };
@@ -49,7 +50,7 @@ export async function convidarAction(
     : 'VIEWER';
 
   try {
-    const r = await convidarParaEmpresa(getDb(), companyId, email, papel, nome);
+    const r = await convidarParaEmpresa(getDb(), companyId, email, papel, nome, cpf);
     revalidatePath(`/contador/clientes/${companyId}/acessos`);
     revalidatePath(`/contador/clientes/${companyId}`);
 

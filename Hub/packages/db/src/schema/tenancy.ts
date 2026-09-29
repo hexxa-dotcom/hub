@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, timestamp, boolean, date, smallint } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, timestamp, boolean, date, smallint, integer } from 'drizzle-orm/pg-core';
 import { companyType, taxRegime, userRole } from './_enums';
 
 /** Tenant raiz. CompanyType separa o fluxo SERVICE do HOLDING. */
@@ -81,6 +81,10 @@ export const appUser = pgTable('app_user', {
   /** CPF e celular do responsável — o OneFlow exige para criar a empresa. Ver 0066. */
   cpf: text('cpf'),
   phone: text('phone'),
+  /** Login rápido: código pessoal de 4 dígitos (scrypt). Ver 0106. */
+  codigoRapidoHash: text('codigo_rapido_hash'),
+  codigoRapidoErros: integer('codigo_rapido_erros').notNull().default(0),
+  ultimoLoginCompleto: timestamp('ultimo_login_completo', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

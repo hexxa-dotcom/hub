@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { registrarLoginCompleto } from '@/lib/server/codigo-rapido';
 
 export type AuthArea = 'cliente' | 'contador';
 
@@ -44,11 +45,17 @@ export async function verifyOtpAction(
   next: string,
 ): Promise<VerifyOtpState> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
 
-  if (error) {
+  if (error || !data.user) {
     return { error: 'Código incorreto ou expirado.' };
   }
+
+  // Login completo: marca este aparelho por 30 dias. Quem ainda não tem o
+  // código rápido é convidado a criar (pode pular).
+  const { temCodigo } = await registrarLoginCompleto(data.user.id, data.user.email);
+  const destino = next || (area === 'contador' ? '/contador' : '/cliente');
+  if (!temCodigo) redirect(`/auth/rapido/criar?next=${encodeURIComponent(destino)}` as never);
 
   redirect((next || (area === 'contador' ? '/contador' : '/cliente')) as never);
 }
