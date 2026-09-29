@@ -7,3 +7,4 @@ export * from './balancete-parser';
 export * from './caixa-livre';
 export * from './previsao-caixa';
 export * from './pgdas-parser';
+export * from './cnae-conta';

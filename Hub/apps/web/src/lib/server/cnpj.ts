@@ -133,3 +133,26 @@ export async function completarEnderecoPeloCnpj(companyId: string): Promise<bool
   `);
   return true;
 }
+
+/**
+ * CNAE principal de um CNPJ, com cache compartilhado (`cnae_do_cnpj`): o
+ * mesmo fornecedor aparece em muitos extratos e muitos clientes. Consulta
+ * falha (fora do ar, CNPJ inválido) não é gravada — tenta de novo depois.
+ */
+export async function cnaeDoCnpj(cnpj: string): Promise<{ cnae: string; descricao: string } | null> {
+  const d = cnpj.replace(/\D/g, '');
+  if (d.length !== 14) return null;
+  const { getDb, sql } = await import('@hexxa/db');
+  const db = getDb();
+  const [ja] = (await db.execute(sql`SELECT cnae, descricao FROM cnae_do_cnpj WHERE cnpj = ${d}`)) as unknown as { cnae: string | null; descricao: string | null }[];
+  if (ja) return ja.cnae ? { cnae: ja.cnae, descricao: ja.descricao ?? '' } : null;
+  const dados = await consultarCnpj(d);
+  if (!dados) return null;
+  const principal = dados.atividades.find((a) => a.principal);
+  await db.execute(sql`
+    INSERT INTO cnae_do_cnpj (cnpj, cnae, descricao, razao_social)
+    VALUES (${d}, ${principal?.codigo ?? null}, ${principal?.descricao ?? null}, ${dados.razaoSocial})
+    ON CONFLICT (cnpj) DO NOTHING
+  `);
+  return principal ? { cnae: principal.codigo, descricao: principal.descricao } : null;
+}

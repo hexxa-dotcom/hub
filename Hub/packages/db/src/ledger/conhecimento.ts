@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
+import { cnpjNoHistorico } from './parceiro';
 
 /**
  * A BASE DE CONHECIMENTO — o que o sistema já sabe sobre cada movimento.
@@ -46,6 +47,10 @@ export function normalizarDescricao(d: string): string {
 
 /** O CNPJ que a descrição traz, só dígitos — com ou sem pontuação. */
 export function cnpjDaDescricao(d: string): string | null {
+  // Os bancos soltam espaço na pontuação ("26.994.854 /0001-24", "62.414.421/0001- 16");
+  // a leitura estrita perdia esses e o CNPJ, que é a chave mais firme, ficava de fora.
+  const solto = cnpjNoHistorico(d);
+  if (solto) return solto;
   const m = d.match(/\b(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})\b/);
   if (!m) return null;
   const digitos = m[1]!.replace(/\D/g, '');
@@ -143,6 +148,35 @@ export async function aprender(
           ELSE conhecimento.origem END,
         atualizado_em = now()
     `);
+  }
+
+  /**
+   * A CARTEIRA APRENDE JUNTO: o que uma pessoa ensinou sobre um pagamento a um
+   * CNPJ vale para os outros clientes (alcance geral, company_id NULL). O mesmo
+   * fornecedor é a mesma despesa para qualquer prestador de serviço — a
+   * carteira toda é de serviços. Só pessoa (contador/empresário), só CNPJ, só
+   * saída; o que a empresa ensinou para si continua vencendo o geral.
+   */
+  if (cnpj && sentido === 'SAIDA' && (p.origem === 'CONTADOR' || p.origem === 'EMPRESARIO')) {
+    const [geral] = (await tx.execute(sql`
+      SELECT id::text, conta_contabil AS conta,
+             CASE origem WHEN 'CONTADOR' THEN 4 WHEN 'EMPRESARIO' THEN 3 WHEN 'IA_VERIFICADA' THEN 2 ELSE 1 END AS peso
+        FROM conhecimento WHERE company_id IS NULL AND tipo = 'CNPJ' AND chave = ${cnpj} AND sentido = 'SAIDA' LIMIT 1
+    `)) as unknown as { id: string; conta: string; peso: number }[];
+    if (!geral) {
+      await tx.execute(sql`
+        INSERT INTO conhecimento (company_id, tipo, chave, sentido, conta_contabil, categoria_nome, origem, exemplo)
+        VALUES (NULL, 'CNPJ', ${cnpj}, 'SAIDA', ${p.conta}, ${p.categoriaNome ?? null}, ${p.origem}, ${p.descricao.slice(0, 120)})
+      `);
+    } else if (geral.conta === p.conta) {
+      await tx.execute(sql`UPDATE conhecimento SET confirmacoes = confirmacoes + 1, atualizado_em = now() WHERE id = ${geral.id}`);
+    } else if (peso >= geral.peso) {
+      await tx.execute(sql`
+        UPDATE conhecimento SET conta_contabil = ${p.conta}, categoria_nome = ${p.categoriaNome ?? null}, origem = ${p.origem},
+               confirmacoes = 1, atualizado_em = now()
+         WHERE id = ${geral.id}
+      `);
+    }
   }
 }
 

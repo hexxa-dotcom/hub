@@ -1,8 +1,9 @@
 import 'server-only';
-import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento, garantirCategoriasPadrao, saidaParaSocio } from '@hexxa/db';
-import { ACCOUNTS } from '@hexxa/core';
+import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento, garantirCategoriasPadrao, saidaParaSocio, cnpjNoHistorico } from '@hexxa/db';
+import { ACCOUNTS, contaPorCnae } from '@hexxa/core';
 import { resolveCredentials } from './ai-insight';
 import { resolverMotor } from './llm-config';
+import { cnaeDoCnpj } from './cnpj';
 import { escolherComJev, jevDisponivel, CONFIANCA_PARA_LANCAR, type EscolhaDoJev } from './jev';
 import { callLlmJson, type LlmConfig } from '@hexxa/integrations';
 
@@ -222,6 +223,37 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     movimentos = restantes;
   }
 
+  // ── Regra: CNAE de quem recebeu → conta de despesa ────────────────────────
+  // Pix para empresa traz o CNPJ; o cartão do CNPJ diz a atividade dela
+  // (tabela oficial do IBGE). Restaurante é alimentação, software é software.
+  // O que a tabela não cobre segue para o Jev, levando a atividade junto.
+  const atividade = new Map<string, string>();
+  {
+    const [empresa] = (await db.execute(sql`
+      SELECT regexp_replace(coalesce(cnpj, ''), '[^0-9]', '', 'g') AS cnpj, tax_regime AS regime FROM company WHERE id = ${companyId}
+    `)) as unknown as { cnpj: string; regime: string | null }[];
+    const restantes: typeof movimentos = [];
+    for (const m of movimentos) {
+      const cnpj = m.valor < 0 ? cnpjNoHistorico(m.descricao) : null;
+      if (!cnpj || cnpj === empresa?.cnpj) { restantes.push(m); continue; }
+      // Pix à Receita Federal numa empresa do Simples é o DAS (Filipe, 28/09/2026).
+      const conta =
+        cnpj.startsWith('00394460') && empresa?.regime === 'SIMPLES_NACIONAL'
+          ? ACCOUNTS.DAS_A_RECOLHER
+          : await cnaeDoCnpj(cnpj)
+              .catch(() => null)
+              .then((c) => {
+                if (c) atividade.set(m.bankTransactionId, `${c.cnae} ${c.descricao}`);
+                return contaPorCnae(c?.cnae);
+              });
+      if (!conta) { restantes.push(m); continue; }
+      const r = await reclassificarMovimento(db, companyId, m.bankTransactionId, conta, `Pela atividade de quem recebeu (${atividade.get(m.bankTransactionId) ?? 'Receita Federal'})`);
+      if (!r.ok) { restantes.push(m); continue; }
+      out.identificados++;
+    }
+    movimentos = restantes;
+  }
+
   // ── Jev: o motor LANÇA TUDO ───────────────────────────────────────────────
   // Decisão do Filipe (28/09/2026): perguntar tudo que não é certeza não serve
   // para 150 empresas. Com confiança, lança o que o Jev escolheu; sem ela, lança
@@ -246,6 +278,7 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
               sentido: m.valor < 0 ? 'SAÍDA de dinheiro (pagamento)' : 'ENTRADA de dinheiro (recebimento)',
               valor_reais: Math.abs(m.valor),
               historico_do_banco: m.descricao,
+              ...(atividade.has(m.bankTransactionId) ? { atividade_de_quem_recebeu: atividade.get(m.bankTransactionId) } : {}),
             },
           },
           'Em qual conta contábil (plano de contas brasileiro, ITG 1000) este movimento bancário da empresa deve ser lançado? Use o histórico do banco e quem é a outra parte (sócio, cliente, fornecedor, órgão público).',

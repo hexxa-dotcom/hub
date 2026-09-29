@@ -94,6 +94,13 @@ export const CATEGORIAS_PADRAO: Cat[] = [
   // pré-SaaS) — adicionado porque é um custo real e recorrente da Hexx e de
   // qualquer empresa de serviços digital hoje.
   { code: '3.3.2.02.15', name: 'Softwares e Assinaturas (SaaS)', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
+  // Despesas do dia a dia que o Anexo 7 não separa e o plano Padrão do OneFlow
+  // separa (Lanches/Refeições, Material de Consumo, Viagens, Combustíveis) —
+  // é para onde a tabela CNAE → conta manda restaurante, mercado, hotel e posto.
+  { code: '3.3.2.02.16', name: 'Alimentação e Refeições', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
+  { code: '3.3.2.02.17', name: 'Material de Consumo, Copa e Limpeza', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
+  { code: '3.3.2.02.18', name: 'Viagens e Estadias', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
+  { code: '3.3.2.02.19', name: 'Combustíveis', kind: 'EXPENSE', group: 'Despesas Administrativas — Despesas Gerais' },
 
   // 3.3.2.03 — Tributos e Contribuições
   { code: '3.3.2.03.01', name: 'Taxas e Tributos Municipais', kind: 'EXPENSE', group: 'Despesas Administrativas — Tributos e Contribuições' },
