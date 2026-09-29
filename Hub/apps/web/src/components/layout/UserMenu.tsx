@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ArrowRight } from 'lucide-react';
+import { ChevronDown, UserRound, Settings, LayoutDashboard, ArrowLeftRight, Users } from 'lucide-react';
 import { CompactTimeTracker, MostrarCronometro } from './CompactTimeTracker';
 
 export interface CurrentUserProfile {
@@ -260,31 +260,37 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
 
             <div className="border-t border-black/5 dark:border-white/10">
               <CompactTimeTracker userEmail={user?.email} />
-            </div>
-
-            <nav className="border-t border-black/5 py-1.5 dark:border-white/10">
-              {[
-                { href: '/perfil', label: 'Meu perfil' },
-                { href: '/configuracoes', label: 'Configurações' },
-                { href: '/configuracoes/preferencias#visao-da-inicio', label: 'Visão da Início' },
-                { href: '/auth/empresa', label: 'Trocar de empresa' },
-                { href: '/configuracoes/equipe', label: 'Equipe e permissões' },
-              ].map((i) => (
-                <Link
-                  key={i.href}
-                  href={i.href as never}
-                  prefetch={false}
-                  onClick={() => setIsOpen(false)}
-                  className="group/item flex items-center justify-between rounded-xl px-2 py-2 text-sm text-ink transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                >
-                  {i.label}
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-soft opacity-0 transition-opacity group-hover/item:opacity-100" />
-                </Link>
-              ))}
               <MostrarCronometro
                 userEmail={user?.email}
                 className="flex w-full items-center rounded-xl px-2 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-black/5 hover:text-ink dark:hover:bg-white/5"
               />
+            </div>
+
+            {/* Atalhos em círculos, como a central de controle do iPhone: cabem
+                mais itens sem a lista crescer. */}
+            <nav className="grid grid-cols-5 gap-1 border-t border-black/5 px-0.5 py-3 dark:border-white/10">
+              {[
+                { href: '/perfil', label: 'Perfil', titulo: 'Meu perfil', Icone: UserRound },
+                { href: '/configuracoes', label: 'Ajustes', titulo: 'Configurações', Icone: Settings },
+                { href: '/configuracoes/preferencias#visao-da-inicio', label: 'Início', titulo: 'Visão da Início', Icone: LayoutDashboard },
+                { href: '/auth/empresa', label: 'Empresa', titulo: 'Trocar de empresa', Icone: ArrowLeftRight },
+                { href: '/configuracoes/equipe', label: 'Equipe', titulo: 'Equipe e permissões', Icone: Users },
+              ].map(({ href, label, titulo, Icone }) => (
+                <Link
+                  key={href}
+                  href={href as never}
+                  prefetch={false}
+                  title={titulo}
+                  aria-label={titulo}
+                  onClick={() => setIsOpen(false)}
+                  className="group/atalho flex flex-col items-center gap-1.5 rounded-xl py-1 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/[0.05] text-ink transition-[background-color,transform] duration-150 ease-out group-hover/atalho:bg-black/[0.09] group-active/atalho:scale-95 dark:bg-white/[0.08] dark:group-hover/atalho:bg-white/[0.14]">
+                    <Icone className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                  </span>
+                  <span className="text-[10.5px] leading-none text-ink-soft group-hover/atalho:text-ink">{label}</span>
+                </Link>
+              ))}
             </nav>
 
             <div className="border-t border-black/5 pt-1.5 dark:border-white/10">
