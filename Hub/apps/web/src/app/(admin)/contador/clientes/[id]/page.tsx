@@ -34,6 +34,7 @@ import { EncerramentoCard } from './EncerramentoCard';
 import { AprovacaoCard } from './AprovacaoCard';
 import { entrarNaAreaDoClienteAction } from '../actions';
 import { NumeroDaEmpresa } from './NumeroDaEmpresa';
+import { PerfilDoInicioDoCliente } from './PerfilDoInicioDoCliente';
 import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -237,6 +238,10 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
   const grupo = 'px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#6E6A61]/80 dark:text-[#A8A49C]/80';
 
   const aceites = await aceitesDaEmpresa(companyId).catch(() => []);
+  const [preferencia] = (await getDb()
+    .execute(sql`SELECT inicio_perfil AS perfil FROM company WHERE id = ${companyId}`)
+    .catch(() => [])) as unknown as { perfil: string }[];
+  const perfilDoInicio = preferencia?.perfil ?? 'BASICO';
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6 animate-in fade-in">
@@ -317,11 +322,18 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                   ['Município', comp.city && comp.state ? `${comp.city}/${comp.state}` : '—'],
                   ['Endereço', comp.addressLine1 ? `${comp.addressLine1}, ${comp.addressNumber ?? 's/n'} — ${comp.neighborhood ?? ''}` : '—'],
                   ['CEP', comp.zipcode || '—'],
+                  ['Visão da Início', '__PERFIL__'],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
                     <div className="font-bold text-[#231F20] dark:text-[#F5F6F4]">
-                      {v === '__NUMERO__' ? <NumeroDaEmpresa companyId={comp.id} numero={comp.numero ?? null} /> : v}
+                      {v === '__NUMERO__' ? (
+                        <NumeroDaEmpresa companyId={comp.id} numero={comp.numero ?? null} />
+                      ) : v === '__PERFIL__' ? (
+                        <PerfilDoInicioDoCliente companyId={comp.id} perfil={perfilDoInicio} />
+                      ) : (
+                        v
+                      )}
                     </div>
                   </div>
                 ))}

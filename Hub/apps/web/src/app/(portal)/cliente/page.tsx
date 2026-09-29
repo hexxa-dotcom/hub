@@ -6,6 +6,10 @@ import { DetalhesView } from './DetalhesView';
 import { ViewSwitcher } from './ViewSwitcher';
 import { ClienteMonthSelector } from './ClienteMonthSelector';
 import { VIEWS, DEFAULT_VIEW, type ViewId } from './views';
+import { PerfilDoInicio } from './PerfilDoInicio';
+import { InicioBasico } from './InicioBasico';
+import { blocosDoPerfil, ehPerfil, type BlocoId } from './blocos';
+import { getDb, sql } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 import { pendenciasDoDia } from '@/lib/server/inicio';
 import { climaDaEmpresa } from '@/lib/server/clima';
@@ -40,7 +44,21 @@ export default async function ClientePage({
   const diaDoMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
 
   const ctx = await getTenantContext();
-  const [pendencias, clima] = await Promise.all([pendenciasDoDia(ctx).catch(() => []), climaDaEmpresa(ctx)]);
+  const [pendencias, clima, preferencia] = await Promise.all([
+    pendenciasDoDia(ctx).catch(() => []),
+    climaDaEmpresa(ctx),
+    getDb()
+      .execute(sql`SELECT inicio_perfil AS perfil, inicio_blocos AS blocos FROM company WHERE id = ${ctx.companyId}`)
+      .then((r) => (r as unknown as { perfil: string; blocos: string[] | null }[])[0])
+      .catch(() => undefined),
+  ]);
+  const perfil = ehPerfil(preferencia?.perfil) ? preferencia.perfil : 'BASICO';
+  const visiveis = blocosDoPerfil(perfil, preferencia?.blocos);
+  const DO_TOPO: BlocoId[] = ['faturamento', 'resultado', 'ticket', 'despesas', 'atrasados', 'proximos-14', 'pede-hoje'];
+  const temTopo = visiveis.some((b) => DO_TOPO.includes(b));
+  const temMosaico = visiveis.some((b) => !DO_TOPO.includes(b));
+  // No Básico não há "Detalhes": o essencial cabe numa tela só (InicioBasico).
+  const vista: ViewId = active;
 
   return (
     <div className="relative w-full space-y-8">
@@ -71,23 +89,44 @@ export default async function ClientePage({
         </div>
       </header>
 
-      <Suspense key={`topo-${activeMonthKey}`} fallback={<div className="esqueleto h-80 rounded-[28px] bg-black/[0.05] dark:bg-white/[0.05]" />}>
-        <NumerosDoTopo mes={activeMonthKey.slice(0, 7)} pendencias={pendencias} />
-      </Suspense>
+      <div className="flex justify-end">
+        <PerfilDoInicio perfil={perfil} visiveis={visiveis} />
+      </div>
+
+      {perfil === 'BASICO' ? (
+        <>
+          <div className="flex justify-end">
+            <ClienteMonthSelector currentMonthKey={currentMonthKey} selectedMonthKey={activeMonthKey} />
+          </div>
+          <Suspense key={`basico-${activeMonthKey}`} fallback={<Esqueleto />}>
+            <InicioBasico mes={activeMonthKey.slice(0, 7)} pendencias={pendencias} />
+          </Suspense>
+        </>
+      ) : (
+      <>
+      {temTopo && (
+        <Suspense key={`topo-${activeMonthKey}-${visiveis.join()}`} fallback={<div className="esqueleto h-80 rounded-[28px] bg-black/[0.05] dark:bg-white/[0.05]" />}>
+          <NumerosDoTopo mes={activeMonthKey.slice(0, 7)} pendencias={pendencias} visiveis={visiveis} />
+        </Suspense>
+      )}
 
       <div className="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
-        <ViewSwitcher active={active} />
+        <ViewSwitcher active={vista} />
         <ClienteMonthSelector currentMonthKey={currentMonthKey} selectedMonthKey={activeMonthKey} />
       </div>
 
-      {active === 'resumo' ? (
-        <Suspense key={`resumo-${activeMonthKey}`} fallback={<Esqueleto />}>
-          <InicioView pendencias={pendencias} />
-        </Suspense>
+      {vista === 'resumo' ? (
+        temMosaico && (
+          <Suspense key={`resumo-${activeMonthKey}-${visiveis.join()}`} fallback={<Esqueleto />}>
+            <InicioView pendencias={pendencias} visiveis={visiveis} />
+          </Suspense>
+        )
       ) : (
-        <Suspense key={`${active}-${activeMonthKey}`} fallback={<Esqueleto />}>
+        <Suspense key={`${vista}-${activeMonthKey}`} fallback={<Esqueleto />}>
           <DetalhesView mes={activeMonthKey.slice(0, 7)} />
         </Suspense>
+      )}
+      </>
       )}
     </div>
   );

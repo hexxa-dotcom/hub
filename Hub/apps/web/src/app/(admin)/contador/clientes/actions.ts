@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { company, membership, subscription, plan } from '@hexxa/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/server/admin-guard';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -211,4 +211,13 @@ export async function alterarNumeroDaEmpresaAction(companyId: string, _prev: { o
   revalidatePath(`/contador/clientes/${companyId}`);
   revalidatePath('/contador/clientes');
   return { ok: true, mensagem: `Número ${String(numero).padStart(3, '0')} salvo.` };
+}
+
+/** Perfil da Início do cliente (Básico, Personalizado ou Completo), definido pelo contador. */
+export async function alterarPerfilDoInicioAction(companyId: string, perfil: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  if (!['BASICO', 'PERSONALIZADO', 'COMPLETO'].includes(perfil)) return { ok: false };
+  await getDb().execute(sql`UPDATE company SET inicio_perfil = ${perfil} WHERE id = ${companyId}`);
+  revalidatePath(`/contador/clientes/${companyId}`);
+  return { ok: true };
 }

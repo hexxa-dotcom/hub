@@ -1,4 +1,5 @@
 import { getTenantContext } from '@/lib/server/tenant';
+import type { BlocoId } from './blocos';
 import { numerosDoTopo } from '@/lib/server/inicio';
 import { getAvailableProfitAction } from '@/lib/server/profit-distribution';
 import { AreaSuave, Anel, PontosTendencia, MeiaLua, AneisConcentricos, Fluxo } from '@/components/inicio/graficos';
@@ -22,7 +23,8 @@ const NOMES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
 const rotuloMes = (m: string) => `${NOMES[Number(m.slice(5)) - 1]}/${m.slice(2, 4)}`;
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
-export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendencias: Pendencia[] }) {
+export async function NumerosDoTopo({ mes, pendencias, visiveis }: { mes: string; pendencias: Pendencia[]; visiveis: BlocoId[] }) {
+  const ver = (id: BlocoId) => visiveis.includes(id);
   const ctx = await getTenantContext();
   const lucro = await getAvailableProfitAction().catch(() => null);
   const n = await numerosDoTopo(ctx, mes, lucro?.availableToDistribute ?? 0);
@@ -43,7 +45,8 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
   return (
     <div className="entrada-grade grid grid-flow-dense grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
       {/* Faturamento — o maior. */}
-      <Cartao rotulo="Faturamento do mês" href="/meu-negocio/notas" destaque className="sm:col-span-2 lg:col-span-5 lg:row-span-2">
+      {ver('faturamento') && (
+<Cartao rotulo="Faturamento do mês" href="/meu-negocio/notas" destaque className="sm:col-span-2 lg:col-span-5 lg:row-span-2">
         <p className="mt-3 font-serif text-4xl font-extrabold leading-none tracking-tight text-[#D4FF00] tabular sm:text-5xl">{BRL.format(n.faturado)}</p>
         <p className="mt-2 text-xs text-white/70">
           {variacao === null ? 'Sem notas no mês anterior para comparar' : `${variacao >= 0 ? '+' : '−'}${Math.abs(variacao)}% sobre o mês anterior`} · {n.notas}{' '}
@@ -58,9 +61,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           </div>
         </div>
       </Cartao>
+)}
 
       {/* Resultado — anel com a margem. */}
-      <Cartao rotulo="Resultado do mês" href="/meu-negocio/relatorios/balanco" className="lg:col-span-4">
+      {ver('resultado') && (
+<Cartao rotulo="Resultado do mês" href="/meu-negocio/relatorios/balanco" className="lg:col-span-4">
         <div className="mt-2 flex items-center gap-4">
           <div className="w-24 shrink-0">
             <Anel fracao={margemMedivel ? Math.max(0, margem) : 0} cor={n.resultado < 0 ? '#fb7185' : '#34d399'} rotulo={margemMedivel ? `${Math.round(margem * 100)}%` : '—'} />
@@ -74,9 +79,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           </div>
         </div>
       </Cartao>
+)}
 
       {/* Ticket médio — pontos de tendência. */}
-      <Cartao rotulo="Ticket médio" href="/meu-negocio/relatorios/faturamento-por-cliente" className="lg:col-span-3">
+      {ver('ticket') && (
+<Cartao rotulo="Ticket médio" href="/meu-negocio/relatorios/faturamento-por-cliente" className="lg:col-span-3">
         <p className="mt-2 font-serif text-2xl font-bold tracking-tight tabular text-ink">{BRL.format(ticket)}</p>
         <p className="text-xs text-ink-soft">
           por nota{varTicket !== null ? ` · ${varTicket >= 0 ? '+' : '−'}${Math.abs(varTicket)}%` : ''}
@@ -85,9 +92,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           <PontosTendencia valores={n.ticketSerie} />
         </div>
       </Cartao>
+)}
 
       {/* Despesas — meia-lua. */}
-      <Cartao rotulo="Despesas do mês" href="/meu-negocio/hub-financeiro?aba=pagar" className="lg:col-span-3">
+      {ver('despesas') && (
+<Cartao rotulo="Despesas do mês" href="/meu-negocio/hub-financeiro?aba=pagar" className="lg:col-span-3">
         <div className="mx-auto mt-1 w-32">
           <MeiaLua fracao={totalDesp > 0 ? n.despesas.pagas / totalDesp : 0} rotulo={totalDesp > 0 ? `${Math.round((n.despesas.pagas / totalDesp) * 100)}%` : '—'} />
         </div>
@@ -95,9 +104,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           {BRL.format(n.despesas.pagas)} pagas · {BRL.format(n.despesas.abertas)} em aberto
         </p>
       </Cartao>
+)}
 
       {/* Atraso — anéis concêntricos por faixa. */}
-      <Cartao rotulo="Recebimentos atrasados" href="/meu-negocio/hub-financeiro?aba=receber" className="lg:col-span-4">
+      {ver('atrasados') && (
+<Cartao rotulo="Recebimentos atrasados" href="/meu-negocio/hub-financeiro?aba=receber" className="lg:col-span-4">
         <div className="mt-2 flex items-center gap-4">
           <div className="w-24 shrink-0">
             <AneisConcentricos
@@ -133,9 +144,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           </div>
         </div>
       </Cartao>
+)}
 
       {/* Próximos 14 dias — fluxo. */}
-      <Cartao rotulo="Próximos 14 dias" href="/meu-negocio/hub-financeiro?aba=agenda" className="sm:col-span-2 lg:col-span-8">
+      {ver('proximos-14') && (
+<Cartao rotulo="Próximos 14 dias" href="/meu-negocio/hub-financeiro?aba=agenda" className="sm:col-span-2 lg:col-span-8">
         <div className="-mt-5 flex justify-end text-xs text-ink-soft">
           entra {BRL.format(entra14)} · sai {BRL.format(sai14)} ·{' '}
           <span className={`ml-1 font-semibold ${entra14 - sai14 >= 0 ? 'text-emerald-700 dark:text-[#D4FF00]' : 'text-rose-600 dark:text-rose-400'}`}>
@@ -156,9 +169,11 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           })}
         </div>
       </Cartao>
+)}
 
       {/* Pede você hoje — as três coisas mais urgentes; o resto está no Resumo, por área. */}
-      <Cartao rotulo="Pede você hoje" className="sm:col-span-2 lg:col-span-4">
+      {ver('pede-hoje') && (
+<Cartao rotulo="Pede você hoje" className="sm:col-span-2 lg:col-span-4">
         {pendencias.length === 0 ? (
           <p className="flex flex-1 items-center gap-2 py-6 text-sm text-ink-soft">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Tudo em dia hoje.
@@ -182,7 +197,7 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
                 </li>
               ))}
             </ul>
-            {pendencias.length > 3 && (
+            {pendencias.length > 3 && ver('pendencias') && (
               <Link href="/cliente?v=resumo#pede-voce" className="mt-auto pt-2 text-xs font-semibold text-ink-soft transition-colors hover:text-ink">
                 Ver todos, por área ↓
               </Link>
@@ -190,6 +205,7 @@ export async function NumerosDoTopo({ mes, pendencias }: { mes: string; pendenci
           </>
         )}
       </Cartao>
+)}
     </div>
   );
 }

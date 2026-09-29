@@ -1,4 +1,5 @@
 import { getTenantContext } from '@/lib/server/tenant';
+import type { BlocoId } from './blocos';
 import { areasDaEmpresa, type Pendencia } from '@/lib/server/inicio';
 import { faturamentoMensal } from '@/lib/server/bussola';
 import { ArcoDividido, Medidor, BolhasDoMes, DonutFatias, EspiralDoAno, FunilCirculos, LinhaDoTempo } from '@/components/inicio/graficos';
@@ -20,7 +21,8 @@ const br = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
 const numero = 'font-serif text-2xl font-bold tracking-tight tabular text-ink';
 
-export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
+export async function InicioView({ pendencias, visiveis }: { pendencias: Pendencia[]; visiveis: BlocoId[] }) {
+  const ver = (id: BlocoId) => visiveis.includes(id);
   const ctx = await getTenantContext();
   const [a, serie] = await Promise.all([areasDaEmpresa(ctx), faturamentoMensal(ctx).catch(() => [])]);
   const { financeiro: fi, clientes: cl, documentos: docs } = a;
@@ -34,6 +36,7 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
 
   return (
     <div className="space-y-10">
+      {ver('pendencias') && (
       <section id="pede-voce" className="scroll-mt-24 space-y-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <p className="rotulo text-ink-soft">O que pede você</p>
@@ -46,12 +49,14 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
         </div>
         <PendenciasDoDia itens={pendencias} />
       </section>
+      )}
 
       <section className="space-y-4">
         <p className="rotulo text-ink-soft">A empresa num relance</p>
         <div className="entrada-grade grid grid-flow-dense grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
           {/* Financeiro — o arco dividido: o que falta receber e o que falta pagar. */}
-          <Cartao rotulo="Financeiro do mês" href="/meu-negocio/hub-financeiro" className="sm:col-span-2 lg:col-span-4 lg:row-span-2">
+          {ver('financeiro') && (
+<Cartao rotulo="Financeiro do mês" href="/meu-negocio/hub-financeiro" className="sm:col-span-2 lg:col-span-4 lg:row-span-2">
             <div className="mx-auto mt-4 w-full max-w-[240px]">
               <ArcoDividido a={fi.receber} b={fi.pagar} centro={`${saldo < 0 ? '− ' : ''}${BRL.format(Math.abs(saldo))}`} sub={saldo >= 0 ? 'sobra no mês' : 'falta no mês'} />
             </div>
@@ -63,9 +68,11 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               {BRL.format(fi.recebido)} já recebido e {BRL.format(fi.pago)} já pago no mês
             </p>
           </Cartao>
+)}
 
           {/* Clientes — a barra segmentada (aprovada). */}
-          <Cartao rotulo="Clientes" href="/relacionamento" className="sm:col-span-2 lg:col-span-5">
+          {ver('clientes') && (
+<Cartao rotulo="Clientes" href="/relacionamento" className="sm:col-span-2 lg:col-span-5">
             <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className={numero}>{cl.recorrentes + cl.avulsos}</p>
@@ -97,9 +104,11 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
                 ).map(([n, c], i) => (n > 0 ? <div key={i} className={`${c} grafico-surge`} style={{ flexGrow: n }} /> : null))}
             </div>
           </Cartao>
+)}
 
           {/* Imposto — medidor pequeno. */}
-          <Cartao rotulo="Imposto" href="/minha-contabilidade/termometro-tributario" className="lg:col-span-3">
+          {ver('imposto') && (
+<Cartao rotulo="Imposto" href="/minha-contabilidade/termometro-tributario" className="lg:col-span-3">
             <div className="mx-auto mt-2 w-28">
               <Medidor fracao={a.impostos.aliquota / 20} rotulo={`${a.impostos.aliquota.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`} />
             </div>
@@ -108,9 +117,11 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               {a.impostos.proximaGuia ? ` · guia em ${br(a.impostos.proximaGuia.vencimento)}` : ''}
             </p>
           </Cartao>
+)}
 
           {/* Notas — bolhas no dia em que cada nota saiu. */}
-          <Cartao rotulo="Notas do mês" href="/meu-negocio/notas" className="sm:col-span-2 lg:col-span-5">
+          {ver('notas') && (
+<Cartao rotulo="Notas do mês" href="/meu-negocio/notas" className="sm:col-span-2 lg:col-span-5">
             <div className="mt-2 flex items-baseline justify-between gap-3">
               <p className={numero}>{BRL.format(a.notas.valor)}</p>
               <p className="text-xs text-ink-soft">
@@ -126,25 +137,31 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               )}
             </div>
           </Cartao>
+)}
 
           {/* Documentos — donut em fatias, uma por documento essencial. */}
-          <Cartao rotulo="Documentos" href="/minha-contabilidade/arquivos" className="lg:col-span-3">
+          {ver('documentos') && (
+<Cartao rotulo="Documentos" href="/minha-contabilidade/arquivos" className="lg:col-span-3">
             <div className="mx-auto mt-1 w-24">
               <DonutFatias cores={docs.map((d) => COR_DOC[d.situacao])} centro={`${emDia}/${docs.length}`} />
             </div>
             <p className="text-center text-xs text-ink-soft">{emDia === docs.length ? 'todos em dia' : `${docs.length - emDia} para resolver`}</p>
           </Cartao>
+)}
 
           {/* O ano em espiral. */}
-          <Cartao rotulo="O ano em espiral" href="/meu-negocio/relatorios/faturamento" className="lg:col-span-4">
+          {ver('ano') && (
+<Cartao rotulo="O ano em espiral" href="/meu-negocio/relatorios/faturamento" className="lg:col-span-4">
             <div className="mx-auto mt-1 w-36">
               <EspiralDoAno valores={serie12} />
             </div>
             <p className="text-center text-xs text-ink-soft">faturamento de cada mês, girando até o atual</p>
           </Cartao>
+)}
 
           {/* Propostas — funil em círculos. */}
-          <Cartao rotulo="Propostas" href="/meu-negocio/propostas" className="lg:col-span-3">
+          {ver('propostas') && (
+<Cartao rotulo="Propostas" href="/meu-negocio/propostas" className="lg:col-span-3">
             <p className={`mt-2 ${numero}`}>{BRL.format(a.propostas.emNegociacao)}</p>
             <p className="text-xs text-ink-soft">em negociação</p>
             <div className="mt-auto pt-3">
@@ -157,9 +174,11 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               />
             </div>
           </Cartao>
+)}
 
           {/* Contratos — linha do tempo de quando terminam. */}
-          <Cartao rotulo="Contratos" href="/meu-negocio/contratos" className="lg:col-span-3">
+          {ver('contratos') && (
+<Cartao rotulo="Contratos" href="/meu-negocio/contratos" className="lg:col-span-3">
             <p className={`mt-2 ${numero}`}>
               {BRL.format(a.contratos.porMes)}
               <span className="font-sans text-xs font-normal text-ink-soft">/mês</span>
@@ -172,9 +191,11 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               <LinhaDoTempo pontos={a.contratosFim.map((c) => ({ fracao: c.fracao, cor: c.logo ? '#f5b544' : '#34d399', titulo: c.titulo }))} />
             </div>
           </Cartao>
+)}
 
           {/* Pessoas — avatares. */}
-          <Cartao rotulo="Pessoas" href="/minha-contabilidade/socios" className="lg:col-span-2">
+          {ver('pessoas') && (
+<Cartao rotulo="Pessoas" href="/minha-contabilidade/socios" className="lg:col-span-2">
             <div className="mt-3 flex">
               {a.iniciais.slice(0, 3).map((ini, i) => (
                 <span
@@ -197,6 +218,7 @@ export async function InicioView({ pendencias }: { pendencias: Pendencia[] }) {
               <span className="font-sans text-xs font-normal text-ink-soft">/mês</span>
             </p>
           </Cartao>
+)}
         </div>
       </section>
     </div>
