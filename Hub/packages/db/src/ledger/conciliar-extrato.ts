@@ -370,6 +370,13 @@ export async function reclassificarMovimento(
 
   if (!mov) return { ok: false, erro: 'Movimento não encontrado ou já reclassificado.' };
 
+  // "Transferência entre contas próprias" lançada contra a MESMA conta do banco
+  // vira banco-contra-banco: não move nada e o dinheiro some do razão (Pix de
+  // R$ 76 da Gateway, 28/09/2026). Sem a conta de destino, não entra.
+  if (contaContabil === ACCOUNTS.BANCOS) {
+    return { ok: false, erro: 'Transferência entre contas próprias precisa da outra conta bancária cadastrada — escolha a conta do que foi o pagamento.' };
+  }
+
   // A conta tem que existir ANTES do estorno: estornar e não conseguir lançar
   // de novo tira o movimento do razão e deixa o banco errado.
   const [destino] = (await tx.execute(sql`

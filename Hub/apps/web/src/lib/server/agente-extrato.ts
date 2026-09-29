@@ -41,6 +41,14 @@ import { callLlmJson, type LlmConfig } from '@hexxa/integrations';
 /** Acima disto, sempre pergunta — e o contador confere a resposta. */
 const LIMITE_AUTOMATICO = 2_000;
 
+/**
+ * O padrão óbvio quando a IA não tem certeza (regra do escritório): entrada de
+ * terceiro é receita de serviço — sem nota fica fora do OneFlow até ser
+ * emitida; saída para terceiro é serviço contratado.
+ */
+const CONTA_PADRAO_ENTRADA = '3.1.1.01.01';
+const CONTA_PADRAO_SAIDA = '3.3.2.02.06';
+
 /** Contas que não são categoria de receita/despesa, mas são respostas certas comuns. */
 const ESPECIAIS = [
   { id: 'ESPECIAL:TRANSFERENCIA', codigo: ACCOUNTS.BANCOS, nome: 'Transferência entre contas da própria empresa', tipo: 'AMBOS' as const },
@@ -214,14 +222,22 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     movimentos = restantes;
   }
 
-  // ── Jev: decide com confiança; na dúvida, pergunta ────────────────────────
-  // A confiança só decide aqui (lançar ou perguntar); nunca vai para a tela.
+  // ── Jev: o motor LANÇA TUDO ───────────────────────────────────────────────
+  // Decisão do Filipe (28/09/2026): perguntar tudo que não é certeza não serve
+  // para 150 empresas. Com confiança, lança o que o Jev escolheu; sem ela, lança
+  // no padrão óbvio (entrada de terceiro = receita de serviço; saída =
+  // serviço contratado) e manda para a revisão do contador, SEM travar o mês.
+  // A confiança só decide aqui; nunca vai para a tela.
   if (movimentos.length && (await jevDisponivel())) {
     const contextoJev = await contextoDaEmpresa(companyId, contas);
     const decisoes = new Map<string, EscolhaDoJev>();
     await Promise.all(
       movimentos.map(async (m) => {
-        const opcoes = Object.fromEntries(contas.filter((c) => combina(m.valor, c)).map((c) => [c.id, c.nome]));
+        // Sem "transferência entre contas próprias": era o pior palpite do Jev na
+        // dúvida (Pix a terceiros), e o razão recusa sem a conta de destino.
+        const opcoes = Object.fromEntries(
+          contas.filter((c) => combina(m.valor, c) && c.id !== 'ESPECIAL:TRANSFERENCIA').map((c) => [c.id, c.nome]),
+        );
         const j = await escolherComJev(
           {
             empresa: contextoJev,
@@ -243,19 +259,31 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     for (const m of movimentos) {
       const j = decisoes.get(m.bankTransactionId);
       if (!j) continue;
-      const conta = porId.get(j.escolha)!;
-      if (j.confianca >= CONFIANCA_PARA_LANCAR && Math.abs(m.valor) <= LIMITE_AUTOMATICO) {
-        const ok = await reclassificarMovimento(db, companyId, m.bankTransactionId, conta.codigo, `Identificado pela IA como "${conta.nome}"`);
-        if (ok.ok) {
-          await aprender(db, companyId, { descricao: m.descricao, valor: m.valor, conta: conta.codigo, categoriaNome: conta.nome, origem: 'IA_VERIFICADA' });
-          out.identificados++;
-          resultadoJev[m.bankTransactionId] = `aplicado:${conta.codigo}`;
-          continue;
-        }
+      const segura = j.confianca >= CONFIANCA_PARA_LANCAR;
+      const codigo = segura ? porId.get(j.escolha)!.codigo : m.valor > 0 ? CONTA_PADRAO_ENTRADA : CONTA_PADRAO_SAIDA;
+      const nome = segura ? porId.get(j.escolha)!.nome : contas.find((c) => c.codigo === codigo)?.nome ?? codigo;
+      const ok = await reclassificarMovimento(
+        db, companyId, m.bankTransactionId, codigo,
+        segura ? `Identificado pela IA como "${nome}"` : `Lançado no padrão "${nome}" — para revisão do contador`,
+      );
+      if (!ok.ok) {
         out.descartados.push({ id: m.bankTransactionId, motivo: ok.erro ?? 'falha ao reclassificar' });
+        await perguntar(m, j.ranking.slice(0, 3).map((id) => ({ id })));
+        continue;
       }
-      await perguntar(m, j.ranking.slice(0, 3).map((id) => ({ id })));
-      resultadoJev[m.bankTransactionId] = `pergunta:${j.escolha}`;
+      out.identificados++;
+      resultadoJev[m.bankTransactionId] = `${segura ? 'aplicado' : 'padrao'}:${codigo}`;
+      // Só aprende o que foi decidido com confiança — o padrão não é conhecimento.
+      if (segura) await aprender(db, companyId, { descricao: m.descricao, valor: m.valor, conta: codigo, categoriaNome: nome, origem: 'IA_VERIFICADA' });
+      // Sem confiança ou valor alto: lançado, e na fila de revisão do contador.
+      if (!segura || Math.abs(m.valor) > LIMITE_AUTOMATICO) {
+        const alternativas = j.ranking.slice(0, 3).map((id) => porId.get(id)).filter(Boolean).map((c) => ({ conta: c!.codigo, nome: c!.nome, motivo: null }));
+        await db.execute(sql`
+          INSERT INTO pergunta_de_classificacao (company_id, bank_transaction_id, data, valor, descricao, opcoes, revisar_contador, status, resposta_conta, respondida_por, respondido_em)
+          VALUES (${companyId}, ${m.bankTransactionId}, ${m.data}::date, ${m.valor}, ${m.descricao}, ${JSON.stringify(alternativas)}::jsonb, true, 'RESPONDIDA', ${codigo}, 'MOTOR', now())
+          ON CONFLICT (bank_transaction_id) DO NOTHING
+        `);
+      }
     }
     await registrar(companyId, 'CONCILIACAO_JEV', process.env.JEV_MODEL || 'jev-latest', { movimentos: movimentos.length }, Object.fromEntries(decisoes), resultadoJev, null);
     // O que o Jev não respondeu (falha, fora do ar) segue para a reserva abaixo.
@@ -521,7 +549,12 @@ export async function contasParaResponder(companyId: string): Promise<{ conta: s
       FROM category WHERE company_id = ${companyId} AND accounting_code IS NOT NULL
      ORDER BY accounting_code, name
   `)) as unknown as { conta: string; nome: string; tipo: 'INCOME' | 'EXPENSE' }[];
-  return [...cats.sort((a, b) => a.nome.localeCompare(b.nome)), ...ESPECIAIS.map((e) => ({ conta: e.codigo, nome: e.nome, tipo: e.tipo }))];
+  // Sem transferência entre contas próprias: lançada contra o mesmo banco não
+  // move nada (o razão recusa). Volta quando houver a conta de destino.
+  return [
+    ...cats.sort((a, b) => a.nome.localeCompare(b.nome)),
+    ...ESPECIAIS.filter((e) => e.id !== 'ESPECIAL:TRANSFERENCIA').map((e) => ({ conta: e.codigo, nome: e.nome, tipo: e.tipo })),
+  ];
 }
 
 export interface MovimentoAmbiguo {
