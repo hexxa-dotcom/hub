@@ -6,7 +6,6 @@ import { DetalhesView } from './DetalhesView';
 import { ViewSwitcher } from './ViewSwitcher';
 import { ClienteMonthSelector } from './ClienteMonthSelector';
 import { VIEWS, DEFAULT_VIEW, type ViewId } from './views';
-import { PerfilDoInicio } from './PerfilDoInicio';
 import { InicioBasico } from './InicioBasico';
 import { blocosDoPerfil, ehPerfil, type BlocoId } from './blocos';
 import { getDb, sql } from '@hexxa/db';
@@ -88,10 +87,6 @@ export default async function ClientePage({
           <p className="mt-0.5 text-2xl font-bold tracking-tight text-ink sm:text-3xl">{diaDoMes}</p>
         </div>
       </header>
-
-      <div className="flex justify-end">
-        <PerfilDoInicio perfil={perfil} visiveis={visiveis} />
-      </div>
 
       {perfil === 'BASICO' ? (
         <>

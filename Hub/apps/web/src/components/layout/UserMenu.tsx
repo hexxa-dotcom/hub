@@ -265,6 +265,8 @@ export function UserMenu({ user, companyName, companyCnpj, companyActive = true,
             <nav className="border-t border-black/5 py-1.5 dark:border-white/10">
               {[
                 { href: '/perfil', label: 'Meu perfil' },
+                { href: '/configuracoes', label: 'Configurações' },
+                { href: '/configuracoes/preferencias#visao-da-inicio', label: 'Visão da Início' },
                 { href: '/auth/empresa', label: 'Trocar de empresa' },
                 { href: '/configuracoes/equipe', label: 'Equipe e permissões' },
               ].map((i) => (

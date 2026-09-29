@@ -10,11 +10,11 @@ import { salvarPerfilDoInicioAction } from './perfil-actions';
  * "Ver: Básico · Personalizado · Completo" — quanto a Início mostra.
  * No Personalizado, a pessoa marca os blocos que quer ver.
  */
-export function PerfilDoInicio({ perfil, visiveis }: { perfil: Perfil; visiveis: BlocoId[] }) {
+export function PerfilDoInicio({ perfil, visiveis, emLinha = false }: { perfil: Perfil; visiveis: BlocoId[]; emLinha?: boolean }) {
   const router = useRouter();
   const [atual, setAtual] = useState(perfil);
   const [escolhidos, setEscolhidos] = useState<BlocoId[]>(visiveis);
-  const [editando, setEditando] = useState(false);
+  const [editando, setEditando] = useState(emLinha && perfil === 'PERSONALIZADO');
   const [salvando, iniciar] = useTransition();
 
   // O servidor é quem manda: depois de salvar e atualizar, alinha com o que ficou gravado.
@@ -82,7 +82,13 @@ export function PerfilDoInicio({ perfil, visiveis }: { perfil: Perfil; visiveis:
       </div>
 
       {editando && atual === 'PERSONALIZADO' && (
-        <div className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-black/10 bg-white p-3 shadow-lg dark:border-white/10 dark:bg-[#121614]">
+        <div
+          className={
+            emLinha
+              ? 'mt-3 max-w-md rounded-2xl border border-black/10 p-3 dark:border-white/10'
+              : 'absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-black/10 bg-white p-3 shadow-lg dark:border-white/10 dark:bg-[#121614]'
+          }
+        >
           <p className="mb-2 px-1 text-xs text-ink-soft">Marque o que quer ver na Início</p>
           <ul className="max-h-80 space-y-0.5 overflow-y-auto">
             {BLOCOS.map((b) => (
