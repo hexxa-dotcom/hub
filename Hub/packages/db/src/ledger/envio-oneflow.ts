@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { DbHandle } from '../client';
-import { cnpjNoHistorico } from './parceiro';
+import { cnpjNoHistorico, nomeNoHistorico } from './parceiro';
 import { traduzirConta, contasSemDestino, dataOneflow, type PlanoOneflow } from '@hexxa/core';
 import type { LancamentoOneflow } from '@hexxa/integrations';
 
@@ -191,6 +191,8 @@ export async function ensaiarEnvio(
   /** O plano da empresa no OneFlow decide o de-para — ver `planoDaEmpresa`. */
   plano: PlanoOneflow = 'PADRAO',
 ): Promise<EnsaioResult> {
+  const [empresa] = (await tx.execute(sql`SELECT legal_name FROM company WHERE id = ${companyId}`)) as unknown as { legal_name: string }[];
+  const razaoDaEmpresa = String(empresa?.legal_name ?? '').trim().toUpperCase();
   const linhas = (await tx.execute(sql`
     SELECT
       j.id::text AS journal_id,
@@ -277,8 +279,14 @@ export async function ensaiarEnvio(
       const destino = traduzirConta(conta, plano);
       if (!destino) { faltando.push(conta); continue; }
 
-      const doc = String(l.doc_parceiro || l.doc_da_partida || l.doc_do_documento || (l.historico_do_extrato ? cnpjNoHistorico(String(l.historico_do_extrato)) : '') || '').replace(/\D/g, '');
-      const nomeParceiro = l.nome_parceiro || (l.doc_parceiro ? null : l.nome_da_partida || l.nome_do_documento);
+      // CNPJ lido do histórico do extrato só identifica cliente/fornecedor —
+      // nunca a perna do banco, que é da própria empresa.
+      const docDoExtrato = destino.participante && l.historico_do_extrato ? cnpjNoHistorico(String(l.historico_do_extrato)) : null;
+      const doc = String(l.doc_parceiro || l.doc_da_partida || l.doc_do_documento || docDoExtrato || '').replace(/\D/g, '');
+      const nomeParceiro =
+        l.nome_parceiro ||
+        (l.doc_parceiro ? null : l.nome_da_partida || l.nome_do_documento) ||
+        (docDoExtrato && doc === docDoExtrato ? nomeNoHistorico(String(l.historico_do_extrato), docDoExtrato) : null);
       const ehDebito = String(l.direction) === 'DEBIT';
 
       // Conta de participante com lado fixo (fornecedor/cliente): sem o CNPJ
@@ -300,7 +308,11 @@ export async function ensaiarEnvio(
         classificacao: destino.classificacao,
         ...(cnpj && comoCliente ? { cnpjCli: cnpj } : {}),
         ...(cnpj && !comoCliente ? { cnpjForn: cnpj } : {}),
-        ...(nomeParceiro ? { razaoSocial: String(nomeParceiro).slice(0, 120) } : {}),
+        // O OneFlow cria o participante na primeira vez e aí exige o nome
+        // ("O nome é obrigatório…", 5145) — o banco vai com a razão da empresa.
+        ...(nomeParceiro || (cnpj && !doc)
+          ? { razaoSocial: String(nomeParceiro || razaoDaEmpresa).slice(0, 120) }
+          : {}),
       });
     }
 
@@ -536,10 +548,17 @@ export async function enviarRazao(
         out.restantes = total - feitas;
         break;
       }
-      // Recusa clara. No composto, cada partida conta uma tentativa e da
-      // próxima vez vai sozinha — o erro fica com quem é dele.
-      const motivoGravado = composto ? `Composto de ${lote.length} recusado — vai sozinho da próxima vez: ${motivo}` : motivo;
-      for (const m of marcas) await concluirMarca(tx, m, 'ERRO', null, motivoGravado);
+      /**
+       * Composto recusado: INCERTO, não ERRO. O OneFlow respondeu 400 ("O nome
+       * é obrigatório…", 5145) a compostos da Gateway e GRAVOU mesmo assim
+       * (29/09/2026) — reenviar as partes sozinhas duplicou os lançamentos lá.
+       * Incerto não volta sozinho: só depois de o razão confirmar que o
+       * documento não está lá (painel do OneFlow, "Envios incertos").
+       */
+      const situacao = composto ? 'INCERTO' : 'ERRO';
+      const motivoGravado = composto ? `Composto de ${lote.length} recusado (pode ter gravado mesmo assim — conferir no razão): ${motivo}` : motivo;
+      for (const m of marcas) await concluirMarca(tx, m, situacao, null, motivoGravado);
+      if (composto) out.incertas += lote.length;
       for (const p of lote) out.erros.push({ journalEntryId: p.journalEntryId, motivo: motivoGravado });
       feitas += lote.length;
       /**

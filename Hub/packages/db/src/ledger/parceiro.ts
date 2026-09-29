@@ -68,3 +68,14 @@ export function cnpjNoHistorico(descricao: string): string | null {
   const m = descricao.match(/(\d{2})\s*\.\s*(\d{3})\s*\.\s*(\d{3})\s*\/\s*(\d{4})\s*-\s*(\d{2})/);
   return m ? m.slice(1).join('') : null;
 }
+
+/**
+ * Nome de quem pagou/recebeu, no histórico do Pix: o trecho logo antes do CNPJ
+ * ("Pagamento Recebido - MBS Serviços de Apoio Adm LTDA - 10.206.371 /0001-88").
+ */
+export function nomeNoHistorico(descricao: string, cnpj: string): string | null {
+  const partes = descricao.split(' - ').map((s) => s.trim());
+  const i = partes.findIndex((p) => p.replace(/\D/g, '').startsWith(cnpj.slice(0, 8)));
+  const nome = i > 0 ? partes[i - 1] : null;
+  return nome && /[a-zA-Z]/.test(nome) ? nome : null;
+}
