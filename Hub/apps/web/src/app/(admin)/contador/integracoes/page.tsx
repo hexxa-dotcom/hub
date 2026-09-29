@@ -29,7 +29,7 @@ export default async function AdminIntegracoes() {
         <Section
           icon={<Sparkles className="h-4 w-4" />}
           title="Jev (TypeSafe) — classificação do extrato"
-          desc="A IA que decide a conta de cada movimento bancário; na dúvida, vira pergunta"
+          desc="A IA que decide a conta de cada movimento bancário; na dúvida, lança no padrão e manda para a sua revisão"
           fullWidth
         >
           <JevSetup origem={jev.origem} />

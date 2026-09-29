@@ -9,6 +9,8 @@ import { getContextualInsight } from '@/lib/server/ai-insight';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { withTenant, eq } from '@hexxa/db';
 import { property } from '@hexxa/db/schema';
+import { aceitesDaEmpresa } from '@/lib/server/contrato-hexx';
+import { ContratoComAHexx } from '@/components/contratos/ContratoComAHexx';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +49,7 @@ export default async function Page() {
     hasAnyProperty(ctx.companyId),
     listRepassesAction(),
   ]);
+  const aceites = await aceitesDaEmpresa(ctx.companyId).catch(() => []);
 
   const hoje = new Date();
   const in30Dias = new Date(hoje.getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
@@ -67,6 +70,8 @@ export default async function Page() {
         infoTitle="Sobre os contratos"
         infoDescription="Crie o contrato a partir de um modelo ou do seu PDF, assine com a outra parte sem sair da Hexx e, com as duas assinaturas, as parcelas entram sozinhas no financeiro e no calendário. Entrada é o que você recebe; saída, o que você paga."
       />
+
+      <ContratoComAHexx aceites={aceites} />
 
       <Suspense fallback={null}>
         <ContratosInsight companyId={ctx.companyId} insightContext={insightContext} />

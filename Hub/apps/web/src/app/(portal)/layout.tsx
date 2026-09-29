@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { CadastroEmValidacao } from './CadastroEmValidacao';
+import { AceiteDoContrato } from './AceiteDoContrato';
+import { DocumentoContratual } from '@/components/contratos/DocumentoContratual';
+import { precisaDeAceite } from '@/lib/server/contrato-hexx';
+import { CONTRATO, TERMOS, VERSAO_CONTRATO, VERSAO_TERMOS } from '@/lib/contratos/textos';
 import { NAV } from '@/lib/nav';
 import { dadosDoEscritorio, linkDoWhatsapp } from '@/lib/server/escritorio';
 import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
@@ -117,6 +121,33 @@ export default async function PortalLayout({ children }: { children: React.React
   const vinculo = memberships.find((m) => m.companyId === ctx.companyId);
   if (vinculo && !vinculo.authorized) {
     return <CadastroEmValidacao empresa={dbCompany?.legalName ?? ''} nome={userRow?.name} />;
+  }
+
+  // Contrato de serviços (Resolução CFC 1.590/2020): sem aceite vigente, só a
+  // tela de aceite. Falha ao consultar não tranca o cliente para fora.
+  const adesao = await precisaDeAceite(ctx.companyId).catch((e) => {
+    console.error('[contrato] falha ao conferir o aceite', e);
+    return null;
+  });
+  if (adesao) {
+    const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return (
+      <AceiteDoContrato
+        empresa={adesao.contratante.razao}
+        linhas={[
+          { rotulo: 'Contratante', valor: `${adesao.contratante.razao} · CNPJ ${adesao.contratante.cnpj}` },
+          { rotulo: 'Contratada', valor: `${adesao.contratada.razao} · CNPJ ${adesao.contratada.cnpj}` },
+          { rotulo: 'Resp. técnico', valor: `${adesao.responsavel.nome} · ${adesao.responsavel.crc}` },
+          { rotulo: 'Plano', valor: adesao.plano },
+          { rotulo: 'Honorários', valor: `${brl(adesao.honorarios)} por mês · vencimento dia ${adesao.vencimento}` },
+          { rotulo: 'Início', valor: `${adesao.inicio.split('-').reverse().join('/')} · prazo indeterminado · aviso prévio de 30 dias` },
+        ]}
+        contrato={<DocumentoContratual secoes={CONTRATO} />}
+        termos={<DocumentoContratual secoes={TERMOS} />}
+        versaoContrato={VERSAO_CONTRATO}
+        versaoTermos={VERSAO_TERMOS}
+      />
+    );
   }
 
   let isPartner = false;

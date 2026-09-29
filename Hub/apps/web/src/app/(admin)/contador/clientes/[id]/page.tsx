@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic';
+import { aceitesDaEmpresa } from '@/lib/server/contrato-hexx';
+import { ContratoComAHexx } from '@/components/contratos/ContratoComAHexx';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -234,6 +236,8 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     'flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold text-[#6E6A61] hover:bg-black/5 hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:bg-white/10 dark:hover:text-[#F5F6F4] transition-colors';
   const grupo = 'px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#6E6A61]/80 dark:text-[#A8A49C]/80';
 
+  const aceites = await aceitesDaEmpresa(companyId).catch(() => []);
+
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6 animate-in fade-in">
       {/* Cabeçalho */}
@@ -287,6 +291,14 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
               </div>
             ))}
           </div>
+
+          {aceites.length ? (
+            <ContratoComAHexx aceites={aceites} />
+          ) : (
+            <p className="rounded-3xl border border-amber-500/20 bg-amber-500/10 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
+              Contrato de serviços ainda não aceito — o cliente vê a tela de aceite no próximo acesso ao Hub.
+            </p>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Dados da empresa */}
