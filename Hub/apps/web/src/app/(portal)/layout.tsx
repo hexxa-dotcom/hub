@@ -6,6 +6,8 @@ import { DocumentoContratual } from '@/components/contratos/DocumentoContratual'
 import { precisaDeAceite } from '@/lib/server/contrato-hexx';
 import { CONTRATO, TERMOS, VERSAO_CONTRATO, VERSAO_TERMOS } from '@/lib/contratos/textos';
 import { NAV } from '@/lib/nav';
+import { acessoDoPlano } from '@/lib/server/plano';
+import { moduloDaRota } from '@/lib/plano-acesso';
 import { dadosDoEscritorio, linkDoWhatsapp } from '@/lib/server/escritorio';
 import { getTenantContext, NoActiveOrganizationError, NoActiveCompanySelectedError } from '@/lib/server/tenant';
 import { company, appUser, membership, partner, getDb, withTenant, eq } from '@hexxa/db';
@@ -178,9 +180,21 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const escritorio = await dadosDoEscritorio();
 
+  // Função fora do plano fica no menu com cadeado — abre o convite para mudar.
+  const acesso = await acessoDoPlano(ctx.companyId).catch(() => null);
+  const secoes = acesso?.bloqueados.length
+    ? NAV.map((s) => ({
+        ...s,
+        items: s.items.map((i) => {
+          const m = moduloDaRota(i.href);
+          return m && acesso.bloqueados.includes(m) ? { ...i, badge: '🔒' } : i;
+        }),
+      }))
+    : NAV;
+
   return (
     <AppShell
-      sections={NAV}
+      sections={secoes}
       whatsappUrl={linkDoWhatsapp(escritorio.whatsapp)}
       company={dbCompany}
       user={currentUser}

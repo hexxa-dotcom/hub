@@ -87,6 +87,39 @@ function displayName(c: { legalName: string; tradeName: string | null; useTradeN
  * de 15 com destaque). Sem certificado a nota não é emitida pela Hexx nem as
  * notas chegam do Emissor Nacional.
  */
+/**
+ * Clientes com limite de faturamento no plano (Simples Light) que passaram
+ * dele nos DOIS últimos meses fechados: é hora de migrar para o completo. O
+ * cliente não é bloqueado — faturar mais é sinal de que ele cresceu.
+ */
+async function clientesParaMigrarDePlano(): Promise<{ companyId: string; nome: string; plano: string; limite: number; meses: { mes: string; valor: number }[] }[]> {
+  const linhas = (await getDb().execute(sql`
+    WITH limitados AS (
+      SELECT c.id, coalesce(c.trade_name, c.legal_name) AS nome, p.features->>'nomeComercial' AS plano,
+             (p.features->>'limiteFaturamentoMes')::numeric AS limite
+        FROM company c
+        JOIN subscription s ON s.company_id = c.id AND s.status <> 'CANCELED'
+        JOIN plan p ON p.id = s.plan_id
+       WHERE p.features ? 'limiteFaturamentoMes'
+    ), meses AS (
+      SELECT generate_series(date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '2 months',
+                             date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '1 month', interval '1 month')::date AS mes
+    )
+    SELECT l.id::text AS company_id, l.nome, l.plano, l.limite::float, to_char(m.mes, 'MM/YYYY') AS mes,
+           coalesce((SELECT sum(e.amount) FROM financial_entry e
+                      WHERE e.company_id = l.id AND e.type = 'RECEIVABLE' AND e.status <> 'CANCELED'
+                        AND e.source IN ('NFSE', 'DFE_SYNC') AND e.reference_month = m.mes), 0)::float AS valor
+      FROM limitados l CROSS JOIN meses m
+  `)) as unknown as { company_id: string; nome: string; plano: string; limite: number; mes: string; valor: number }[];
+  const porEmpresa = new Map<string, { companyId: string; nome: string; plano: string; limite: number; meses: { mes: string; valor: number }[] }>();
+  for (const l of linhas) {
+    const e = porEmpresa.get(l.company_id) ?? { companyId: l.company_id, nome: l.nome, plano: l.plano, limite: l.limite, meses: [] };
+    e.meses.push({ mes: l.mes, valor: l.valor });
+    porEmpresa.set(l.company_id, e);
+  }
+  return [...porEmpresa.values()].filter((e) => e.meses.length === 2 && e.meses.every((m) => m.valor > e.limite));
+}
+
 async function certificadosParaRenovar(): Promise<{ companyId: string; nome: string; validoAte: string; dias: number }[]> {
   const mapa = await certificadosDasEmpresas();
   if (!mapa.size) return [];
@@ -106,6 +139,7 @@ async function certificadosParaRenovar(): Promise<{ companyId: string; nome: str
 
 export default async function AdminDashboard() {
   const renovar = await certificadosParaRenovar().catch(() => []);
+  const migrar = await clientesParaMigrarDePlano().catch(() => []);
   // Sem timeout aqui essa página já travou o /contador inteiro por até 5
   // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
   // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
@@ -222,6 +256,28 @@ export default async function AdminDashboard() {
                 className={`rounded-full px-3.5 py-1.5 text-xs font-bold ${r.dias < 0 ? 'bg-red-600 text-white' : r.dias <= 15 ? 'bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200' : 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200'}`}
               >
                 {r.nome} · {r.dias < 0 ? `venceu ${r.validoAte.split('-').reverse().join('/')}` : r.dias === 0 ? 'vence hoje' : `vence em ${r.dias} ${r.dias === 1 ? 'dia' : 'dias'}`}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {migrar.length > 0 && (
+        <div className="rounded-3xl border border-sky-300/60 bg-sky-50 px-6 py-5 dark:border-sky-900/60 dark:bg-sky-950/30">
+          <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {migrar.length === 1 ? 'Um cliente cresceu além do plano' : `${migrar.length} clientes cresceram além do plano`}
+          </p>
+          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            Faturaram acima do limite do plano nos dois últimos meses. Hora de conversar sobre o plano completo.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {migrar.map((m) => (
+              <Link
+                key={m.companyId}
+                href={`/contador/clientes/${m.companyId}` as never}
+                className="rounded-full bg-sky-100 px-3.5 py-1.5 text-xs font-bold text-sky-900 dark:bg-sky-900/50 dark:text-sky-200"
+              >
+                {m.nome} · {m.plano} · {m.meses.map((x) => `${x.mes} ${BRL.format(x.valor)}`).join(' · ')}
               </Link>
             ))}
           </div>

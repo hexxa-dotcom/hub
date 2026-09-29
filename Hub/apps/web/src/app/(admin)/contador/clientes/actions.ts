@@ -221,3 +221,12 @@ export async function alterarPerfilDoInicioAction(companyId: string, perfil: str
   revalidatePath(`/contador/clientes/${companyId}`);
   return { ok: true };
 }
+
+/** Libera notas além do limite do plano no mês corrente, para este cliente. */
+export async function liberarNotasDoMesAction(companyId: string): Promise<{ ok: boolean; mes: string }> {
+  await requireAdmin();
+  const mes = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+  await getDb().execute(sql`UPDATE company SET notas_extras_mes = ${mes} WHERE id = ${companyId}`);
+  revalidatePath(`/contador/clientes/${companyId}`);
+  return { ok: true, mes };
+}

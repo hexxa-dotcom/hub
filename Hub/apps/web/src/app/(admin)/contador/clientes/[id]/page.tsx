@@ -36,6 +36,8 @@ import { entrarNaAreaDoClienteAction } from '../actions';
 import { NumeroDaEmpresa } from './NumeroDaEmpresa';
 import { PerfilDoInicioDoCliente } from './PerfilDoInicioDoCliente';
 import { AdiantamentosSemNota } from './AdiantamentosSemNota';
+import { NotasDoPlano } from './NotasDoPlano';
+import { acessoDoPlano, notasEmitidasNoMes } from '@/lib/server/plano';
 import { montarCadastroOneflow, competenciaInicialPadrao } from '@hexxa/db';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -244,6 +246,9 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     .catch(() => [])) as unknown as { perfil: string }[];
   const perfilDoInicio = preferencia?.perfil ?? 'BASICO';
   const adiantamentos = await adiantamentosDeClientes(getDb(), companyId).catch(() => []);
+  const mesCorrente = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+  const acessoDoCliente = await acessoDoPlano(companyId);
+  const notasNoMes = acessoDoCliente.limiteNotasMes ? await notasEmitidasNoMes(companyId, mesCorrente).catch(() => 0) : 0;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6 animate-in fade-in">
@@ -327,12 +332,20 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
                   ['Endereço', comp.addressLine1 ? `${comp.addressLine1}, ${comp.addressNumber ?? 's/n'} — ${comp.neighborhood ?? ''}` : '—'],
                   ['CEP', comp.zipcode || '—'],
                   ['Visão da Início', '__PERFIL__'],
+                  ...(acessoDoCliente.limiteNotasMes ? [['Notas do plano', '__NOTAS__']] : []),
                 ].map(([k, v]) => (
                   <div key={k}>
                     <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{k}</p>
                     <div className="font-bold text-[#231F20] dark:text-[#F5F6F4]">
                       {v === '__NUMERO__' ? (
                         <NumeroDaEmpresa companyId={comp.id} numero={comp.numero ?? null} />
+                      ) : v === '__NOTAS__' ? (
+                        <NotasDoPlano
+                          companyId={comp.id}
+                          usadas={notasNoMes}
+                          limite={acessoDoCliente.limiteNotasMes ?? 0}
+                          liberado={acessoDoCliente.notasLiberadasNoMes === mesCorrente}
+                        />
                       ) : v === '__PERFIL__' ? (
                         <PerfilDoInicioDoCliente companyId={comp.id} perfil={perfilDoInicio} />
                       ) : (

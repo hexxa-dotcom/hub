@@ -5,6 +5,7 @@ import { ibsCbsDaNota, type TenantContext } from '@hexxa/core';
 import { makeServiceInvoiceService, nfseMode } from './container';
 import { getNfseConfig, estimateInvoiceTaxRate, listServiceProfiles } from './fiscal';
 import { sendNfseEmailToCustomer } from './nfse-email';
+import { acessoDoPlano, notasEmitidasNoMes } from './plano';
 import { consultarCnpj, documentoValido, enderecoEmTexto, type EnderecoDaNota } from './cnpj';
 
 /**
@@ -86,6 +87,25 @@ export async function emitirNota(ctx: TenantContext, p: PedidoDeEmissao): Promis
   const [reg] = (await db.execute(sql`SELECT tax_regime FROM company WHERE id = ${ctx.companyId}`)) as unknown as { tax_regime: string | null }[];
   if (reg?.tax_regime === 'SIMPLES_NACIONAL' && hojeSP() < LIBERA_SIMPLES) {
     return { ok: false, message: 'Para o Simples Nacional, a emissão pela Hexx libera em 1º de novembro. Até lá, emita no Emissor Nacional — ou agende para novembro.' };
+  }
+
+  // ── Limite de notas do plano (Simples Light: 10 por mês) ───────────────────
+  // O contador pode liberar um mês na ficha do cliente (company.notas_extras_mes).
+  const acesso = await acessoDoPlano(ctx.companyId);
+  const mesAtual = hojeSP().slice(0, 7);
+  let avisoDoLimite = '';
+  if (acesso.limiteNotasMes && acesso.notasLiberadasNoMes !== mesAtual) {
+    const emitidas = await notasEmitidasNoMes(ctx.companyId, mesAtual);
+    if (emitidas >= acesso.limiteNotasMes) {
+      return {
+        ok: false,
+        message:
+          `O plano ${acesso.plano ?? 'atual'} inclui ${acesso.limiteNotasMes} notas por mês, e as deste mês já foram usadas. ` +
+          'Para emitir mais, mude para o plano Simples (notas sem limite) ou peça ao escritório a liberação deste mês.',
+      };
+    }
+    if (emitidas + 1 === acesso.limiteNotasMes) avisoDoLimite = ` Esta é a última nota do seu plano neste mês (${acesso.limiteNotasMes} de ${acesso.limiteNotasMes}).`;
+    else if (emitidas + 1 === acesso.limiteNotasMes - 1) avisoDoLimite = ` Resta 1 nota no seu plano neste mês.`;
   }
 
   // ── 1. Cliente ────────────────────────────────────────────────────────────
@@ -258,7 +278,7 @@ export async function emitirNota(ctx: TenantContext, p: PedidoDeEmissao): Promis
     whatsappLink,
     message: result.isMock
       ? `[MODO TESTE] Nota${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} salva, mas NÃO foi enviada ao governo — configure o certificado A1 para emitir de verdade.`
-      : `Nota${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada.${emailSent ? ' E-mail enviado ao cliente.' : ''}`,
+      : `Nota${result.nfseNumber ? ` nº ${result.nfseNumber}` : ''} autorizada.${emailSent ? ' E-mail enviado ao cliente.' : ''}${avisoDoLimite}`,
   };
 }
 
