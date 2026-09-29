@@ -25,7 +25,7 @@ export const CONTRATO: Secao[] = [
     titulo: '1. Partes e forma de adesão',
     itens: [
       'Este Contrato de Prestação de Serviços Contábeis é celebrado entre a CONTRATADA e a CONTRATANTE identificadas no Termo de Adesão, que é parte integrante deste contrato.',
-      'A CONTRATANTE adere a este contrato por aceite eletrônico dentro da plataforma Hexx, feito por seu representante, o que tem validade jurídica nos termos do art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 e do art. 107 do Código Civil. A plataforma registra data, hora, endereço IP, usuário e a versão exata dos documentos aceitos.',
+      'A CONTRATANTE adere a este contrato por aceite eletrônico dentro da plataforma Hexx Gestão Digital, feito por seu representante, o que tem validade jurídica nos termos do art. 10, § 2º, da Medida Provisória nº 2.200-2/2001 e do art. 107 do Código Civil. A plataforma registra data, hora, endereço IP, usuário e a versão exata dos documentos aceitos.',
       'O responsável técnico pelos serviços é o profissional da contabilidade indicado no Termo de Adesão, com registro ativo no Conselho Regional de Contabilidade.',
     ],
   },
@@ -37,7 +37,7 @@ export const CONTRATO: Secao[] = [
       'Apuração dos tributos da CONTRATANTE no regime em que estiver enquadrada, com a emissão das guias de recolhimento e a entrega das obrigações acessórias correspondentes (como PGDAS-D, DEFIS, DCTFWeb e EFD-Reinf, conforme o caso).',
       'Departamento pessoal para os sócios (pró-labore) e para os empregados informados pela CONTRATANTE, com folha de pagamento, encargos e obrigações do eSocial, nos limites do plano contratado.',
       'Orientação contábil e tributária relacionada aos serviços acima, pelos canais de atendimento da plataforma.',
-      'Acesso à plataforma Hexx para envio de documentos, emissão de notas fiscais de serviço, acompanhamento financeiro e consulta das guias e relatórios.',
+      'Acesso à plataforma Hexx Gestão Digital para envio de documentos, emissão de notas fiscais de serviço, acompanhamento financeiro e consulta das guias e relatórios.',
     ],
   },
   {
