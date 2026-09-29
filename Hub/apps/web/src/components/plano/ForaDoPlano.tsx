@@ -24,13 +24,13 @@ export async function ForaDoPlano({ modulo, children }: { modulo: ModuloDoPlano;
         <h1 className="text-lg font-light uppercase tracking-[0.05em] text-ink">{m.nome}</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{m.oQueFaz}</p>
         <p className="mt-3 text-sm text-ink-soft">
-          Não faz parte do plano <strong className="text-ink">{acesso.plano ?? 'atual'}</strong>. Está no plano Simples, junto com notas sem limite.
+          Não faz parte do plano <strong className="text-ink">{acesso.plano ?? 'atual'}</strong>. Está no plano Simples Completo, junto com notas sem limite.
         </p>
         <Link
           href={'/meu-plano' as never}
           className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1E3328] px-6 py-3 text-sm font-semibold text-[#DFFFAE] transition-colors hover:bg-[#2F4A3C]"
         >
-          Conhecer o plano Simples <ArrowRight className="h-4 w-4" />
+          Conhecer o plano Simples Completo <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </div>

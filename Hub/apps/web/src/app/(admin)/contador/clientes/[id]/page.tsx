@@ -194,7 +194,9 @@ export default async function ClienteDetalhe({ params }: { params: Promise<{ id:
     {
       label: 'MRR atual',
       value: mrr > 0 ? BRL.format(mrr) : '—',
-      sub: sub ? `Plano ${sub.planName}` : 'Sem assinatura',
+      sub: sub
+        ? `Plano ${sub.planName}${sub.customValue != null || Number(sub.discountValue) > 0 ? ' · Personalizado' : ''}`
+        : 'Sem assinatura',
       icon: DollarSign,
       color: 'text-emerald-700 dark:text-emerald-400',
     },

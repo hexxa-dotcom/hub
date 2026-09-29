@@ -78,7 +78,9 @@ async function getClientes(): Promise<Cliente[]> {
       cnpj: s.cnpj,
       email: owner?.email ?? '—',
       telefone: '—',
-      plano: s.planName ?? '—',
+      plano: s.planName
+        ? `${s.planName}${s.customValue != null || Number(s.discountValue) > 0 ? ' · Personalizado' : ''}`
+        : '—',
       // Encerrado vale mais que o status da assinatura: a empresa saiu.
       status: s.closedAt ? 'ENCERRADO' : (s.status ?? 'SEM_PLANO'),
       // Receita real: o que de fato vai na fatura deste cliente.

@@ -75,7 +75,7 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
   return (
     <div className="space-y-10">
       <GradeDeResumo colunas={3}>
-        <CardResumo destaque rotulo={`Plano ${plano.nome}`} valor={`${BRL.format(plano.valor)}/mês`} nota={plano.comoChegou ?? STATUS[plano.status]} />
+        <CardResumo destaque rotulo={`Plano ${plano.nome}${plano.personalizado ? ' · Personalizado' : ''}`} valor={`${BRL.format(plano.valor)}/mês`} nota={plano.comoChegou ?? STATUS[plano.status]} />
         <CardResumo
           rotulo="Próxima fatura"
           valor={proxima ? BRL.format(proxima.valor) : '—'}

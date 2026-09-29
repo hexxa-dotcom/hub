@@ -65,7 +65,9 @@
       "Bash(node _mig.mjs)",
       "Bash(rm _mig.mjs)",
       "Bash(node _c.mjs)",
-      "Bash(rm _c.mjs)"
+      "Bash(rm _c.mjs)",
+      "Bash(dig +short NS hexxdigital.com.br)",
+      "Bash(dig +short MX hexxdigital.com.br)"
     ]
   }
 }

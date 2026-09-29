@@ -20,6 +20,8 @@ export type PlanoAtual = {
   valorDaTabela: number;
   valor: number;
   comoChegou: string | null;
+  /** Com desconto ou valor combinado: aparece a etiqueta "Personalizado". */
+  personalizado: boolean;
   status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'TRIAL';
   desde: string | null;
   /** Valor mensal no anual (R$ 249 no Light); null = plano sem opção anual. */
@@ -77,6 +79,7 @@ export async function getPlanoAtualAction(): Promise<PlanoAtual> {
     valorDaTabela: tabela,
     valor,
     comoChegou,
+    personalizado: r.custom_value != null || Number(r.discount_value) > 0,
     status: r.status,
     desde: r.desde,
     valorAnualMensal: valorAnualMensal({ valorMensal: valor, valorCombinado: r.custom_value, desconto: r.discount_value, features: f as { valorAnualMensal?: number } }),
