@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
+import { marcarContatoAtendido } from './contatos-actions';
 import {
   Users,
   AlertTriangle,
@@ -92,6 +93,15 @@ function displayName(c: { legalName: string; tradeName: string | null; useTradeN
  * dele nos DOIS últimos meses fechados: é hora de migrar para o completo. O
  * cliente não é bloqueado — faturar mais é sinal de que ele cresceu.
  */
+/** Pedidos de contato do site ainda sem atendimento. */
+async function contatosDoSite(): Promise<{ id: string; nome: string; email: string; whatsapp: string; area: string | null; quando: string }[]> {
+  return (await getDb().execute(sql`
+    SELECT id::text, nome, email, whatsapp, area, to_char(created_at AT TIME ZONE 'America/Sao_Paulo', 'DD/MM HH24:MI') AS quando
+      FROM contato_do_site WHERE atendido_em IS NULL AND created_at > now() - interval '60 days'
+     ORDER BY created_at DESC LIMIT 20
+  `)) as unknown as { id: string; nome: string; email: string; whatsapp: string; area: string | null; quando: string }[];
+}
+
 /** Contratações feitas no site que ainda não viraram cliente no Hub. */
 async function pedidosDoSite(): Promise<{ id: string; nome: string; empresa: string | null; plano: string; cobranca: string; metodo: string; status: string; telefone: string; quando: string }[]> {
   return (await getDb().execute(sql`
@@ -153,6 +163,7 @@ export default async function AdminDashboard() {
   const renovar = await certificadosParaRenovar().catch(() => []);
   const migrar = await clientesParaMigrarDePlano().catch(() => []);
   const pedidos = await pedidosDoSite().catch(() => []);
+  const contatos = await contatosDoSite().catch(() => []);
   // Sem timeout aqui essa página já travou o /contador inteiro por até 5
   // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
   // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
@@ -270,6 +281,27 @@ export default async function AdminDashboard() {
               >
                 {r.nome} · {r.dias < 0 ? `venceu ${r.validoAte.split('-').reverse().join('/')}` : r.dias === 0 ? 'vence hoje' : `vence em ${r.dias} ${r.dias === 1 ? 'dia' : 'dias'}`}
               </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {contatos.length > 0 && (
+        <div className="rounded-3xl border border-black/[0.06] bg-white px-6 py-5 dark:border-white/[0.08] dark:bg-[#121614]">
+          <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {contatos.length === 1 ? 'Um contato pelo site' : `${contatos.length} contatos pelo site`}
+          </p>
+          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">Pediram diagnóstico ou demonstração. Toque para abrir o WhatsApp.</p>
+          <div className="mt-3 flex flex-col gap-1.5">
+            {contatos.map((c) => (
+              <div key={c.id} className="flex flex-wrap items-center gap-x-2 rounded-2xl bg-black/[0.03] px-3.5 py-2 text-xs text-[#231F20] dark:bg-white/5 dark:text-[#F5F6F4]">
+                <a href={`https://wa.me/55${c.whatsapp}` as never} target="_blank" rel="noopener noreferrer" className="font-bold hover:underline">{c.nome}</a>
+                <span className="text-[#6E6A61] dark:text-[#A8A49C]">· {c.area ?? 'área não informada'} · {c.email} · {c.quando}</span>
+                <form action={marcarContatoAtendido} className="ml-auto">
+                  <input type="hidden" name="id" value={c.id} />
+                  <button type="submit" className="text-[11px] font-bold text-[#6E6A61] hover:text-[#231F20] dark:text-[#A8A49C] dark:hover:text-white">Atendido ✓</button>
+                </form>
+              </div>
             ))}
           </div>
         </div>

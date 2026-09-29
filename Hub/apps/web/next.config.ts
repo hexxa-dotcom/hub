@@ -3,6 +3,13 @@ import path from 'node:path';
 
 const nextConfig: NextConfig = {
   // Pacotes do monorepo são TS puro — Next transpila no build.
+  // Páginas do site antigo: o simulador tinha números sem base; recursos está na home.
+  async redirects() {
+    return [
+      { source: '/simulador', destination: '/#planos', permanent: true },
+      { source: '/recursos', destination: '/#produto', permanent: true },
+    ];
+  },
   transpilePackages: ['@hexxa/core', '@hexxa/db', '@hexxa/integrations'],
   typedRoutes: true,
   // Contrato em PDF sobe por server action (até 3 MB; em base64 fica ~4 MB).

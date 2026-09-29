@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { PLANOS, waLink, type Cobranca, type PlanoId } from '@/lib/site/planos';
-import { ChaveCobranca, notaDaCobranca, linkCheckout, BlocosDePagamento, BlocoMei } from './Home';
+import { ChaveCobranca, notaDaCobranca, linkCheckout, BlocosDePagamento, BlocoMei } from './HomeInterativo';
 
 const G = '#0E0E10', P = '#F3F2EE', S = '#B9E86B', C2 = '#C9C8C2', C4 = '#B8B8B4', C5 = '#8A8A86', C6 = '#5A5A56';
 const S_ = '✓', N_ = '—';

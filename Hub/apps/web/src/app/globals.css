@@ -1362,3 +1362,14 @@ a.bg-hexxa-forest:active {
   .botao-emitir, .botao-emitir-seta { transition: background-color 200ms ease; }
   .botao-emitir:enabled:hover, .botao-emitir:enabled:active, .botao-emitir:enabled:hover .botao-emitir-seta { transform: none; }
 }
+
+/* Telas de acesso (AuthLayout): campos e botões na identidade do site. */
+.hx-auth input:not([type='checkbox']), .hx-auth select {
+  border-radius: 0 !important; background: #1C1C20 !important; border: 1px solid #3A3A38 !important; color: #F3F2EE !important;
+}
+.hx-auth input:focus { border-color: #B9E86B !important; box-shadow: none !important; }
+.hx-auth input::placeholder { color: #5A5A56; }
+.hx-auth button[type='submit'], .hx-auth .btn-principal { border-radius: 0 !important; background: #B9E86B !important; color: #0E0E10 !important; }
+.hx-auth button[type='submit']:hover, .hx-auth .btn-principal:hover { background: #CBF08E !important; }
+.hx-auth .rounded-2xl, .hx-auth .rounded-xl, .hx-auth .rounded-full { border-radius: 0 !important; }
+.hx-auth a:hover { color: #B9E86B; }
