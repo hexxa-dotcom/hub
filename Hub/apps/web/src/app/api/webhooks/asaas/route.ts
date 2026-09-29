@@ -3,6 +3,7 @@ import { getDb, withDbTimeout } from '@hexxa/db/client';
 import { financialEntry, contract, platformAsaasConfig } from '@hexxa/db/schema';
 import { eq } from 'drizzle-orm';
 import { decryptSecret } from '@/lib/server/secret-crypto';
+import { aplicarPagamento, conexaoAsaas } from '@/lib/server/asaas-plataforma';
 
 /**
  * POST /api/webhooks/asaas
@@ -47,6 +48,13 @@ export async function POST(req: Request) {
     const payment = body.payment;
     if (!payment?.id) {
       return NextResponse.json({ error: 'Missing payment.id' }, { status: 400 });
+    }
+
+    // Camada 0: honorários da própria Hexx (fatura do mês ou anual no cartão).
+    if (/^(fatura|anual):/.test(String(payment.externalReference ?? ''))) {
+      const conexao = await conexaoAsaas();
+      if (conexao) await aplicarPagamento(conexao, payment);
+      return NextResponse.json({ received: true });
     }
 
     const db = getDb();

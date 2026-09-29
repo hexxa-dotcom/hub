@@ -1,5 +1,5 @@
 import { MeuPlanoClient } from './MeuPlanoClient';
-import { getPlanoAtualAction, listarFaturasAction } from './actions';
+import { getPlanoAtualAction, listarFaturasAction, prepararCheckoutAction } from './actions';
 import { SectionHero } from '@/components/ui/SectionHero';
 import { dadosDoEscritorio, linkDoWhatsapp } from '@/lib/server/escritorio';
 import { getDb, sql } from '@hexxa/db';
@@ -11,6 +11,7 @@ export const metadata = { title: 'Plano | Hexx Digital' };
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
+  await prepararCheckoutAction().catch(() => null);
   const [plano, faturas, escritorio] = await Promise.all([getPlanoAtualAction(), listarFaturasAction(), dadosDoEscritorio()]);
   const ctx = await getTenantContext();
   const acesso = await acessoDoPlano(ctx.companyId);

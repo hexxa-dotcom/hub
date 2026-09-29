@@ -9,6 +9,8 @@ import {
   descricaoDosAdicionais,
 } from '@hexxa/core';
 
+import { boletoDaFatura } from '@/lib/server/asaas-plataforma';
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
@@ -78,6 +80,8 @@ export async function GET(request: Request) {
           motivoDesconto: subscription.discountReason,
           plano: plan.name,
           features: plan.features,
+          // Anual pago no cartão cobre o plano até esta data (ver asaas-plataforma.ts).
+          pagoAte: sql<string | null>`to_char(${subscription}.paid_until, 'YYYY-MM-DD')`,
         })
         .from(subscription)
         .innerJoin(plan, eq(subscription.planId, plan.id))
@@ -166,9 +170,15 @@ export async function GET(request: Request) {
           valorPorEvento: taxas.valorPorEvento,
         });
 
-        const valorFinal = Math.round((valorDoPlanoFinal + adicionais.total) * 100) / 100;
+        // Ano pago no cartão: o plano já está pago; só os adicionais do mês seguem.
+        const anualCobre = !!a.pagoAte && a.pagoAte >= referenceMonth;
+        const valorFinal = Math.round(((anualCobre ? 0 : valorDoPlanoFinal) + adicionais.total) * 100) / 100;
+        if (valorFinal <= 0) {
+          jaExistiam.push(`${a.nome} (coberto pelo anual)`);
+          continue;
+        }
 
-        await withDbTimeout(
+        const [criada] = await withDbTimeout(
           db.insert(accountingInvoice).values({
             companyId: a.companyId,
             // A checagem de duplicidade acima procura por este prefixo.
@@ -185,9 +195,11 @@ export async function GET(request: Request) {
             dueDate,
             status: 'OPEN',
             pixCode: null,
-          }),
+          }).returning({ id: accountingInvoice.id }),
           8000,
         );
+        // Boleto com Pix no Asaas da plataforma — sem Asaas configurado, a fatura fica sem meio de pagamento, como antes.
+        if (criada) await boletoDaFatura(criada.id).catch((e) => erros.push(`${a.nome} (boleto): ${e instanceof Error ? e.message : String(e)}`));
         geradas.push(`${a.nome} · ${a.plano} · ${brl(valorFinal)}`);
       } catch (err) {
         erros.push(`${a.nome}: ${err instanceof Error ? err.message : String(err)}`);

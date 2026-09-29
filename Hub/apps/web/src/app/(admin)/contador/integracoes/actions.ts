@@ -11,6 +11,8 @@ export type AsaasPlatformStatus = {
   env: 'sandbox' | 'production';
   hasApiKey: boolean;
   hasWebhookToken: boolean;
+  /** Desconto (%) para quem paga a fatura de honorários no cartão. */
+  descontoCartao: number;
 };
 
 export async function getAsaasPlatformStatusAction(): Promise<AsaasPlatformStatus> {
@@ -21,6 +23,10 @@ export async function getAsaasPlatformStatusAction(): Promise<AsaasPlatformStatu
     env: (cfg?.env as 'sandbox' | 'production') ?? 'sandbox',
     hasApiKey: !!cfg?.apiKeyEncrypted,
     hasWebhookToken: !!cfg?.webhookTokenEncrypted,
+    descontoCartao: await getDb()
+      .execute(sql`SELECT card_discount_percent::float AS d FROM platform_asaas_config LIMIT 1`)
+      .then((r) => (r as unknown as { d: number }[])[0]?.d ?? 5)
+      .catch(() => 5),
   };
 }
 
@@ -53,6 +59,7 @@ export async function saveAsaasPlatformConfigAction(input: {
   env: 'sandbox' | 'production';
   apiKey?: string;
   webhookToken?: string;
+  descontoCartao?: number;
 }): Promise<{ ok: boolean; message: string }> {
   await requireAdmin();
   const db = getDb();
@@ -69,6 +76,10 @@ export async function saveAsaasPlatformConfigAction(input: {
     await withDbTimeout(db.update(platformAsaasConfig).set(values).where(eq(platformAsaasConfig.id, cfg.id)), 8000);
   } else {
     await withDbTimeout(db.insert(platformAsaasConfig).values(values), 8000);
+  }
+
+  if (input.descontoCartao != null && input.descontoCartao >= 0 && input.descontoCartao <= 30) {
+    await withDbTimeout(db.execute(sql`UPDATE platform_asaas_config SET card_discount_percent = ${input.descontoCartao}`), 8000);
   }
 
   revalidatePath('/contador/integracoes');

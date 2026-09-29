@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, CreditCard, FileText, Loader2 } from 'lucide-react';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
-import type { Fatura, PlanoAtual } from './actions';
+import { pagarNoCartaoAction, pagarAnualAction, type Fatura, type PlanoAtual } from './actions';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const data = (iso: string) => iso.split('-').reverse().join('/');
@@ -24,9 +24,24 @@ const SITUACAO: Record<Fatura['situacao'], { texto: string; cor: string }> = {
   ATRASADA: { texto: 'Atrasada', cor: 'text-rose-600 dark:text-rose-400' },
   PAGA: { texto: 'Paga', cor: 'text-emerald-700 dark:text-emerald-400' },
 };
+const PAGA_COM: Record<string, string> = { CARTAO: 'no cartão', PIX: 'no Pix', BOLETO: 'no boleto', ANUAL: 'pelo anual' };
 
 export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAtual; faturas: Fatura[]; whatsappUrl: string | null }) {
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [, iniciar] = useTransition();
+
+  // Abre a página segura do Asaas (o cartão é digitado lá, nunca aqui).
+  const irPara = (chave: string, acao: () => Promise<{ ok: boolean; url?: string; mensagem?: string }>) =>
+    iniciar(async () => {
+      setErro(null);
+      setAbrindo(chave);
+      const r = await acao();
+      setAbrindo(null);
+      if (r.ok && r.url) window.location.href = r.url;
+      else setErro(r.mensagem ?? 'Não foi possível abrir o pagamento.');
+    });
 
   if (!plano) {
     return (
@@ -70,8 +85,33 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
         <CardResumo rotulo="Situação" valor={atrasadas.length ? `${atrasadas.length} atrasada${atrasadas.length > 1 ? 's' : ''}` : 'Em dia'} nota={plano.desde ? `Cliente desde ${data(plano.desde)}` : STATUS[plano.status]} />
       </GradeDeResumo>
 
+      {plano.valorAnualMensal && plano.cartaoDisponivel && !(plano.pagoAte && plano.pagoAte >= new Date().toISOString().slice(0, 10)) && (
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-emerald-500/20 bg-emerald-500/[0.06] px-6 py-5">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink">Pague o ano no cartão e economize {BRL.format((plano.valor - plano.valorAnualMensal) * 12)}</p>
+            <p className="mt-0.5 text-xs text-ink-soft">
+              12× de {BRL.format(plano.valorAnualMensal)} no cartão de crédito ({BRL.format(plano.valorAnualMensal * 12)} no ano), em vez de {BRL.format(plano.valor)} por mês.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={abrindo === 'anual'}
+            onClick={() => irPara('anual', pagarAnualAction)}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#1E3328] px-5 py-2.5 text-sm font-semibold text-[#DFFFAE] transition-colors hover:bg-[#2F4A3C] disabled:opacity-60"
+          >
+            {abrindo === 'anual' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} Pagar o ano no cartão
+          </button>
+        </section>
+      )}
+      {plano.pagoAte && plano.pagoAte >= new Date().toISOString().slice(0, 10) && (
+        <p className="rounded-[28px] border border-emerald-500/20 bg-emerald-500/[0.06] px-6 py-4 text-sm text-ink">
+          Ano pago no cartão — seu plano está coberto até {data(plano.pagoAte)}.
+        </p>
+      )}
+
       <section className="space-y-5">
         <p className="rotulo text-ink-soft">Faturas de honorários</p>
+        {erro && <p className="text-sm text-rose-600 dark:text-rose-400">{erro}</p>}
         {faturas.length === 0 ? (
           <p className="rounded-[28px] border border-dashed border-black/10 px-6 py-12 text-center text-sm text-ink-soft dark:border-white/10">
             Nenhuma fatura ainda. A fatura do mês é gerada no dia 1º.
@@ -86,7 +126,23 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
                     <p className="text-sm font-semibold text-ink">{mes(f.referencia)}</p>
                     <p className="mt-0.5 text-xs text-ink-soft">{f.descricao}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-4 text-right">
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-4 text-right">
+                    {f.situacao !== 'PAGA' && f.boletoUrl && (
+                      <a href={f.boletoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
+                        <FileText className="h-3.5 w-3.5" /> Boleto
+                      </a>
+                    )}
+                    {f.situacao !== 'PAGA' && plano.cartaoDisponivel && (
+                      <button
+                        type="button"
+                        disabled={abrindo === f.id}
+                        onClick={() => irPara(f.id, () => pagarNoCartaoAction(f.id))}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-300"
+                      >
+                        {abrindo === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                        Cartão · {BRL.format(f.valor * (1 - plano.descontoCartao / 100))} ({plano.descontoCartao}% off)
+                      </button>
+                    )}
                     {f.pix && f.situacao !== 'PAGA' && (
                       <button type="button" onClick={() => copiar(f)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink">
                         {copiado === f.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copiado === f.id ? 'Copiado' : 'Copiar Pix'}
@@ -95,7 +151,7 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
                     <div>
                       <p className="font-serif text-sm font-bold tabular text-ink">{BRL.format(f.valor)}</p>
                       <p className={`text-[11px] font-semibold ${s.cor}`}>
-                        {s.texto} · vence {data(f.vencimento)}
+                        {f.situacao === 'PAGA' && f.pagaCom ? `Paga ${PAGA_COM[f.pagaCom] ?? ''}` : `${s.texto} · vence ${data(f.vencimento)}`}
                       </p>
                     </div>
                   </div>
@@ -105,8 +161,8 @@ export function MeuPlanoClient({ plano, faturas, whatsappUrl }: { plano: PlanoAt
           </ul>
         )}
         <p className="text-xs leading-relaxed text-ink-soft">
-          A fatura inclui os adicionais do mês (colaborador ou sócio além dos inclusos, admissões e rescisões). Para pagar, pedir o boleto ou tirar
-          uma dúvida sobre o valor, {falar}.
+          A fatura inclui os adicionais do mês (colaborador ou sócio além dos inclusos, admissões e rescisões). Pague pelo boleto, pelo Pix ou
+          no cartão com desconto — o cartão é digitado na página segura do Asaas. Dúvida sobre o valor? {falar}.
         </p>
       </section>
 

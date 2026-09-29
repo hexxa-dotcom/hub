@@ -17,6 +17,7 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
   const [env, setEnv] = useState<'sandbox' | 'production'>(initial.env);
   const [apiKey, setApiKey] = useState('');
   const [webhookToken, setWebhookToken] = useState('');
+  const [descontoCartao, setDescontoCartao] = useState(String(initial.descontoCartao));
   const [show, setShow] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -68,7 +69,12 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const res = await saveAsaasPlatformConfigAction({ env, apiKey: apiKey || undefined, webhookToken: webhookToken || undefined });
+      const res = await saveAsaasPlatformConfigAction({
+        env,
+        apiKey: apiKey || undefined,
+        webhookToken: webhookToken || undefined,
+        descontoCartao: Number(descontoCartao.replace(',', '.')),
+      });
       setSaveMsg(res.message);
       if (apiKey.trim()) setHasApiKey(true);
       if (webhookToken.trim()) setHasWebhookToken(true);
@@ -183,6 +189,19 @@ export function AsaasSetup({ initial }: { initial: AsaasPlatformStatus }) {
           className={`mt-1.5 ${fi}`}
         />
         <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Configure o mesmo token aqui e no campo "Token" do webhook no Asaas para autenticar as notificações.</p>
+      </div>
+
+      {/* Desconto do cartão */}
+      <div>
+        <label className={lb}>Desconto no cartão de crédito (%)</label>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={descontoCartao}
+          onChange={(e) => setDescontoCartao(e.target.value)}
+          className={`mt-1.5 w-32 ${fi}`}
+        />
+        <p className="mt-1 text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">Aplicado quando o cliente paga a fatura de honorários no cartão. Boleto e Pix seguem pelo valor cheio.</p>
       </div>
 
       {!allDone && (
