@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeDocument, documentKind, isCompleteDocument, formatDocument } from './document-br';
+import { normalizeDocument, documentKind, isCompleteDocument, formatDocument, cpfValido, cnpjValido } from './document-br';
 
 describe('normalizeDocument', () => {
   it('remove máscara mas preserva letras', () => {
@@ -57,5 +57,18 @@ describe('formatDocument', () => {
   });
   it('formata incrementalmente durante a digitação (CNPJ alfanumérico parcial)', () => {
     expect(formatDocument('12ABC')).toBe('12.ABC');
+  });
+});
+
+describe('dígitos verificadores', () => {
+  it('CPF', () => {
+    expect(cpfValido('529.982.247-25')).toBe(true);
+    expect(cpfValido('529.982.247-24')).toBe(false);
+    expect(cpfValido('111.111.111-11')).toBe(false);
+  });
+  it('CNPJ numérico e alfanumérico', () => {
+    expect(cnpjValido('62.414.421/0001-16')).toBe(true);
+    expect(cnpjValido('62.414.421/0001-17')).toBe(false);
+    expect(cnpjValido('12.ABC.345/01DE-35')).toBe(true);
   });
 });

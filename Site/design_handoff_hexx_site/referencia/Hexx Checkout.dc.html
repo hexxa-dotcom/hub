@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="logos/svg/hexx-simbolo-positivo.svg">
+<style>body{margin:0;background:#F3F2EE;font-family:'Sora',sans-serif;color:#0E0E10;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}a:hover{color:#5A5A56}input,select,button{font-family:inherit}input::placeholder{color:#8A8A86}</style>
+</helmet>
+<div style="min-height:100vh;background:#F3F2EE;display:flex;flex-direction:column">
+
+<header style="background:#0E0E10;color:#F3F2EE;border-bottom:1px solid #1C1C20">
+<div style="max-width:1160px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+<a href="Hexx Site v2.dc.html" style="display:flex"><img src="logos/svg/hexx-horizontal-negativo.svg" alt="hexx" style="height:24px;width:auto;display:block"></a>
+<div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8A8A86"><span style="width:6px;height:6px;border-radius:50%;background:#B9E86B"></span>Pagamento seguro</div>
+</div>
+</header>
+
+<main style="flex:1;max-width:1160px;width:100%;box-sizing:border-box;margin:0 auto;padding:48px 32px 96px;display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:32px;flex:999 1 520px;min-width:0">
+<div style="display:flex;flex-wrap:wrap;border-bottom:1px solid #0E0E10">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+<button onClick="{{ s.go }}" style="appearance:none;border:0;background:transparent;cursor:{{ s.cursor }};padding:14px 20px 14px 0;margin-right:20px;display:flex;gap:10px;align-items:center;font-size:14px;font-weight:600;color:{{ s.ink }};box-shadow:inset 0 -3px 0 {{ s.line }};transition:color .25s,box-shadow .25s"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:{{ s.dotBg }};color:{{ s.dotInk }}">{{ s.mark }}</span>{{ s.name }}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ isPlan }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font-size:clamp(30px,3.6vw,44px);font-weight:600;letter-spacing:-.05em;line-height:1.02">Escolha seu plano</h1><p style="margin:0;font-size:15px;color:#3A3A38">Preço fixo, sem surpresa. Você pode trocar de plano depois.</p></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #0E0E10;max-width:440px">
+<sc-for list="{{ billingOpts }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.pick }}" style="appearance:none;border:0;cursor:pointer;padding:14px 16px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;background:{{ b.bg }};color:{{ b.ink }};transition:background .25s,color .25s"><span style="font-size:15px;font-weight:600">{{ b.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.7">{{ b.hint }}</span></button></sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{ planOpts }}" as="p" hint-placeholder-count="3">
+<button onClick="{{ p.pick }}" style="appearance:none;cursor:pointer;text-align:left;padding:22px 24px;background:{{ p.bg }};color:{{ p.ink }};border:1px solid {{ p.border }};display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;transition:background .25s,border-color .25s,color .25s" style-hover="border-color:#0E0E10">
+<span style="width:18px;height:18px;border-radius:50%;border:1px solid {{ p.radio }};display:flex;align-items:center;justify-content:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ p.dot }}"></span></span>
+<span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:17px;font-weight:600;letter-spacing:-.02em">{{ p.name }}</span><sc-if value="{{ p.featured }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:{{ p.tagInk }};border:1px solid {{ p.tagLine }};padding:3px 7px">Mais escolhido</span></sc-if></span><span style="font-size:13px;line-height:1.45;opacity:.75">{{ p.desc }}</span></span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;white-space:nowrap;text-align:right">{{ p.price }}<span style="display:block;font-size:11px;opacity:.7">{{ p.per }}</span></span>
+</button>
+</sc-for>
+</div>
+<button onClick="{{ next }}" style="appearance:none;border:0;cursor:pointer;align-self:flex-start;font-size:15px;font-weight:600;padding:16px 24px;background:#0E0E10;color:#F3F2EE" style-hover="background:#1C1C20;color:#B9E86B">Continuar →</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}">
+<form onSubmit="{{ submitData }}" style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font-size:clamp(30px,3.6vw,44px);font-weight:600;letter-spacing:-.05em;line-height:1.02">Seus dados</h1><p style="margin:0;font-size:15px;color:#3A3A38">Usamos para criar seu acesso e emitir a cobrança.</p></div>
+<div style="display:flex;border:1px solid #0E0E10;align-self:flex-start">
+<button type="button" onClick="{{ setHasCnpj }}" style="appearance:none;border:0;cursor:pointer;padding:11px 16px;font-size:14px;font-weight:600;background:{{ cnpjYesBg }};color:{{ cnpjYesInk }}">Já tenho CNPJ</button>
+<button type="button" onClick="{{ setNoCnpj }}" style="appearance:none;border:0;cursor:pointer;padding:11px 16px;font-size:14px;font-weight:600;background:{{ cnpjNoBg }};color:{{ cnpjNoInk }}">Ainda não tenho</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px">
+<sc-if value="{{ hasCnpj }}" hint-placeholder-val="{{ true }}">
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">CNPJ<input required="required" value="{{ f.cnpj }}" onChange="{{ onCnpj }}" inputMode="numeric" placeholder="00.000.000/0000-00" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Razão social<input required="required" value="{{ f.razao }}" onChange="{{ onRazao }}" placeholder="Sua Empresa Ltda" style="font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+</sc-if>
+<sc-if value="{{ noCnpj }}" hint-placeholder-val="{{ false }}">
+<div style="grid-column:1 / -1;background:#0E0E10;color:#F3F2EE;padding:18px 20px;display:flex;gap:14px;align-items:flex-start"><span style="font-family:'JetBrains Mono',monospace;color:#B9E86B">→</span><span style="font-size:14px;line-height:1.55;color:#B8B8B4">Sem problema. A Hexx abre o CNPJ e escolhe o enquadramento certo. Um contador entra em contato em até 1 dia útil para começar.</span></div>
+</sc-if>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Nome completo<input required="required" value="{{ f.nome }}" onChange="{{ onNome }}" placeholder="Como está no documento" style="font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">CPF<input required="required" value="{{ f.cpf }}" onChange="{{ onCpf }}" inputMode="numeric" placeholder="000.000.000-00" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">E-mail<input required="required" type="email" value="{{ f.email }}" onChange="{{ onEmail }}" placeholder="voce@empresa.com.br" style="font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">WhatsApp<input required="required" value="{{ f.tel }}" onChange="{{ onTel }}" inputMode="tel" placeholder="(00) 00000-0000" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+</div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<button type="button" onClick="{{ back }}" style="appearance:none;cursor:pointer;font-size:15px;padding:16px 20px;background:transparent;border:1px solid #C9C8C2;color:#0E0E10" style-hover="border-color:#0E0E10">← Voltar</button>
+<button type="submit" style="appearance:none;border:0;cursor:pointer;font-size:15px;font-weight:600;padding:16px 24px;background:#0E0E10;color:#F3F2EE" style-hover="background:#1C1C20;color:#B9E86B">Ir para pagamento →</button>
+</div>
+</form>
+</sc-if>
+
+<sc-if value="{{ isPay }}" hint-placeholder-val="{{ false }}">
+<form onSubmit="{{ submitPay }}" style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font-size:clamp(30px,3.6vw,44px);font-weight:600;letter-spacing:-.05em;line-height:1.02">Pagamento</h1><p style="margin:0;font-size:15px;color:#3A3A38">A primeira mensalidade libera seu acesso na hora.</p></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));border:1px solid #0E0E10">
+<sc-for list="{{ methods }}" as="m" hint-placeholder-count="3">
+<button type="button" onClick="{{ m.pick }}" style="appearance:none;border:0;border-right:1px solid #0E0E10;cursor:pointer;padding:18px 16px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;background:{{ m.bg }};color:{{ m.ink }};transition:background .25s,color .25s"><span style="font-size:15px;font-weight:600">{{ m.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.7">{{ m.hint }}</span></button>
+</sc-for>
+</div>
+<sc-if value="{{ isCard }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFFFFF;border:1px solid #C9C8C2;padding:16px 20px;font-size:14px;line-height:1.55;color:#3A3A38">{{ cardNote }}</div>
+</sc-if>
+<sc-if value="{{ isCard }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:16px">
+<label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Número do cartão<input required="required" value="{{ f.card }}" onChange="{{ onCard }}" inputMode="numeric" placeholder="0000 0000 0000 0000" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="grid-column:1 / -1;display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Nome impresso<input required="required" value="{{ f.cardName }}" onChange="{{ onCardName }}" placeholder="COMO NO CARTÃO" style="font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:uppercase" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Validade<input required="required" value="{{ f.exp }}" onChange="{{ onExp }}" inputMode="numeric" placeholder="MM/AA" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">CVV<input required="required" value="{{ f.cvv }}" onChange="{{ onCvv }}" inputMode="numeric" placeholder="000" style="font-family:'JetBrains Mono',monospace;font-size:16px;padding:14px 16px;background:#FFFFFF;border:1px solid #C9C8C2;color:#0E0E10;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#0E0E10"></label>
+</div>
+</sc-if>
+<sc-if value="{{ isPix }}" hint-placeholder-val="{{ true }}">
+<div style="background:#FFFFFF;border:1px solid #C9C8C2;padding:20px;font-size:14px;line-height:1.55;color:#3A3A38">O QR Code e o código copia e cola aparecem na próxima tela. A confirmação é instantânea.</div>
+</sc-if>
+<sc-if value="{{ isBoleto }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFFFFF;border:1px solid #C9C8C2;padding:20px;font-size:14px;line-height:1.55;color:#3A3A38">O boleto vence em 3 dias úteis. Seu acesso é liberado assim que o pagamento compensar, em até 2 dias úteis.</div>
+</sc-if>
+<label style="display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.5;color:#3A3A38;cursor:pointer"><input required="required" type="checkbox" style="width:18px;height:18px;margin:1px 0 0;accent-color:#0E0E10"><span>Li e aceito os <a href="#" style="text-decoration:underline">termos de uso</a> e a <a href="#" style="text-decoration:underline">política de privacidade</a>.</span></label>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<button type="button" onClick="{{ back }}" style="appearance:none;cursor:pointer;font-size:15px;padding:16px 20px;background:transparent;border:1px solid #C9C8C2;color:#0E0E10" style-hover="border-color:#0E0E10">← Voltar</button>
+<button type="submit" style="appearance:none;border:0;cursor:pointer;font-size:15px;font-weight:600;padding:16px 24px;background:#B9E86B;color:#0E0E10;min-width:220px" style-hover="background:#CBF08E">{{ payLabel }}</button>
+</div>
+</form>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:28px">
+<img src="logos/svg/hexx-simbolo-positivo.svg" alt="" style="height:64px;width:auto;align-self:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px"><h1 style="margin:0;font-size:clamp(30px,3.6vw,48px);font-weight:600;letter-spacing:-.05em;line-height:1.02;text-wrap:balance">{{ doneTitle }}</h1><p style="margin:0;font-size:16px;line-height:1.6;color:#3A3A38;max-width:560px;text-wrap:pretty">{{ doneBody }}</p></div>
+<sc-if value="{{ showPixCode }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center;background:#FFFFFF;border:1px solid #C9C8C2;padding:24px">
+<div style="width:148px;height:148px;background:#0E0E10;display:flex;align-items:center;justify-content:center;color:#8A8A86;font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center">QR Code<br>Pix</div>
+<div style="display:flex;flex-direction:column;gap:12px;min-width:0"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Pix copia e cola</div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all;color:#3A3A38;background:#F3F2EE;padding:12px">00020126580014br.gov.bcb.pix0136hexx-digital-cobranca-0348520400005303986</div><button onClick="{{ copyPix }}" style="appearance:none;border:0;cursor:pointer;align-self:flex-start;font-size:14px;font-weight:600;padding:12px 18px;background:#0E0E10;color:#F3F2EE">{{ copyLabel }}</button></div>
+</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;border-top:1px solid #0E0E10">
+<sc-for list="{{ nextSteps }}" as="n" hint-placeholder-count="3"><div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid #C9C8C2;font-size:15px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5A5A56;padding-top:2px">{{ n.num }}</span>{{ n.text }}</div></sc-for>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap"><a href="Hexx Login.dc.html" style="font-size:15px;font-weight:600;padding:16px 24px;background:#0E0E10;color:#F3F2EE" style-hover="background:#1C1C20;color:#B9E86B">Acessar minha conta →</a><a href="Hexx Site v2.dc.html" style="font-size:15px;padding:16px 20px;border:1px solid #C9C8C2">Voltar ao site</a></div>
+</div>
+</sc-if>
+</div>
+
+<aside style="background:#0E0E10;color:#F3F2EE;display:flex;flex-direction:column;position:sticky;top:24px;flex:1 1 300px;min-width:0">
+<div style="padding:22px 24px;border-bottom:1px solid #1C1C20;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Resumo</div>
+<div style="padding:24px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #1C1C20"><div style="font-size:19px;font-weight:600;letter-spacing:-.02em">{{ plan.name }}</div><div style="font-size:13px;line-height:1.5;color:#8A8A86">{{ plan.desc }}</div></div>
+<sc-for list="{{ plan.items }}" as="it" hint-placeholder-count="3"><div style="padding:12px 24px;border-bottom:1px solid #1C1C20;display:flex;gap:12px;font-size:14px;color:#B8B8B4"><span style="font-family:'JetBrains Mono',monospace;color:#B9E86B">+</span>{{ it }}</div></sc-for>
+<div style="padding:18px 24px;display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#B8B8B4;border-bottom:1px solid #1C1C20"><span>Cobrança</span><span style="font-family:'JetBrains Mono',monospace;text-align:right">{{ billingLabel }}</span></div>
+<div style="padding:22px 24px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px">{{ totalLabel }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;letter-spacing:-.03em;color:#B9E86B;white-space:nowrap">{{ plan.total }}</span></div>
+<div style="padding:0 24px 20px;font-size:12px;line-height:1.5;color:#8A8A86">{{ plan.totalNote }}</div>
+<div style="padding:16px 24px 22px;border-top:1px solid #1C1C20;display:flex;flex-direction:column;gap:8px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Adicionais, se precisar</div><sc-for list="{{ extras }}" as="x" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#B8B8B4"><span>{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace;white-space:nowrap">{{ x.v }}</span></div></sc-for></div>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const sp = new URLSearchParams(window.location.search), q = sp.get('plano'), bill = sp.get('cobranca') === 'mensal' ? 'mensal' : 'anual';
+    this.state = { step: 0, plan: ['mei', 'sem-movimento', 'simples-light', 'simples-completo', 'presumido'].includes(q) ? q : 'simples-completo', billing: bill, hasCnpj: true, method: bill === 'anual' ? 'cartao' : 'pix', loading: false, copied: false,
+      f: { cnpj: '', razao: '', nome: '', cpf: '', email: '', tel: '', card: '', cardName: '', exp: '', cvv: '' } };
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  mask(v, pat) { const d = v.replace(/\D/g, ''); let out = '', i = 0; for (const c of pat) { if (i >= d.length) break; out += c === '0' ? d[i++] : c; } return out; }
+  set(k, pat) { return e => { const v = pat ? this.mask(e.target.value, pat) : e.target.value; this.setState(s => ({ f: { ...s.f, [k]: v } })); }; }
+  renderVals() {
+    const P = {
+      mei: { name: 'MEI', a: 79, m: 99, desc: 'Para o microempreendedor individual.', items: ['DAS-MEI mensal com guia e lembrete', 'Declaração anual (DASN-SIMEI)', 'Emissão de notas pelo Hub', 'Aviso antes de estourar o limite'] },
+      'sem-movimento': { name: 'Sem movimento', a: 169, m: 199, desc: 'Para empresa aberta, sem faturamento nem movimentação no mês.', items: ['Obrigações em dia mesmo sem movimento', 'Declarações e entregas obrigatórias', 'Pró-labore de até 2 sócios'] },
+      'simples-light': { name: 'Simples Light', a: 249, m: 299, desc: 'Para quem está começando no Simples: o essencial, com preço de início.', items: ['Até 10 notas fiscais por mês', 'Faturamento de até R$ 10 mil por mês', 'Contabilidade e obrigações em dia', 'Pró-labore de 1 sócio'] },
+      'simples-completo': { name: 'Simples Completo', a: 449, m: 499, desc: 'Prestador de serviço com faturamento. Preço fixo, sem surpresa no fim do mês.', items: ['Emissão de notas fiscais sem limite', 'Contabilidade completa e obrigações em dia', 'Pró-labore de até 2 sócios', 'Todas as funções do Hub'], featured: true },
+      presumido: { name: 'Presumido', a: 649, m: 699, desc: 'Prestadora de serviço ou holding patrimonial no Lucro Presumido.', items: ['IRPJ e CSLL trimestrais, PIS e COFINS mensais', 'Receita de aluguel e distribuição de lucros', 'Emissão de notas fiscais sem limite', 'Pró-labore de até 2 sócios', 'Todas as funções do Hub'] }
+    };
+    const brl = n => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const bill = this.state.billing, anual = bill === 'anual';
+    const cardM = !anual && this.state.method === 'cartao';
+    Object.values(P).forEach(p => { p.price = 'R$ ' + (anual ? p.a : p.m); p.per = anual ? '/mês no anual' : '/mês'; p.total = anual ? '12× ' + brl(p.a) : brl(cardM ? p.m * 0.95 : p.m); p.totalNote = anual ? 'Total anual ' + brl(p.a * 12) + ', em 12× no cartão. Economia de ' + brl((p.m - p.a) * 12) + ' no ano.' : (cardM ? 'Mês a mês no cartão, com 5% de desconto sobre ' + brl(p.m) + '.' : 'Renova todo mês, valor cheio no boleto ou Pix.'); });
+    const st = this.state, step = st.step;
+    const names = ['Plano', 'Dados', 'Pagamento'];
+    const M = anual ? { cartao: ['Cartão', '12× pelo valor do anual'] } : { pix: ['Pix', 'Valor cheio'], boleto: ['Boleto', 'Valor cheio'], cartao: ['Cartão', '5% de desconto'] };
+    const done = {
+      pix: ['Falta só o Pix.', 'Pague com o QR Code ou o código abaixo. Assim que o pagamento cair, enviamos seu acesso por e-mail e WhatsApp.'],
+      cartao: ['Bem-vindo à Hexx.', 'Pagamento aprovado. Enviamos seu acesso por e-mail e WhatsApp, e seu contador entra em contato em até 1 dia útil.'],
+      boleto: ['Boleto gerado.', 'Enviamos o boleto para o seu e-mail. Seu acesso é liberado assim que o pagamento compensar.']
+    }[st.method];
+    return {
+      steps: names.map((n, i) => ({ name: n, mark: i < step ? '✓' : String(i + 1), ink: i <= step ? '#0E0E10' : '#8A8A86', line: i === step ? '#0E0E10' : 'transparent', dotBg: i < step ? '#B9E86B' : (i === step ? '#0E0E10' : '#E1E0DA'), dotInk: i < step ? '#0E0E10' : (i === step ? '#F3F2EE' : '#5A5A56'), cursor: i < step && step < 3 ? 'pointer' : 'default', go: () => { if (i < step && step < 3) this.setState({ step: i }); } })),
+      isPlan: step === 0, isData: step === 1, isPay: step === 2, isDone: step === 3,
+      planOpts: Object.entries(P).map(([id, p]) => { const on = id === st.plan; return { ...p, featured: !!p.featured, bg: on ? '#0E0E10' : '#FFFFFF', ink: on ? '#F3F2EE' : '#0E0E10', border: on ? '#0E0E10' : '#C9C8C2', radio: on ? '#B9E86B' : '#8A8A86', dot: on ? '#B9E86B' : 'transparent', tagInk: on ? '#B9E86B' : '#0E0E10', tagLine: on ? '#3A3A38' : '#C9C8C2', pick: () => this.setState({ plan: id }) }; }),
+      plan: P[st.plan], anual, totalLabel: anual ? 'Parcelas' : 'Total hoje',
+      billingOpts: [['anual', 'Anual', '12× no cartão'], ['mensal', 'Mês a mês', 'Boleto, Pix ou cartão']].map(([id, name, hint]) => ({ name, hint, bg: bill === id ? '#0E0E10' : '#FFFFFF', ink: bill === id ? '#F3F2EE' : '#0E0E10', pick: () => this.setState({ billing: id, method: id === 'anual' ? 'cartao' : 'pix' }) })),
+      cardNote: anual ? 'Plano anual em 12× no cartão, pelo valor do anual.' : 'Mês a mês no cartão, com 5% de desconto todo mês.',
+      billingLabel: anual ? 'Anual · 12× no cartão' : 'Mês a mês',
+      extras: (st.plan === 'mei' ? [['Empregado do MEI', 'R$ 50/mês']] : [['Colaborador ou sócio adicional', 'R$ 50/mês cada'], ['Admissão ou rescisão', 'R$ 150 por evento']]).map(([k, v]) => ({ k, v })),
+      next: () => this.setState({ step: 1 }), back: () => this.setState({ step: step - 1 }),
+      f: st.f, hasCnpj: st.hasCnpj, noCnpj: !st.hasCnpj,
+      cnpjYesBg: st.hasCnpj ? '#0E0E10' : 'transparent', cnpjYesInk: st.hasCnpj ? '#F3F2EE' : '#0E0E10', cnpjNoBg: st.hasCnpj ? 'transparent' : '#0E0E10', cnpjNoInk: st.hasCnpj ? '#0E0E10' : '#F3F2EE',
+      setHasCnpj: () => this.setState({ hasCnpj: true }), setNoCnpj: () => this.setState({ hasCnpj: false }),
+      onCnpj: this.set('cnpj', '00.000.000/0000-00'), onRazao: this.set('razao'), onNome: this.set('nome'), onCpf: this.set('cpf', '000.000.000-00'), onEmail: this.set('email'), onTel: this.set('tel', '(00) 00000-0000'),
+      onCard: this.set('card', '0000 0000 0000 0000'), onCardName: this.set('cardName'), onExp: this.set('exp', '00/00'), onCvv: this.set('cvv', '0000'),
+      submitData: e => { e.preventDefault(); this.setState({ step: 2 }); },
+      methods: Object.entries(M).map(([id, [name, hint]]) => ({ name, hint, bg: id === st.method ? '#0E0E10' : '#FFFFFF', ink: id === st.method ? '#F3F2EE' : '#0E0E10', pick: () => this.setState({ method: id }) })),
+      isCard: st.method === 'cartao', isPix: st.method === 'pix', isBoleto: st.method === 'boleto',
+      payLabel: st.loading ? 'Processando…' : ({ pix: 'Gerar Pix', cartao: 'Pagar ' + P[st.plan].total, boleto: 'Gerar boleto' }[st.method] + ' →'),
+      submitPay: e => { e.preventDefault(); if (st.loading) return; this.setState({ loading: true }); this._t = setTimeout(() => this.setState({ loading: false, step: 3 }), 1100); },
+      doneTitle: done[0], doneBody: done[1], showPixCode: st.method === 'pix',
+      copyLabel: st.copied ? 'Copiado ✓' : 'Copiar código',
+      copyPix: () => { try { navigator.clipboard.writeText('00020126580014br.gov.bcb.pix0136hexx-digital-cobranca-0348520400005303986'); } catch (e) {} this.setState({ copied: true }); },
+      nextSteps: ['Você recebe o acesso por e-mail e WhatsApp.', st.hasCnpj ? 'Seu contador entra em contato em até 1 dia útil.' : 'Seu contador inicia a abertura do CNPJ em até 1 dia útil.', 'Conecte sua conta PJ e emita a primeira nota.'].map((text, i) => ({ num: String(i + 1).padStart(2, '0'), text }))
+    };
+  }
+}
+</script>
+</body>
+</html>

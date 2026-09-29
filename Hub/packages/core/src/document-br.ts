@@ -60,3 +60,33 @@ export function formatDocument(raw: string | null | undefined): string {
   }
   return maskByGroups(v, [2, 3, 3, 4, 2], ['.', '.', '/', '-']);
 }
+
+/** CPF com dígitos verificadores corretos (rejeita sequências iguais). */
+export function cpfValido(raw: string | null | undefined): boolean {
+  const v = normalizeDocument(raw);
+  if (!/^\d{11}$/.test(v) || /^(\d)\1{10}$/.test(v)) return false;
+  const dv = (n: number) => {
+    let s = 0;
+    for (let i = 0; i < n; i++) s += Number(v[i]) * (n + 1 - i);
+    const r = (s * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(9) === Number(v[9]) && dv(10) === Number(v[10]);
+}
+
+/**
+ * CNPJ com dígitos verificadores corretos — numérico ou alfanumérico. No
+ * alfanumérico cada caractere vale o código ASCII menos 48 (Receita, 2026).
+ */
+export function cnpjValido(raw: string | null | undefined): boolean {
+  const v = normalizeDocument(raw);
+  if (!/^[A-Z0-9]{12}\d{2}$/.test(v) || /^(\d)\1{13}$/.test(v)) return false;
+  const val = (c: string) => c.charCodeAt(0) - 48;
+  const dv = (n: number) => {
+    const pesos = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const s = pesos.reduce((acc, p, i) => acc + val(v[i]!) * p, 0);
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return dv(12) === Number(v[12]) && dv(13) === Number(v[13]);
+}

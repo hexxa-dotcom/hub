@@ -50,8 +50,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing payment.id' }, { status: 400 });
     }
 
-    // Camada 0: honorários da própria Hexx (fatura do mês ou anual no cartão).
-    if (/^(fatura|anual):/.test(String(payment.externalReference ?? ''))) {
+    // Camada 0: cobranças da própria Hexx (fatura do mês, anual no cartão ou pedido do site).
+    if (/^(fatura|anual|pedido):/.test(String(payment.externalReference ?? ''))) {
       const conexao = await conexaoAsaas();
       if (conexao) await aplicarPagamento(conexao, payment);
       return NextResponse.json({ received: true });

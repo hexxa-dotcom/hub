@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="logos/svg/hexx-simbolo-positivo.svg">
+<style>body{margin:0;background:#F3F2EE;font-family:'Sora',sans-serif;color:#0E0E10;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}a:hover{color:#5A5A56}button{font-family:inherit}</style>
+</helmet>
+<div style="min-height:100vh;background:#F3F2EE">
+
+<header style="position:sticky;top:0;z-index:20;background:rgba(14,14,16,.94);backdrop-filter:blur(10px);border-bottom:1px solid #1C1C20;color:#F3F2EE">
+<div style="max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<a href="Hexx Site v2.dc.html" style="display:flex"><img src="logos/svg/hexx-horizontal-negativo.svg" alt="hexx" style="height:26px;width:auto;display:block"></a>
+<nav style="display:flex;align-items:center;gap:28px;font-size:14px;color:#B8B8B4;flex-wrap:wrap">
+<a href="Hexx Site v2.dc.html#produto" style-hover="color:#B9E86B">A Hexx</a><a href="Hexx Planos.dc.html" style="color:#F3F2EE">Planos</a><a href="Hexx Site v2.dc.html#faq" style-hover="color:#B9E86B">Perguntas</a>
+</nav>
+<div style="display:flex;align-items:center;gap:10px">
+<a href="Hexx Login.dc.html" style="font-size:14px;padding:11px 16px;border:1px solid #3A3A38;color:#F3F2EE" style-hover="border-color:#8A8A86;color:#F3F2EE">Entrar</a>
+<a href="Hexx Checkout.dc.html?plano=simples-completo" style="font-size:14px;font-weight:600;padding:12px 18px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E;color:#0E0E10">Contratar</a>
+</div>
+</div>
+</header>
+
+<section style="background:#0E0E10;color:#F3F2EE">
+<div style="max-width:1240px;margin:0 auto;padding:88px 32px 64px;display:flex;flex-direction:column;gap:40px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px 64px;align-items:end">
+<div style="display:flex;flex-direction:column;gap:20px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A86">Planos e preços</div><h1 style="margin:0;font-size:clamp(40px,5.4vw,72px);font-weight:600;letter-spacing:-.055em;line-height:.98;text-wrap:balance">Compare e escolha com calma.</h1></div>
+<p style="margin:0;font-size:17px;line-height:1.6;color:#B8B8B4;text-wrap:pretty">Preço fixo, sem surpresa no fim do mês. Anual em 12× no cartão, ou mês a mês no boleto, Pix ou cartão com 5% de desconto. A migração do seu contador atual é por nossa conta.</p>
+</div>
+<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+<div style="display:flex;border:1px solid #3A3A38">
+<sc-for list="{{ billingOpts }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.pick }}" style="appearance:none;border:0;cursor:pointer;padding:12px 18px;font-size:14px;font-weight:600;background:{{ b.bg }};color:{{ b.ink }};transition:background .25s,color .25s">{{ b.name }}</button></sc-for>
+</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A8A86">{{ billingNote }}</div>
+</div>
+</div>
+</section>
+
+<div style="overflow-x:auto">
+<div style="min-width:880px">
+<section style="position:sticky;top:0;z-index:10;background:#F3F2EE;border-bottom:1px solid #0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr))">
+<div style="padding:22px 20px 22px 0;display:flex;align-items:flex-end"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Recursos</div></div>
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="4">
+<div style="padding:22px 18px;border-left:1px solid #C9C8C2;background:{{ p.bg }};color:{{ p.ink }};display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;flex-direction:column;gap:4px;min-height:40px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:{{ p.kindInk }}">{{ p.kind }}</div><div style="font-size:17px;font-weight:600;letter-spacing:-.02em">{{ p.name }}</div></div>
+<div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;align-items:baseline;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;letter-spacing:-.03em">{{ p.price }}</span><span style="font-size:12px;opacity:.7">/mês</span></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.6">{{ p.alt }}</div></div>
+<a href="{{ p.href }}" style="text-align:center;font-size:14px;font-weight:600;padding:11px 12px;background:{{ p.btnBg }};color:{{ p.btnInk }}">Contratar</a>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section>
+<div style="max-width:1240px;margin:0 auto;padding:0 32px 72px">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #0E0E10">
+<div style="padding:40px 20px 14px 0;display:flex;gap:12px;align-items:baseline"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5A5A56">{{ g.num }}</span><span style="font-size:20px;font-weight:600;letter-spacing:-.03em">{{ g.name }}</span></div>
+<div style="border-left:1px solid #C9C8C2"></div><div style="border-left:1px solid #C9C8C2"></div><div style="border-left:1px solid #C9C8C2;background:#0E0E10"></div><div style="border-left:1px solid #C9C8C2"></div>
+</div>
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr));border-bottom:1px solid #C9C8C2" style-hover="background:#ECEBE6">
+<div style="padding:16px 20px 16px 0;font-size:15px;line-height:1.4">{{ r.name }}</div>
+<sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4">
+<div style="padding:16px 18px;border-left:1px solid #C9C8C2;background:{{ c.bg }};color:{{ c.ink }};display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:{{ c.size }};line-height:1.4">{{ c.v }}</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-for>
+<div style="display:grid;grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr))">
+<div></div>
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="4">
+<div style="padding:24px 18px;border-left:1px solid #C9C8C2;background:{{ p.bg }}"><a href="{{ p.href }}" style="display:block;text-align:center;font-size:14px;font-weight:600;padding:13px 12px;background:{{ p.btnBg }};color:{{ p.btnInk }}">Contratar {{ p.name }}</a></div>
+</sc-for>
+</div>
+</div>
+</section>
+</div>
+</div>
+
+<section>
+<div style="max-width:1240px;margin:0 auto;padding:0 32px 96px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1px;background:#C9C8C2;border:1px solid #C9C8C2">
+<div style="background:#F3F2EE;padding:24px;display:flex;flex-direction:column;gap:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Em todos os planos</div><sc-for list="{{ extras }}" as="x" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px;flex-wrap:wrap"><span>{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace">{{ x.v }}</span></div></sc-for></div>
+<div style="background:#F3F2EE;padding:24px;display:flex;flex-direction:column;gap:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Pagamento</div><sc-for list="{{ payRules }}" as="x" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px;flex-wrap:wrap"><span>{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ x.v }}</span></div></sc-for></div>
+</div>
+<div style="margin-top:20px;background:#1C1C20;color:#F3F2EE;padding:32px 28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px 48px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#B9E86B">Você é MEI?</div>
+<h3 style="margin:0;font-size:clamp(24px,2.6vw,32px);font-weight:600;letter-spacing:-.04em;line-height:1.08">Temos uma condição especial pra você.</h3>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:500;letter-spacing:-.04em">{{ mei.price }}</span><span style="font-size:14px;color:#B8B8B4">{{ mei.per }}</span></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A8A86">{{ mei.alt }}</div></div>
+<a href="{{ mei.href }}" style="align-self:flex-start;font-size:15px;font-weight:600;padding:14px 20px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E;color:#0E0E10">Contratar MEI →</a>
+</div>
+<div style="display:flex;flex-direction:column;border-top:1px solid #3A3A38">
+<sc-for list="{{ meiItems }}" as="it" hint-placeholder-count="5"><div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #3A3A38;font-size:14px;line-height:1.45"><span style="color:#B9E86B;font-family:'JetBrains Mono',monospace">+</span><span>{{ it }}</span></div></sc-for>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background:#1C1C20;color:#F3F2EE">
+<div style="max-width:1240px;margin:0 auto;padding:88px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:40px 64px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:16px"><h2 style="margin:0;font-size:clamp(30px,3.6vw,46px);font-weight:600;letter-spacing:-.05em;line-height:1.02;text-wrap:balance">Precisa de algo diferente?</h2><p style="margin:0;font-size:17px;line-height:1.6;color:#B8B8B4;max-width:480px">Um especialista olha o momento da sua empresa e monta o plano certo. Sem compromisso.</p></div>
+<div style="display:flex;gap:12px;flex-wrap:wrap">
+<a href="https://wa.me/5547984935695?text=Ol%C3%A1%2C%20preciso%20de%20um%20plano%20sob%20medida" style="font-size:15px;font-weight:600;padding:16px 22px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E;color:#0E0E10">Falar no WhatsApp →</a>
+<a href="Hexx Site v2.dc.html#contato" style="font-size:15px;padding:16px 22px;border:1px solid #3A3A38;color:#F3F2EE" style-hover="border-color:#8A8A86;color:#F3F2EE">Pedir diagnóstico gratuito</a>
+</div>
+</div>
+</section>
+
+<footer style="background:#0E0E10;color:#8A8A86">
+<div style="max-width:1240px;margin:0 auto;padding:32px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;line-height:1.6"><div>© 2026 Hexx Digital · CNPJ 62.414.421/0001-16 · Contador responsável CRC SC-047967/0-2</div><div style="display:flex;gap:20px;flex-wrap:wrap"><a href="Hexx Site v2.dc.html" style-hover="color:#B9E86B">Início</a><a href="Hexx Login.dc.html" style-hover="color:#B9E86B">Entrar</a><a href="https://wa.me/5547984935695" style-hover="color:#B9E86B">(47) 98493-5695</a></div></div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { billing: new URLSearchParams(window.location.search).get('cobranca') === 'mensal' ? 'mensal' : 'anual' };
+  renderVals() {
+    const bill = this.state.billing, Y = '✓', N = '—', F = 2;
+    const P = [
+      ['sem-movimento', 'Sem faturamento', 'Sem movimento', 169, 199],
+      ['simples-light', 'Simples Nacional', 'Simples Light', 249, 299],
+      ['simples-completo', 'Simples · mais escolhido', 'Simples Completo', 449, 499],
+      ['presumido', 'Lucro Presumido', 'Presumido', 649, 699]
+    ];
+    const plans = P.map(([id, kind, name, a, m], i) => {
+      const f = i === F;
+      return { kind, name, price: 'R$ ' + (bill === 'anual' ? a : m), alt: bill === 'anual' ? 'Economia R$ ' + ((m - a) * 12) + '/ano' : 'ou R$ ' + a + ' no anual', href: 'Hexx Checkout.dc.html?plano=' + id + '&cobranca=' + bill,
+        bg: f ? '#0E0E10' : 'transparent', ink: f ? '#F3F2EE' : '#0E0E10', kindInk: f ? '#B9E86B' : '#5A5A56', btnBg: f ? '#B9E86B' : '#0E0E10', btnInk: f ? '#0E0E10' : '#F3F2EE' };
+    });
+    const G = [
+      ['Para quem é', [['Perfil', 'Empresa aberta, sem movimento', 'Começando no Simples', 'Prestador com faturamento', 'Serviço ou holding patrimonial'], ['Regime tributário', 'Qualquer', 'Simples Nacional', 'Simples Nacional', 'Lucro Presumido'], ['Faturamento', 'Sem movimento', 'Até R$ 10 mil/mês', 'Sem limite', 'Sem limite']]],
+      ['Contabilidade e fiscal', [['Obrigações e declarações em dia', Y, Y, Y, Y], ['Contabilidade completa', N, Y, Y, Y], ['Emissão de notas fiscais', N, 'Até 10/mês', 'Sem limite', 'Sem limite'], ['IRPJ e CSLL trimestrais, PIS e COFINS mensais', N, N, N, Y], ['Receita de aluguel e distribuição de lucros', N, N, N, Y]]],
+      ['Sócios', [['Pró-labore', 'Até 2 sócios', '1 sócio', 'Até 2 sócios', 'Até 2 sócios']]],
+      ['Funções do Hub', [['Contratos e propostas', N, N, Y, Y], ['Departamento pessoal (colaboradores)', N, N, Y, Y], ['Patrimonial', N, N, Y, Y], ['Relatórios avançados', N, N, Y, Y]]],
+      ['Preço', [['Anual (por mês)', 'R$ 169', 'R$ 249', 'R$ 449', 'R$ 649'], ['Mês a mês', 'R$ 199', 'R$ 299', 'R$ 499', 'R$ 699'], ['Economia no ano', 'R$ 360', 'R$ 600', 'R$ 600', 'R$ 600']]]
+    ];
+    const groups = G.map(([name, rows], gi) => ({
+      name, num: String(gi + 1).padStart(2, '0'),
+      rows: rows.map(([n, ...vals]) => ({ name: n, cells: vals.map((v, i) => ({ v, bg: i === F ? '#0E0E10' : 'transparent', ink: v === N ? (i === F ? '#5A5A56' : '#8A8A86') : (i === F ? (v === Y ? '#B9E86B' : '#F3F2EE') : '#0E0E10'), size: v.length > 1 ? '13px' : '16px' })) }))
+    }));
+    return {
+      plans, groups,
+      billingOpts: [['anual', 'Anual'], ['mensal', 'Mês a mês']].map(([id, name]) => ({ name, bg: bill === id ? '#F3F2EE' : 'transparent', ink: bill === id ? '#0E0E10' : '#B8B8B4', pick: () => this.setState({ billing: id }) })),
+      billingNote: bill === 'anual' ? '12× no cartão, pelo valor do anual' : 'Boleto ou Pix · cartão com 5% de desconto',
+      payRules: [['Anual', '12× no cartão, pelo valor do anual'], ['Mês a mês', 'Boleto ou Pix, valor cheio'], ['Mês a mês no cartão', '5% de desconto']].map(([k, v]) => ({ k, v })),
+      mei: { price: 'R$ ' + (bill === 'anual' ? 79 : 99), per: bill === 'anual' ? '/mês no anual' : '/mês', alt: bill === 'anual' ? 'ou R$ 99 mês a mês · economia de R$ 240 no ano' : 'ou R$ 79/mês no anual', href: 'Hexx Checkout.dc.html?plano=mei&cobranca=' + bill },
+      meiItems: ['DAS-MEI mensal em dia, com guia e lembrete de vencimento', 'Declaração anual (DASN-SIMEI)', 'Emissão de notas fiscais pelo Hub', 'Aviso antes de estourar o limite do MEI, e a migração para o Simples com a gente', 'Empregado do MEI: R$ 50/mês'],
+      extras: [['Colaborador ou sócio adicional', 'R$ 50/mês cada'], ['Admissão ou rescisão', 'R$ 150 por evento']].map(([k, v]) => ({ k, v }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -8,6 +8,8 @@ function isPublicRoute(pathname: string): boolean {
     '/recursos',
     '/simulador',
     '/checkout',
+    '/termos',
+    '/privacidade',
     '/opengraph-image',
     '/icon',
     '/auth',

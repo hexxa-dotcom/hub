@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="logos/svg/hexx-simbolo-positivo.svg">
+<style>body{margin:0;background:#0E0E10;font-family:'Sora',sans-serif;color:#F3F2EE;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}a:hover{color:#B9E86B}input,button{font-family:inherit}input::placeholder{color:#5A5A56}</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;background:#0E0E10">
+
+<div style="flex:1 1 440px;position:relative;overflow:hidden;background:#1C1C20;padding:40px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;gap:48px;min-height:320px">
+<img src="logos/svg/hexx-simbolo-sinal.svg" alt="" style="position:absolute;right:-120px;bottom:-120px;height:560px;width:auto;opacity:.08;pointer-events:none">
+<a href="Hexx Site v2.dc.html" style="position:relative;display:flex;align-self:flex-start"><img src="logos/svg/hexx-horizontal-negativo.svg" alt="hexx" style="height:26px;width:auto;display:block"></a>
+<div style="position:relative;display:flex;flex-direction:column;gap:18px;max-width:460px">
+<h1 style="margin:0;font-size:clamp(34px,4vw,54px);font-weight:600;letter-spacing:-.055em;line-height:1;text-wrap:balance">{{ sideTitle }}</h1>
+<p style="margin:0;font-size:16px;line-height:1.6;color:#B8B8B4">{{ sideBody }}</p>
+</div>
+<div style="position:relative;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Criptografia de ponta a ponta</div>
+</div>
+
+<div style="flex:1 1 440px;display:flex;align-items:center;justify-content:center;padding:48px 32px;box-sizing:border-box">
+<div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:28px">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:28px">
+<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #3A3A38">
+<sc-for list="{{ roles }}" as="r" hint-placeholder-count="2">
+<button onClick="{{ r.pick }}" style="appearance:none;border:0;cursor:pointer;padding:13px 12px;font-size:14px;font-weight:600;background:{{ r.bg }};color:{{ r.ink }};transition:background .25s,color .25s">{{ r.name }}</button>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="margin:0;font-size:30px;font-weight:600;letter-spacing:-.045em">{{ formTitle }}</h2><p style="margin:0;font-size:14px;color:#8A8A86">{{ formSub }}</p></div>
+<form onSubmit="{{ submit }}" style="display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">E-mail<input required="required" type="email" autoComplete="email" placeholder="voce@empresa.com.br" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#B9E86B"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86"><span style="display:flex;justify-content:space-between"><span>Senha</span><button type="button" onClick="{{ toggleShow }}" style="appearance:none;border:0;background:transparent;cursor:pointer;padding:0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#B8B8B4">{{ showLabel }}</button></span><input required="required" type="{{ pwType }}" autoComplete="current-password" placeholder="••••••••" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#B9E86B"></label>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+<label style="display:flex;gap:10px;align-items:center;font-size:13px;color:#B8B8B4;cursor:pointer"><input type="checkbox" style="width:16px;height:16px;margin:0;accent-color:#B9E86B">Manter conectado</label>
+<button type="button" onClick="{{ goForgot }}" style="appearance:none;border:0;background:transparent;cursor:pointer;padding:0;font-size:13px;color:#F3F2EE;text-decoration:underline;text-underline-offset:3px">Esqueci minha senha</button>
+</div>
+<button type="submit" style="appearance:none;border:0;cursor:pointer;margin-top:8px;font-size:16px;font-weight:600;padding:17px 20px;background:#B9E86B;color:#0E0E10;display:flex;justify-content:center;gap:10px" style-hover="background:#CBF08E">{{ submitLabel }}</button>
+</form>
+<div style="border-top:1px solid #1C1C20;padding-top:22px;font-size:14px;color:#8A8A86">{{ footQ }} <a href="{{ footHref }}" style="color:#F3F2EE;font-weight:600">{{ footLink }}</a></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isForgot }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:24px">
+<button onClick="{{ goLogin }}" style="appearance:none;border:0;background:transparent;cursor:pointer;padding:0;align-self:flex-start;font-size:14px;color:#B8B8B4">← Voltar para o login</button>
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="margin:0;font-size:30px;font-weight:600;letter-spacing:-.045em">Recuperar senha</h2><p style="margin:0;font-size:14px;line-height:1.55;color:#8A8A86">Informe o e-mail da sua conta. Enviamos um link para criar uma senha nova.</p></div>
+<sc-if value="{{ resetSent }}" hint-placeholder-val="{{ false }}">
+<div style="background:#1C1C20;border:1px solid #3A3A38;padding:20px;display:flex;gap:14px"><span style="font-family:'JetBrains Mono',monospace;color:#B9E86B">✓</span><span style="font-size:14px;line-height:1.55;color:#B8B8B4">Se o e-mail estiver cadastrado, o link chega em alguns minutos. Confira também a caixa de spam.</span></div>
+</sc-if>
+<sc-if value="{{ resetNotSent }}" hint-placeholder-val="{{ true }}">
+<form onSubmit="{{ submitReset }}" style="display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">E-mail<input required="required" type="email" placeholder="voce@empresa.com.br" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none" style-focus="border-color:#B9E86B"></label>
+<button type="submit" style="appearance:none;border:0;cursor:pointer;font-size:16px;font-weight:600;padding:17px 20px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E">Enviar link</button>
+</form>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:22px">
+<img src="logos/svg/hexx-simbolo-sinal.svg" alt="" style="height:56px;width:auto;align-self:flex-start">
+<div style="display:flex;flex-direction:column;gap:8px"><h2 style="margin:0;font-size:30px;font-weight:600;letter-spacing:-.045em">Tudo certo.</h2><p style="margin:0;font-size:14px;line-height:1.55;color:#8A8A86">Abrindo {{ destName }}…</p></div>
+<div style="height:3px;background:#1C1C20;overflow:hidden"><div style="height:100%;width:{{ progress }};background:#B9E86B;transition:width 1.4s cubic-bezier(.2,.7,.2,1)"></div></div>
+<a href="{{ destHref }}" style="font-size:14px;color:#F3F2EE;text-decoration:underline;text-underline-offset:3px;align-self:flex-start">Se não abrir sozinho, clique aqui</a>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const q = new URLSearchParams(window.location.search).get('perfil');
+    this.state = { role: q === 'contador' ? 'contador' : 'cliente', view: 'login', show: false, loading: false, resetSent: false, progress: 0 };
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._t2); }
+  renderVals() {
+    const st = this.state, c = st.role === 'cliente';
+    const dest = c ? 'https://hexx-hub.vercel.app/auth/login' : 'https://hexx-hub.vercel.app/auth/login/contador';
+    return {
+      sideTitle: c ? 'Seu financeiro, em tempo real.' : 'Sua carteira, organizada.',
+      sideBody: c ? 'Caixa, notas, contratos e impostos da sua empresa num só lugar, com seu contador a uma mensagem de distância.' : 'Acompanhe as empresas que você atende, guias, prazos e pendências de cada cliente.',
+      roles: [['cliente', 'Sou cliente'], ['contador', 'Sou contador']].map(([id, name]) => ({ name, bg: st.role === id ? '#F3F2EE' : 'transparent', ink: st.role === id ? '#0E0E10' : '#B8B8B4', pick: () => this.setState({ role: id }) })),
+      formTitle: c ? 'Entrar na Hexx' : 'Área do contador',
+      formSub: c ? 'Acesse o painel da sua empresa.' : 'Acesse a gestão da sua carteira.',
+      isLogin: st.view === 'login', isForgot: st.view === 'forgot', isDone: st.view === 'done',
+      pwType: st.show ? 'text' : 'password', showLabel: st.show ? 'Ocultar' : 'Mostrar',
+      toggleShow: () => this.setState({ show: !st.show }),
+      submitLabel: st.loading ? 'Entrando…' : 'Entrar →',
+      submit: e => { e.preventDefault(); if (st.loading) return; this.setState({ loading: true }); this._t = setTimeout(() => { this.setState({ loading: false, view: 'done' }); this._t2 = setTimeout(() => this.setState({ progress: 100 }), 40); }, 900); },
+      goForgot: () => this.setState({ view: 'forgot', resetSent: false }), goLogin: () => this.setState({ view: 'login' }),
+      resetSent: st.resetSent, resetNotSent: !st.resetSent,
+      submitReset: e => { e.preventDefault(); this.setState({ resetSent: true }); },
+      footQ: c ? 'Ainda não é cliente?' : 'Quer atender pela Hexx?', footLink: c ? 'Ver planos' : 'Fale com a gente', footHref: c ? 'Hexx Planos.dc.html' : 'Hexx Site v2.dc.html#contato',
+      progress: st.progress + '%', destName: c ? 'o painel da sua empresa' : 'a área do contador', destHref: dest
+    };
+  }
+}
+</script>
+</body>
+</html>

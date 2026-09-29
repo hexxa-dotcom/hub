@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="logos/svg/hexx-simbolo-positivo.svg">
+<style>body{margin:0;background:#0E0E10;font-family:'Sora',sans-serif;color:#F3F2EE;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}a:hover{color:#B9E86B}input,select,button{font-family:inherit}@keyframes hexxMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}</style>
+</helmet>
+<div style="min-height:100vh;background:#0E0E10">
+
+<header style="position:sticky;top:0;z-index:20;background:rgba(14,14,16,.92);backdrop-filter:blur(10px);border-bottom:1px solid #1C1C20">
+<div style="max-width:1240px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<a href="#topo" style="display:flex"><img src="logos/svg/hexx-horizontal-negativo.svg" alt="hexx" style="height:26px;width:auto;display:block"></a>
+<nav style="display:flex;align-items:center;gap:28px;font-size:14px;color:#B8B8B4;flex-wrap:wrap">
+<a href="#produto">A Hexx</a><a href="Hexx Planos.dc.html">Planos</a><a href="#depoimentos">Depoimentos</a><a href="#faq">Perguntas</a>
+</nav>
+<div style="display:flex;align-items:center;gap:10px">
+<a href="Hexx Login.dc.html" style="font-size:14px;padding:11px 16px;border:1px solid #3A3A38;color:#F3F2EE" style-hover="border-color:#8A8A86;color:#F3F2EE">Entrar</a>
+<a href="#planos" style="font-size:14px;font-weight:600;padding:12px 18px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E;color:#0E0E10">Experimentar a Hexx</a>
+</div>
+</div>
+</header>
+
+<section id="topo" style="position:relative;overflow:hidden;background:{{ heroBg }};color:{{ heroInk }}">
+<img src="{{ heroMark }}" alt="" style="position:absolute;right:-160px;top:-40px;height:780px;width:auto;opacity:.06;pointer-events:none">
+<div style="position:relative;max-width:1240px;margin:0 auto;padding:96px 32px 88px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:64px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:28px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:{{ heroMuted }}">Para empresas de serviço, agências, devs e consultorias</div>
+<h1 style="margin:0;font-size:clamp(44px,6vw,80px);font-weight:600;letter-spacing:-.055em;line-height:.98;text-wrap:balance">Contabilidade e gestão financeira. <span style="color:{{ heroAccent }}">Sem burocracia.</span></h1>
+<p style="margin:0;font-size:19px;line-height:1.55;color:{{ heroMuted }};max-width:520px;text-wrap:pretty">Emita notas em segundos, saiba seu lucro real e tenha um contador dedicado cuidando dos seus impostos direto pelo WhatsApp.</p>
+<div style="display:flex;gap:12px;flex-wrap:wrap">
+<a href="#planos" style="font-size:15px;font-weight:600;padding:16px 24px;background:#B9E86B;color:#0E0E10;display:flex;gap:10px;align-items:center" style-hover="background:#CBF08E;color:#0E0E10">Experimentar a Hexx <span>→</span></a>
+<a href="#contato" style="font-size:15px;padding:16px 24px;border:1px solid {{ heroLine }};color:{{ heroInk }}">Falar com um contador</a>
+</div>
+</div>
+
+<div data-stagger="1" style="background:#1C1C20;border:1px solid #2A2A2E;color:#F3F2EE;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid #2A2A2E;gap:12px;flex-wrap:wrap">
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Saldo disponível · Conta PJ</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B9E86B;display:flex;gap:6px;align-items:center"><span style="width:6px;height:6px;background:#B9E86B;border-radius:50%"></span>Conciliação automática</div>
+</div>
+<div style="padding:26px 22px 22px;display:flex;flex-direction:column;gap:6px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:clamp(34px,4vw,48px);font-weight:500;letter-spacing:-.03em">{{ balance }}</div>
+<div style="font-size:13px;color:#8A8A86">Faturado no mês <span style="font-family:'JetBrains Mono',monospace;color:#F3F2EE">R$ 38.900</span> · 100% conciliado</div>
+</div>
+<sc-for list="{{ ledger }}" as="l" hint-placeholder-count="3">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 22px;border-top:1px solid #2A2A2E">
+<div style="display:flex;flex-direction:column;gap:3px"><div style="font-size:14px">{{ l.label }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8A8A86">{{ l.tag }}</div></div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ l.color }};white-space:nowrap">{{ l.value }}</div>
+</div>
+</sc-for>
+<div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #2A2A2E">
+<div style="padding:16px 22px;display:flex;flex-direction:column;gap:4px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Próximo DAS</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px">20/10 · R$ 2.334</div></div>
+<div style="padding:16px 22px;border-left:1px solid #2A2A2E;display:flex;flex-direction:column;gap:4px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Fator R</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#B9E86B">31% · Anexo III</div></div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="border-top:1px solid #1C1C20;border-bottom:1px solid #1C1C20;background:#0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:22px 32px;display:flex;align-items:center;gap:32px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A86">Feito para</div>
+<div style="flex:1;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)">{{ marquee }}</div>
+</div>
+</section>
+
+<section id="produto" style="background:#F3F2EE;color:#0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:flex;flex-direction:column;gap:48px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px 64px;align-items:end">
+<div style="display:flex;flex-direction:column;gap:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A5A56">01 — A Hexx por dentro</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1;text-wrap:balance">Tudo o que sua empresa de serviço precisa. Em uma só tela.</h2></div>
+<p style="margin:0;font-size:17px;line-height:1.6;color:#3A3A38;text-wrap:pretty">Chega de colcha de retalhos com vários softwares avulsos. Na Hexx você gerencia o negócio com autonomia, e a contabilidade opera em tempo real nos bastidores.</p>
+</div>
+<div style="display:flex;flex-wrap:wrap;border-bottom:1px solid #0E0E10">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+<button onClick="{{ t.select }}" style="appearance:none;border:0;cursor:pointer;padding:16px 22px;font-size:15px;font-weight:600;background:{{ t.bg }};color:{{ t.ink }};display:flex;gap:10px;align-items:center;box-shadow:inset 0 -3px 0 {{ t.line }};transition:background .3s ease,color .3s ease,box-shadow .3s ease"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;opacity:.6">{{ t.num }}</span>{{ t.name }}</button>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:48px;align-items:center;opacity:{{ panelOpacity }};transform:translateY({{ panelShift }});transition:opacity .22s ease,transform .22s ease">
+<div style="display:flex;flex-direction:column;gap:20px">
+<h3 style="margin:0;font-size:clamp(26px,3vw,36px);font-weight:600;letter-spacing:-.04em;line-height:1.08;text-wrap:balance">{{ tab.title }}</h3>
+<p style="margin:0;font-size:17px;line-height:1.6;color:#3A3A38;text-wrap:pretty">{{ tab.body }}</p>
+<a href="#planos" style="align-self:flex-start;font-size:15px;font-weight:600;padding:14px 20px;background:#0E0E10;color:#F3F2EE" style-hover="background:#1C1C20;color:#B9E86B">Experimentar a Hexx →</a>
+</div>
+<div style="background:#0E0E10;color:#F3F2EE;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid #1C1C20"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">{{ tab.panelTitle }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#B9E86B">{{ tab.panelStatus }}</div></div>
+<sc-for list="{{ tab.rows }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 22px;border-bottom:1px solid #1C1C20"><div style="font-size:14px;color:#B8B8B4">{{ r.k }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ r.color }};text-align:right">{{ r.v }}</div></div>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background:#F3F2EE;color:#0E0E10;border-top:1px solid #E1E0DA">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:flex;flex-direction:column;gap:48px">
+<div style="display:flex;flex-direction:column;gap:18px;max-width:760px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A5A56">02 — Recursos</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1;text-wrap:balance">É o fim da bagunça na gestão. Mesmo.</h2><p style="margin:0;font-size:17px;line-height:1.6;color:#3A3A38">Contabilidade consultiva, finanças em tempo real e automação fiscal, integradas num só lugar.</p></div>
+<div data-stagger="1" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:1px;background:#0E0E10;border:1px solid #0E0E10">
+<sc-for list="{{ features }}" as="f" hint-placeholder-count="6">
+<div style="background:#F3F2EE;padding:30px 28px 32px;display:flex;flex-direction:column;gap:18px;min-height:230px;transition:background .25s ease" style-hover="background:#FFFFFF">
+<div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">{{ f.chip }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;background:#0E0E10;color:#B9E86B;padding:5px 9px">{{ f.value }}</div></div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:10px"><h3 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.03em">{{ f.title }}</h3><p style="margin:0;font-size:15px;line-height:1.55;color:#3A3A38;text-wrap:pretty">{{ f.body }}</p></div>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="depoimentos" style="background:#0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:flex;flex-direction:column;gap:48px">
+<div style="display:flex;flex-direction:column;gap:18px;max-width:760px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A86">03 — Histórias reais</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1;text-wrap:balance">Quem toca a própria empresa confia na Hexx.</h2></div>
+<div data-stagger="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px">
+<sc-for list="{{ testimonials }}" as="d" hint-placeholder-count="3">
+<figure style="margin:0;background:#1C1C20;border:1px solid #1C1C20;padding:32px 28px;display:flex;flex-direction:column;gap:28px;transition:transform .3s ease,border-color .3s ease" style-hover="transform:translateY(-3px);border-color:#3A3A38">
+<div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#B9E86B;border:1px solid #3A3A38;align-self:flex-start;padding:6px 10px">{{ d.result }}</div>
+<blockquote style="margin:0;font-size:17px;line-height:1.6;color:#F3F2EE;text-wrap:pretty">“{{ d.quote }}”</blockquote>
+<figcaption style="margin-top:auto;display:flex;gap:14px;align-items:center;border-top:1px solid #3A3A38;padding-top:20px"><div style="width:44px;height:44px;border-radius:50%;background:#0E0E10;border:1px solid #3A3A38;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;color:#B9E86B">{{ d.initials }}</div><div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:15px;font-weight:600">{{ d.name }}</div><div style="font-size:13px;color:#8A8A86">{{ d.role }}</div></div></figcaption>
+</figure>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="planos" style="background:#F3F2EE;color:#0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:flex;flex-direction:column;gap:48px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px 64px;align-items:end">
+<div style="display:flex;flex-direction:column;gap:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A5A56">04 — Planos</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1;text-wrap:balance">Sob medida para o momento da sua empresa.</h2></div>
+<p style="margin:0;font-size:17px;line-height:1.6;color:#3A3A38">Preço fixo, sem surpresa no fim do mês e com suporte direto de quem entende do seu negócio.</p>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+<div style="display:flex;border:1px solid #0E0E10">
+<sc-for list="{{ billingOpts }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.pick }}" style="appearance:none;border:0;cursor:pointer;padding:12px 18px;font-size:14px;font-weight:600;background:{{ b.bg }};color:{{ b.ink }};transition:background .25s,color .25s">{{ b.name }}</button></sc-for>
+</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5A5A56">{{ billingNote }}</div>
+</div>
+<div data-stagger="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;align-items:stretch">
+<sc-for list="{{ plans }}" as="p" hint-placeholder-count="3">
+<div style="background:{{ p.bg }};color:{{ p.ink }};border:1px solid #0E0E10;padding:32px 28px;display:flex;flex-direction:column;gap:22px;transition:transform .3s ease,box-shadow .3s ease" style-hover="transform:translateY(-4px);box-shadow:0 24px 40px -28px rgba(14,14,16,.5)">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:26px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.7">{{ p.kind }}</div><sc-if value="{{ p.featured }}" hint-placeholder-val="{{ false }}"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:#B9E86B;color:#0E0E10;padding:5px 9px">Mais escolhido</div></sc-if></div>
+<h3 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-.035em">{{ p.name }}</h3>
+<sc-if value="{{ p.hasVariants }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #3A3A38"><sc-for list="{{ p.variants }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.pick }}" style="appearance:none;border:0;cursor:pointer;padding:10px 12px;font-size:13px;font-weight:600;background:{{ v.bg }};color:{{ v.ink }};transition:background .25s,color .25s">{{ v.name }}</button></sc-for></div></sc-if>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:500;letter-spacing:-.04em">{{ p.price }}</span><span style="font-size:14px;opacity:.7">{{ p.per }}</span></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;opacity:.65">{{ p.alt }}</div></div>
+<p style="margin:0;font-size:15px;line-height:1.55;opacity:.85;text-wrap:pretty">{{ p.body }}</p>
+<div style="display:flex;flex-direction:column;border-top:1px solid {{ p.line }}">
+<sc-for list="{{ p.items }}" as="it" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid {{ p.line }};font-size:14px;line-height:1.45"><span style="color:{{ p.check }};font-family:'JetBrains Mono',monospace">+</span><span>{{ it }}</span></div></sc-for>
+</div>
+<a href="{{ p.href }}" style="margin-top:auto;text-align:center;font-size:15px;font-weight:600;padding:15px 20px;background:{{ p.btnBg }};color:{{ p.btnInk }}">Contratar {{ p.short }}</a>
+<sc-if value="{{ p.hasFoot }}" hint-placeholder-val="{{ false }}"><a href="https://wa.me/5547984935695?text=Ol%C3%A1%2C%20quero%20um%20plano%20sob%20medida%20para%20holding" style="font-size:13px;line-height:1.45;text-decoration:underline;text-underline-offset:3px">{{ p.foot }}</a></sc-if>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1px;background:#C9C8C2;border:1px solid #C9C8C2">
+<div style="background:#F3F2EE;padding:24px;display:flex;flex-direction:column;gap:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Em todos os planos</div><sc-for list="{{ extras }}" as="x" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px;flex-wrap:wrap"><span>{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace">{{ x.v }}</span></div></sc-for></div>
+<div style="background:#F3F2EE;padding:24px;display:flex;flex-direction:column;gap:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5A5A56">Pagamento</div><sc-for list="{{ payRules }}" as="x" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px;flex-wrap:wrap"><span>{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ x.v }}</span></div></sc-for></div>
+<div style="background:#0E0E10;color:#F3F2EE;padding:24px;display:flex;flex-direction:column;gap:12px;justify-content:space-between"><div style="font-size:17px;font-weight:600;letter-spacing:-.02em">Precisa de algo diferente?</div><a href="https://wa.me/5547984935695?text=Ol%C3%A1%2C%20preciso%20de%20um%20plano%20sob%20medida" style="align-self:flex-start;font-size:14px;font-weight:600;color:#B9E86B" style-hover="color:#CBF08E">Fale com a gente →</a></div>
+</div>
+<div style="background:#1C1C20;color:#F3F2EE;padding:32px 28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px 48px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#B9E86B">Você é MEI?</div>
+<h3 style="margin:0;font-size:clamp(24px,2.6vw,32px);font-weight:600;letter-spacing:-.04em;line-height:1.08">Temos uma condição especial pra você.</h3>
+<p style="margin:0;font-size:15px;line-height:1.55;color:#B8B8B4">Para o microempreendedor individual.</p>
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:500;letter-spacing:-.04em">{{ mei.price }}</span><span style="font-size:14px;color:#B8B8B4">{{ mei.per }}</span></div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A8A86">{{ mei.alt }}</div></div>
+<a href="{{ mei.href }}" style="align-self:flex-start;font-size:15px;font-weight:600;padding:14px 20px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E;color:#0E0E10">Contratar MEI →</a>
+</div>
+<div style="display:flex;flex-direction:column;border-top:1px solid #3A3A38">
+<sc-for list="{{ meiItems }}" as="it" hint-placeholder-count="5"><div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #3A3A38;font-size:14px;line-height:1.45;color:#F3F2EE"><span style="color:#B9E86B;font-family:'JetBrains Mono',monospace">+</span><span>{{ it }}</span></div></sc-for>
+</div>
+</div>
+<a href="Hexx Planos.dc.html" style="align-self:flex-start;font-size:15px;font-weight:600;border-bottom:1px solid #0E0E10;padding-bottom:4px" style-hover="color:#5A5A56">Ver a comparação completa de recursos e valores →</a>
+</div>
+</section>
+
+<section style="background:#1C1C20">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:56px">
+<div style="display:flex;flex-direction:column;gap:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A86">05 — Atendimento de verdade</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1;text-wrap:balance">Bateu a dúvida? Fala com a gente.</h2><p style="margin:0;font-size:17px;line-height:1.6;color:#B8B8B4;max-width:460px">Nada de robô que não resolve. Você fala direto com quem entende da sua empresa.</p></div>
+<div data-stagger="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:1px;background:#3A3A38">
+<sc-for list="{{ support }}" as="s" hint-placeholder-count="4">
+<div style="background:#1C1C20;padding:26px 24px;display:flex;flex-direction:column;gap:10px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#B9E86B">{{ s.num }}</div><h3 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.02em">{{ s.title }}</h3><p style="margin:0;font-size:14px;line-height:1.55;color:#B8B8B4;text-wrap:pretty">{{ s.body }}</p></div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="faq" style="background:#F3F2EE;color:#0E0E10">
+<div style="max-width:1240px;margin:0 auto;padding:112px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:56px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#5A5A56">06 — Perguntas frequentes</div><h2 style="margin:0;font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-.05em;line-height:1">Antes de começar.</h2></div>
+<div style="display:flex;flex-direction:column;border-top:1px solid #0E0E10">
+<sc-for list="{{ faqs }}" as="q" hint-placeholder-count="8">
+<div style="border-bottom:1px solid #0E0E10">
+<button onClick="{{ q.toggle }}" style="appearance:none;border:0;background:transparent;cursor:pointer;width:100%;text-align:left;padding:22px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:18px;font-weight:600;letter-spacing:-.02em;color:#0E0E10"><span>{{ q.q }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:400;flex-shrink:0;display:inline-block;transform:rotate({{ q.rot }});transition:transform .3s ease">+</span></button>
+<div style="display:grid;grid-template-rows:{{ q.rows }};transition:grid-template-rows .35s ease"><div style="overflow:hidden;min-height:0"><p style="margin:0;padding:0 48px 24px 0;font-size:16px;line-height:1.6;color:#3A3A38;text-wrap:pretty">{{ q.a }}</p></div></div>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section id="contato" style="background:#1C1C20;color:#F3F2EE;position:relative;overflow:hidden">
+<img src="logos/svg/hexx-simbolo-branco.svg" alt="" style="position:absolute;left:-120px;bottom:-160px;height:620px;width:auto;opacity:.04;pointer-events:none">
+<div style="position:relative;max-width:1240px;margin:0 auto;padding:112px 32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:56px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:22px">
+<h2 style="margin:0;font-size:clamp(38px,5vw,64px);font-weight:600;letter-spacing:-.055em;line-height:.98;text-wrap:balance">Pronto para simplificar sua rotina?</h2>
+<p style="margin:0;font-size:18px;line-height:1.55;max-width:460px;color:#B8B8B4">Tire suas dúvidas ou peça um diagnóstico gratuito da sua empresa direto com um especialista.</p>
+<div style="display:flex;flex-direction:column;border-top:1px solid #3A3A38;max-width:460px">
+<sc-for list="{{ perks }}" as="k" hint-placeholder-count="3"><div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #3A3A38;font-size:15px"><span style="font-family:'JetBrains Mono',monospace;color:#B9E86B">→</span>{{ k }}</div></sc-for>
+</div>
+</div>
+<div style="background:#0E0E10;border:1px solid #2A2A2E;color:#F3F2EE;padding:32px 28px;display:flex;flex-direction:column;gap:16px">
+<sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:14px;padding:24px 0"><img src="logos/svg/hexx-simbolo-sinal.svg" alt="" style="height:56px;width:auto;align-self:flex-start"><h3 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-.03em">Recebemos seu contato.</h3><p style="margin:0;font-size:15px;line-height:1.55;color:#B8B8B4">Um especialista da Hexx responde em até 1 dia útil.</p></div>
+</sc-if>
+<sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+<form onSubmit="{{ submit }}" style="display:flex;flex-direction:column;gap:16px">
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Nome completo<input required="required" type="text" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">E-mail profissional<input required="required" type="email" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">WhatsApp com DDD<input required="required" type="tel" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none"></label>
+<label style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86">Área de atuação<select required="required" style="font-size:16px;padding:14px 16px;background:#1C1C20;border:1px solid #3A3A38;color:#F3F2EE;outline:none;letter-spacing:0;text-transform:none"><option value="">Selecione sua atividade</option><sc-for list="{{ areas }}" as="ar" hint-placeholder-count="8"><option>{{ ar }}</option></sc-for></select></label>
+<button type="submit" style="appearance:none;border:0;cursor:pointer;margin-top:6px;font-size:16px;font-weight:600;padding:17px 20px;background:#B9E86B;color:#0E0E10" style-hover="background:#CBF08E">Quero conhecer a Hexx →</button>
+<div style="font-size:12px;color:#8A8A86">Seus dados estão seguros. Resposta em até 1 dia útil.</div>
+</form>
+</sc-if>
+</div>
+</div>
+</section>
+
+<footer style="background:#0E0E10;border-top:1px solid #1C1C20">
+<div style="max-width:1240px;margin:0 auto;padding:72px 32px 40px;display:flex;flex-direction:column;gap:56px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:40px">
+<div style="display:flex;flex-direction:column;gap:20px;grid-column:span 2"><img src="logos/svg/hexx-vertical-negativo.svg" alt="hexx" style="height:72px;width:auto;align-self:flex-start"><p style="margin:0;font-size:17px;line-height:1.5;color:#B8B8B4">Clareza pra decidir.<br>Liberdade pra crescer.</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:#B8B8B4"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86;margin-bottom:4px">Navegação</div><a href="#produto">A Hexx por dentro</a><a href="https://hexx-hub.vercel.app/simulador">Simulador de economia</a><a href="Hexx Planos.dc.html">Planos e preços</a><a href="Hexx Login.dc.html">Portal do cliente</a><a href="Hexx Login.dc.html?perfil=contador">Área do contador</a></div>
+<div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:#B8B8B4"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A8A86;margin-bottom:4px">Hexx Digital</div><a href="#depoimentos">Depoimentos</a><a href="#faq">Perguntas frequentes</a><a href="#contato">Fale com a gente</a><a href="https://wa.me/5547984935695">(47) 98493-5695</a><a href="mailto:contato@hexxdigital.com.br">contato@hexxdigital.com.br</a></div>
+</div>
+<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid #1C1C20;padding-top:24px;font-size:12px;color:#8A8A86"><div style="display:flex;flex-direction:column;gap:6px"><div>© 2026 Hexx Digital · CNPJ 62.414.421/0001-16</div><div>Contador responsável · CRC SC-047967/0-2</div></div><div style="display:flex;gap:20px;flex-wrap:wrap"><a href="#">Termos de uso</a><a href="#">Política de privacidade</a><a href="#">Cookies</a></div><div style="font-family:'JetBrains Mono',monospace">hexxdigital.com.br</div></div>
+</div>
+</footer>
+
+<a href="https://wa.me/5547984935695?text=Ol%C3%A1%2C%20quero%20conhecer%20a%20Hexx" style="position:fixed;right:24px;bottom:24px;z-index:30;background:#B9E86B;color:#0E0E10;font-size:14px;font-weight:600;padding:14px 18px;display:flex;gap:10px;align-items:center;box-shadow:0 14px 30px -12px rgba(0,0,0,.5)" style-hover="background:#CBF08E;color:#0E0E10"><span style="width:8px;height:8px;border-radius:50%;background:#0E0E10"></span>WhatsApp</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Grafite&quot;,&quot;Papel&quot;],&quot;default&quot;:&quot;Grafite&quot;,&quot;tsType&quot;:&quot;'Grafite'|'Papel'&quot;},&quot;faqFirstOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { tab: 0, faq: null, sent: false, bal: 0, fade: false, billing: 'anual', simplesVar: 'completo' };
+  componentDidMount() {
+    const t0 = performance.now(), D = 1400;
+    const step = now => { const p = Math.min(1, (now - t0) / D); this.setState({ bal: 48920 * (1 - Math.pow(1 - p, 3)) }); if (p < 1) this._raf = requestAnimationFrame(step); };
+    this._raf = requestAnimationFrame(step);
+    setTimeout(() => this.setupReveal(), 60);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this._raf); this._io && this._io.disconnect(); clearTimeout(this._ft); }
+  setupReveal() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const els = new Set();
+    document.querySelectorAll('section > div > *').forEach(e => { if (!e.hasAttribute('data-stagger')) els.add(e); });
+    document.querySelectorAll('[data-stagger] > *').forEach(e => els.add(e));
+    this._io = new IntersectionObserver(entries => entries.forEach(en => { if (en.isIntersecting) { en.target.style.opacity = '1'; en.target.style.transform = 'none'; this._io.unobserve(en.target); } }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(e => {
+      if (e.style.opacity) return;
+      const sib = e.parentElement.hasAttribute('data-stagger') ? [...e.parentElement.children].indexOf(e) : [...e.parentElement.children].indexOf(e) * 0.6;
+      e.style.opacity = '0'; e.style.transform = 'translateY(18px)';
+      e.style.transition = 'opacity .7s cubic-bezier(.2,.7,.2,1) ' + (sib * 80) + 'ms, transform .7s cubic-bezier(.2,.7,.2,1) ' + (sib * 80) + 'ms';
+      this._io.observe(e);
+    });
+  }
+  pickTab(i) { if (i === this.state.tab) return; this.setState({ fade: true }); clearTimeout(this._ft); this._ft = setTimeout(() => this.setState({ tab: i, fade: false }), 200); }
+  renderVals() {
+    const bill = this.state.billing;
+    const PL = [
+      { id: 'sem-movimento', kind: 'Sem movimento', name: 'Sem movimento', anual: 169, mensal: 199, body: 'Para empresa aberta, sem faturamento nem movimentação no mês.', items: ['Obrigações em dia mesmo sem movimento', 'Declarações e entregas obrigatórias', 'Pró-labore de até 2 sócios'] },
+      { kind: 'Simples Nacional', name: 'Simples', featured: true, variants: {
+        completo: { label: 'Completo', anual: 449, mensal: 499, body: 'Prestador de serviço com faturamento. Preço fixo, sem surpresa no fim do mês.', items: ['Emissão de notas fiscais sem limite', 'Contabilidade completa e obrigações em dia', 'Pró-labore de até 2 sócios', 'Todas as funções do Hub: contratos, propostas, departamento pessoal, patrimonial e relatórios avançados'] },
+        light: { label: 'Light', anual: 249, mensal: 299, body: 'Para quem está começando no Simples: o essencial, com preço de início.', items: ['Até 10 notas fiscais por mês', 'Faturamento de até R$ 10 mil por mês', 'Contabilidade e obrigações em dia', 'Pró-labore de 1 sócio', 'Cresceu? Passa para o Completo quando quiser'] } } },
+      { id: 'presumido', kind: 'Lucro Presumido', name: 'Presumido', anual: 649, mensal: 699, body: 'Prestadora de serviço ou holding patrimonial no Lucro Presumido.', items: ['IRPJ e CSLL trimestrais, PIS e COFINS mensais', 'Holding patrimonial ou empresa de serviço', 'Receita de aluguel e distribuição de lucros', 'Emissão de notas fiscais sem limite', 'Pró-labore de até 2 sócios', 'Todas as funções do Hub'], foot: 'Holding com vários imóveis ou operação maior? Montamos sob medida →' }
+    ];
+    const light = (this.props.heroTheme ?? 'Grafite') === 'Papel';
+    const faqOpen = this.state.faq ?? ((this.props.faqFirstOpen ?? true) ? 0 : -1);
+    const T = [
+      { name: 'Caixa & Cobranças', title: 'Fluxo de caixa inteligente, conciliação e cobranças por Pix ou boleto.', body: 'Cada centavo que entra ou sai é categorizado automaticamente. Emita cobranças por Pix dinâmico ou boleto com baixa automática direto no caixa.', panelTitle: 'Caixa · Outubro', panelStatus: 'Conciliado ✓', rows: [['Contrato mensal · Cliente Prime', '+ R$ 14.500,00', 1], ['Cobrança Pix liquidada', '+ R$ 6.800,00', 1], ['Servidores e ferramentas SaaS', '− R$ 840,00', 0]] },
+      { name: 'NFSe 1-clique', title: 'Nota fiscal de serviço emitida em segundos.', body: 'Integração com o emissor nacional: você escolhe o cliente, confirma o valor e a nota sai com os impostos já calculados. A cobrança vai junto.', panelTitle: 'NFSe · Emissão', panelStatus: 'Autorizada ✓', rows: [['Tomador', 'Studio Craft Ltda'], ['Valor do serviço', 'R$ 6.800,00'], ['ISS retido', 'R$ 0,00', 1]] },
+      { name: 'Propostas & Contratos', title: 'A proposta vira contrato assinado.', body: 'Envie orçamentos profissionais com aceite e assinatura digital com validade jurídica. O cliente assina pelo celular e a nota já fica engatilhada.', panelTitle: 'Proposta #0348', panelStatus: 'Assinada ✓', rows: [['Cliente', 'Mariana Castro'], ['Valor', 'R$ 9.600,00'], ['Assinatura', 'ICP-Brasil', 1]] },
+      { name: 'Bússola Tributária', title: 'O menor imposto possível, monitorado todo mês.', body: 'O Termômetro do Fator R acompanha a folha sobre o faturamento e avisa quando é hora de ajustar o pró-labore para manter a menor alíquota.', panelTitle: 'Simples Nacional', panelStatus: 'Anexo III', rows: [['Fator R', '31%', 1], ['Alíquota efetiva', '6,00%'], ['Próximo DAS', '20/10 · R$ 2.334']] },
+      { name: 'Lucros & Cofre', title: 'Quanto você pode tirar, sem risco.', body: 'Controle exato de quanto transferir para a conta PF, com recibos legais e total conformidade contábil na distribuição de lucros.', panelTitle: 'Retirada de sócios', panelStatus: 'Isento de IR', rows: [['Lucro disponível', 'R$ 21.460,00', 1], ['Pró-labore', 'R$ 4.200,00'], ['Reserva no cofre', 'R$ 8.000,00']] }
+    ];
+    const cur = T[this.state.tab];
+    return {
+      heroBg: light ? '#F3F2EE' : '#0E0E10', heroInk: light ? '#0E0E10' : '#F3F2EE', heroMuted: light ? '#3A3A38' : '#B8B8B4', heroLine: light ? '#0E0E10' : '#3A3A38', heroAccent: light ? '#0E0E10' : '#B9E86B', heroMark: light ? 'logos/svg/hexx-simbolo-preto.svg' : 'logos/svg/hexx-simbolo-branco.svg',
+      balance: 'R$ ' + this.state.bal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), panelOpacity: this.state.fade ? 0 : 1, panelShift: this.state.fade ? '8px' : '0px',
+      marquee: React.createElement('div', { style: { display: 'flex', width: 'max-content', animation: 'hexxMarquee 45s linear infinite' } }, [0, 1].map(k => React.createElement('div', { key: k, style: { display: 'flex', gap: 40, paddingRight: 40 } }, ['Consultorias', 'Design & criativo', 'Tecnologia', 'Saúde & bem-estar', 'Advocacia', 'Arquitetura', 'Educação', 'Marketing'].map(x => React.createElement('span', { key: x, style: { fontSize: 15, color: '#B8B8B4', whiteSpace: 'nowrap', display: 'flex', gap: 40, alignItems: 'center' } }, x, React.createElement('span', { style: { width: 4, height: 4, background: '#3A3A38' } })))))),
+      ledger: [['Contrato mensal · Cliente Prime', 'Hoje · Pix', '+ R$ 14.500,00', '#F3F2EE'], ['Cobrança Pix liquidada', 'Ontem · Boleto', '+ R$ 6.800,00', '#F3F2EE'], ['Servidores e ferramentas SaaS', '28/09 · Cartão', '− R$ 840,00', '#B8B8B4']].map(([label, tag, value, color]) => ({ label, tag, value, color })),
+      segments: ['Consultorias', 'Design & criativo', 'Tecnologia', 'Saúde & bem-estar', 'Advocacia', 'Arquitetura', 'Educação', 'Marketing'],
+      tabs: T.map((t, i) => ({ name: t.name, num: String(i + 1).padStart(2, '0'), bg: i === this.state.tab ? '#0E0E10' : 'transparent', ink: i === this.state.tab ? '#F3F2EE' : '#0E0E10', line: i === this.state.tab ? '#B9E86B' : 'transparent', select: () => this.pickTab(i) })),
+      tab: { ...cur, rows: cur.rows.map(([k, v, hi]) => ({ k, v, color: hi ? '#B9E86B' : '#F3F2EE' })) },
+      features: [
+        ['Simples Nacional', '6% · Anexo III', 'Termômetro do Fator R', 'Monitoramento contínuo da folha sobre o faturamento para garantir a menor alíquota.'],
+        ['Proposta #0348', 'Assinada ✓', 'Proposta que vira contrato', 'Orçamentos com aceite e assinatura digital com validade jurídica ICP-Brasil em minutos.'],
+        ['Cobrança', 'Pix & boleto', 'Baixa automática', 'Links de pagamento vinculados à nota fiscal. O cliente paga e a Hexx concilia na hora.'],
+        ['Retirada de sócios', 'Isento de IR', 'Distribuição de lucros', 'Quanto transferir para a conta PF, com recibos legais e conformidade contábil.'],
+        ['Inteligência artificial', 'Protocolo MCP', 'Pronta para IA', 'Conecte agentes de IA à Hexx para gerar análises e projeções financeiras com privacidade.'],
+        ['Atendimento', 'WhatsApp', 'Contabilidade consultiva', 'Especialistas em empresas de serviço cuidando de todas as guias e declarações.']
+      ].map(([chip, value, title, body]) => ({ chip, value, title, body })),
+      testimonials: [
+        ['Economia de 12h/mês', 'Antes da Hexx, eu gastava um sábado inteiro por mês cruzando planilhas, emitindo notas e cobrando clientes. Hoje faço tudo no mesmo lugar em minutos.', 'RS', 'Rodrigo Silveira', 'Consultor de estratégia e gestão'],
+        ['Contratos fechados no mesmo dia', 'Mando a proposta, o cliente assina pelo celular e a nota já fica engatilhada. É a solução perfeita pra quem toca a empresa sozinha.', 'MC', 'Mariana Castro', 'Founder e designer, Studio Craft'],
+        ['3 ferramentas em 1', 'Troquei emissor de nota, assinador e app financeiro pela Hexx. Pago menos, e o suporte da contabilidade é humano e responde rápido.', 'TF', 'Thiago Fontes', 'Desenvolvedor e arquiteto de software']
+      ].map(([result, quote, initials, name, role]) => ({ result, quote, initials, name, role })),
+      billingOpts: [['anual', 'Anual'], ['mensal', 'Mês a mês']].map(([id, name]) => ({ name, bg: bill === id ? '#0E0E10' : 'transparent', ink: bill === id ? '#F3F2EE' : '#0E0E10', pick: () => this.setState({ billing: id }) })),
+      billingNote: bill === 'anual' ? '12× no cartão, pelo valor do anual' : 'Boleto ou Pix · cartão com 5% de desconto',
+      plans: PL.map(p => {
+        const v = p.variants ? p.variants[this.state.simplesVar] : p;
+        const a = v.anual, m = v.mensal, id = p.variants ? 'simples-' + this.state.simplesVar : p.id;
+        return { kind: p.kind, name: p.name, short: p.variants ? 'Simples ' + v.label : p.name, featured: !!p.featured, hasVariants: !!p.variants,
+          variants: p.variants ? Object.entries(p.variants).map(([vid, vv]) => ({ name: vv.label, bg: this.state.simplesVar === vid ? '#F3F2EE' : 'transparent', ink: this.state.simplesVar === vid ? '#0E0E10' : '#B8B8B4', pick: () => this.setState({ simplesVar: vid }) })) : [],
+          price: 'R$ ' + (bill === 'anual' ? a : m), per: bill === 'anual' ? '/mês no anual' : '/mês', alt: bill === 'anual' ? 'Economia de R$ ' + ((m - a) * 12) + ' no ano · ou R$ ' + m + ' mês a mês' : 'ou R$ ' + a + '/mês no anual, economia de R$ ' + ((m - a) * 12),
+          hasFoot: !!p.foot, foot: p.foot || '',
+          body: v.body, items: v.items, href: 'Hexx Checkout.dc.html?plano=' + id + '&cobranca=' + bill,
+          bg: p.featured ? '#0E0E10' : '#F3F2EE', ink: p.featured ? '#F3F2EE' : '#0E0E10', line: p.featured ? '#3A3A38' : '#C9C8C2', check: p.featured ? '#B9E86B' : '#0E0E10', btnBg: p.featured ? '#B9E86B' : '#0E0E10', btnInk: p.featured ? '#0E0E10' : '#F3F2EE' };
+      }),
+      extras: [['Colaborador ou sócio adicional', 'R$ 50/mês cada'], ['Admissão ou rescisão', 'R$ 150 por evento']].map(([k, v]) => ({ k, v })),
+      payRules: [['Anual', '12× no cartão, pelo valor do anual'], ['Mês a mês', 'Boleto ou Pix, valor cheio'], ['Mês a mês no cartão', '5% de desconto']].map(([k, v]) => ({ k, v })),
+      mei: { price: 'R$ ' + (bill === 'anual' ? 79 : 99), per: bill === 'anual' ? '/mês no anual' : '/mês', alt: bill === 'anual' ? 'ou R$ 99 mês a mês · economia de R$ 240 no ano' : 'ou R$ 79/mês no anual', href: 'Hexx Checkout.dc.html?plano=mei&cobranca=' + bill },
+      meiItems: ['DAS-MEI mensal em dia, com guia e lembrete de vencimento', 'Declaração anual (DASN-SIMEI)', 'Emissão de notas fiscais pelo Hub', 'Aviso antes de estourar o limite do MEI, e a migração para o Simples com a gente', 'Empregado do MEI: R$ 50/mês'],
+      support: [
+        ['Multicanal', 'WhatsApp, e-mail ou chamada de vídeo. Você escolhe como prefere resolver.'],
+        ['Gente de verdade', 'Tem coisa que só conversa resolve. Fale com o time sempre que precisar.'],
+        ['Menos clientes por contador', 'Contabilidade nichada significa mais atenção para a sua empresa.'],
+        ['Consultoria dedicada', 'Para o momento da sua empresa: abrir, migrar ou crescer.']
+      ].map(([title, body], i) => ({ num: String(i + 1).padStart(2, '0'), title, body })),
+      faqs: [
+        ['A Hexx é só uma contabilidade?', 'Não. A contabilidade é a base; o que você recebe é um hub completo de gestão: finanças, contratos, assinatura digital, impostos e relatórios, com um time que conhece empresas de serviço por dentro.'],
+        ['Pra quem é a Hexx?', 'Para empresas de serviço, principalmente profissionais que tocam o negócio sozinhos ou com equipe enxuta: consultores, designers, desenvolvedores, terapeutas, advogados e afins.'],
+        ['Ainda não tenho CNPJ. Posso usar?', 'Pode. A Hexx abre o CNPJ, escolhe o enquadramento tributário certo e entrega sua empresa já funcionando dentro da plataforma.'],
+        ['Já tenho contador. Consigo migrar?', 'Sim, e a migração é por nossa conta. Solicitamos os documentos ao seu contador atual e fazemos toda a transição.'],
+        ['A assinatura digital tem validade jurídica?', 'Sim. Os contratos seguem a legislação brasileira de assinaturas eletrônicas, com trilha de auditoria completa: quem assinou, quando e de onde.'],
+        ['Como funciona o cálculo de impostos?', 'A Hexx acompanha seu faturamento, calcula os impostos do seu enquadramento, gera as guias e avisa antes do vencimento. Você só confirma o pagamento.'],
+        ['Como funcionam os planos e pagamentos?', 'No anual, você paga em 12× no cartão pelo valor do anual. No mês a mês, paga o valor cheio no boleto ou Pix, ou com 5% de desconto no cartão. Colaborador ou sócio adicional custa R$ 50/mês cada, e admissão ou rescisão, R$ 150 por evento.']
+      ].map(([q, a], i) => ({ q, a, open: faqOpen === i, rows: faqOpen === i ? '1fr' : '0fr', rot: faqOpen === i ? '45deg' : '0deg', toggle: () => this.setState({ faq: faqOpen === i ? -1 : i }) })),
+      perks: ['Diagnóstico gratuito e sem compromisso', 'Demonstração da Hexx funcionando', 'Atendimento direto com especialista'],
+      areas: ['Consultoria / Assessoria', 'Tecnologia / Software', 'Design / Criativo / Agência', 'Saúde / Bem-estar', 'Advocacia / Jurídico', 'Educação / Mentorias', 'Holding / Gestão patrimonial', 'Outros serviços'],
+      sent: this.state.sent, notSent: !this.state.sent,
+      submit: e => { e.preventDefault(); this.setState({ sent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

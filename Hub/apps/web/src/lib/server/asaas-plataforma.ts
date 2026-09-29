@@ -182,6 +182,68 @@ export async function anualNoCartao(companyId: string): Promise<{ ok: boolean; u
   return { ok: true, url: p.invoiceUrl };
 }
 
+/**
+ * Cobrança do pedido feito no site (checkout de hexxdigital.com.br).
+ * - Anual: 12× no cartão, na página do Asaas.
+ * - Mês a mês: a primeira mensalidade (Pix, boleto ou cartão com desconto).
+ *   As seguintes saem pelas faturas de honorários do Hub, depois que o
+ *   escritório ativa o cliente — assim não há duas cobranças do mesmo mês.
+ * Devolve null sem Asaas disponível (em produção, só com chave de produção).
+ */
+export async function cobrancaDoPedido(pedidoId: string): Promise<
+  { paginaDoCartao?: string; pix?: { copiaECola: string; imagem: string | null }; boletoUrl?: string } | null
+> {
+  const c = await conexaoAsaas();
+  if (!c) return null;
+  const db = getDb();
+  const [p] = (await db.execute(sql`
+    SELECT id::text, plano, cobranca, metodo, nome, cpf, cnpj, razao_social, email, telefone, valor::float AS valor, parcelas
+      FROM pedido_do_site WHERE id = ${pedidoId}
+  `)) as unknown as {
+    id: string; plano: string; cobranca: 'anual' | 'mensal'; metodo: 'pix' | 'boleto' | 'cartao'; nome: string; cpf: string;
+    cnpj: string | null; razao_social: string | null; email: string; telefone: string; valor: number; parcelas: number;
+  }[];
+  if (!p) return null;
+
+  const cliente = await asaas<{ id: string }>(c, 'POST', '/customers', {
+    name: p.razao_social ?? p.nome,
+    cpfCnpj: p.cnpj ?? p.cpf,
+    email: p.email,
+    mobilePhone: p.telefone,
+    externalReference: `pedido:${p.id}`,
+    notificationDisabled: false,
+  });
+  const nomeDoPlano = { mei: 'MEI', 'sem-movimento': 'Sem movimento', 'simples-light': 'Simples Light', 'simples-completo': 'Simples Completo', presumido: 'Presumido' }[p.plano] ?? p.plano;
+  const base = { customer: cliente.id, externalReference: `pedido:${p.id}` };
+  // Boleto vence em 3 dias; Pix e cartão, hoje.
+  const venc = new Date(Date.now() + (p.metodo === 'boleto' ? 3 : 0) * 86_400_000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
+  const pg = p.cobranca === 'anual'
+    ? await asaas<Pagamento>(c, 'POST', '/payments', {
+        ...base, billingType: 'CREDIT_CARD', dueDate: hojeSP(), installmentCount: 12, installmentValue: centavos(p.valor),
+        description: `Hexx Digital · Plano ${nomeDoPlano} anual (12× de R$ ${p.valor.toFixed(2).replace('.', ',')})`,
+      })
+    : await asaas<Pagamento>(c, 'POST', '/payments', {
+        ...base, billingType: p.metodo === 'pix' ? 'PIX' : p.metodo === 'boleto' ? 'BOLETO' : 'CREDIT_CARD', dueDate: venc, value: centavos(p.valor),
+        description: `Hexx Digital · Plano ${nomeDoPlano} · primeira mensalidade${p.metodo === 'cartao' ? ' (cartão, 5% de desconto)' : ''}`,
+      });
+
+  const pix = p.metodo === 'pix'
+    ? await asaas<{ payload?: string; encodedImage?: string }>(c, 'GET', `/payments/${pg.id}/pixQrCode`).catch(() => ({ payload: undefined, encodedImage: undefined }))
+    : null;
+
+  await db.execute(sql`
+    UPDATE pedido_do_site
+       SET asaas_customer_id = ${cliente.id}, asaas_payment_id = ${pg.id}, asaas_invoice_url = ${pg.invoiceUrl},
+           asaas_boleto_url = ${pg.bankSlipUrl ?? null}, pix_payload = ${pix?.payload ?? null}, pix_imagem = ${pix?.encodedImage ?? null}
+     WHERE id = ${p.id}
+  `);
+
+  if (p.metodo === 'cartao') return { paginaDoCartao: pg.invoiceUrl };
+  if (p.metodo === 'pix' && pix?.payload) return { pix: { copiaECola: pix.payload, imagem: pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null } };
+  return { boletoUrl: pg.bankSlipUrl ?? pg.invoiceUrl };
+}
+
 const PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
 
 /**
@@ -193,6 +255,13 @@ export async function aplicarPagamento(c: Conexao, p: { id: string; status: stri
   if (!PAGO.has(p.status) || !p.externalReference) return false;
   const db = getDb();
   const [tipo, id, cartao] = p.externalReference.split(':');
+  if (tipo === 'pedido' && id) {
+    // Pedido do site pago: fica na lista de novos clientes do escritório.
+    const r = (await db.execute(sql`
+      UPDATE pedido_do_site SET status = 'PAGO', pago_em = now() WHERE id = ${id} AND status <> 'PAGO' RETURNING id
+    `)) as unknown as { id: string }[];
+    return r.length > 0;
+  }
   if (tipo === 'fatura' && id) {
     const [f] = (await db.execute(sql`
       UPDATE accounting_invoice SET status = 'PAID', paid_at = now(),

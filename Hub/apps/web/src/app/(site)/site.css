@@ -1,0 +1,58 @@
+/* Site Hexx — tokens do handoff (design_handoff_hexx_site/src/theme/tokens.ts). */
+.hx {
+  --g: #0E0E10; --g2: #1C1C20; --g3: #2A2A2E;
+  --p: #F3F2EE; --p2: #ECEBE6;
+  --s: #B9E86B; --sh: #CBF08E;
+  --c1: #E1E0DA; --c2: #C9C8C2; --c4: #B8B8B4; --c5: #8A8A86; --c6: #5A5A56; --c7: #3A3A38;
+  min-height: 100vh; background: var(--g); color: var(--p);
+  font-family: var(--font-sora), sans-serif; -webkit-font-smoothing: antialiased;
+}
+.hx a { color: inherit; text-decoration: none; }
+.hx a:hover { color: var(--s); }
+.hx input, .hx select, .hx button { font-family: inherit; }
+.hx .m { font-family: var(--font-mono), monospace; }
+.hx .wrap { max-width: 1240px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
+@media (max-width: 640px) { .hx .wrap { padding-left: 16px; padding-right: 16px; } }
+.hx .sec { padding-top: 112px; padding-bottom: 112px; }
+@media (max-width: 640px) { .hx .sec { padding-top: 80px; padding-bottom: 80px; } }
+.hx .rot { font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.hx .h2 { margin: 0; font-size: clamp(34px, 4.4vw, 56px); font-weight: 600; letter-spacing: -.05em; line-height: 1; text-wrap: balance; }
+.hx .corpo { margin: 0; font-size: 17px; line-height: 1.6; text-wrap: pretty; }
+
+.hx .btn-s { background: var(--s); color: var(--g); font-weight: 600; }
+.hx .btn-s:hover { background: var(--sh); color: var(--g); }
+.hx .btn-o { border: 1px solid var(--c7); color: var(--p); }
+.hx .btn-o:hover { border-color: var(--c5); color: var(--p); }
+.hx .btn-g { background: var(--g); color: var(--p); font-weight: 600; }
+.hx .btn-g:hover { background: var(--g2); color: var(--s); }
+
+.hx .card-rec { transition: background .25s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .hx .card-rec:hover { background: #FFFFFF !important; }
+  .hx .card-dep:hover { transform: translateY(-3px); border-color: var(--c7) !important; }
+  .hx .card-plano:hover { transform: translateY(-4px); box-shadow: 0 24px 40px -28px rgba(14,14,16,.5); }
+}
+.hx .card-dep, .hx .card-plano { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+
+@keyframes hexxMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.hx .marquee { display: flex; width: max-content; animation: hexxMarquee 45s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .hx .marquee { animation: none; } }
+
+.hx .fab { position: fixed; right: 24px; bottom: 24px; z-index: 30; background: var(--s); color: var(--g); font-size: 14px; font-weight: 600; padding: 14px 18px; display: flex; gap: 10px; align-items: center; box-shadow: 0 14px 30px -12px rgba(0,0,0,.5); }
+.hx .fab:hover { background: var(--sh); color: var(--g); }
+
+.hx .campo { display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--c5); }
+.hx .campo input, .hx .campo select { font-size: 16px; padding: 14px 16px; background: var(--g2); border: 1px solid var(--c7); color: var(--p); outline: none; letter-spacing: 0; text-transform: none; font-family: var(--font-sora), sans-serif; border-radius: 0; }
+.hx .campo input:focus, .hx .campo select:focus { border-color: var(--s); }
+.hx .campo.claro input, .hx .campo.claro select { background: #FFFFFF; border-color: var(--c2); color: var(--g); }
+.hx .campo.claro { color: var(--c6); }
+.hx .campo.claro input:focus { border-color: var(--g); }
+.hx .tabela-linha:hover { background: var(--p2); }
+/* Tabela de /planos: cabeçalho fixo sob o menu; no celular rola na horizontal. */
+.hx .tabela-rola { }
+.hx .tabela-topo { position: sticky; top: 63px; z-index: 10; }
+@media (max-width: 920px) {
+  .hx .tabela-rola { overflow-x: auto; }
+  .hx .tabela-topo { position: static; }
+  .hx .col-fixa { position: sticky; left: 0; z-index: 2; background: var(--p); }
+}

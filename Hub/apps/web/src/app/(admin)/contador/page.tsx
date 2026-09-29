@@ -92,6 +92,18 @@ function displayName(c: { legalName: string; tradeName: string | null; useTradeN
  * dele nos DOIS últimos meses fechados: é hora de migrar para o completo. O
  * cliente não é bloqueado — faturar mais é sinal de que ele cresceu.
  */
+/** Contratações feitas no site que ainda não viraram cliente no Hub. */
+async function pedidosDoSite(): Promise<{ id: string; nome: string; empresa: string | null; plano: string; cobranca: string; metodo: string; status: string; telefone: string; quando: string }[]> {
+  return (await getDb().execute(sql`
+    SELECT id::text, nome, razao_social AS empresa, plano, cobranca, metodo, status, telefone,
+           to_char(created_at AT TIME ZONE 'America/Sao_Paulo', 'DD/MM HH24:MI') AS quando
+      FROM pedido_do_site
+     WHERE company_id IS NULL AND status <> 'CANCELADO' AND created_at > now() - interval '60 days'
+     ORDER BY (status = 'PAGO') DESC, created_at DESC
+     LIMIT 20
+  `)) as unknown as { id: string; nome: string; empresa: string | null; plano: string; cobranca: string; metodo: string; status: string; telefone: string; quando: string }[];
+}
+
 async function clientesParaMigrarDePlano(): Promise<{ companyId: string; nome: string; plano: string; limite: number; meses: { mes: string; valor: number }[] }[]> {
   const linhas = (await getDb().execute(sql`
     WITH limitados AS (
@@ -140,6 +152,7 @@ async function certificadosParaRenovar(): Promise<{ companyId: string; nome: str
 export default async function AdminDashboard() {
   const renovar = await certificadosParaRenovar().catch(() => []);
   const migrar = await clientesParaMigrarDePlano().catch(() => []);
+  const pedidos = await pedidosDoSite().catch(() => []);
   // Sem timeout aqui essa página já travou o /contador inteiro por até 5
   // minutos quando o pooler do Supabase engasgava (ver client.ts). Se não
   // responder rápido, mostra o painel zerado em vez de pendurar a navegação.
@@ -257,6 +270,35 @@ export default async function AdminDashboard() {
               >
                 {r.nome} · {r.dias < 0 ? `venceu ${r.validoAte.split('-').reverse().join('/')}` : r.dias === 0 ? 'vence hoje' : `vence em ${r.dias} ${r.dias === 1 ? 'dia' : 'dias'}`}
               </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pedidos.length > 0 && (
+        <div className="rounded-3xl border border-lime-300/70 bg-lime-50 px-6 py-5 dark:border-lime-900/60 dark:bg-lime-950/20">
+          <p className="text-sm font-bold text-[#231F20] dark:text-[#F5F6F4]">
+            {pedidos.length === 1 ? 'Uma contratação pelo site' : `${pedidos.length} contratações pelo site`}
+          </p>
+          <p className="mt-0.5 text-xs text-[#6E6A61] dark:text-[#A8A49C]">
+            Pagas primeiro. Para ativar, cadastre a empresa e convide a pessoa em Acessos (com o CPF). Sem cobrança = o Asaas não gerou; envie o link.
+          </p>
+          <div className="mt-3 flex flex-col gap-1.5">
+            {pedidos.map((p) => (
+              <a
+                key={p.id}
+                href={`https://wa.me/55${p.telefone}` as never}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-wrap items-center gap-x-2 rounded-2xl bg-white/70 px-3.5 py-2 text-xs text-[#231F20] dark:bg-white/5 dark:text-[#F5F6F4]"
+              >
+                <span className={`rounded-full px-2 py-0.5 font-bold ${p.status === 'PAGO' ? 'bg-lime-200 text-lime-900' : p.status === 'SEM_COBRANCA' ? 'bg-amber-100 text-amber-900' : 'bg-black/5 text-[#6E6A61] dark:bg-white/10 dark:text-[#A8A49C]'}`}>
+                  {p.status === 'PAGO' ? 'Pago' : p.status === 'SEM_COBRANCA' ? 'Sem cobrança' : 'Aguardando'}
+                </span>
+                <strong>{p.nome}</strong>
+                {p.empresa && <span>· {p.empresa}</span>}
+                <span className="text-[#6E6A61] dark:text-[#A8A49C]">· {p.plano} · {p.cobranca === 'anual' ? 'anual' : 'mês a mês'} · {p.metodo} · {p.quando}</span>
+              </a>
             ))}
           </div>
         </div>
