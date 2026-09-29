@@ -29,9 +29,16 @@ export async function conexaoAsaas(): Promise<Conexao | null> {
   const [cfg] = (await getDb()
     .execute(sql`SELECT env, api_key_encrypted, card_discount_percent::float AS desconto FROM platform_asaas_config LIMIT 1`)
     .catch(() => [])) as unknown as { env: string; api_key_encrypted: string | null; desconto: number }[];
+  const producao = cfg ? cfg.env === 'production' : process.env.ASAAS_ENV === 'production';
+  // O banco local é o de produção: fora do site no ar, a chave de produção
+  // guardada no banco nunca é usada — testes locais vão para o sandbox.
+  if (producao && process.env.VERCEL_ENV !== 'production') {
+    const teste = process.env.ASAAS_API_KEY;
+    if (!teste || teste.includes('_prod_')) return null;
+    return { base: 'https://sandbox.asaas.com/api/v3', chave: teste, descontoCartao: cfg?.desconto ?? 5 };
+  }
   const chave = decryptSecret(cfg?.api_key_encrypted) || process.env.ASAAS_API_KEY || null;
   if (!chave) return null;
-  const producao = cfg ? cfg.env === 'production' : process.env.ASAAS_ENV === 'production';
   // No site no ar, cobrança de teste (sandbox) nunca chega a cliente real: sem
   // chave de produção, o checkout fica desligado — como se não houvesse Asaas.
   if (process.env.VERCEL_ENV === 'production' && !producao) return null;
