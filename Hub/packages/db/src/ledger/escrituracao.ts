@@ -75,9 +75,24 @@ async function gravarLote(
   opts: PostOptions,
 ): Promise<EscrituracaoResult> {
   const out = vazio();
+  /**
+   * Empresa com saldo de abertura: o que aconteceu até aquele dia já está nos
+   * saldos. Escriturar de novo um documento anterior conta duas vezes — as
+   * notas de jan–abr da Gateway inflaram Clientes em R$ 136 mil por cima da
+   * abertura de 30/04 (29/09/2026).
+   */
+  const [abertura] = (await tx.execute(sql`
+    SELECT to_char(max(entry_date), 'YYYY-MM-DD') AS data FROM journal_entry
+     WHERE company_id = ${companyId} AND source = 'OPENING' AND status = 'POSTED' AND reversed_by IS NULL
+  `)) as unknown as { data: string | null }[];
   for (const { documento, montar } of drafts) {
     try {
-      const r = await postJournal(tx, companyId, montar(), opts);
+      const draft = montar();
+      if (abertura?.data && draft.source !== 'OPENING' && draft.entryDate <= abertura.data) {
+        out.ignorados.push({ documento, motivo: `Anterior à abertura de ${abertura.data}: já está nos saldos de abertura.` });
+        continue;
+      }
+      const r = await postJournal(tx, companyId, draft, opts);
       if (r.jaExistia) out.jaExistiam++;
       else out.gravadas++;
     } catch (err) {
@@ -541,7 +556,7 @@ async function estornarVivas(
   opts: PostOptions,
 ): Promise<number> {
   const vivas = await tx
-    .select({ id: journalEntry.id })
+    .select({ id: journalEntry.id, data: journalEntry.entryDate, mes: journalEntry.referenceMonth })
     .from(journalEntry)
     .where(
       and(
@@ -562,7 +577,15 @@ async function estornarVivas(
   const hoje = new Date().toISOString().slice(0, 10);
   let estornadas = 0;
   for (const v of vivas) {
-    await reverseJournal(tx, companyId, v.id, motivo, hoje, opts);
+    // Mês ainda aberto: estorna na data do fato, e o balancete daquele mês
+    // não vê o lançamento em dobro. Datar com hoje deixou a baixa das notas
+    // da Gateway duplicada em maio–agosto (+R$ 5.500 no banco, 29/09/2026).
+    // Mês já conferido/enviado não se mexe: aí o estorno é de hoje.
+    const [fechado] = (await tx.execute(sql`
+      SELECT 1 AS ok FROM monthly_closure
+       WHERE company_id = ${companyId} AND reference_month = ${v.mes}::date AND stage IN ('CONFERIDO', 'ENVIADO')
+    `)) as unknown as { ok: number }[];
+    await reverseJournal(tx, companyId, v.id, motivo, fechado ? hoje : String(v.data).slice(0, 10), opts);
     estornadas++;
   }
   return estornadas;

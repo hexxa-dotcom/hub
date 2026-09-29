@@ -19,3 +19,4 @@ export * from './conta-bancaria';
 export * from './aprovacao-cadastro';
 export * from './categorias-padrao';
 export * from './parceiro';
+export * from './distribuicao-do-mes';

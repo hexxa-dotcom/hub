@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, sql } from '@hexxa/db';
+import { getDb, sql, declararDistribuicaoDoMes } from '@hexxa/db';
 import {
   fecharMesComConferencia,
   coletarDadosDoMes,
@@ -144,6 +144,12 @@ export async function fecharMesResolvendo(
 
   // ── Passada 1: o que está faltando? ────────────────────────────────────
   await escriturarPendentes(db, companyId);
+  // Pix aos sócios no mês vira distribuição declarada (Lucros Acumulados → Lucros a Pagar).
+  const declarado = await declararDistribuicaoDoMes(db, companyId, referenceMonth).catch((e) => {
+    console.error('[fechamento] declaração de lucros', e);
+    return 0;
+  });
+  if (declarado > 0) resolvido.push({ pendencia: 'distribuicao_nao_declarada', acao: `Distribuição de lucros de R$ ${declarado.toFixed(2)} declarada no último dia do mês.` });
   const dados = await coletarDadosDoMes(db, companyId, referenceMonth);
   const antes = verificarFechamento(dados);
 

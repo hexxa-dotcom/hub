@@ -28,8 +28,15 @@ import type { LancamentoOneflow } from '@hexxa/integrations';
  *
  * ── O que nunca vai ─────────────────────────────────────────────────────
  *
- * Receita SEM nota (boleto, entrada do extrato): a única receita que vale,
- * para imposto e para os livros, é a da nota fiscal. É visão interna.
+ * Receita SEM nota lançada como conta a receber (boleto, cobrança): é visão
+ * interna até a nota sair.
+ *
+ * Já o dinheiro que ENTROU no banco sem nota (partida do extrato) VAI como
+ * receita — decisão de 29/09/2026, pela lei: deixar em "adiantamento de
+ * clientes" para sempre é passivo sem exigibilidade comprovada, que a Lei
+ * 9.430/96 (art. 40) presume omissão de receita, e depósito sem origem
+ * também (art. 42); a LC 123 (art. 34) aplica as presunções ao Simples.
+ * O serviço prestado é receita (NBC TG 47) e entra no PGDAS com ou sem nota.
  * Recebimento de a receber sem nota: sem a receita lá, baixaria um "cliente a
  * receber" que não existe. E a guia PROVISÓRIA (estimativa do fechamento):
  * lá só vai o DAS apurado. "Tem nota" usa o mesmo critério do fechamento:
