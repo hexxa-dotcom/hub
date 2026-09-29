@@ -1,5 +1,5 @@
 import 'server-only';
-import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento, garantirCategoriasPadrao } from '@hexxa/db';
+import { getDb, sql, movimentosNaTransitoria, reclassificarMovimento, aprender, exemplosDoConhecimento, consultarConhecimento, garantirCategoriasPadrao, saidaParaSocio } from '@hexxa/db';
 import { ACCOUNTS } from '@hexxa/core';
 import { resolveCredentials } from './ai-insight';
 import { resolverMotor } from './llm-config';
@@ -200,25 +200,14 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
     out.paraRevisao++;
   };
 
-  // ── Regra: saída para sócio, em empresa sem folha, é distribuição de lucro ──
-  // Sem folha não existe pró-labore; o que sai para o sócio é lucro. É fato do
-  // cadastro, não palpite — e era onde a IA mais errava (Gateway, 28/09/2026).
-  // Folha do Hub (holerite do funcionário) ou a que volta do OneFlow (partida PAYSLIP).
-  const [comFolha] = (await db.execute(sql`
-    SELECT 1 AS ok WHERE
-      EXISTS (SELECT 1 FROM payslip p JOIN employee e ON e.id = p.employee_id WHERE e.company_id = ${companyId})
-      OR EXISTS (SELECT 1 FROM journal_entry WHERE company_id = ${companyId} AND source = 'PAYSLIP')
-  `)) as unknown as { ok: number }[];
-  if (!comFolha) {
-    const socios = ((await db.execute(sql`SELECT name FROM partner WHERE company_id = ${companyId}`)) as unknown as { name: string }[])
-      .map((s) => palavrasDoNome(s.name))
-      .filter((p) => p.length >= 2);
+  // ── Regra: saída para sócio (nome ou CPF) é distribuição de lucro ──────────
+  // Fato do cadastro, não palpite: não passa pela IA nem vira pergunta.
+  // A importação já aplica; aqui pega o que entrou antes da regra existir.
+  {
     const restantes: typeof movimentos = [];
     for (const m of movimentos) {
-      const d = palavrasDoNome(m.descricao);
-      const ehSocio = m.valor < 0 && socios.some((p) => p.every((w) => d.includes(w)));
-      if (!ehSocio) { restantes.push(m); continue; }
-      const r = await reclassificarMovimento(db, companyId, m.bankTransactionId, ACCOUNTS.LUCROS_A_PAGAR, 'Saída para sócio em empresa sem folha: distribuição de lucros');
+      if (!(await saidaParaSocio(db, companyId, m.descricao, m.valor))) { restantes.push(m); continue; }
+      const r = await reclassificarMovimento(db, companyId, m.bankTransactionId, ACCOUNTS.LUCROS_A_PAGAR, 'Saída para sócio: distribuição de lucros');
       if (r.ok) out.identificados++;
       else restantes.push(m);
     }
@@ -227,7 +216,7 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
 
   // ── Jev: decide com confiança; na dúvida, pergunta ────────────────────────
   // A confiança só decide aqui (lançar ou perguntar); nunca vai para a tela.
-  if (movimentos.length && jevDisponivel()) {
+  if (movimentos.length && (await jevDisponivel())) {
     const contextoJev = await contextoDaEmpresa(companyId, contas);
     const decisoes = new Map<string, EscolhaDoJev>();
     await Promise.all(
@@ -346,11 +335,6 @@ async function identificarLote(companyId: string, limite: number): Promise<Resul
 }
 
 /** O que o modelo precisa saber da empresa para identificar sem chutar. */
-/** Palavras de um nome, sem acento e em minúsculas — para achar o sócio no histórico do banco. */
-function palavrasDoNome(s: string): string[] {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2);
-}
-
 export async function contextoDaEmpresa(companyId: string, contas: Conta[]): Promise<string> {
   const db = getDb();
   const q = <T,>(p: Promise<unknown>) => (p as Promise<T>).catch(() => [] as unknown as T);

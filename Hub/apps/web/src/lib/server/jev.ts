@@ -1,4 +1,6 @@
 import 'server-only';
+import { getDb, sql } from '@hexxa/db';
+import { decryptSecret } from './secret-crypto';
 
 /**
  * JEV (TypeSafe) — modelo de DECISÃO, não de texto.
@@ -27,8 +29,28 @@ export interface EscolhaDoJev {
   ranking: string[];
 }
 
-export function jevDisponivel(): boolean {
-  return !!process.env.TYPESAFE_API_KEY;
+/**
+ * A chave salva na tela de Integrações (cifrada) vale mais que a do ambiente.
+ * Lida uma vez por minuto — um extrato faz dezenas de chamadas em paralelo.
+ */
+let cache: { chave: string | null; ate: number } | null = null;
+export async function chaveDoJev(): Promise<string | null> {
+  if (cache && cache.ate > Date.now()) return cache.chave;
+  const [r] = (await getDb()
+    .execute(sql`SELECT valor_cifrado FROM segredo_da_plataforma WHERE nome = 'TYPESAFE_API_KEY'`)
+    .catch(() => [])) as unknown as { valor_cifrado: string }[];
+  const chave = decryptSecret(r?.valor_cifrado) || process.env.TYPESAFE_API_KEY || null;
+  cache = { chave, ate: Date.now() + 60_000 };
+  return chave;
+}
+
+/** Depois de trocar a chave na tela, a próxima chamada já usa a nova. */
+export function esquecerChaveDoJev() {
+  cache = null;
+}
+
+export async function jevDisponivel(): Promise<boolean> {
+  return !!(await chaveDoJev());
 }
 
 /** Uma pergunta de escolha sobre um estado. Null se o Jev falhar — quem chama usa a reserva. */
@@ -37,7 +59,7 @@ export async function escolherComJev(
   instrucoes: string,
   opcoes: Record<string, string>,
 ): Promise<EscolhaDoJev | null> {
-  const chave = process.env.TYPESAFE_API_KEY;
+  const chave = await chaveDoJev();
   if (!chave || Object.keys(opcoes).length < 2) return null;
   try {
     const r = await fetch(URL_JEV, {

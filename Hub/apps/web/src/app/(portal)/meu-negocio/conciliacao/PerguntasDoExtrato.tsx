@@ -41,10 +41,10 @@ export function PerguntasDoExtrato({ perguntas, ambiguos, contas }: { perguntas:
 
   if (perguntas.length + ambiguos.length === 0 || total <= 0) {
     return (
-      <p className="flex items-center justify-center gap-2 rounded-[28px] border border-dashed border-black/10 px-6 py-8 text-sm text-ink-soft dark:border-white/10">
+      <div className="flex items-center justify-center gap-2 rounded-[28px] border border-dashed border-black/10 px-6 py-8 text-sm text-ink-soft dark:border-white/10">
         <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Todo o extrato está identificado.
         {elemento}
-      </p>
+      </div>
     );
   }
 

@@ -1,10 +1,12 @@
-import { CreditCard, Key, CheckCircle2, XCircle } from 'lucide-react';
+import { CreditCard, Key, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
 import { Section } from '@/components/contador/AdminUI';
 import { AsaasSetup } from './AsaasSetup';
-import { getAsaasPlatformStatusAction } from './actions';
+import { JevSetup } from './JevSetup';
+import { getAsaasPlatformStatusAction, getJevStatusAction } from './actions';
 
 export default async function AdminIntegracoes() {
   const asaasStatus = await getAsaasPlatformStatusAction();
+  const jev = await getJevStatusAction();
   const cnpjaConfigured = !!process.env.CNPJA_API_KEY;
 
   return (
@@ -22,6 +24,15 @@ export default async function AdminIntegracoes() {
           fullWidth
         >
           <AsaasSetup initial={asaasStatus} />
+        </Section>
+
+        <Section
+          icon={<Sparkles className="h-4 w-4" />}
+          title="Jev (TypeSafe) — classificação do extrato"
+          desc="A IA que decide a conta de cada movimento bancário; na dúvida, vira pergunta"
+          fullWidth
+        >
+          <JevSetup origem={jev.origem} />
         </Section>
 
         <Section icon={<Key className="h-4 w-4" />} title="Outras integrações" desc="Status — configuradas por variável de ambiente, não editável aqui" fullWidth>

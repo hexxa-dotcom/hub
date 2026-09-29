@@ -60,7 +60,12 @@
       "Bash(grep -rn '\"/login\"\\\\|'\"'\"'/login'\"'\"'\\\\|`/login`\\\\|hub-financeiro/integracoes' --include=\"*.tsx\" --include=\"*.ts\" .)",
       "Bash(sed -i '' \"/passo\\('importar'/d; /passo\\('conciliar'/d; s/conciliacao: conc, //\" _id.ts)",
       "Bash(mkdir -p node_modules/server-only)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(cat)",
+      "Bash(node _mig.mjs)",
+      "Bash(rm _mig.mjs)",
+      "Bash(node _c.mjs)",
+      "Bash(rm _c.mjs)"
     ]
   }
 }

@@ -31,6 +31,33 @@ export async function parceiroPeloDocumento(
 }
 
 /**
+ * O dinheiro saiu para um SÓCIO da empresa? Pelo nome completo no histórico ou
+ * pelos dígitos do CPF que o banco deixa à mostra ("•••.844.058-••").
+ *
+ * Regra do escritório (Filipe, 28/09/2026): transferência para sócio é
+ * distribuição de lucros, ponto final — não se pergunta. Pró-labore sai pela
+ * folha e é baixado contra ela antes de chegar aqui.
+ */
+export async function saidaParaSocio(tx: DbHandle, companyId: string, descricao: string, valor: number): Promise<boolean> {
+  if (valor >= 0) return false;
+  const socios = (await tx.execute(sql`
+    SELECT name, cpf FROM partner WHERE company_id = ${companyId}
+  `)) as unknown as { name: string; cpf: string | null }[];
+  if (!socios.length) return false;
+  const palavras = (s: string) =>
+    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2);
+  const noHistorico = palavras(descricao);
+  // CPF mascarado: o banco mostra os 6 dígitos do meio (posições 4–9).
+  const meioDoCpf = descricao.match(/\.(\d{3})\.(\d{3})-/);
+  return socios.some((s) => {
+    const nome = palavras(s.name);
+    if (nome.length >= 2 && nome.every((w) => noHistorico.includes(w))) return true;
+    const cpf = (s.cpf ?? '').replace(/\D/g, '');
+    return !!meioDoCpf && cpf.length === 11 && cpf.slice(3, 9) === meioDoCpf[1]! + meioDoCpf[2]!;
+  });
+}
+
+/**
  * CNPJ de quem pagou ou recebeu, lido do histórico do extrato.
  *
  * Os bancos escrevem com espaços e pontuação soltos ("26.994.854 /0001-24",

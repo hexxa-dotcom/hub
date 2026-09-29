@@ -4,7 +4,7 @@ import { accrueBankTransaction, ACCOUNTS } from '@hexxa/core';
 import { postJournal, reverseJournal } from './repository';
 import { escriturarLancamento } from './escrituracao';
 import { consultarConhecimento, aprender, normalizarDescricao } from './conhecimento';
-import { cnpjNoHistorico } from './parceiro';
+import { cnpjNoHistorico, saidaParaSocio } from './parceiro';
 
 /**
  * CONCILIAÇÃO E ESCRITURAÇÃO DO EXTRATO.
@@ -271,6 +271,7 @@ async function contaPelaHistoria(
   // Antes de tudo, o que a própria forma do movimento já diz — sem palpite.
   const fixa = contaPorRegra(descricao, valor);
   if (fixa) return fixa;
+  if (await saidaParaSocio(tx, companyId, descricao, valor)) return ACCOUNTS.LUCROS_A_PAGAR;
 
   // Depois o que alguém ENSINOU (contador, empresário, IA verificada) — ver
   // `conhecimento.ts`. Só depois a dedução pelos lançamentos antigos.
