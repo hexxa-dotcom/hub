@@ -133,16 +133,41 @@ export async function cartaoDaFatura(faturaId: string, companyId: string): Promi
   return { ok: true, url: p.invoiceUrl };
 }
 
+/** Desconto do anual para quem tem valor combinado ou desconto (não usa a tabela). */
+const DESCONTO_ANUAL_COMBINADO = 0.15;
+
+/**
+ * Valor mensal no anual: o da tabela do plano (`valorAnualMensal`); para quem
+ * paga valor combinado ou tem desconto, 15% sobre o que já paga — a tabela
+ * anual não se aplica a um preço que já não é o da tabela.
+ */
+export function valorAnualMensal(p: {
+  valorMensal: number;
+  valorCombinado: string | number | null;
+  desconto: string | number | null;
+  features: { valorAnualMensal?: number } | null;
+}): number | null {
+  const personalizado = p.valorCombinado != null || Number(p.desconto ?? 0) > 0;
+  if (!personalizado && typeof p.features?.valorAnualMensal === 'number') return p.features.valorAnualMensal;
+  if (p.valorMensal <= 0) return null;
+  return centavos(p.valorMensal * (1 - DESCONTO_ANUAL_COMBINADO));
+}
+
 /** O ano inteiro no cartão, em até 12×, pelo valor anual do plano. */
 export async function anualNoCartao(companyId: string): Promise<{ ok: boolean; url?: string; mensagem?: string }> {
   const c = await conexaoAsaas();
   if (!c) return { ok: false, mensagem: 'Pagamento com cartão ainda não está disponível.' };
   const [s] = (await getDb().execute(sql`
-    SELECT s.id::text, s.billing_cycle, s.paid_until::text, s.asaas_annual_url, p.features
+    SELECT s.id::text, s.billing_cycle, s.paid_until::text, s.asaas_annual_url, p.features,
+           p.monthly_value::float AS tabela, s.custom_value, s.discount_value
       FROM subscription s JOIN plan p ON p.id = s.plan_id
      WHERE s.company_id = ${companyId} AND s.status <> 'CANCELED' LIMIT 1
-  `)) as unknown as { id: string; billing_cycle: string; paid_until: string | null; asaas_annual_url: string | null; features: { valorAnualMensal?: number; nomeComercial?: string } | null }[];
-  const mensal = s?.features?.valorAnualMensal;
+  `)) as unknown as {
+    id: string; billing_cycle: string; paid_until: string | null; asaas_annual_url: string | null;
+    features: { valorAnualMensal?: number; nomeComercial?: string } | null; tabela: number; custom_value: string | null; discount_value: string | null;
+  }[];
+  const mensalHoje = s ? (s.custom_value != null ? Number(s.custom_value) : Math.max(0, s.tabela - Number(s.discount_value ?? 0))) : 0;
+  const mensal = s ? valorAnualMensal({ valorMensal: mensalHoje, valorCombinado: s.custom_value, desconto: s.discount_value, features: s.features }) : null;
   if (!s || !mensal) return { ok: false, mensagem: 'O plano não tem opção anual.' };
   if (s.paid_until && s.paid_until >= hojeSP()) return { ok: false, mensagem: 'O ano já está pago.' };
   if (s.asaas_annual_url) return { ok: true, url: s.asaas_annual_url };

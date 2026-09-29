@@ -3,7 +3,7 @@
 import { getTenantContext } from '@/lib/server/tenant';
 import { withTenant, sql } from '@hexxa/db';
 import { valorDosHonorarios } from '@hexxa/core';
-import { conexaoAsaas, cartaoDaFatura, anualNoCartao, boletoDaFatura, conferirPagamentosDaEmpresa } from '@/lib/server/asaas-plataforma';
+import { conexaoAsaas, cartaoDaFatura, anualNoCartao, boletoDaFatura, conferirPagamentosDaEmpresa, valorAnualMensal } from '@/lib/server/asaas-plataforma';
 
 /**
  * PLANO — o que a empresa contratou da contabilidade e as faturas de
@@ -79,7 +79,7 @@ export async function getPlanoAtualAction(): Promise<PlanoAtual> {
     comoChegou,
     status: r.status,
     desde: r.desde,
-    valorAnualMensal: typeof f.valorAnualMensal === 'number' ? f.valorAnualMensal : null,
+    valorAnualMensal: valorAnualMensal({ valorMensal: valor, valorCombinado: r.custom_value, desconto: r.discount_value, features: f as { valorAnualMensal?: number } }),
     pagoAte: r.pago_ate,
     descontoCartao: conexao?.descontoCartao ?? 5,
     cartaoDisponivel: !!conexao,
