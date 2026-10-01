@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
+import {useSearchParams} from 'next/navigation';
+import ParcelamentosHub from '@/components/parcelamentos/ParcelamentosHub';
+import type {PlanoMeta} from '@/lib/parcelamentos';
 import { SegmentedTabs, alertaDaAba } from '@/components/ui/SegmentedTabs';
 import {
   Receipt,
@@ -306,8 +309,12 @@ export function HubGuias({
   honorarios = [],
   explicacoes = {},
   ehMei = false,
+  parcelamentoPlans=[],
+  novasParcelas=[],
 }: {
   initial: Guia[];
+  parcelamentoPlans?:PlanoMeta[];
+  novasParcelas?:string[];
   insightSlot?: React.ReactNode;
   /** Documentos do contador que não são guia (as guias já estão em `initial`). */
   documentos?: Entrega[];
@@ -328,6 +335,7 @@ export function HubGuias({
   const currentMonthStr = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [guias, setGuias] = useState<Guia[]>(initial);
+  useEffect(()=>setGuias(initial),[initial]);
   const [catFilter, setCatFilter] = useState<CatFilter>('todas');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todas');
   const [showForm, setShowForm] = useState(false);
@@ -502,10 +510,11 @@ export function HubGuias({
     guias.filter((g) => !g.installmentGroupId && g.status === 'OVERDUE').length +
     honorarios.filter((h) => situacaoDoHonorario(h.status) === 'OVERDUE').length +
     documentos.filter((d) => !d.visualizadoEm).length;
-  const parcelasVencidas = guias.filter((g) => g.installmentGroupId && g.status === 'OVERDUE').length;
   const contador = alertaDaAba;
 
   const [mainTab, setMainTab] = useState<'guias' | 'timeline' | 'parcelamentos'>('guias');
+  const searchParams=useSearchParams();
+  useEffect(()=>{if(searchParams.get('aba')==='parcelamentos')setMainTab('parcelamentos');},[searchParams]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const planos = new Map<string, Guia[]>();
@@ -756,7 +765,7 @@ export function HubGuias({
             tabs={[
               { id: 'guias', label: 'Guias e documentos', icon: Receipt, badge: contador(atencaoGuias) },
               { id: 'timeline', label: 'Agenda', icon: Calendar },
-              { id: 'parcelamentos', label: 'Parcelamentos', icon: Layers, badge: contador(parcelasVencidas) },
+              { id: 'parcelamentos', label: 'Parcelamentos', icon: Layers, badge: contador(novasParcelas.length) },
             ]}
             activeTab={mainTab}
             onChange={setMainTab}
@@ -814,101 +823,7 @@ export function HubGuias({
         </div>
       )}
 
-      {mainTab === 'parcelamentos' && (
-        <div className="space-y-4 animate-in fade-in">
-          {planos.size === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-center text-ink-soft">
-              <Layers className="h-10 w-10 opacity-30" />
-              <p className="text-sm">Nenhum parcelamento cadastrado pela contabilidade no momento.</p>
-            </div>
-          ) : (
-            [...planos.entries()].map(([groupId, parcelas]) => {
-              const ordered = [...parcelas].sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
-              const pagas = ordered.filter((p) => p.status === 'PAID').length;
-              const total = ordered[0]?.installmentCount ?? ordered.length;
-              const totalValor = ordered.reduce((s, p) => s + p.amount, 0);
-              const restante = ordered.filter((p) => p.status !== 'PAID').reduce((s, p) => s + p.amount, 0);
-              const desc = ordered[0]?.taxName.replace(/\s*\(\d+\/\d+\)$/, '') ?? 'Parcelamento';
-              const proxima = ordered.find((p) => p.status !== 'PAID');
-              return (
-                <Card key={groupId} level={1} className="overflow-hidden card-finish">
-                  <div className="p-6 sm:p-8 border-b border-black/5 dark:border-white/10 space-y-4">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-sm font-semibold text-ink">{desc}</h2>
-                        <p className="text-xs sm:text-sm text-ink-soft mt-0.5">
-                          {pagas} de {total} parcelas pagas · restam <span className="font-serif tabular font-semibold text-ink">{BRL.format(restante)}</span>
-                        </p>
-                      </div>
-                      {proxima && (
-                        <div className="text-right">
-                          <p className="rotulo text-ink-soft">Próxima parcela</p>
-                          <p className={`text-sm font-serif tabular font-bold ${vencClass(proxima.dueDate, proxima.status)}`}>{fmtDate(proxima.dueDate)} · {BRL.format(proxima.amount)}</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                      <div className="h-full rounded-full bg-hexxa-forest dark:bg-hexxa-lime transition-[width] duration-700 ease-out" style={{ width: `${(pagas / total) * 100}%` }} />
-                    </div>
-                    <p className="text-xs text-ink-soft">Valor total do plano: <strong className="font-serif tabular text-ink">{BRL.format(totalValor)}</strong></p>
-                  </div>
-
-                  <div className="divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-                    {ordered.map((p) => {
-                      const st = STATUS_CONFIG[p.status];
-                      const StatusIcon = st.icon;
-                      const isExp = expanded === p.id;
-                      return (
-                        <div key={p.id}>
-                          <button
-                            type="button"
-                            onClick={() => setExpanded(isExp ? null : p.id)}
-                            className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                          >
-                            <span className="w-14 shrink-0 text-xs font-bold text-ink-soft">{p.installmentNumber}/{p.installmentCount}</span>
-                            <div className="min-w-0 flex-1">
-                              <p className={`text-xs sm:text-sm font-bold ${vencClass(p.dueDate, p.status)}`}>{p.status === 'PAID' ? 'Paga' : `Vence ${fmtDate(p.dueDate)}`}</p>
-                            </div>
-                            <span className="shrink-0 text-sm font-serif tabular font-bold text-ink">{BRL.format(p.amount)}</span>
-                            <span className={`hidden shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold sm:inline-flex ${st.cls}`}>
-                              <StatusIcon className="h-3 w-3" /> {st.label}
-                            </span>
-                            {isExp ? <ChevronUp className="h-4 w-4 shrink-0 text-ink-soft" /> : <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" />}
-                          </button>
-                          {isExp && (
-                            <div className="mx-5 mb-4 flex flex-wrap gap-2 rounded-2xl bg-surface-card shadow-(--elev-inset) border border-black/5 dark:border-white/5 p-4">
-                              {p.pixCode && <CopyBtn text={p.pixCode} />}
-                              {p.fileUrl && (
-                                <a
-                                  href={linkDoArquivo(p.id, p.fileUrl)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-black/5 dark:border-white/5 bg-surface-card shadow-(--elev-1) px-3.5 py-1.5 text-xs font-bold text-ink-soft hover:text-ink transition-colors"
-                                >
-                                  <Download className="h-3.5 w-3.5" /> Baixar Guia
-                                </a>
-                              )}
-                              {p.status !== 'PAID' && (
-                                <button
-                                  type="button"
-                                  onClick={() => markPaid(p.id)}
-                                  className="tap-target pressable focusable inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 px-4 py-2 text-xs font-bold hover:bg-emerald-500/25 transition-colors"
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como Paga
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      )}
+      {mainTab === 'parcelamentos' && <><p className="text-xs text-ink-soft">{novasParcelas.length>0?`${novasParcelas.length} ${novasParcelas.length===1?'nova guia de parcelamento disponível':'novas guias de parcelamento disponíveis'}. Abra ou baixe o PDF para consultar.`:'As guias oficiais aparecem aqui quando enviadas pela contabilidade.'}</p><ParcelamentosHub initialGuides={guias} initialPlans={parcelamentoPlans} novasParcelas={novasParcelas}/></>}
 
       {mainTab === 'guias' && (
         <>
@@ -1124,4 +1039,3 @@ export function HubGuias({
     </div>
   );
 }
-

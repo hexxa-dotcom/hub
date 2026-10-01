@@ -13,3 +13,6 @@ export * from './patrimonial';
 export * from './platform';
 export * from './crm';
 export * from './ai';
+export * from './receipts';
+
+export * from './installments';

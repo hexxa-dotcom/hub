@@ -12,6 +12,7 @@ import {
 } from '@hexxa/db';
 import type { TenantContext } from '@hexxa/core';
 import { decryptSecret } from './secret-crypto';
+import {novasGuiasParcelamento} from '@/lib/novas-guias-parcelamento';
 
 /**
  * A ENTREGA DE DOCUMENTOS ENTRE O ESCRITÓRIO E O CLIENTE — ver migration 0070.
@@ -108,6 +109,21 @@ export async function listarEntregasDoCliente(ctx: TenantContext): Promise<Entre
     `),
   );
   return (linhas as unknown as Linha[]).map(paraEntrega);
+}
+
+export async function listarNovasGuiasParcelamento(ctx:TenantContext):Promise<string[]> {
+ const linhas=await withTenant(ctx.companyId,tx=>tx.execute(sql`
+  SELECT g.id, g.installment_group_id AS "installmentGroupId", g.file_url AS "fileUrl", g.status,
+         d.tax_guide_id AS "taxGuideId", true AS "temArquivo",
+         d.visualizado_em AS "visualizadoEm", d.confirmado_em AS "confirmadoEm"
+    FROM document_delivery d
+    JOIN tax_guide g ON g.id=d.tax_guide_id AND g.company_id=d.company_id
+   WHERE d.company_id=${ctx.companyId} AND g.installment_group_id IS NOT NULL
+     AND g.file_url IS NOT NULL AND g.status<>'PAID'
+     AND d.visualizado_em IS NULL AND d.confirmado_em IS NULL
+ `));
+ const rows=linhas as unknown as {id:string;installmentGroupId:string;fileUrl:string;status:string;taxGuideId:string;temArquivo:boolean;visualizadoEm:null;confirmadoEm:null}[];
+ return novasGuiasParcelamento(rows,rows);
 }
 
 /** O arquivo de uma entrega, de onde ele estiver: anexado ou na guia. */

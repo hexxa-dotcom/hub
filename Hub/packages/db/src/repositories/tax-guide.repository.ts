@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { TenantContext } from '@hexxa/core';
 import { withTenant, type DbHandle } from '../client';
 import { taxGuide } from '../schema/accounting';
@@ -25,6 +25,8 @@ export type TaxGuideRecord = {
   status: TaxGuideStatusValue;
   pixCode: string | null;
   fileUrl: string | null;
+  installmentEstimated?:boolean;
+  requestedAt?:string|null;
   installmentGroupId: string | null;
   installmentNumber: number | null;
   installmentCount: number | null;
@@ -36,6 +38,14 @@ export type NewInstallmentPlan = {
   installmentAmount: number;
   firstDueDate: string; // YYYY-MM-DD, demais parcelas somam +1 mês
   pixCode?: string | null;
+};
+
+// Preserve a leitura das guias enquanto a migração de parcelamentos não foi aplicada.
+const {installmentEstimated: _estimated, installmentManaged: _managed, requestedAt: _requested, ...legacyColumns}=getTableColumns(taxGuide);
+const guideColumns={...legacyColumns,
+  installmentEstimated:sql<boolean>`coalesce((to_jsonb(${taxGuide})->>'installment_estimated')::boolean,false)`,
+  installmentManaged:sql<boolean>`coalesce((to_jsonb(${taxGuide})->>'installment_managed')::boolean,false)`,
+  requestedAt:sql<Date|null>`(to_jsonb(${taxGuide})->>'requested_at')::timestamptz`.mapWith({mapFromDriverValue:(value:string|null)=>value?new Date(value):null}),
 };
 
 export class DrizzleTaxGuideRepository {
@@ -61,14 +71,15 @@ export class DrizzleTaxGuideRepository {
 
   async markPaid(ctx: TenantContext, id: string): Promise<void> {
     await withTenant(ctx.companyId, async (tx) => {
-      await tx.update(taxGuide).set({ status: 'PAID' }).where(eq(taxGuide.id, id));
+      const updated=await tx.update(taxGuide).set({ status: 'PAID' }).where(and(eq(taxGuide.id,id),eq(taxGuide.companyId,ctx.companyId),sql`coalesce((to_jsonb(${taxGuide})->>'installment_estimated')::boolean,false)=false`)).returning({id:taxGuide.id});
+      if(!updated.length)throw new Error('Guia não encontrada ou parcela ainda aguardando a guia oficial.');
     });
   }
 
   async listAll(ctx: TenantContext): Promise<TaxGuideRecord[]> {
     return withTenant(ctx.companyId, async (tx) => {
       const rows = await tx
-        .select()
+        .select(guideColumns)
         .from(taxGuide)
         // Provisória fica de fora: é estimativa do fechamento, não o valor a
         // pagar. O cliente vê a guia quando a apuração oficial chega.
@@ -91,6 +102,8 @@ function mapRow(r: typeof taxGuide.$inferSelect): TaxGuideRecord {
     status: r.status === 'OPEN' && r.dueDate < today ? 'OVERDUE' : r.status,
     pixCode: r.pixCode,
     fileUrl: r.fileUrl,
+    installmentEstimated:r.installmentEstimated,
+    requestedAt:r.requestedAt?.toISOString() || null,
     installmentGroupId: r.installmentGroupId,
     installmentNumber: r.installmentNumber,
     installmentCount: r.installmentCount,
@@ -105,7 +118,7 @@ function mapRow(r: typeof taxGuide.$inferSelect): TaxGuideRecord {
  */
 export class AdminTaxGuideRepository {
   async listByCompany(db: DbHandle, companyId: string): Promise<TaxGuideRecord[]> {
-    const rows = await db.select().from(taxGuide).where(eq(taxGuide.companyId, companyId)).orderBy(desc(taxGuide.dueDate));
+    const rows = await db.select(guideColumns).from(taxGuide).where(eq(taxGuide.companyId, companyId)).orderBy(desc(taxGuide.dueDate));
     return rows.map(mapRow);
   }
 

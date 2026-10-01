@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import {
   Receipt,
   Layers,
@@ -12,6 +12,8 @@ import {
   Clock,
   AlertTriangle,
 } from 'lucide-react';
+import ParcelamentosHub from '@/components/parcelamentos/ParcelamentosHub';
+import type {PlanoMeta} from '@/lib/parcelamentos';
 import type { TaxGuideRecord, TaxGuideStatusValue } from '@hexxa/db';
 import { enviarGuiaAction, criarParcelamentoAction, excluirGuiaAction } from './actions';
 import { categoriaDe, type GuiaCategoria } from '@/lib/guias';
@@ -131,85 +133,10 @@ function EnviarGuiaForm({ companyId, onClose, onDone }: { companyId: string; onC
   );
 }
 
-function NovoParcelamentoForm({ companyId, onClose, onDone }: { companyId: string; onClose: () => void; onDone: () => void }) {
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    setSubmitting(true);
-    setError(null);
-    const res = await criarParcelamentoAction(companyId, {
-      description: String(fd.get('descricao') ?? '').trim(),
-      installmentCount: Number(fd.get('parcelas') ?? '0'),
-      installmentAmount: Number(String(fd.get('valorParcela') ?? '0').replace(',', '.')),
-      firstDueDate: String(fd.get('primeiroVencimento') ?? ''),
-      pixCode: String(fd.get('pix') ?? '').trim() || null,
-    });
-    setSubmitting(false);
-    if ('error' in res) {
-      setError(res.error!);
-      return;
-    }
-    onDone();
-    onClose();
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="rounded-3xl border border-black/10 dark:border-white/10 bg-[#E7EAE5]/80 dark:bg-[#1A201C]/80 p-6 space-y-4 shadow-sm animate-in fade-in">
-      <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-        <p className="font-serif font-bold text-base text-[#231F20] dark:text-[#F5F6F4]">Cadastrar Novo Parcelamento</p>
-        <button type="button" onClick={onClose} className="tap-target pressable focusable rounded-full p-1.5 text-[#6E6A61] hover:bg-black/5 dark:hover:bg-white/10">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className={lbl}>Descrição do parcelamento</label>
-          <input name="descricao" required placeholder="Ex.: Simples Nacional — débitos 2025" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>Nº de parcelas</label>
-          <input name="parcelas" type="number" min={2} required placeholder="12" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>Valor de cada parcela (R$)</label>
-          <input name="valorParcela" inputMode="decimal" required placeholder="0,00" className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>Vencimento da 1ª parcela</label>
-          <input name="primeiroVencimento" type="date" required className={`mt-1.5 ${field}`} />
-        </div>
-        <div>
-          <label className={lbl}>Código Pix (opcional, vale pra todas as parcelas)</label>
-          <input name="pix" className={`mt-1.5 ${field}`} />
-        </div>
-      </div>
-      <p className="text-[11px] text-[#6E6A61] dark:text-[#A8A49C]">
-        As demais parcelas são geradas automaticamente, uma por mês, a partir do vencimento da 1ª.
-      </p>
-      {error && <p className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>}
-      <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] transition-all hover:scale-105 disabled:opacity-60"
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Criar Parcelamento
-        </button>
-        <button type="button" onClick={onClose} className="rounded-full border border-black/10 dark:border-white/10 px-4 py-2.5 text-xs font-bold text-[#6E6A61] dark:text-[#A8A49C] hover:bg-black/5">
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
-export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initial: TaxGuideRecord[] }) {
+export function HubGuiasAdmin({ companyId, initial,parcelamentoPlans=[],companyClosed=false }: { companyId: string; initial: TaxGuideRecord[];parcelamentoPlans?:PlanoMeta[];companyClosed?:boolean }) {
   const [guias, setGuias] = useState<TaxGuideRecord[]>(initial);
   const [showGuiaForm, setShowGuiaForm] = useState(false);
-  const [showPlanoForm, setShowPlanoForm] = useState(false);
+  useEffect(()=>setGuias(initial),[initial]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   async function refetch() {
@@ -238,22 +165,16 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => { setShowGuiaForm((v) => !v); setShowPlanoForm(false); }}
+          onClick={() => { setShowGuiaForm((v) => !v); }}
           className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3328] hover:bg-[#2F4A3C] px-5 py-2.5 text-xs font-bold text-[#DFFFAE] shadow-sm transition-all hover:scale-105"
         >
           <Receipt className="h-4 w-4" /> Enviar Guia
         </button>
-        <button
-          type="button"
-          onClick={() => { setShowPlanoForm((v) => !v); setShowGuiaForm(false); }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/10 px-5 py-2.5 text-xs font-bold text-[#231F20] dark:text-[#F5F6F4] hover:bg-black/5 transition-all"
-        >
-          <Layers className="h-4 w-4" /> Cadastrar Parcelamento
-        </button>
+
       </div>
 
       {showGuiaForm && <EnviarGuiaForm companyId={companyId} onClose={() => setShowGuiaForm(false)} onDone={refetch} />}
-      {showPlanoForm && <NovoParcelamentoForm companyId={companyId} onClose={() => setShowPlanoForm(false)} onDone={refetch} />}
+
 
       <div className="space-y-3">
         <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Guias Avulsas ({avulsas.length})</h3>
@@ -292,59 +213,7 @@ export function HubGuiasAdmin({ companyId, initial }: { companyId: string; initi
         )}
       </div>
 
-      <div className="space-y-3">
-        <h3 className="font-serif font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">Parcelamentos ({planos.size})</h3>
-        {planos.size === 0 ? (
-          <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C] py-4">Nenhum parcelamento cadastrado ainda.</p>
-        ) : (
-          <div className="space-y-4">
-            {[...planos.entries()].map(([groupId, parcelas]) => {
-              const ordered = [...parcelas].sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
-              const pagas = ordered.filter((p) => p.status === 'PAID').length;
-              const total = ordered[0]?.installmentCount ?? ordered.length;
-              const totalValor = ordered.reduce((s, p) => s + p.amount, 0);
-              const desc = ordered[0]?.taxName.replace(/\s*\(\d+\/\d+\)$/, '') ?? 'Parcelamento';
-              return (
-                <div key={groupId} className="rounded-3xl border border-black/5 dark:border-white/10 bg-[#E7EAE5]/60 dark:bg-[#1A201C]/60 overflow-hidden">
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-black/5 dark:border-white/10">
-                    <div>
-                      <p className="font-bold text-sm text-[#231F20] dark:text-[#F5F6F4]">{desc}</p>
-                      <p className="text-xs text-[#6E6A61] dark:text-[#A8A49C]">{pagas}/{total} parcelas pagas · total {BRL.format(totalValor)}</p>
-                    </div>
-                    <div className="h-2 w-32 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                      <div className="h-full rounded-full bg-[#2F4A3C] dark:bg-[#DFFFAE]" style={{ width: `${(pagas / total) * 100}%` }} />
-                    </div>
-                  </div>
-                  <div className="divide-y divide-black/5 dark:divide-white/10">
-                    {ordered.map((p) => {
-                      const st = STATUS_CONFIG[p.status];
-                      const StatusIcon = st.icon;
-                      return (
-                        <div key={p.id} className="flex items-center gap-3 px-5 py-2.5 text-xs">
-                          <span className="w-10 shrink-0 font-bold text-[#6E6A61] dark:text-[#A8A49C]">{p.installmentNumber}/{p.installmentCount}</span>
-                          <span className="flex-1 text-[#6E6A61] dark:text-[#A8A49C]">Vence {fmtDate(p.dueDate)} · {BRL.format(p.amount)}</span>
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-bold ${st.cls}`}>
-                            <StatusIcon className="h-3 w-3" /> {st.label}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(p.id)}
-                            disabled={deleting === p.id}
-                            title="Excluir parcela"
-                            className="rounded-full p-1.5 text-[#6E6A61] hover:bg-red-500/10 hover:text-red-600 transition-colors disabled:opacity-50"
-                          >
-                            {deleting === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <ParcelamentosHub area="contador" companyId={companyId} initialGuides={guias} initialPlans={parcelamentoPlans} blockedReason={companyClosed?'Este cadastro de cliente está encerrado. Revise o encerramento e o CNPJ na ficha do cliente ou selecione o cadastro ativo antes de importar um parcelamento.':undefined}/>
     </div>
   );
 }

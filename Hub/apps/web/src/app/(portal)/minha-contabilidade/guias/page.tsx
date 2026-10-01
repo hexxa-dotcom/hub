@@ -1,3 +1,5 @@
+import {listarParcelamentos} from '@/lib/server/parcelamentos';
+import {novasGuiasParcelamento} from '@/lib/novas-guias-parcelamento';
 import { Suspense } from 'react';
 import { DrizzleTaxGuideRepository } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
@@ -50,7 +52,9 @@ export default async function Page() {
     listarEntregasDoCliente(ctx).catch(() => []),
     getHonorarios(ctx.companyId).catch(() => ({ cobrancas: [], semCobranca: true })),
   ]);
-  const guias = await getGuias();
+  let guias = await getGuias();
+  const {plans:parcelamentoPlans,guides:updatedInstallments}=await listarParcelamentos(ctx.companyId).catch(()=>({plans:[],guides:[]}));
+  guias=guias.map(g=>{const updated=updatedInstallments.find(p=>p.id===g.id);return updated?{...g,dueDate:updated.dueDate,status:updated.status}:g;});
   const [explicacoes, regime] = await Promise.all([
     explicarGuias(ctx, guias).catch(() => ({})),
     getDb()
@@ -73,6 +77,8 @@ export default async function Page() {
     <div className="mx-auto w-full space-y-6">
       <HubGuias
         initial={guias}
+        parcelamentoPlans={parcelamentoPlans}
+        novasParcelas={novasGuiasParcelamento(guias,entregas)}
         entregaDaGuia={Object.fromEntries(entregas.filter((e) => e.taxGuideId).map((e) => [e.taxGuideId!, e.id]))}
         documentos={entregas.filter((e) => !e.taxGuideId)}
         honorarios={honorarios.cobrancas}
@@ -87,4 +93,3 @@ export default async function Page() {
     </div>
   );
 }
-

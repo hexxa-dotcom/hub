@@ -34,6 +34,9 @@ export const taxGuide = pgTable('tax_guide', {
    * parcelas, cada parcela vira uma linha de tax_guide com o mesmo
    * installmentGroupId. Null = guia avulsa (não faz parte de um plano).
    */
+  installmentEstimated:boolean('installment_estimated').notNull().default(false),
+  installmentManaged:boolean('installment_managed').notNull().default(false),
+  requestedAt:timestamp('requested_at',{withTimezone:true}),
   installmentGroupId: uuid('installment_group_id'),
   installmentNumber: integer('installment_number'),
   installmentCount: integer('installment_count'),

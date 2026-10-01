@@ -354,3 +354,10 @@ export async function marcarAluguelPagoAction(entryId: string): Promise<{ ok: bo
   revalidatePath('/meu-negocio/hub-financeiro');
   return { ok: true, message: 'Aluguel marcado como recebido.' };
 }
+
+export async function enviarReciboPorEmailAction(entryId: string, email?: string): Promise<{ ok: boolean; message: string }> {
+  const ctx = await getTenantContext();
+  const { sendReciboEmailAction } = await import('@/lib/server/recibo-email');
+  const res = await sendReciboEmailAction(ctx, entryId, email);
+  return { ok: res.sent, message: res.message };
+}

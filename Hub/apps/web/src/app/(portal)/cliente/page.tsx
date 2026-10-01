@@ -11,6 +11,8 @@ import { blocosDoPerfil, ehPerfil, type BlocoId } from './blocos';
 import { getDb, sql } from '@hexxa/db';
 import { getTenantContext } from '@/lib/server/tenant';
 import { pendenciasDoDia } from '@/lib/server/inicio';
+import {listarNovasGuiasParcelamento} from '@/lib/server/entregas';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,12 +45,13 @@ export default async function ClientePage({
   const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' }).format(agora);
 
   const ctx = await getTenantContext();
-  const [pendencias, preferencia] = await Promise.all([
+  const [pendencias, preferencia, novasParcelas] = await Promise.all([
     pendenciasDoDia(ctx).catch(() => []),
     getDb()
       .execute(sql`SELECT inicio_perfil AS perfil, inicio_blocos AS blocos FROM company WHERE id = ${ctx.companyId}`)
       .then((r) => (r as unknown as { perfil: string; blocos: string[] | null }[])[0])
       .catch(() => undefined),
+    listarNovasGuiasParcelamento(ctx).catch(() => []),
   ]);
   const perfil = ehPerfil(preferencia?.perfil) ? preferencia.perfil : 'BASICO';
   const visiveis = blocosDoPerfil(perfil, preferencia?.blocos);
@@ -81,6 +84,8 @@ export default async function ClientePage({
           <p className="mt-0.5 text-2xl font-bold tracking-tight text-ink sm:text-3xl">{diaDoMes}</p>
         </div>
       </header>
+
+      {novasParcelas.length>0 && <Link href="/minha-contabilidade/guias?aba=parcelamentos" className="focusable flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hexxa-lime/25 bg-hexxa-lime/10 p-4 text-sm text-ink"><span><strong>{novasParcelas.length===1?'Você tem uma nova guia de parcelamento disponível':`Você tem ${novasParcelas.length} novas guias de parcelamento disponíveis`}</strong><span className="mt-1 block text-xs text-ink-soft">A contabilidade enviou o PDF. Acesse para consultar ou baixar.</span></span><span className="text-xs font-semibold">Ver parcelamentos →</span></Link>}
 
       {perfil === 'BASICO' ? (
         <>

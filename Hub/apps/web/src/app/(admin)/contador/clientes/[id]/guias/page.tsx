@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import {listarParcelamentos} from '@/lib/server/parcelamentos';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Receipt } from 'lucide-react';
@@ -20,6 +21,8 @@ export default async function ContadorGuiasPage({ params }: { params: Promise<{ 
     console.error('[ContadorGuiasPage] falha ao carregar guias:', err);
   }
 
+  const {plans:parcelamentoPlans,guides:updatedInstallments}=await listarParcelamentos(id).catch(()=>({plans:[],guides:[]}));
+  guias=guias.map(g=>{const updated=updatedInstallments.find(p=>p.id===g.id);return updated?{...g,dueDate:updated.dueDate,status:updated.status}:g;});
   return (
     <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in">
       <div className="flex items-center gap-4">
@@ -38,7 +41,7 @@ export default async function ContadorGuiasPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <HubGuiasAdmin companyId={id} initial={guias} />
+      <HubGuiasAdmin companyId={id} companyClosed={!!comp.closedAt} initial={guias} parcelamentoPlans={parcelamentoPlans}/>
     </div>
   );
 }

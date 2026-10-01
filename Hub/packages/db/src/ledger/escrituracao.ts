@@ -290,6 +290,10 @@ async function escriturarLinhaGuia(
   g: GuiaRow,
   opts: PostOptions,
 ): Promise<EscrituracaoResult> {
+  // Managed installment plans settle an existing debt. Provisioning each
+  // installment as a new tax expense would double count that debt. Debt
+  // reclassification/settlement needs the accountant's original liability.
+  if(g.installmentManaged)return vazio();
   const doc = {
     id: g.id,
     taxName: g.taxName,

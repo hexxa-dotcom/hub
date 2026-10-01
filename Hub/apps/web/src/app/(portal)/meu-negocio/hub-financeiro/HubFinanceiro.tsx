@@ -3,6 +3,7 @@
 import { ListaEmColunas, Titulo, Valor, Situacao, BotaoDiscreto, Campo, Detalhe } from '@/components/ui/ListaEmColunas';
 import { nomeDeExibicao } from '@/lib/nome-de-exibicao';
 import { VerComprovante } from '@/components/ui/VerComprovante';
+import { ReciboDoRecebimento } from '@/components/ui/ReciboDoRecebimento';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
@@ -1094,6 +1095,7 @@ function LancamentosTab({
               {l.costCenterName && <Campo rotulo="Centro de custo">{l.costCenterName}</Campo>}
               <Campo rotulo="Vencimento">{fmtDate(l.vencimento)}</Campo>
               {l.pago_em && <Campo rotulo={pagar ? 'Pago em' : 'Recebido em'}>{fmtDate(l.pago_em)}</Campo>}
+              {!pagar && l.statusDb === 'PAID' && <Campo rotulo="Recibo de pagamento" largo><ReciboDoRecebimento entryId={l.id}/></Campo>}
               {l.interest && l.interest > 0 ? <Campo rotulo="Multa e juros">{fmt(l.interest)}</Campo> : null}
               {l.discount && l.discount > 0 ? <Campo rotulo="Desconto">{fmt(l.discount)}</Campo> : null}
               <Campo rotulo="Lançado em">{fmtDate(l.created_at.split('T')[0]!)}</Campo>

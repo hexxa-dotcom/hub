@@ -19,6 +19,9 @@ function isPublicRoute(pathname: string): boolean {
     '/v',
     // Proposta que o cliente abre para aceitar ou recusar.
     '/p',
+    // Recibo compartilhado: token aleatório, expiração e cancelamento no handler.
+    '/r',
+    '/recibo/verificar',
     '/api/leads',
     '/api/webhooks',
     '/api/docuseal/token',
@@ -39,6 +42,12 @@ const DEV_SKIP_AUTH = process.env.NODE_ENV !== 'production' && process.env.DEV_S
 const SKIP_AUTH_TEMP = (process.env.SKIP_AUTH_TEMP ?? '').trim().toLowerCase() === 'true';
 
 export default async function middleware(req: NextRequest) {
+  // Local visual preview uses fictitious data and never opens tenant data.
+  if (process.env.NODE_ENV !== 'production' &&
+      (req.nextUrl.pathname === '/previa/parcelamentos' || req.nextUrl.pathname === '/previa/recibos' || req.nextUrl.pathname === '/previa/recibos/verificar' ||
+       (req.nextUrl.pathname === '/api/recibo/preview' && req.nextUrl.searchParams.get('exemplo') === 'true'))) {
+    return NextResponse.next();
+  }
   if (SKIP_AUTH_TEMP) {
     // `/auth/empresa` é pública com login (a sessão já protege), mas sem login
     // ela lista e abre qualquer empresa — então passa pelo código.

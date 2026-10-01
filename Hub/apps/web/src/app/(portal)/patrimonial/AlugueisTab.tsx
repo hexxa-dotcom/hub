@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Loader2, Paperclip, Plus, X } from 'lucide-react';
+import { ChevronDown, Loader2, Paperclip, Plus, X, FileText } from 'lucide-react';
 import { CardResumo, GradeDeResumo } from '@/components/ui/CardResumo';
 import { VerComprovante } from '@/components/ui/VerComprovante';
+import { ReciboDoRecebimento } from '@/components/ui/ReciboDoRecebimento';
 import type { PropertyRow, LeaseRow, RentPaymentRow } from './actions';
 import {
   createLeaseAction,
@@ -162,6 +163,7 @@ function Aluguel({ lease, hoje, onChanged }: { lease: LeaseRow; hoje: string; on
     }
   }
 
+
   return (
     <li>
       <button type="button" onClick={alternar} className="flex w-full flex-wrap items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
@@ -229,7 +231,14 @@ function Aluguel({ lease, hoje, onChanged }: { lease: LeaseRow; hoje: string; on
                       <span className={`text-[11px] font-semibold ${p.status === 'PAID' ? 'text-emerald-700 dark:text-emerald-400' : atrasado ? 'text-rose-600 dark:text-rose-400' : 'text-ink-soft'}`}>
                         {p.status === 'PAID' ? `Recebido em ${fmtDate(p.paidAt)}` : atrasado ? 'Atrasado' : 'A receber'}
                       </span>
-                      <span className="ml-auto flex items-center gap-4">
+                      <span className="ml-auto flex items-center gap-3">
+                        {p.status === 'PAID' ? <ReciboDoRecebimento entryId={p.id}/> : (
+                          <a href={`/api/recibo/preview?id=${p.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
+                            <FileText size={12}/> Demonstrativo
+                          </a>
+                        )}
+                        <a href="/meu-negocio/recibos" className="text-[11px] font-semibold text-ink-soft hover:underline">Recibos e agenda</a>
+
                         {p.hasReceipt && (
                           <VerComprovante id={p.id} className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft hover:text-ink">
                             <Paperclip className="h-3 w-3" /> Comprovante

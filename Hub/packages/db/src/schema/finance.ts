@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, date, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, date, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { company } from './tenancy';
 import { entryType, entryStatus, categoryKind, reconciliationStatus } from './_enums';
 
@@ -67,6 +67,7 @@ export const financialEntry = pgTable('financial_entry', {
   description: text('description').notNull(),
   /** amount = Valor final pago (originalAmount + interest - discount) */
   amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+  receiptItems: jsonb('receipt_items'),
   originalAmount: numeric('original_amount', { precision: 14, scale: 2 }),
   interest: numeric('interest', { precision: 14, scale: 2 }), // Juros e Multas
   discount: numeric('discount', { precision: 14, scale: 2 }), // Descontos
