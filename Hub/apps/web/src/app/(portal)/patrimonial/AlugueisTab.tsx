@@ -63,6 +63,10 @@ export function AlugueisTab({ properties, leases, aliquota, hoje }: { properties
         <CardResumo rotulo="Sobra por mês" valor={BRL.format(renda - imposto)} nota="Aluguel menos o imposto" />
       </GradeDeResumo>
 
+      <div className="rounded-2xl border border-black/5 bg-black/[0.02] p-4 text-xs leading-relaxed text-ink-soft dark:border-white/5 dark:bg-white/[0.02]">
+        <strong className="text-ink">Holding Patrimonial & Comprovação Fiscal:</strong> Pela legislação tributária brasileira (Súmula Vinculante 31 do STF e LC 116/2003), a locação de imóveis próprios é isenta de ISS e <em>não emite NFS-e</em>. O recolhimento de impostos federais (PIS, COFINS, IRPJ e CSLL no Lucro Presumido) é comprovado diretamente pelo <strong>Recibo de Locação</strong>, gerado todo mês com quitação ao inquilino e link de validação digital.
+      </div>
+
       <section className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="rotulo text-ink-soft">Contratos de aluguel</p>

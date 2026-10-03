@@ -40,7 +40,8 @@ export type BalancoEntry = { amount: number; type: string; status: string; refer
  * os relatórios somavam tudo e o faturamento não batia com elas.
  */
 export const FONTES_DE_RECEITA = ['NFSE', 'DFE_SYNC'];
-const ehReceita = (e: { type: string; source: string | null }) => e.type === 'RECEIVABLE' && FONTES_DE_RECEITA.includes(e.source ?? '');
+const ehReceita = (e: { type: string; source: string | null }, isHolding = false) =>
+  e.type === 'RECEIVABLE' && (FONTES_DE_RECEITA.includes(e.source ?? '') || (isHolding && e.source === 'RENT'));
 
 export type BalancoMonthSummary = {
   month: string;
@@ -72,9 +73,9 @@ export function lastNMonths(n: number) {
   return out;
 }
 
-export function summarizeBalanco(entries: BalancoEntry[], effectiveRate: number) {
-  const receita = entries.filter(ehReceita).reduce((s, e) => s + Number(e.amount), 0);
-  const outrasEntradas = entries.filter((e) => e.type === 'RECEIVABLE' && !ehReceita(e)).reduce((s, e) => s + Number(e.amount), 0);
+export function summarizeBalanco(entries: BalancoEntry[], effectiveRate: number, isHolding = false) {
+  const receita = entries.filter((e) => ehReceita(e, isHolding)).reduce((s, e) => s + Number(e.amount), 0);
+  const outrasEntradas = entries.filter((e) => e.type === 'RECEIVABLE' && !ehReceita(e, isHolding)).reduce((s, e) => s + Number(e.amount), 0);
   const prolabore = entries
     .filter((e) => e.type === 'PAYABLE' && String(e.description || '').startsWith('Pró-labore'))
     .reduce((s, e) => s + Number(e.amount), 0);
@@ -135,7 +136,8 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
 
   const entries = allEntries.filter((e) => e.reference_month >= deOrdered && e.reference_month <= ateOrdered);
   const taxa = await aliquotaDoFaturamento(ctx);
-  const { receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarizeBalanco(entries, taxa.aliquota);
+  const isHolding = ctx.companyType === 'HOLDING';
+  const { receita, outrasEntradas, prolabore, despesasOperacionais, impostoEstimado, lucroLiquido } = summarizeBalanco(entries, taxa.aliquota, isHolding);
   const despesasTotais = despesasOperacionais + prolabore + impostoEstimado;
   const margem = receita > 0 ? (lucroLiquido / receita) * 100 : 0;
 
@@ -151,7 +153,7 @@ export async function getBalancoDreData(ctx: TenantContext, params: { de?: strin
 
   const monthly: BalancoMonthSummary[] = [...options]
     .reverse()
-    .map((m) => ({ month: m, ...summarizeBalanco(allEntries.filter((e) => e.reference_month === m), taxa.aliquota) }));
+    .map((m) => ({ month: m, ...summarizeBalanco(allEntries.filter((e) => e.reference_month === m), taxa.aliquota, isHolding) }));
 
   const periodoLabel = deOrdered === ateOrdered ? monthLabel(deOrdered) : `${monthLabel(deOrdered)} a ${monthLabel(ateOrdered)}`;
 
@@ -180,7 +182,7 @@ export async function getFaturamentoData(ctx: TenantContext, params: { ano?: str
       SELECT to_char(reference_month, 'YYYY') AS ano, to_char(reference_month, 'YYYY-MM') AS mes, coalesce(sum(amount), 0) AS total
       FROM financial_entry
       WHERE company_id = ${ctx.companyId} AND type = 'RECEIVABLE' AND status != 'CANCELED'
-        AND source IN ('NFSE', 'DFE_SYNC')
+        AND (source IN ('NFSE', 'DFE_SYNC') OR (${ctx.companyType} = 'HOLDING' AND source = 'RENT'))
       GROUP BY 1, 2
       ORDER BY 2
     `);
@@ -242,14 +244,15 @@ export async function getFaturamentoPorClienteData(ctx: TenantContext, params: {
     const rows = await tx.execute(sql`
       SELECT
         to_char(fe.reference_month, 'YYYY') AS ano,
-        coalesce(c.name, ndd.tomador_nome, ${SEM_CLIENTE}) AS cliente,
+        coalesce(c.name, ndd.tomador_nome, l.lessee_name, ${SEM_CLIENTE}) AS cliente,
         fe.amount AS amount
       FROM financial_entry fe
       LEFT JOIN service_invoice si ON fe.source = 'NFSE' AND si.id = fe.source_id
       LEFT JOIN customer c ON c.id = si.customer_id
+      LEFT JOIN lease l ON fe.source = 'RENT' AND l.id = fe.source_id
       LEFT JOIN nfse_distribuicao_doc ndd ON fe.source = 'DFE_SYNC' AND ndd.company_id = fe.company_id AND ndd.chave_acesso = fe.external_id
       WHERE fe.company_id = ${ctx.companyId} AND fe.type = 'RECEIVABLE' AND fe.status != 'CANCELED'
-        AND fe.source IN ('NFSE', 'DFE_SYNC')
+        AND (fe.source IN ('NFSE', 'DFE_SYNC') OR (${ctx.companyType} = 'HOLDING' AND fe.source = 'RENT'))
     `);
     const despesaRows = await tx.execute(sql`
       SELECT to_char(reference_month, 'YYYY') AS ano, coalesce(sum(amount), 0) AS total

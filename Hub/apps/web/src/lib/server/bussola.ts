@@ -25,7 +25,10 @@ export async function faturamentoMensal(ctx: TenantContext): Promise<MesDeFatura
        WHERE company_id = ${ctx.companyId}
          AND type = 'RECEIVABLE'
          AND status != 'CANCELED'
-         AND source IN ('NFSE', 'DFE_SYNC')
+         AND (
+           source IN ('NFSE', 'DFE_SYNC')
+           OR (${ctx.companyType} = 'HOLDING' AND source = 'RENT')
+         )
          AND reference_month >= (date_trunc('month', now()) - interval '12 months')::date
        GROUP BY 1
     `),

@@ -536,6 +536,9 @@ export function UnifiedContractWizard({ companyType, hasProperties, onDone, onCa
                   <option value="IGPM">IGP-M</option>
                 </select>
               </div>
+              <div className="sm:col-span-2 rounded-2xl border border-black/5 bg-black/[0.02] p-3.5 text-xs text-ink-soft dark:border-white/5 dark:bg-white/[0.02]">
+                <strong className="text-ink">Comprovação Fiscal por Recibo:</strong> Contratos de aluguel geram mensalmente o <strong>Recibo de Locação em PDF</strong> para comprovação da receita e quitação do inquilino (sem emissão de NFS-e, conforme Súmula Vinculante 31 do STF).
+              </div>
             </div>
           )}
 

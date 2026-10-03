@@ -386,11 +386,19 @@ export function ContratosClient({
                 </div>
 
                 {(activeTab as string) === 'entrada' && (
-                  <div className="sm:col-span-2 flex items-center gap-2 pt-2">
-                    <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded border-black/10 dark:border-white/10 text-hexxa-green focus:ring-hexxa-lime" />
-                    <label htmlFor="autoEmitNfse" className="text-xs font-bold text-ink cursor-pointer">
-                      Emitir Nota Fiscal (NFSe) automaticamente no dia do vencimento
-                    </label>
+                  <div className="sm:col-span-2 pt-2">
+                    {companyType === 'HOLDING' ? (
+                      <div className="rounded-xl border border-black/5 bg-black/[0.02] p-3 text-xs text-ink-soft dark:border-white/5 dark:bg-white/[0.02]">
+                        <span className="font-bold text-ink">Holding Patrimonial:</span> As receitas de locação e contratos da holding são comprovadas mensalmente por <strong>Recibo de Locação / Quitação</strong> (isentas de NFS-e conforme Súmula Vinculante 31 STF).
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="autoEmitNfse" name="autoEmitNfse" className="h-4 w-4 rounded border-black/10 dark:border-white/10 text-hexxa-green focus:ring-hexxa-lime" />
+                        <label htmlFor="autoEmitNfse" className="text-xs font-bold text-ink cursor-pointer">
+                          Emitir Nota Fiscal (NFSe) automaticamente no dia do vencimento
+                        </label>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
