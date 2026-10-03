@@ -2,7 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import type { TenantContext } from '@hexxa/core';
-import { getDb, company, appUser, membership, eq, and, withDbTimeout } from '@hexxa/db';
+import { getDb, company, appUser, membership, eq, and, withDbTimeout, sql } from '@hexxa/db';
 import { isNull } from 'drizzle-orm';
 import { createClient } from '@/lib/supabase/server';
 import { isAdminUser } from './admin-guard';
@@ -124,7 +124,10 @@ export async function resolveAppUser(authUid: string, email: string | undefined)
     const [pending] = await db
       .select({ id: appUser.id })
       .from(appUser)
-      .where(and(eq(appUser.email, email), eq(appUser.authUid, `PENDING-${email}`)));
+      // Convite pendente (PENDING-<email>) ou conta da época do Clerk
+      // (auth_uid "user_…"): o e-mail foi confirmado agora pelo código, então
+      // a linha é desta pessoa — religa, com as empresas que já tinha.
+      .where(and(eq(appUser.email, email), sql`(${appUser.authUid} = ${`PENDING-${email}`} OR left(${appUser.authUid}, 5) = 'user_')`));
     if (pending) {
       await db.update(appUser).set({ authUid }).where(eq(appUser.id, pending.id));
       return pending;

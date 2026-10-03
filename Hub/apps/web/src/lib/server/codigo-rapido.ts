@@ -1,7 +1,8 @@
 import 'server-only';
 import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
-import { getDb, appUser, eq, sql } from '@hexxa/db';
+import { getDb, appUser, eq } from '@hexxa/db';
+import { resolveAppUser } from '@/lib/server/tenant';
 import { TRAVA_COOKIE, DESBLOQUEIO_VALE_MS, assinarTrava, lerTrava, opcoesDaTrava } from '@/lib/auth/trava';
 
 export const ERROS_ATE_LOGIN_COMPLETO = 5;
@@ -20,15 +21,14 @@ export function conferirCodigo(codigo: string, guardado: string): boolean {
 /** Login completo acabou de acontecer: marca o aparelho e a data. */
 export async function registrarLoginCompleto(authUid: string, email: string | undefined) {
   const db = getDb();
+  // Religa convite pendente ou conta antiga antes de marcar o login.
+  const { id } = await resolveAppUser(authUid, email);
   const [u] = await db
     .update(appUser)
     .set({ ultimoLoginCompleto: new Date(), codigoRapidoErros: 0 })
-    .where(eq(appUser.authUid, authUid))
+    .where(eq(appUser.id, id))
     .returning({ hash: appUser.codigoRapidoHash });
-  // Primeiro login de quem foi convidado: a linha ainda é PENDING- (resolveAppUser religa depois).
-  const temCodigo = !!u?.hash || (email
-    ? !!(await db.execute(sql`SELECT 1 FROM app_user WHERE email = ${email} AND codigo_rapido_hash IS NOT NULL`)).length
-    : false);
+  const temCodigo = !!u?.hash;
   const agora = Date.now();
   (await cookies()).set(TRAVA_COOKIE, await assinarTrava({ u: authUid, f: agora, d: agora + DESBLOQUEIO_VALE_MS, p: temCodigo }), opcoesDaTrava);
   return { temCodigo };
